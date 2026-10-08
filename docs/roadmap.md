@@ -8,6 +8,8 @@ Deliver a reusable renderer first, a small demo as its host, and a minimal cu-cl
 
 Track implementation work in Issues and P0/P1/P2 milestones once investigation has refined the tasks. No delivery dates or final dependency choices are assumed here.
 
+The [development plan](dev-plan.md) expands this roadmap into proposed module boundaries, structured implementation tasks, test scenarios, and explicit approval gates. It remains a draft until input, rendering, runtime, and host decisions are verified.
+
 ## 1. Validate the Input and UX Reference
 
 - [ ] Confirm CU API version(s) and the exact JSON written by cu-cli, including outer response wrappers.

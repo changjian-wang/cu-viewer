@@ -81,6 +81,8 @@ PDF.js and the two react-pdf-highlighter projects are candidates to evaluate, no
 
 - [Requirements](docs/requirements.md): the supplied brief organized by priority, with proposed acceptance checks and clarification items.
 - [Roadmap](docs/roadmap.md): implementation order, investigation checkpoints, and release gates.
+- [Development plan](docs/dev-plan.md): proposed architecture, phased implementation tasks, dependencies, acceptance-to-test mapping, and host integration gates.
+- [Development plan (Simplified Chinese)](docs/dev-plan.zh-CN.md): a Chinese translation with the same task identifiers, dependencies, and technical contracts.
 
 ## Samples and Verification
 
