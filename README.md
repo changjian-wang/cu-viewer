@@ -71,7 +71,7 @@ The CLI owns browser launch, local file delivery, and any local hosting mechanis
 
 ## References, Not an Application Base
 
-[Content Understanding Studio](https://ai.azure.com/) is the behavioral reference named in the task brief; the exact current Studio entry point and behavior must be verified during investigation. The goal is a familiar inspection workflow, not pixel-perfect reproduction.
+Content Understanding Studio is the behavioral reference named in the task brief; the exact current Studio entry point and behavior must be verified during investigation. The goal is a familiar inspection workflow, not pixel-perfect reproduction.
 
 [OCR-Form-Tools](https://github.com/microsoft/OCR-Form-Tools) is an implementation reference for rendering, overlays, page navigation, and coordinate transformation. This project is not a fork of that application and should not automatically inherit its Redux, Electron, service integrations, or older application architecture.
 
