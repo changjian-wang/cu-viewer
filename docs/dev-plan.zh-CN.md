@@ -3,9 +3,9 @@
 > **领域**：集成 / 可复用 React 组件
 > **目标仓库**：changjian-wang/cu-result-viewer
 > **需求基线**：[需求](requirements.md)与[路线图](roadmap.md)，对应提交 `163814a`
-> **设计批准情况**：待批准；本仓库尚无已获批准的设计文档
-> **状态**：草稿（Draft）；所有实现任务均待开始
-> **最后更新**：2026-10-08
+> **设计批准情况**：负责人已批准初始基线和 MIT/LGPL 候选方向；分发批准仍待完成
+> **状态**：实施中；v2 线框已批准，PDF/PNG 可运行原型已通过浏览器检查；用户交互复核和完整 P0 门槛仍开放
+> **最后更新**：2026-10-10
 > **语言**：本文件是[英文原版](dev-plan.md)的简体中文译本；技术标识、JSON 键名和枚举值保持原文
 
 ## 目录
@@ -159,6 +159,10 @@ flowchart LR
 | `1.1` | 记录 CU/CLI 契约、已批准的运行环境/源文件假设、真实样本来源与缺口，以及 Studio 观察结果。**AC-1.1**：真实 PDF 和图片配对的字段、页码及几何预期已验证；未决问题均有负责人和验收门槛。 | M |
 | `1.2` | 评估 PDF.js、两个高亮项目、OCR-Form-Tools 实现模式，以及必需图片格式的解码。**AC-1.2**：记录可复现的多边形/旋转/Worker/解码依据、候选版本/许可证、所选方案，以及阻塞 P0 的格式缺口。 | M |
 
+**2026-10-09 进展**：负责人已批准 G0 设计/候选方向。[设计决策](design-decisions.md)与[样本清单](../tests/fixtures/manifest.json)保留真实配对及[依据](rendering-evaluation.md)。任务 2.1-2.3 已交付，339 个单元案例及 512 个实际几何浏览器检查通过。下一项为界面原型评审，正式任务 2.4 受此门槛约束。可复用查看器渲染、分发/更新义务及额外 UX/样本覆盖仍未完成。
+
+**2026-10-10 进展**：负责人已完成 v2 静态评审。[可运行 React 原型](../README.md#run-the-prototype)现使用实际源文件/字段组件与保存的 PDF/PNG 配对，375 个单元案例和 Chrome/Edge 共 16 个浏览器运行通过；开发和生产演示页面均已打开检查效果。[Fields 样式](prototype/interactive-fields.png)按负责人提供的 Studio 截图对齐，保留默认折叠、缺失过滤及稳定父子颜色，并统一 Fields/原文置信度格式与不可用来源页诊断。这推进了端到端闭环，但未完成所有格式、React 调用方、分发和 CLI 要求。
+
 使用当前 Studio 查看有代表性的 PDF 和图片结果。记录布局、字段名/值/置信度展示、悬停与选择的区别、跨页导航、适应/缩放/平移/旋转，以及缺失源文件或来源定位信息时的行为。如果无法访问 Studio，应记录限制，并保持行为评审门槛未通过。
 
 **G0 通过条件**：输入/几何依据、运行环境/源文件契约、渲染方案和设计决策均获得任务负责人的批准。不从参考规划文档推断任何 API 或编解码能力。
@@ -175,6 +179,16 @@ flowchart LR
 | `2.4` | 增加可取消的 PDF 适配器和源文件面板。**AC-2.4**：真实多页 PDF 按正确尺寸/页数渲染，并使用本地 Worker 资源；渲染/加载失败和取消均可观察。 | M |
 | `2.5` | 增加通用图片适配器及所选解码路径。**AC-2.5**：每种 P0 图片扩展名均在已批准的浏览器矩阵中测试；明确展示解码失败，方向与已验证的来源定位一致。 | M |
 | `2.6` | 组装查看器、通用字段、交互状态和叠加层。**AC-2.6**：悬停/选择真实 PDF/图片字段时高亮对应区域，支持 PDF 跨页导航，悬停结束后保留选择；没有来源定位信息时仍展示字段值。 | M |
+
+**任务 2.1 已交付**：[公共类型](../src/index.ts)、[输入测试](../src/index.test.ts)、[包与工具链](../package.json)及 [MIT](../LICENSE) 已建立。入口现也导出原型组件，但声明构建成功仍不能替代浏览器行为验证。
+
+**任务 2.2 已交付**：[内部解析](../src/internal/parseCuResult.ts)与[测试](../src/internal/parseCuResult.test.ts)保留原始 GA 数据，并明确区分错误与警告。PDF/PNG 运行得到 100/42 个节点和 53/13 个区域，均无警告；这不是可视化验证。
+
+**任务 2.3 已交付**：[几何模块](../src/internal/geometry.ts)与[测试](../src/internal/geometry.test.ts)按真实页面尺寸实现可逆视图变换。原实验和已实现原型均保留并检查 1 CSS 像素门槛。
+
+**原型评审门槛（负责人要求）**：[v2 静态设计](prototype/README.md)已获批准，[交互原型](../README.md#run-the-prototype)已实现初始选择/导航/状态方向。首轮实际运行及浏览器检查完成，生产加固前仍待用户复核实际交互与布局。字段预览改放下方小栏，不覆盖原文。HEIF、丰富 P1 面板、完整格式/方向及安装包调用方门槛未取消。
+
+**先运行检查点**：任何源文件面板或查看器宿主一旦可挂载，就先启动，在浏览器中查看真实 PDF/图片及字段—原文联动，再扩展功能。不等全部 P0 控件完成，也不用解析日志代替页面效果。
 
 **G1 通过条件**：使用任务 3.2 引入的演示宿主或临时测试宿主，证明真实 PDF/图片的关联无需凭据、CU 请求或标准化步骤。浏览器场景必须执行集成后的实际渲染路径，不能只测试模拟几何信息。
 
@@ -249,12 +263,29 @@ flowchart LR
 ```json
 {
   "feature": "cu-result-viewer",
-  "status": "draft",
+  "status": "in_progress",
   "target_repository": "changjian-wang/cu-result-viewer",
   "design_doc": null,
+  "review_gates": [
+    {
+      "id": "ui-prototype-v1",
+      "status": "interactive-ready-awaiting-user-review",
+      "iteration": 2,
+      "wireframe_approved": true,
+      "browser_checks_passed": true,
+      "unit_cases": 375,
+      "browser_runs": 16,
+      "fields_reference": "docs\\prototype\\interactive-fields.png",
+      "reference": "docs\\prototype\\README.md",
+      "state_preview": "docs\\prototype\\index.html",
+      "state_count": 10,
+      "sequence": ["wireframe-review", "interactive-prototype", "browser-review"],
+      "blocks": ["2.4"]
+    }
+  ],
   "tasks": [
     {
-      "id": "1.1", "phase": 1, "priority": "P0", "title": "验证输入、样本与 Studio 行为", "effort": "M",
+      "id": "1.1", "phase": 1, "priority": "P0", "title": "验证输入、样本与 Studio 行为", "effort": "M", "status": "done",
       "description": "记录 D1/D2/D5 依据、Studio 观察结果、已批准的运行环境/源文件假设，以及剩余决策的负责人。不推断 CU 几何信息或 CLI 序列化方式。",
       "files": [
         {"path": "docs\\design-decisions.md", "action": "create"},
@@ -265,7 +296,7 @@ flowchart LR
       "tests": [{"id": "T-1.1", "type": "manual", "framework": "document-review", "description": "检查源文件/结果配对及 Studio；与负责人评审版本、来源、几何信息和决策记录。", "covers_criteria": ["AC-1.1"]}]
     },
     {
-      "id": "1.2", "phase": 1, "priority": "P0", "title": "评估渲染与解码", "effort": "M",
+      "id": "1.2", "phase": 1, "priority": "P0", "title": "评估渲染与解码", "effort": "M", "status": "done",
       "description": "比较 PDF.js、两个 react-pdf-highlighter 候选和 OCR-Form-Tools 实现模式。记录可复现的渲染/叠加层/旋转/Worker/图片解码验证、版本、许可证、成本及所选方案。",
       "files": [{"path": "docs\\rendering-evaluation.md", "action": "create"}],
       "depends_on": ["1.1"],
@@ -273,21 +304,26 @@ flowchart LR
       "tests": [{"id": "T-1.2", "type": "manual", "framework": "browser-probe", "description": "在已批准的浏览器中重复文档所述验证，包括 HEIF/HEIC 解码与 90 度旋转；评审许可证和资源打包依据。", "covers_criteria": ["AC-1.2"]}]
     },
     {
-      "id": "2.1", "phase": 2, "priority": "P0", "title": "建立工具链与公共输入类型", "effort": "S",
+      "id": "2.1", "phase": 2, "priority": "P0", "title": "建立工具链与公共输入类型", "effort": "S", "status": "done",
       "description": "建立已批准的 npm/TypeScript/Vite 工具链、lint/单元测试脚本、对等依赖，以及概念性的公共源文件/结果类型。通过包管理器生成锁文件。",
       "files": [
         {"path": "package.json", "action": "create"},
+        {"path": "package-lock.json", "action": "create"},
+        {"path": "LICENSE", "action": "create"},
+        {"path": ".gitignore", "action": "create"},
         {"path": "tsconfig.json", "action": "create"},
+        {"path": "tsconfig.build.json", "action": "create"},
         {"path": "vite.config.ts", "action": "create"},
-        {"path": "eslint.config.js", "action": "create"},
-        {"path": "src\\index.ts", "action": "create"}
+        {"path": "eslint.config.mjs", "action": "create"},
+        {"path": "src\\index.ts", "action": "create"},
+        {"path": "src\\index.test.ts", "action": "create"}
       ],
       "depends_on": ["1.1", "1.2"],
       "acceptance_criteria": [{"id": "AC-2.1", "text": "干净安装、严格类型检查、lint、单元测试运行器和构建均通过；公共源文件变体及 unknown 结果无需 CU SDK 类型即可编译。"}],
       "tests": [{"id": "T-2.1", "type": "integration", "framework": "toolchain", "description": "在干净安装后运行脚本，并编译使用公共类型的示例；检查声明的运行时依赖是否包含禁止的服务/SDK 耦合。", "covers_criteria": ["AC-2.1"]}]
     },
     {
-      "id": "2.2", "phase": 2, "priority": "P0", "title": "解析已验证的 CU 结果结构", "effort": "M",
+      "id": "2.2", "phase": 2, "priority": "P0", "title": "解析已验证的 CU 结果结构", "effort": "M", "status": "done",
       "description": "校验 unknown JSON，识别已验证的保存/CLI 结构，并生成具有稳定标识的内部字段/页面/区域记录。保留全部传入值/区域，明确报告无效输入。",
       "files": [
         {"path": "src\\internal\\types.ts", "action": "create"},
@@ -299,7 +335,7 @@ flowchart LR
       "tests": [{"id": "T-2.2", "type": "unit", "framework": "vitest", "description": "测试实际外层包装/版本、多内容项、重复标签、0/false/null、缺失置信度/来源定位、畸形值和冻结后的输入。", "covers_criteria": ["AC-2.2"]}]
     },
     {
-      "id": "2.3", "phase": 2, "priority": "P0", "title": "实现共享几何变换", "effort": "M",
+      "id": "2.3", "phase": 2, "priority": "P0", "title": "实现共享几何变换", "effort": "M", "status": "done",
       "description": "使用共享纯函数变换，将已验证的 CU 单位/原点/方向映射到源文件与视口坐标。拒绝无效区域，不猜测单位或页码。",
       "files": [
         {"path": "src\\internal\\geometry.ts", "action": "create"},
@@ -311,12 +347,17 @@ flowchart LR
     },
     {
       "id": "2.4", "phase": 2, "priority": "P0", "title": "通过内部源文件适配器渲染 PDF", "effort": "M",
+      "status": "prototype-implemented",
+      "execution_ready": false,
+      "blocked_by": "原型代码和浏览器检查已存在；生产加固等待用户交互复核及其他交付门槛。",
       "description": "定义私有的页面/渲染/取消/释放契约，实现所选 PDF 适配器与源文件面板，使用本地资源并明确展示失败状态。",
       "files": [
         {"path": "src\\internal\\source.ts", "action": "create"},
         {"path": "src\\internal\\pdfSource.ts", "action": "create"},
         {"path": "src\\components\\SourcePane.tsx", "action": "create"},
-        {"path": "src\\internal\\pdfSource.test.ts", "action": "create"}
+        {"path": "src\\internal\\pdfSource.test.ts", "action": "create"},
+        {"path": "src\\internal\\source.test.ts", "action": "create"},
+        {"path": "tools\\pdfAssets.ts", "action": "create"}
       ],
       "depends_on": ["2.1"],
       "acceptance_criteria": [{"id": "AC-2.4", "text": "真实多页 PDF 按已验证的尺寸/页数渲染，并使用本地 Worker 资源；加载/渲染失败和取消均可观察。"}],
@@ -327,6 +368,7 @@ flowchart LR
     },
     {
       "id": "2.5", "phase": 2, "priority": "P0", "title": "通过通用适配器渲染必需图片格式", "effort": "M",
+      "status": "partial-prototype",
       "description": "复用源文件契约，支持原生/备用解码、方向及原始尺寸。HEIF/HEIC 保持在 P0，明确展示解码错误。",
       "files": [
         {"path": "src\\internal\\imageSource.ts", "action": "create"},
@@ -342,11 +384,12 @@ flowchart LR
     },
     {
       "id": "2.6", "phase": 2, "priority": "P0", "title": "关联字段、导航与源文件叠加层", "effort": "M",
+      "status": "prototype-implemented",
       "description": "组装查看器，提供通用字段/值/置信度展示、独立悬停/选择状态、跨页导航，以及使用共享变换的多边形。从公共入口导出组件。",
       "files": [
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "create"},
         {"path": "src\\components\\FieldsPane.tsx", "action": "create"},
-        {"path": "src\\components\\Overlay.tsx", "action": "create"},
+        {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
         {"path": "src\\internal\\interaction.ts", "action": "create"},
         {"path": "src\\internal\\interaction.test.ts", "action": "create"},
         {"path": "src\\index.ts", "action": "modify"}
@@ -360,6 +403,7 @@ flowchart LR
     },
     {
       "id": "3.1", "phase": 3, "priority": "P0", "title": "完成控件、错误状态与生命周期", "effort": "M",
+      "status": "partial-prototype",
       "description": "增加缩放/平移/适应/旋转和 PDF 页码控件；处理加载/空数据/错误及以最后一次加载为准的源文件更换。释放自身持有的资源，保持源文件/叠加层变换同步。",
       "files": [
         {"path": "src\\components\\Toolbar.tsx", "action": "create"},
@@ -378,12 +422,16 @@ flowchart LR
     },
     {
       "id": "3.2", "phase": 3, "priority": "P0", "title": "交付本地演示与浏览器回归测试集", "effort": "M",
+      "status": "partial-prototype",
       "description": "加载浏览器选择的源文件和已保存 JSON，明确展示输入错误。增加 Playwright 配置/脚本，使用真实测试样本清单执行集成正常/异常场景。",
       "files": [
         {"path": "demo\\index.html", "action": "create"},
         {"path": "demo\\App.tsx", "action": "create"},
         {"path": "playwright.config.ts", "action": "create"},
-        {"path": "tests\\e2e\\viewer.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\prototype.spec.ts", "action": "create"},
+        {"path": "demo\\main.tsx", "action": "create"},
+        {"path": "demo\\styles.css", "action": "create"},
+        {"path": "demo\\vite.config.ts", "action": "create"},
         {"path": "package.json", "action": "modify"}
       ],
       "depends_on": ["3.1"],
@@ -498,7 +546,7 @@ flowchart LR
 
 ### 基础设施与命令
 
-当前没有测试基础设施。仅引入已批准实现所需的工具：
+任务 2.1 已建立单元测试/lint/类型/构建基础；浏览器、组件及宿主测试设施将在需要时补充：
 
 - **Vitest**：使用与实现文件同目录的 `*.test.ts`，覆盖解析器、几何处理、适配器及交互状态。
 - **React Testing Library**：使用 `*.test.tsx` 覆盖组件值、状态、焦点及自定义渲染；采用面向 DOM 的断言，而不只使用快照。
@@ -506,13 +554,13 @@ flowchart LR
 - **宿主原生集成测试**：使用已确认 CLI 仓库的现有运行器，不另建一套 CLI 框架。
 - **人工验证依据**：Studio 对比、依赖/许可证评估，以及负责人批准，仍明确属于人工工作，不计入自动化覆盖。
 
-任务 2.1/3.2/3.3 完成后要求提供的脚本契约：`npm ci`、`npm run typecheck`、`npm run lint`、`npm run test:unit`、`npm run test:e2e`、`npm run build`，以及使用 `npm pack` 进行安装包使用方验证。这些命令在当前仅有文档的仓库中尚不能运行，也未经过验证。
+`npm ci --ignore-scripts`、`npm run typecheck`、`npm run lint`、`npm run test:unit`、`npm run test:e2e`、`npm run build` 和 `npm run build:demo` 已实现。原型有 375 个单元案例，8 个浏览器场景在 Chrome 和 Edge 中共执行 16 次并通过，包括 Fields 尺寸/颜色、缺失过滤、统一置信度及不可用来源页恢复。生产演示已检查效果；完整公共源文件输入矩阵、100 次切换的资源配对断言和隔离 `npm pack` 安装包调用方覆盖仍未完成。
 
 常规回归测试使用已保存、已脱敏的真实结果，不实时调用 Analyze。访问真实服务只用于明确批准的测试样本获取，或验证外部 CLI 新分析路径。源文件 URL 测试可以使用本地测试服务器；测试禁止 CU 请求及对必需外部 CDN 资源的依赖。不在测试日志或浏览器产物中记录凭据、SAS URL、客户文档或未经处理的敏感结果。
 
 ### 覆盖范围与场景
 
-当前尚无运行时测试覆盖。以下场景用于补齐需求缺口：
+原型源文件/字段/变换/错误覆盖已存在于[状态单元测试](../src/internal/interaction.test.ts)和[浏览器测试](../tests/e2e/prototype.spec.ts)。下表仍是完整需求覆盖图；原型子集通过不代表每项需求都完成。
 
 | 需求 / 前提 | 操作 | 预期结果 | 验收标准 / 测试 |
 | --- | --- | --- | --- |
@@ -584,3 +632,15 @@ flowchart LR
 | 日期 | 变更 |
 | --- | --- |
 | 2026-10-08 | 基于仅有文档的查看器基线及本地 CU 规划模板形成初始草稿；增加带验收门槛的架构/任务/测试，并明确阻塞的外部 CLI 工作。 |
+| 2026-10-09 | 记录阶段 1 决策及真实 cu-cli GA 配对样本；保留未通过的 Studio/渲染门槛，实现任务依赖图保持不变。 |
+| 2026-10-09 | 增加负责人反馈的 Studio 单页走查和真实浏览器验证；明确 PDF 尺寸映射及 HEIF 许可/CSP/生命周期要求，不放宽验收标准，也不将 G0 标记为通过。 |
+| 2026-10-09 | 验证显式拥有的 libheif 1.23.5 JS/WASM Worker，以及严格 CSP 下的纯 JS 解码；将 HEIF 技术阻塞收敛为明确的候选/分发批准与实现覆盖要求。 |
+| 2026-10-09 | 记录负责人对初始设计的批准，以及微软开源发布目标；主项目与第三方许可选择仍需明确，不推断其已获批准。 |
+| 2026-10-09 | 记录明确的 MIT/LGPL 候选批准及 G0 初始开发许可；完成任务 2.1 的真实工具链/类型/测试，同时保留分发与查看器渲染门槛。 |
+| 2026-10-09 | 完成任务 2.2 并运行真实 GA 输入，49 个单元案例通过；记录负责人要求：首次可运行的面板/宿主先启动并检查效果，再扩展功能。 |
+| 2026-10-09 | 完成任务 2.3，在解析中复用区域校验，并将实际几何代码接入浏览器检查效果；可复用源文件面板/查看器仍为下一实施对象。 |
+| 2026-10-09 | 在正式任务 2.4 前加入负责人要求的 Studio 风格线框 → 交互原型 → 浏览器评审门槛；保留现有底层基础和 P0/P1 范围。 |
+| 2026-10-10 | 将静态原型优化为 v2，补齐十种状态/流程画面及干净源文件素材。运行行为提案仍待评审，正式任务 2.4 保持受限，现有实现未改。 |
+| 2026-10-10 | v2 静态评审获批；实现并立即启动 React 原型，修复本地 Worker URL，验证 363 个单元案例与 10 个浏览器运行，同时保留用户交互/HEIF/安装包/发布门槛。 |
+| 2026-10-10 | 按负责人截图对齐可运行 Fields 图标/间距，增加默认折叠、真实缺失过滤和稳定的后代颜色；验证 368 个单元案例及 14 个浏览器运行，刷新开发/生产截图，没有新增 Analyze 调用。 |
+| 2026-10-10 | 统一 Fields/原文置信度与实际来源页可用性；通过合成失配/恢复验证 375 个单元案例及 16 个浏览器运行，同步路线图/样本覆盖，并明确静态 v2 图片保留历史 UI，不作为最新 Fields 验收基线。 |

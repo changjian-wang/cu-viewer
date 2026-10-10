@@ -4,9 +4,9 @@ A reusable React/TypeScript component for inspecting Azure Content Understanding
 
 ## Status
 
-**Planning only.** This repository currently contains project documentation. No viewer implementation, published package, runnable demo, or cu-cli integration has been delivered yet. Features below describe the intended scope, not existing capabilities.
+**Interactive prototype available.** The private MIT package now exports a React viewer prototype and has a runnable local demo using real saved PDF/PNG results. Source rendering, field correlation and basic viewing controls have browser coverage. This is not a P0 release, published package, or cu-cli integration.
 
-The repository is private. Public release, licensing, supported React versions, and implementation dependencies remain to be decided.
+The repository is private. The task owner approved the initial design, MIT for the main component, and LGPL decoder candidates subject to compliance before any distribution. The eventual goal is a Microsoft open-source project, not an already approved Microsoft publication. Copyright ownership, third-party distribution obligations, and release approval remain gated.
 
 ## Objective
 
@@ -14,7 +14,7 @@ Provide a result-inspection workflow familiar to Content Understanding Studio us
 
 The main deliverable is a reusable, rendering-only client-side component. It must accept the source and the original serialized CU Analyze result without asking callers to normalize the result or construct CU SDK model instances.
 
-Conceptual usage, not an implemented or finalized API:
+Implemented prototype input shape, not a stable published API:
 
 ```tsx
 <ContentUnderstandingResultViewer
@@ -23,7 +23,7 @@ Conceptual usage, not an implemented or finalized API:
 />
 ```
 
-The proposed source input is `File | Blob | ArrayBuffer | string`, and the result input is `unknown` containing parsed, serialized CU Analyze JSON. The precise TypeScript API and the meaning of string source inputs will be finalized during implementation.
+Source input is `File | Blob | ArrayBuffer | string`, and result input is `unknown` containing parsed, serialized CU Analyze JSON. Strings are HTTP, HTTPS, or host-owned blob URLs, not filesystem paths or data URLs. The current prototype detects PDF/PNG/JPEG/BMP from content; HEIF/HEIC remains required P0 work, not implemented support.
 
 ## Component Boundary
 
@@ -71,7 +71,7 @@ The CLI owns browser launch, local file delivery, and any local hosting mechanis
 
 ## References, Not an Application Base
 
-Content Understanding Studio is the behavioral reference named in the task brief; the exact current Studio entry point and behavior must be verified during investigation. The goal is a familiar inspection workflow, not pixel-perfect reproduction.
+Content Understanding Studio is the behavioral reference named in the task brief; its behavior must be verified rather than inferred. Fields styling follows the owner's supplied Studio screenshot; the project does not reproduce the entire Studio application.
 
 [OCR-Form-Tools](https://github.com/microsoft/OCR-Form-Tools) is an implementation reference for rendering, overlays, page navigation, and coordinate transformation. This project is not a fork of that application and should not automatically inherit its Redux, Electron, service integrations, or older application architecture.
 
@@ -83,6 +83,62 @@ PDF.js and the two react-pdf-highlighter projects are candidates to evaluate, no
 - [Roadmap](docs/roadmap.md): implementation order, investigation checkpoints, and release gates.
 - [Development plan](docs/dev-plan.md): proposed architecture, phased implementation tasks, dependencies, acceptance-to-test mapping, and host integration gates.
 - [Development plan (Simplified Chinese)](docs/dev-plan.zh-CN.md): a Chinese translation with the same task identifiers, dependencies, and technical contracts.
+- [Design decisions and Phase 1 evidence](docs/design-decisions.md): approved initial assumptions, actual cu-cli input/geometry evidence, Studio limitations, and remaining gates.
+- [Rendering evaluation](docs/rendering-evaluation.md): actual browser geometry/decoding probes, candidate comparison, and unresolved HEIF license/CSP/lifecycle gates.
+- [UI prototype v2](docs/prototype/README.md): approved [static design gallery](docs/prototype/index.html), the runnable prototype workflow, and actual [Fields](docs/prototype/interactive-fields.png), [PDF](docs/prototype/interactive-pdf.png) and [PNG](docs/prototype/interactive-png.png) screenshots. Interactive user review is the next gate.
+
+## Run the Prototype
+
+From the repository root, after installing the locked dependencies:
+
+```powershell
+npm ci --ignore-scripts
+npm run dev
+```
+
+Open <http://127.0.0.1:5173/>. Select **PDF** or **Receipt PNG** to load a real paired sample. Hover a field to preview its primary source region, click to pin it, and use the source controls to zoom, fit, rotate, pan, or navigate PDF pages. A single-page image does not show page-navigation inputs.
+
+Fields follows the Studio reference without a separate Clear button. Selecting another field replaces the pin; changing inputs/content or filtering out a selected missing field resets the selection automatically.
+
+Objects and arrays start collapsed; use the right-hand chevrons to expand them. **Hide missing fields** starts enabled and hides only fields without a returned value, not `0`, `false`, `null`, or empty strings. Fields and source previews share two-decimal confidence formatting; absent confidence is omitted, not replaced with zero. An ungrounded field has an outlined dot and no page badge. Groups use their own primary region or the first genuinely grounded descendant, and descendants inherit their root field's color without changing the original JSON.
+
+If a result references a page absent from the loaded source, its page badge is disabled and explains the mismatch. Result warnings list unavailable pages; hovering or selecting an affected field keeps its value inspectable and shows a source-region error without a fake page jump or highlight. Supplying a matching result removes the warning and restores navigation.
+
+The file pickers belong to the demo host. They read local files and parsed JSON; the component receives original data and never calls CU. Source failure does not hide valid fields, invalid result data does not hide a valid source, and parser issues remain visible. Prototype field previews use a small dock below the document so that they cannot obscure source text.
+
+Known limits: HEIF/HEIC, rich P1 panes, React 18 consumer compatibility, intrinsic orientation/crop fixtures, complete accessibility/touch behavior, isolated packed-package consumers, CLI integration, and release/compliance gates are not complete. Markdown, Paragraphs, Tables, Code and the more-views control match the reference appearance but remain disabled prototype placeholders. Rich Markdown/JSON views are still planned P1 work.
+
+## Development Foundation
+
+Use Node.js 22.x starting at 22.13.0, Node.js 24.x, or Node.js 26+. The current checks ran on Windows with Node.js 22.16.0 and npm 10.9.2.
+
+From the repository root:
+
+```powershell
+npm ci --ignore-scripts
+npm run typecheck
+npm run lint
+npm run test:unit
+npm run test:e2e
+npm run build
+npm run build:demo
+```
+
+Browser tests use the installed Chrome and Edge, through Playwright's `chrome` and `msedge` channels. `npm run test:e2e` starts the loopback demo if it is not already running. Production-host preview is available with `npm run preview:demo` after `npm run build:demo`, at <http://127.0.0.1:4173/>.
+
+The library build generates an ESM component entry, public TypeScript declarations, scoped CSS, and local PDF resources in `dist`. It exports `ContentUnderstandingResultViewer`, `ViewerSource`, and `ContentUnderstandingResultViewerProps`. Import the package CSS through `cu-result-viewer/styles.css` when using the built entry. The demo build is separate in `dist-demo`; rendering that build is not an isolated packed-package consumer test.
+
+The [internal parser](src/internal/parseCuResult.ts) accepts the verified `2025-11-01` operation envelope or its inner Analyze result without caller normalization. It preserves missing/zero/false/null values and nested field identity, parses CU page/region information, and does not modify the original JSON. Structural failures throw `CuResultParseError`; invalid confidence/grounding produces explicit issues while preserving extracted values. Unverified field/content types are retained with warnings, not advertised as fully supported.
+
+[Parser tests](src/internal/parseCuResult.test.ts) and input tests account for 49 cases. Direct parsing of the PDF/PNG results yields 100/42 field nodes and 53/13 regions without warnings; these counts do not verify UI effects.
+
+The [geometry module](src/internal/geometry.ts) maps CU coordinates through actual rendered-page dimensions, zoom, pan and quarter-turn rotation, with inverse, fit and raster-size helpers. Shared region validation prevents parser and overlay disagreements. Core input/parser/geometry tests account for 339 cases; source, PDF lifecycle, interaction and display tests bring the current unit total to **375**.
+
+The initial geometry experiment passed 512 rendered-coordinate cases. The actual [React prototype browser suite](tests/e2e/prototype.spec.ts) now passes **16 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: real source/field interaction, PDF/PNG transforms, page bounds, empty/error recovery, local standard fonts, scalar/multiple-content boundaries, resize, source replacement, Studio-style Fields dimensions/colors, missing-field filtering, consistent confidence and unavailable-source-page recovery. Both development and built demo pages were opened and visually checked, including narrow-pane tabs. Development StrictMode cancels and successfully retries two initial sample requests; these expected cancellations are recorded separately from resource errors.
+
+React and React DOM are peers for the intended React 18/19 library; the current runtime uses React 19.3. PDF.js 6.3.289 is the only direct rendering dependency. Its worker/fonts/CMaps/WASM/ICC resources are packaged locally with its license. CU SDKs, Azure credentials, service clients, and the investigated LGPL decoder are not package dependencies. Main source is covered by [MIT](LICENSE); the sample documents retain their [original notice](tests/fixtures/LICENSE.txt).
+
+The npm lockfile uses the environment's existing Microsoft public package feed without embedded credentials. A cold installation outside this environment and the final public distribution/asset layout must still be verified before release.
 
 ## Samples and Verification
 
@@ -90,4 +146,6 @@ Use real, paired source documents and matching sanitized CU results for normal d
 
 Do not commit credentials, SAS tokens, customer-sensitive documents, or unsanitized Analyze results. Document specific sample gaps before claiming coverage.
 
-Build, installation, and test commands will be added when implementation and tooling exist. No runtime or test results are claimed at this stage.
+The [fixture inventory](tests/fixtures/manifest.json) records two actual GA service calls on licensed public source documents, original CLI responses, hashes, expected fields/geometry, and coverage gaps. Acquiring fixtures with cu-cli does not implement browser viewing or add CU dependencies to the future library.
+
+The prototype commands and the limited browser scenarios above are verified. They do not establish every required P0 format, performance/embedding guarantee, or distribution obligation. No new Analyze calls are needed to run this demo.

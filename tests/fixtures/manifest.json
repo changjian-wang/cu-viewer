@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Internal fixture inventory; not a public CU result or viewer input schema.",
+  "collectedOn": "2026-10-09",
+  "status": "initial-design-approved-implementation-started",
+  "gate": "G0-approved-for-initial-implementation",
+  "projectDirection": {
+    "initialDesignApproved": true,
+    "approvalDate": "2026-10-09",
+    "intendedRelease": "Microsoft open-source project",
+    "currentPublicationApproved": false,
+    "mainLicense": "MIT",
+    "dependencyLicensePolicy": "MIT main component; LGPL candidates allowed, with compliance before any distribution.",
+    "licensingRouteApproved": true,
+    "foundationTask": "2.1 completed; input types/tooling only, not viewer rendering"
+  },
+  "uiPrototypeDirection": {
+    "style": "Studio-familiar desktop",
+    "iteration": 2,
+    "updatedOn": "2026-10-10",
+    "sequence": ["wireframe-review", "interactive-prototype", "browser-review"],
+    "status": "interactive-ready-awaiting-user-review",
+    "wireframeApproved": true,
+    "approvalDate": "2026-10-10",
+    "reference": "..\\..\\docs\\prototype\\README.md",
+    "statePreview": "..\\..\\docs\\prototype\\index.html",
+    "staticStateScreens": 10,
+    "sourcePreviews": "Original PDF pages 1/4 freshly rendered without baked-in highlights; original PNG pixel canvas preserved.",
+    "behaviorApproval": "V2 initial behavior direction approved; implemented interaction/layout still awaits user review.",
+    "diagnosticStates": "Loading, empty and errors are explicit design scenarios, not observed service outcomes.",
+    "formalTaskPaused": "2.4",
+    "realSourceDataUsed": true,
+    "interactiveViewerImplemented": true,
+    "productionReleaseApproved": false,
+    "unitTests": 375,
+    "browserRuns": 16,
+    "fieldsReferenceScreenshot": "..\\..\\docs\\prototype\\interactive-fields.png",
+    "fieldsPresentation": "Studio screenshot-aligned dots, badges, chevrons and spacing; groups initially collapsed; missing values initially hidden; Fields/source confidence consistently to two decimals; unavailable source page badges disabled with explicit warnings; original root colors inherited by descendants; raw inputs unchanged.",
+    "liveHostCommand": "npm run dev",
+    "liveHostUrl": "http://127.0.0.1:5173/",
+    "runtimeBrowsers": [
+      {"name": "Chrome", "version": "154.0.8037.98"},
+      {"name": "Edge", "version": "155.0.4283.45"}
+    ],
+    "developmentAndBuiltDemoChecked": true,
+    "previewLayoutAdjustment": "Field preview is below the document, not covering source text.",
+    "remaining": "HEIF, React18 consumer matrix, intrinsic orientation/crop, rich P1 panes, packed consumer and release/compliance checks are incomplete.",
+    "additionalAnalyzeCalls": 0
+  },
+  "parserImplementation": {
+    "task": "2.2",
+    "status": "implemented-and-executed",
+    "supportedApiVersion": "2025-11-01",
+    "acceptedShapes": ["operation-envelope", "inner-analyze-result"],
+    "parserTests": 45,
+    "totalUnitTests": 49,
+    "realRuns": [
+      {"fixture": "ga-mixed-financial-docs-invoice", "fieldNodes": 100, "sourceRegions": 53, "missingValues": 12, "issues": 0},
+      {"fixture": "ga-receipt-png", "fieldNodes": 42, "sourceRegions": 13, "missingValues": 11, "issues": 0}
+    ],
+    "originalReferencePreserved": true,
+    "publicNormalizedSchemaExposed": false,
+    "additionalAnalyzeCalls": 0,
+    "visualViewerVerified": false,
+    "nextVisualCheckpoint": "Run and inspect the first runnable source/viewer harness before expanding features; parser output is not a UI test."
+  },
+  "geometryImplementation": {
+    "task": "2.3",
+    "status": "implemented-unit-tested-and-browser-executed",
+    "geometryUnitTests": 290,
+    "realFixtureUnitMatrixCases": 256,
+    "totalUnitTests": 339,
+    "coordinateThresholdCssPixels": 1,
+    "browserRuns": [
+      {"name": "Chrome", "version": "154.0.8037.59", "renderedCoordinateCases": 256},
+      {"name": "Edge", "version": "154.0.4258.53", "renderedCoordinateCases": 256}
+    ],
+    "maxRenderedCoordinateErrorCssPixels": 0.017544003161192513,
+    "actualCoreModuleLoaded": true,
+    "browserReport": "core-geometry-results.json in the retained session investigation environment",
+    "visualSourceHighlightChecked": true,
+    "packagedViewerVerified": false,
+    "additionalAnalyzeCalls": 0,
+    "limitations": "Experimental PDF source/highlight host; full viewer/source lifecycle/field interaction and native orientation/crop coverage remain open."
+  },
+  "acquisition": {
+    "tool": "cu-cli",
+    "version": "0.1.0b3",
+    "coreVersion": "0.1.0b3",
+    "apiVersion": "2025-11-01",
+    "actualAnalyzeCalls": 2,
+    "authorization": "Task owner requested real service calls on 2026-10-09.",
+    "authentication": "Existing Microsoft Entra session; no credentials stored.",
+    "newResourcesCreated": false,
+    "customAnalyzersCreated": false,
+    "modelDefaultsChanged": false
+  },
+  "sourceProvenance": {
+    "repository": "https://github.com/Azure-Samples/azure-ai-content-understanding-python",
+    "commit": "fbc18880179397729abfa9506bda865d009dc711",
+    "license": "MIT",
+    "licenseFile": "LICENSE.txt",
+    "classification": "Public example documents; no customer files submitted."
+  },
+  "renderingInvestigation": {
+    "date": "2026-10-09",
+    "document": "..\\..\\docs\\rendering-evaluation.md",
+    "status": "probe-passed-shipping-decisions-open",
+    "pdfjsVersion": "6.3.289",
+    "heicToVersion": "1.6.5",
+    "browsers": [
+      {"name": "Chrome", "version": "154.0.8037.59", "coordinateCases": 256},
+      {"name": "Edge", "version": "154.0.4258.53", "coordinateCases": 256}
+    ],
+    "maxCoordinateErrorCssPixels": 0.017544003161192513,
+    "thresholdCssPixels": 1,
+    "naivePage4HeightErrorAt4xCssPixels": 4.7283413333334465,
+    "page4ReferenceKind": "Explicitly synthetic page-boundary vertices, not extracted fields.",
+    "imageCoverage": "Decoder-only JPEG/BMP derivatives and one licensed HEVC-in-HEIF file with extension aliases; not additional paired CU results.",
+    "heifNativeDecoding": "Unsupported in both tested browsers.",
+    "heifFallback": "Conditional pass with Blob Workers; LGPL-3.0, hidden-worker lifecycle and host CSP require decisions.",
+    "additionalAnalyzeCalls": 0,
+    "viewerImplemented": false
+  },
+  "heifOwnedWorkerInvestigation": {
+    "date": "2026-10-09",
+    "document": "..\\..\\docs\\rendering-evaluation.md",
+    "status": "technical-probe-passed-candidate-approved-distribution-pending",
+    "libheifVersion": "1.23.5",
+    "libde265Version": "1.0.15",
+    "source": "https://github.com/catdad-experiments/libheif-emscripten/releases/tag/v1.23.5",
+    "sourceRevision": "413e2a87e6a70b3eccc3a3adc5801179dd2d9e00",
+    "license": "LGPL-3.0",
+    "licensePolicyApproval": "allowed-candidate-distribution-compliance-required",
+    "variants": ["wasm", "js"],
+    "recommendedInitialVariant": "js",
+    "browsers": [
+      {"name": "Chrome", "version": "154.0.8037.59", "scenariosPerVariant": 12, "workersCreated": 218, "workersTerminated": 218},
+      {"name": "Edge", "version": "154.0.4258.53", "scenariosPerVariant": 12, "workersCreated": 218, "workersTerminated": 218}
+    ],
+    "cancellationCycles": 400,
+    "activeWorkersAfterTests": 0,
+    "callerBufferPreserved": true,
+    "sameOriginWorker": true,
+    "blobWorkersRequired": false,
+    "javascriptUnsafeEvalRequired": false,
+    "pureJsWasmCompilationPermissionRequired": false,
+    "wasmVariantCompilationPermissionRequired": true,
+    "outputPngSha256": "140e96a3b0a32cd85e030ab9d6811a1de84a024cdb383cc5efb56fc02a4fc7fc",
+    "decoderHeapCapacityAtDecodeBytes": 17039360,
+    "pureJsAsset": {
+      "bytes": 3369222,
+      "sha256": "804551ee35288509d5bde23c480e956f9d7b2a0dfc0b36a6a9a8a5b01234d276"
+    },
+    "additionalAnalyzeCalls": 0,
+    "limitations": "One public HEVC sample, not full format/orientation/bit-depth coverage, peak-memory proof, complete SBOM or licensing approval; actual viewer remains unimplemented."
+  },
+  "fixtures": [
+    {
+      "id": "ga-mixed-financial-docs-invoice",
+      "source": {
+        "path": "mixed-financial-docs.pdf",
+        "upstreamPath": "data/mixed_financial_docs.pdf",
+        "url": "https://media.githubusercontent.com/media/Azure-Samples/azure-ai-content-understanding-python/fbc18880179397729abfa9506bda865d009dc711/data/mixed_financial_docs.pdf",
+        "mediaType": "application/pdf",
+        "bytes": 266116,
+        "sha256": "dacd225d4af0cb0ca4357af2cfcb5a777ab5e356f2c4aff0d6f12e69f5656361",
+        "verification": "Download size, PDF signature and SHA-256 checked; independent rendered-PDF review remains pending."
+      },
+      "result": {
+        "path": "mixed-financial-docs.cu.json",
+        "bytes": 393506,
+        "sha256": "3aa12180bb396b78384f79f7577cdebb7b75e9711951fa85f54e0ea573f1b15b",
+        "apiVersion": "2025-11-01",
+        "analyzerId": "prebuilt-invoice",
+        "status": "Succeeded",
+        "createdAt": "2026-10-09T02:26:46Z",
+        "rootKeys": ["id", "status", "result", "usage"],
+        "contentCount": 1,
+        "kind": "document",
+        "unit": "inch",
+        "synthetic": false,
+        "preservedCliOutput": true,
+        "privacyReview": "Only public-source content; credential, SAS and resource-endpoint screening required by fixture validation."
+      },
+      "expected": {
+        "pageCount": 4,
+        "pageCountEvidence": "Actual CU result.pages and start/end page range; not an independent PDF-rendering check.",
+        "pages": [
+          {"pageNumber": 1, "width": 8.5, "height": 11, "angle": 0},
+          {"pageNumber": 2, "width": 8.5, "height": 11, "angle": 0},
+          {"pageNumber": 3, "width": 8.5, "height": 11, "angle": 0},
+          {"pageNumber": 4, "width": 8.2639, "height": 11.6806, "angle": 0}
+        ],
+        "topLevelFieldCount": 31,
+        "recursiveFieldNodeCount": 100,
+        "groundedFieldNodeCount": 47,
+        "missingSourceNodeCount": 53,
+        "missingConfidenceNodeCount": 43,
+        "sourceRegionCount": 53,
+        "multiRegionFieldNodeCount": 6,
+        "fieldTypes": ["array", "date", "number", "object", "string"],
+        "groundedFieldPageNumbers": [1],
+        "fieldReferences": [
+          {
+            "pointer": "/result/contents/0/fields/AmountDue/valueObject/Amount",
+            "type": "number",
+            "valueProperty": "valueNumber",
+            "value": 610,
+            "confidence": 0.341,
+            "source": "D(1,7.3628,8.0513,7.9272,8.0513,7.9272,8.2124,7.3628,8.2124)",
+            "pageNumber": 1,
+            "polygon": [[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.3628, 8.2124]]
+          },
+          {
+            "pointer": "/result/contents/0/fields/BalanceForward/valueObject/Amount",
+            "type": "number",
+            "valueProperty": "valueNumber",
+            "value": 500,
+            "confidence": 0.395,
+            "source": "D(1,7.3586,7.7458,7.9272,7.7458,7.9272,7.9089,7.3586,7.9089)",
+            "pageNumber": 1,
+            "polygon": [[7.3586, 7.7458], [7.9272, 7.7458], [7.9272, 7.9089], [7.3586, 7.9089]]
+          }
+        ],
+        "multiRegionReferences": [
+          {
+            "pointer": "/result/contents/0/fields/BillingAddress",
+            "source": "D(1,0.5801,3.9488,1.2856,3.9470,1.2860,4.1130,0.5805,4.1148);D(1,0.5728,4.1489,2.0254,4.1489,2.0254,4.3167,0.5728,4.3167)",
+            "regionCount": 2,
+            "pageNumbers": [1, 1]
+          }
+        ]
+      },
+      "limitations": [
+        "All grounded extracted fields currently refer to page 1.",
+        "Cross-page navigation can be tested by starting on page 4 and selecting a page-1 field; grounding on pages 2-4 is not covered.",
+        "This mixed-document invoice analysis is not an extraction-accuracy benchmark.",
+        "The prototype verifies page-1 polygon alignment during fit/zoom/pan/quarter-turn rotation and manual cross-page navigation; full intrinsic rotation/crop, DPR and repeated-switch coverage is incomplete."
+      ]
+    },
+    {
+      "id": "ga-receipt-png",
+      "source": {
+        "path": "receipt.png",
+        "upstreamPath": "data/receipt.png",
+        "url": "https://media.githubusercontent.com/media/Azure-Samples/azure-ai-content-understanding-python/fbc18880179397729abfa9506bda865d009dc711/data/receipt.png",
+        "mediaType": "image/png",
+        "bytes": 723344,
+        "sha256": "888235286a379a6bf6f4012a7f1a14bb5b6b3217e34de2b3bb9f0acddf799a42",
+        "intrinsicDimensions": {"width": 1743, "height": 878},
+        "verification": "PNG signature and dimensions checked with Windows image APIs; merchant heading visually inspected."
+      },
+      "result": {
+        "path": "receipt.cu.json",
+        "bytes": 29242,
+        "sha256": "83bea171c872f1992ca1bce3362e0f73bdd7347dc6a78c033014fa3aa868626e",
+        "apiVersion": "2025-11-01",
+        "analyzerId": "prebuilt-receipt",
+        "status": "Succeeded",
+        "createdAt": "2026-10-09T02:26:46Z",
+        "rootKeys": ["id", "status", "result", "usage"],
+        "contentCount": 1,
+        "kind": "document",
+        "unit": "pixel",
+        "synthetic": false,
+        "preservedCliOutput": true,
+        "privacyReview": "Only public-source content; credential, SAS and resource-endpoint screening required by fixture validation."
+      },
+      "expected": {
+        "pageCount": 1,
+        "pages": [{"pageNumber": 1, "width": 1743, "height": 878, "angle": 0}],
+        "topLevelFieldCount": 12,
+        "recursiveFieldNodeCount": 42,
+        "groundedFieldNodeCount": 12,
+        "missingSourceNodeCount": 30,
+        "missingConfidenceNodeCount": 23,
+        "sourceRegionCount": 13,
+        "multiRegionFieldNodeCount": 1,
+        "fieldTypes": ["array", "date", "number", "object", "string", "time"],
+        "groundedFieldPageNumbers": [1],
+        "fieldReferences": [
+          {
+            "pointer": "/result/contents/0/fields/MerchantName",
+            "type": "string",
+            "valueProperty": "valueString",
+            "value": "Contoso",
+            "confidence": 0.378,
+            "source": "D(1,775.0000,73.0000,973.0000,72.0000,973.0000,111.0000,775.0000,112.0000)",
+            "pageNumber": 1,
+            "polygon": [[775, 73], [973, 72], [973, 111], [775, 112]]
+          },
+          {
+            "pointer": "/result/contents/0/fields/MerchantPhoneNumber",
+            "type": "string",
+            "valueProperty": "valueString",
+            "value": "987-654-3210",
+            "confidence": 0.418,
+            "source": "D(1,700.0000,298.0000,842.0000,298.0000,842.0000,323.0000,700.0000,323.0000)",
+            "pageNumber": 1,
+            "polygon": [[700, 298], [842, 298], [842, 323], [700, 323]]
+          }
+        ],
+        "multiRegionReferences": [
+          {
+            "pointer": "/result/contents/0/fields/MerchantAddress",
+            "source": "D(1,700.0000,189.0000,858.0000,189.0000,858.0000,213.0000,700.0000,213.0000);D(1,700.0000,223.0000,911.0000,223.0000,911.0000,249.0000,700.0000,249.0000)",
+            "regionCount": 2,
+            "pageNumbers": [1, 1]
+          }
+        ]
+      },
+      "limitations": [
+        "Chrome/Edge prototype tests render this PNG and check MerchantName polygon alignment, fit width and 90/180/270-degree rotations; this does not establish other image-format or decoder-fallback coverage.",
+        "EXIF/intrinsic orientation, the full integrated DPR/viewport/zoom matrix and repeated-switch resource accounting remain unverified."
+      ]
+    }
+  ],
+  "openGaps": [
+    {"id": "studio-interactions", "owner": "Task owner and viewer maintainer", "gate": "G2", "status": "partial-manual-pass", "description": "Owner accepted the single-page Studio controls as the initial design reference. The implemented viewer now tests hover/pin persistence, missing grounding, manual cross-page interaction and PNG behavior. Extended Studio cross-page/image walkthroughs and exact Studio semantics remain unverified; viewer tests are not Studio automation."},
+    {"id": "rendering-decision", "owner": "Viewer maintainer", "gate": "G0", "status": "approved-initial-direction", "description": "Task owner approved the initial PDF.js/private-adapter/SVG/native-image/owned-HEIF-worker direction and allowed LGPL candidates. Implemented behavior and distribution compliance are not yet approved."},
+    {"id": "required-image-formats", "owner": "Viewer maintainer", "gate": "G2", "status": "partial-decoder-pass", "description": "Chrome/Edge native PNG/JPEG/BMP probes pass; the actual viewer tests the real PNG pair. One HEVC-in-HEIF file also passes owned libheif 1.23.5 JS/WASM-worker probes, but no HEIF decoder is integrated in the main package. Extension aliases/derived assets are not independent paired coverage; broader formats and intrinsic orientation remain open."},
+    {"id": "geometry-variants", "owner": "Viewer maintainer", "gate": "G1", "status": "partial-viewer-pass", "description": "512 page-aware coordinate probe scenarios pass within 1 CSS pixel; fixed-unit conversion exposes a 4.728341 pixel page-4 discrepancy at 4x. The prototype checks real PDF/PNG primary polygons through fit/zoom/pan/quarter-turns and manual cross-page navigation. Real later-page grounding, bounding-box browser cases, intrinsic crop/orientation, full integrated DPR/viewport/zoom coverage and 100-switch resource accounting remain open."},
+    {"id": "additional-input-shapes", "owner": "Viewer maintainer", "gate": "G2", "status": "partial-unit-and-viewer-pass", "description": "Parser tests cover verified GA wrappers and value/identity boundaries; synthetic browser scenarios cover multiple contents, zero/false/null/empty/missing values, invalid confidence/grounding and unavailable-source-page recovery. The complete File/Blob/ArrayBuffer/URL browser matrix remains open. Only verified 2025-11-01 is supported; additional API versions need separate evidence/approval."},
+    {"id": "cli-host-contract", "owner": "Task owner and toolkit maintainers", "gate": "G3", "status": "open", "description": "Actual CLI data acquisition is verified; --view and saved-result browser hosting are not implemented or approved."},
+    {"id": "heif-shipping-decision", "owner": "Project owner and viewer maintainer", "gate": "G2", "status": "distribution-compliance-pending", "description": "MIT/LGPL candidate direction is explicitly approved; worker/CSP probes pass. Complete corresponding-source/notices, dependency/update review, real-format coverage and production packaging before any distribution; no codec assets are currently in the main package."},
+    {"id": "pdf-assets-completeness", "owner": "Viewer maintainer", "gate": "G2", "status": "partial-runtime-pass", "description": "Development/built demo local PDF worker loading passes without required external requests, and a synthetic standard-font fixture verifies local font assets. CMap/ICC/WASM-specific fixtures, CSP and isolated packed-consumer coverage remain open."}
+  ]
+}

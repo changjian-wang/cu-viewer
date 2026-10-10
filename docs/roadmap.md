@@ -2,59 +2,63 @@
 
 ## Status and Scope
 
-The private repository and initial documentation are the starting point. Implementation has not begun. This roadmap is a proposal derived from the [requirements](requirements.md), not a record of completed functionality.
+The private repository and initial documentation are the starting point. G0 and the v2 static design are approved for initial development; tasks 2.1-2.3 and a runnable React PDF/PNG prototype are implemented. The prototype has been started and browser-tested, but all P0 formats, production embedding, cu-cli hosting and release gates are not complete.
 
 Deliver a reusable renderer first, a small demo as its host, and a minimal cu-cli integration. Do not inherit the OCR-Form-Tools application architecture or embed CU service logic in the viewer.
 
-Track implementation work in Issues and P0/P1/P2 milestones once investigation has refined the tasks. No delivery dates or final dependency choices are assumed here.
+Track implementation work in Issues and P0/P1/P2 milestones once investigation has refined the tasks. The initial MIT/LGPL-candidate direction is approved; no delivery dates, completed distribution compliance, or release approval are assumed here.
 
-The [development plan](dev-plan.md) expands this roadmap into proposed module boundaries, structured implementation tasks, test scenarios, and explicit approval gates. It remains a draft until input, rendering, runtime, and host decisions are verified.
+The [development plan](dev-plan.md) expands this roadmap into module boundaries, structured tasks, test scenarios, and explicit gates, and records actual progress. Host delivery and P0/P1 release gates remain open independently of the approved initial design.
+
+The owner's UI checkpoint now has approved [v2 static design](prototype/README.md) plus an [interactive prototype](prototype/README.md#当前可操作范围). The latter was run immediately when mountable and has real PDF/PNG browser coverage. The static state gallery remains design-only; the running prototype awaits user review before completing the formal production-ready source/viewer work.
+
+Checked items below record completed investigation or verified prototype behavior, not a production-release approval. Partial items retain their remaining acceptance work. Current checks pass 375 unit cases and 16 Chrome/Edge browser runs; the full input/format matrix, 100-switch resource accounting, performance budgets, packed consumers, CLI and release/compliance gates remain open.
 
 ## 1. Validate the Input and UX Reference
 
-- [ ] Confirm CU API version(s) and the exact JSON written by cu-cli, including outer response wrappers.
-- [ ] Collect real, matching source/result pairs: single- and multi-page PDF, required image formats, fields with and without confidence/grounding, and representative nested/array output for P1 planning.
-- [ ] Sanitize samples consistently without invalidating source geometry; list sample gaps and sharing restrictions.
-- [ ] Confirm field value structures, grounding encoding, page numbers, coordinate units, page dimensions, and source orientation using the actual samples.
-- [ ] Review current CU Studio with PDF and image results; record hover, selection, navigation, transformation, and unavailable-grounding behavior.
+- [x] Confirm the verified CU `2025-11-01` API and exact cu-cli saved JSON, including outer response wrappers; other API versions are not approved.
+- [ ] Collect the full real source/result matrix. **Partial:** licensed multi-page PDF and PNG pairs are saved; required image formats and intrinsic orientation/crop fixtures remain incomplete.
+- [x] Record approved public-pair provenance, licenses, hashes and remaining sharing/sample gaps without changing source geometry or raw results.
+- [ ] Confirm the full source geometry/orientation matrix. **Partial:** actual CU values, grounding encoding, page numbers, units and dimensions are verified for the current pairs; intrinsic rotation/crop/EXIF remain open.
+- [ ] Complete Studio PDF/image walkthroughs. **Partial:** owner-reported single-page controls and screenshots are recorded; extended cross-page/image and exact reference semantics remain open.
 - [ ] Resolve the truncated `Result-pane` requirement with the task owner.
 
 **Exit check:** verified sample inventory, input assumptions, and Studio observations are recorded. Do not invent CU structures from historical DI examples or label synthetic output as a successful service response.
 
 ## 2. Evaluate OSS and Source Decoding
 
-- [ ] Evaluate PDF.js, react-pdf-highlighter, and react-pdf-highlighter-extended against CU polygons, multi-page navigation, zoom, rotation, resize, custom overlays, and reusable React integration.
-- [ ] Inspect OCR-Form-Tools for useful rendering and geometry patterns, without importing its full app, services, or DI parser.
-- [ ] Prototype decoding for JPG/JPEG/JPE, PNG, BMP, HEIF, and HEIC in the agreed browsers.
-- [ ] Decide whether a common image renderer needs a client-side decoder fallback, and review its bundle, memory, maintenance, and license costs.
-- [ ] Record candidate versions, licensing, reuse decisions, and limitations. Identify local PDF worker/font/resource packaging requirements.
+- [x] Evaluate PDF.js and both highlighter candidates; execute PDF.js geometry/rendering probes and record the wrappers' documentation/peer-dependency limitations without claiming they were browser-tested.
+- [x] Inspect OCR-Form-Tools rendering/geometry patterns without importing its application, service or DI architecture.
+- [x] Prototype native PNG/JPEG/BMP and owned libheif JS/WASM decoding in Chrome/Edge; record extension aliases, derived images and the single HEVC fixture as limited evidence, not full paired-format coverage.
+- [x] Select the common native-image adapter and owned pure-JS HEIF-worker candidate; record bundle/CSP/lifecycle/license costs. Runtime integration and distribution compliance remain open.
+- [x] Record versions, licenses, reuse decisions, limitations and local PDF worker/font/resource requirements.
 
 **Exit check:** the chosen rendering approach handles representative geometry and required formats. A custom PDF renderer requires a documented compelling reason. TIFF and DI do not gate this decision.
 
 ## 3. Build the Smallest End-to-End Slice
 
-- [ ] Define a small public source-plus-result API without CU SDK or PDF.js-specific types.
-- [ ] Implement internal CU JSON parsing, field derivation, page lookup, and source geometry handling from verified samples.
-- [ ] Render a real multi-page PDF and its fields side by side.
-- [ ] Hover/select a field on another page, navigate to it, and draw its source polygon.
-- [ ] Demonstrate that zoom, pan, rotation, and resize preserve alignment.
-- [ ] Validate the same field/source interaction with a real image sample.
-- [ ] Handle absent confidence or grounding without hiding the extracted value or inventing a location.
+- [x] Define the public source-plus-result API without CU SDK or PDF.js-specific types.
+- [x] Implement verified CU parsing, field derivation, page lookup and shared source geometry.
+- [x] Render the real four-page PDF and its fields side by side.
+- [x] Navigate from another PDF page to a grounded page-1 field on hover/selection and draw its real polygon; all current real field regions are on page 1.
+- [x] Check fit/zoom/pan/quarter-turn polygon alignment and resize behavior in the prototype; full integrated DPR/viewport/zoom and intrinsic-orientation acceptance remains open.
+- [x] Verify the real PNG field/source interaction and quarter-turn overlays in Chrome/Edge.
+- [x] Preserve absent confidence/grounding and scalar values; use consistent two-decimal confidence, disable unavailable source-page badges and test synthetic mismatch/recovery without inventing navigation or regions.
 
 **Exit check:** a saved real result works without credentials, service access, or caller normalization. Focused parsing/geometry tests and a browser check verify the thin slice before expanding it.
 
 ## 4. Complete P0
 
 - [ ] Complete PDF and all required image format support through the common source-rendering boundary.
-- [ ] Complete zoom, pan, fit mode(s), rotation, previous/next/jump navigation, and page counters.
-- [ ] Finish analyzer-independent field/value/confidence presentation and cross-page source highlighting.
-- [ ] Define loading, empty, invalid-result, missing-source, and source-rendering error states.
-- [ ] Address renderer cancellation, source changes, object-URL cleanup, and resource disposal.
-- [ ] Package runtime rendering assets for local use rather than relying on a required external CDN.
-- [ ] Provide a client-side demo that loads a source and saved Analyze JSON; do not add analysis or authentication to it.
-- [ ] Add focused parser/geometry unit tests and browser tests covering transformations, page changes, and field interactions.
-- [ ] Record the tested browser matrix and representative result/file sizes; avoid claiming unverified coverage or performance.
-- [ ] Document the implemented public API, dependencies, setup, build, and test commands only once they exist and are verified.
+- [ ] Complete production control/transform acceptance. **Partial:** named controls and PDF page bounds work; full format/orientation and repeated-switch coverage remain open.
+- [ ] Complete production field/source acceptance. **Partial:** analyzer-independent GA fields, original values and basic cross-page highlighting are implemented; the full input/fixture matrix is incomplete.
+- [x] Define independent loading, empty, invalid-result and source-error states, including explicit unavailable-source-page diagnostics; remaining input-variant validation stays open.
+- [ ] Complete lifecycle acceptance. **Partial:** obsolete work is cancelled, stale results are suppressed and PDF/image disposal is implemented; 100-switch resource accounting remains open.
+- [x] Build local PDF worker/fonts/CMaps/WASM/ICC assets with their license; packed-consumer/CSP and resource-specific fixture validation remain open.
+- [x] Provide the saved-source/JSON demo without analysis or authentication.
+- [x] Run focused parser/geometry/source/interaction unit and browser regressions; production coverage gaps remain explicitly listed.
+- [x] Record tested browsers and representative fixture sizes; full format coverage and approved performance budgets remain open.
+- [x] Document existing public inputs, dependencies and verified setup/build/test commands; complete independent-host embedding guidance remains task 3.3.
 
 **Exit check:** meet the proposed P0 acceptance checks in the requirements document and demonstrate embedding without service dependencies. Run agreed automated gates before describing P0 as production-ready.
 

@@ -3,9 +3,9 @@
 > **Area**: integration / reusable React component
 > **Target repository**: changjian-wang/cu-result-viewer
 > **Requirements baseline**: [requirements](requirements.md) and [roadmap](roadmap.md), at commit `163814a`
-> **Design approval**: pending; no approved design document exists in this repository
-> **Status**: Draft; all implementation tasks are pending
-> **Last updated**: 2026-10-08
+> **Design approval**: initial baseline and MIT/LGPL-candidate direction approved by the task owner; distribution approval remains pending
+> **Status**: In Progress; v2 wireframe approved; runnable PDF/PNG prototype browser-tested; user interaction review and full P0 gates remain open
+> **Last updated**: 2026-10-10
 
 ## Table of Contents
 
@@ -158,6 +158,10 @@ Effort is provisional: S = hours, M = approximately 1-2 developer days, TBD = ca
 | `1.1` | Record CU/CLI contracts, approved runtime/source assumptions, real sample provenance and gaps, and Studio observations. **AC-1.1**: a real PDF and image pair have verified field/page/geometry expectations; unresolved decisions have owners and gates. | M |
 | `1.2` | Evaluate PDF.js, both highlighter projects, OCR-Form-Tools patterns, and required image decoding. **AC-1.2**: record reproducible polygon/rotation/worker and decoding evidence, candidate versions/licenses, the selected approach, and any format gap blocking P0. | M |
 
+**2026-10-09 progress**: G0's design/candidate direction is approved. [Design decisions](design-decisions.md) and the [fixture inventory](../tests/fixtures/manifest.json) preserve the real pairs and [evidence](rendering-evaluation.md). Tasks 2.1-2.3 are delivered with 339 passing unit cases and 512 actual-geometry browser checks. Next is UI prototype review; formal task 2.4 is gated. Reusable viewer rendering, distribution/update obligations and additional UX/sample coverage remain open.
+
+**2026-10-10 progress**: the owner approved v2 static review. A [running React prototype](../README.md#run-the-prototype) now uses the actual source/field components and saved PDF/PNG pairs. Its 375 unit cases and 16 Chrome/Edge browser runs pass; development and built-demo pages were opened and visually checked. [Fields styling](prototype/interactive-fields.png) follows the owner's Studio screenshot, with collapsed groups, missing filtering and stable parent/child colors; Fields/source confidence formatting and unavailable-source-page diagnostics are consistent. This advances the vertical slice but does not complete every format, React consumer, distribution or CLI requirement.
+
 Use the current Studio with representative PDF and image results. Record layout, field/value/confidence presentation, hover versus selection, cross-page navigation, fit/zoom/pan/rotation, and missing-source/grounding behavior. If Studio is inaccessible, record that limitation and leave the behavioral review gate open.
 
 **Exit G0**: input/geometry evidence, runtime/source contract, rendering decision, and design decisions have task-owner approval. No API/codec claim is inferred from the planning reference.
@@ -174,6 +178,16 @@ Use the current Studio with representative PDF and image results. Record layout,
 | `2.4` | Add a cancellable PDF adapter and source pane. **AC-2.4**: a real multi-page PDF renders with correct dimensions/page counts and local worker assets; render/load failures and cancellation are observable. | M |
 | `2.5` | Add the common image adapter and selected decoding path. **AC-2.5**: each P0 image extension is tested against the approved browser matrix; decode failures are explicit and orientation agrees with verified grounding. | M |
 | `2.6` | Assemble viewer, generic fields, interaction state, and overlays. **AC-2.6**: hover/select highlights a real PDF/image field, navigates across PDF pages, and preserves selection when hover ends; absent grounding keeps the value visible. | M |
+
+**Task 2.1 delivered**: [public types](../src/index.ts), [input tests](../src/index.test.ts), [package/tooling](../package.json), and [MIT](../LICENSE) are in place. The entry now also exports the prototype component; a passing declaration build is still not sufficient evidence of browser behavior.
+
+**Task 2.2 delivered**: [internal parsing](../src/internal/parseCuResult.ts) and [tests](../src/internal/parseCuResult.test.ts) preserve the original GA data and distinguish explicit errors/issues. The PDF/PNG runs produce 100/42 nodes and 53/13 regions without warnings; this is not visual verification.
+
+**Task 2.3 delivered**: [geometry](../src/internal/geometry.ts) and [tests](../src/internal/geometry.test.ts) map actual page dimensions with reversible view transforms. The unchanged 1 CSS pixel threshold is now checked in both the original experiment and the implemented prototype.
+
+**Prototype review gate (owner-requested)**: [v2 static design](prototype/README.md) is approved, and the [interactive prototype](../README.md#run-the-prototype) implements the initial selection/navigation/state direction. The first live run and browser checks are complete; final user review of the actual interaction/layout remains open before production hardening. Field previews use a dock rather than covering the document. HEIF, rich P1 panes, full format/orientation and package-consumer gates are unchanged.
+
+**Run-first checkpoint**: as soon as any source pane or viewer host is mountable, start it and inspect the real PDF/image and field/source behavior in a browser before expanding features. Do not wait until all P0 controls are complete or substitute parser logs for UI effects.
 
 **Exit G1**: use the demo host introduced in task 3.2, or a temporary test harness, to show real PDF/image correlation with no credentials, CU request, or normalization step. The browser scenario must exercise the integrated rendering path, not only mocked geometry.
 
@@ -248,12 +262,29 @@ Paths are relative to the target repository and use Windows separators. `create`
 ```json
 {
   "feature": "cu-result-viewer",
-  "status": "draft",
+  "status": "in_progress",
   "target_repository": "changjian-wang/cu-result-viewer",
   "design_doc": null,
+  "review_gates": [
+    {
+      "id": "ui-prototype-v1",
+      "status": "interactive-ready-awaiting-user-review",
+      "iteration": 2,
+      "wireframe_approved": true,
+      "browser_checks_passed": true,
+      "unit_cases": 375,
+      "browser_runs": 16,
+      "fields_reference": "docs\\prototype\\interactive-fields.png",
+      "reference": "docs\\prototype\\README.md",
+      "state_preview": "docs\\prototype\\index.html",
+      "state_count": 10,
+      "sequence": ["wireframe-review", "interactive-prototype", "browser-review"],
+      "blocks": ["2.4"]
+    }
+  ],
   "tasks": [
     {
-      "id": "1.1", "phase": 1, "priority": "P0", "title": "Verify input, samples and Studio behavior", "effort": "M",
+      "id": "1.1", "phase": 1, "priority": "P0", "title": "Verify input, samples and Studio behavior", "effort": "M", "status": "done",
       "description": "Record D1/D2/D5 evidence, Studio observations, approved runtime/source assumptions and remaining decision owners. Do not infer CU geometry or CLI serialization.",
       "files": [
         {"path": "docs\\design-decisions.md", "action": "create"},
@@ -264,7 +295,7 @@ Paths are relative to the target repository and use Windows separators. `create`
       "tests": [{"id": "T-1.1", "type": "manual", "framework": "document-review", "description": "Inspect source/result pairs and Studio; review version, provenance, geometry and decision records with owners.", "covers_criteria": ["AC-1.1"]}]
     },
     {
-      "id": "1.2", "phase": 1, "priority": "P0", "title": "Evaluate rendering and decoding", "effort": "M",
+      "id": "1.2", "phase": 1, "priority": "P0", "title": "Evaluate rendering and decoding", "effort": "M", "status": "done",
       "description": "Compare PDF.js, both react-pdf-highlighter candidates and OCR-Form-Tools patterns. Record reproducible render/overlay/rotation/worker and image-decoding probes, versions, licenses, costs and the selected approach.",
       "files": [{"path": "docs\\rendering-evaluation.md", "action": "create"}],
       "depends_on": ["1.1"],
@@ -272,21 +303,26 @@ Paths are relative to the target repository and use Windows separators. `create`
       "tests": [{"id": "T-1.2", "type": "manual", "framework": "browser-probe", "description": "Repeat documented probes on approved browsers, including HEIF/HEIC decoding and 90-degree rotations; review license and asset packaging evidence.", "covers_criteria": ["AC-1.2"]}]
     },
     {
-      "id": "2.1", "phase": 2, "priority": "P0", "title": "Establish tooling and public input types", "effort": "S",
+      "id": "2.1", "phase": 2, "priority": "P0", "title": "Establish tooling and public input types", "effort": "S", "status": "done",
       "description": "Create the approved npm/TypeScript/Vite toolchain, lint/unit scripts, peer dependencies and conceptual public source/result types. Generate the lockfile with the package manager.",
       "files": [
         {"path": "package.json", "action": "create"},
+        {"path": "package-lock.json", "action": "create"},
+        {"path": "LICENSE", "action": "create"},
+        {"path": ".gitignore", "action": "create"},
         {"path": "tsconfig.json", "action": "create"},
+        {"path": "tsconfig.build.json", "action": "create"},
         {"path": "vite.config.ts", "action": "create"},
-        {"path": "eslint.config.js", "action": "create"},
-        {"path": "src\\index.ts", "action": "create"}
+        {"path": "eslint.config.mjs", "action": "create"},
+        {"path": "src\\index.ts", "action": "create"},
+        {"path": "src\\index.test.ts", "action": "create"}
       ],
       "depends_on": ["1.1", "1.2"],
       "acceptance_criteria": [{"id": "AC-2.1", "text": "Clean install, strict type-check, lint, unit runner and build pass; public source variants and unknown result compile without CU SDK types."}],
       "tests": [{"id": "T-2.1", "type": "integration", "framework": "toolchain", "description": "Run scripts from a clean install and compile a public-type consumer; inspect declared runtime dependencies for prohibited service/SDK coupling.", "covers_criteria": ["AC-2.1"]}]
     },
     {
-      "id": "2.2", "phase": 2, "priority": "P0", "title": "Parse verified CU result shapes", "effort": "M",
+      "id": "2.2", "phase": 2, "priority": "P0", "title": "Parse verified CU result shapes", "effort": "M", "status": "done",
       "description": "Guard unknown JSON, recognize verified saved/CLI shapes, and derive internal field/page/region records with stable identities. Preserve all supplied values/regions and report invalid input explicitly.",
       "files": [
         {"path": "src\\internal\\types.ts", "action": "create"},
@@ -298,7 +334,7 @@ Paths are relative to the target repository and use Windows separators. `create`
       "tests": [{"id": "T-2.2", "type": "unit", "framework": "vitest", "description": "Test actual wrappers/versions, multiple contents, duplicate labels, 0/false/null, missing confidence/grounding, malformed values and frozen input.", "covers_criteria": ["AC-2.2"]}]
     },
     {
-      "id": "2.3", "phase": 2, "priority": "P0", "title": "Implement shared geometry transforms", "effort": "M",
+      "id": "2.3", "phase": 2, "priority": "P0", "title": "Implement shared geometry transforms", "effort": "M", "status": "done",
       "description": "Map verified CU units/origins/orientation into source and viewport coordinates using shared pure transforms. Reject invalid regions instead of guessing units or pages.",
       "files": [
         {"path": "src\\internal\\geometry.ts", "action": "create"},
@@ -310,12 +346,17 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "2.4", "phase": 2, "priority": "P0", "title": "Render PDF through an internal source adapter", "effort": "M",
+      "status": "prototype-implemented",
+      "execution_ready": false,
+      "blocked_by": "Prototype code and browser checks exist; production hardening awaits user interaction review and remaining delivery gates.",
       "description": "Define the private page/render/cancel/dispose contract and implement the selected PDF adapter/source pane with local assets and explicit failure states.",
       "files": [
         {"path": "src\\internal\\source.ts", "action": "create"},
         {"path": "src\\internal\\pdfSource.ts", "action": "create"},
         {"path": "src\\components\\SourcePane.tsx", "action": "create"},
-        {"path": "src\\internal\\pdfSource.test.ts", "action": "create"}
+        {"path": "src\\internal\\pdfSource.test.ts", "action": "create"},
+        {"path": "src\\internal\\source.test.ts", "action": "create"},
+        {"path": "tools\\pdfAssets.ts", "action": "create"}
       ],
       "depends_on": ["2.1"],
       "acceptance_criteria": [{"id": "AC-2.4", "text": "A real multi-page PDF renders with verified dimensions/page counts and local worker assets; load/render failures and cancellation are observable."}],
@@ -326,6 +367,7 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "2.5", "phase": 2, "priority": "P0", "title": "Render required images through the common adapter", "effort": "M",
+      "status": "partial-prototype",
       "description": "Reuse the source contract for native/fallback decoding, orientation and intrinsic dimensions. Keep HEIF/HEIC in P0 and expose decode errors explicitly.",
       "files": [
         {"path": "src\\internal\\imageSource.ts", "action": "create"},
@@ -341,11 +383,12 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "2.6", "phase": 2, "priority": "P0", "title": "Connect fields, navigation and source overlays", "effort": "M",
+      "status": "prototype-implemented",
       "description": "Assemble the viewer with generic field/value/confidence rendering, separate hover/selection state, cross-page navigation and shared-transform polygons. Export the component from the public entry.",
       "files": [
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "create"},
         {"path": "src\\components\\FieldsPane.tsx", "action": "create"},
-        {"path": "src\\components\\Overlay.tsx", "action": "create"},
+        {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
         {"path": "src\\internal\\interaction.ts", "action": "create"},
         {"path": "src\\internal\\interaction.test.ts", "action": "create"},
         {"path": "src\\index.ts", "action": "modify"}
@@ -359,6 +402,7 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "3.1", "phase": 3, "priority": "P0", "title": "Complete controls, errors and lifecycle", "effort": "M",
+      "status": "partial-prototype",
       "description": "Add zoom/pan/fit/rotation and PDF page controls; handle loading/empty/errors and last-load-wins source changes. Dispose owned resources and keep source/overlay transforms synchronized.",
       "files": [
         {"path": "src\\components\\Toolbar.tsx", "action": "create"},
@@ -377,12 +421,16 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "3.2", "phase": 3, "priority": "P0", "title": "Deliver the local demo and browser regression suite", "effort": "M",
+      "status": "partial-prototype",
       "description": "Load browser-selected source and saved JSON with explicit input errors. Add Playwright configuration/scripts and integrated positive/negative scenarios using the real fixture inventory.",
       "files": [
         {"path": "demo\\index.html", "action": "create"},
         {"path": "demo\\App.tsx", "action": "create"},
         {"path": "playwright.config.ts", "action": "create"},
-        {"path": "tests\\e2e\\viewer.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\prototype.spec.ts", "action": "create"},
+        {"path": "demo\\main.tsx", "action": "create"},
+        {"path": "demo\\styles.css", "action": "create"},
+        {"path": "demo\\vite.config.ts", "action": "create"},
         {"path": "package.json", "action": "modify"}
       ],
       "depends_on": ["3.1"],
@@ -497,7 +545,7 @@ Paths are relative to the target repository and use Windows separators. `create`
 
 ### Infrastructure and Commands
 
-No test infrastructure currently exists. Introduce only the tooling needed for the approved implementation:
+Task 2.1 establishes the unit/lint/type/build foundation; browser, component, and host infrastructure will be added only when needed:
 
 - **Vitest**: co-located `*.test.ts` for parser, geometry, adapters, and interaction state.
 - **React Testing Library**: `*.test.tsx` for component values, state, focus, and custom rendering; use DOM-oriented assertions, not only snapshots.
@@ -505,13 +553,13 @@ No test infrastructure currently exists. Introduce only the tooling needed for t
 - **Host-native integration tests**: use the confirmed CLI repository's existing runner rather than creating a competing CLI framework.
 - **Manual evidence**: Studio comparisons, dependency/license evaluation, and owner approval remain explicitly manual. They are not reported as automated coverage.
 
-Required script contract after tasks 2.1/3.2/3.3: `npm ci`, `npm run typecheck`, `npm run lint`, `npm run test:unit`, `npm run test:e2e`, `npm run build`, and package-consumer verification using `npm pack`. These commands are not runnable or verified in the current documentation-only repository.
+`npm ci --ignore-scripts`, `npm run typecheck`, `npm run lint`, `npm run test:unit`, `npm run test:e2e`, `npm run build`, and `npm run build:demo` are implemented. The prototype has 375 unit cases and 16 runs from eight browser scenarios executed in both Chrome and Edge, including Fields dimensions/colors, missing filtering, consistent confidence and unavailable-source-page recovery. The built demo is visually verified; the complete public source-input matrix, 100-switch resource accounting and isolated packed-consumer `npm pack` coverage remain open.
 
 Normal regression tests use saved, sanitized real results, not live Analyze calls. Live service access is only an explicitly approved way to acquire fixtures or verify the external fresh-analysis CLI path. Source URL tests may use the local test server; tests deny CU requests and required external CDN assets. Do not record credentials, SAS URLs, customer documents, or raw sensitive results in test logs or browser artifacts.
 
 ### Coverage and Scenarios
 
-All runtime coverage is currently absent. The following scenarios close the requirements gaps:
+Prototype source/field/transform/error coverage now exists in [unit tests](../src/internal/interaction.test.ts) and the [browser suite](../tests/e2e/prototype.spec.ts). The table below remains the full required coverage map; passing the prototype subset does not mean every requirement is complete.
 
 | Requirement / Given | When | Expected result | Criteria / tests |
 | --- | --- | --- | --- |
@@ -583,3 +631,15 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | Date | Change |
 | --- | --- |
 | 2026-10-08 | Initial draft based on the documentation-only viewer baseline and local CU planning templates; adds gated architecture/tasks/tests and explicitly blocked external CLI work. |
+| 2026-10-09 | Recorded Phase 1 decisions and real cu-cli GA fixtures; retained open Studio/rendering gates and the unchanged implementation task graph. |
+| 2026-10-09 | Added owner-reported single-page Studio evidence and actual browser probes; identified PDF dimension mapping and HEIF license/CSP/lifecycle requirements without relaxing acceptance or closing G0. |
+| 2026-10-09 | Verified owned libheif 1.23.5 JS/WASM workers and strict-CSP pure JS decoding; reduced the technical HEIF blocker to explicit candidate/distribution approval and implementation coverage. |
+| 2026-10-09 | Recorded task-owner approval of the initial design and the Microsoft open-source release goal; main-project and third-party license decisions remain explicit gates, not inferred approvals. |
+| 2026-10-09 | Recorded explicit MIT/LGPL-candidate approval and G0 development clearance; completed task 2.1 with actual tooling/types/tests, while retaining distribution and viewer-rendering gates. |
+| 2026-10-09 | Completed and executed task 2.2 on real GA inputs with 49 unit cases; recorded the owner's requirement to start and visually inspect the first runnable pane/host before feature expansion. |
+| 2026-10-09 | Completed task 2.3, reused region validation in parsing, and ran the actual geometry code through browser effect checks; the reusable source/viewer remains the next implementation surface. |
+| 2026-10-09 | Inserted the owner-requested Studio-familiar wireframe → interactive prototype → browser review gate before formal task 2.4; backend foundations and P0/P1 scope remain intact. |
+| 2026-10-10 | Optimized the static prototype to v2 with ten state/flow screens and clean source previews. Runtime behavior proposals still await review; formal task 2.4 remains gated and existing implementation is unchanged. |
+| 2026-10-10 | Static v2 review approved; built and immediately ran the React prototype, fixed local worker URLs, verified 363 unit cases and 10 browser runs, and retained user interaction/HEIF/consumer/release gates. |
+| 2026-10-10 | Aligned live Fields icons/spacing with the owner's screenshot; added collapsed groups, truthful missing filtering and stable descendant colors, verified 368 unit cases and 14 browser runs, and refreshed development/production screenshots without new Analyze calls. |
+| 2026-10-10 | Unified Fields/source confidence and actual-source page availability; verified 375 unit cases and 16 browser runs with synthetic mismatch/recovery, synchronized roadmap/fixture coverage, and clarified that static v2 images retain historical UI rather than current Fields acceptance. |
