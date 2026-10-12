@@ -28,9 +28,9 @@ describe("prototype source boundary", () => {
         expect(() => detectSource(new Uint8Array([1, 2, 3, 4]))).toThrow("unsupported or corrupt");
     });
 
-    it("explicitly reports the not-yet-integrated HEIF prototype path", () => {
-        const bytes = new Uint8Array([0, 0, 0, 24, ...new TextEncoder().encode("ftypheic")]);
-        expect(() => detectSource(bytes)).toThrow("not integrated");
+    it("recognizes a valid HEIF file-type box without trusting an extension", () => {
+        const bytes = new Uint8Array([0, 0, 0, 16, ...new TextEncoder().encode("ftypheic"), 0, 0, 0, 0]);
+        expect(detectSource(bytes)).toBe("image");
     });
 
     it("does not transfer or mutate host-owned ArrayBuffer input", async () => {

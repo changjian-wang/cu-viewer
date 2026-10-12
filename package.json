@@ -24,7 +24,7 @@
   },
   "scripts": {
     "dev": "vite --config demo/vite.config.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.worker.json --noEmit",
     "lint": "eslint .",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",

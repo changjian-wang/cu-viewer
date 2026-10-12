@@ -4,7 +4,7 @@
 > **目标仓库**：changjian-wang/cu-result-viewer
 > **需求基线**：[需求](requirements.md)与[路线图](roadmap.md)，对应提交 `163814a`
 > **设计批准情况**：负责人已批准初始基线和 MIT/LGPL 候选方向；分发批准仍待完成
-> **状态**：实施中；v2 线框已批准，PDF/PNG 可运行原型已通过浏览器检查；用户交互复核和完整 P0 门槛仍开放
+> **状态**：实施中；基线已批准，2.4 公共输入与 2.5 原生图片/EXIF、仅本机 HEIF 已验证；完整 P0/分发门槛仍开放
 > **最后更新**：2026-10-10
 > **语言**：本文件是[英文原版](dev-plan.md)的简体中文译本；技术标识、JSON 键名和枚举值保持原文
 
@@ -161,7 +161,7 @@ flowchart LR
 
 **2026-10-09 进展**：负责人已批准 G0 设计/候选方向。[设计决策](design-decisions.md)与[样本清单](../tests/fixtures/manifest.json)保留真实配对及[依据](rendering-evaluation.md)。任务 2.1-2.3 已交付，339 个单元案例及 512 个实际几何浏览器检查通过。下一项为界面原型评审，正式任务 2.4 受此门槛约束。可复用查看器渲染、分发/更新义务及额外 UX/样本覆盖仍未完成。
 
-**2026-10-10 进展**：负责人已完成 v2 静态评审。[可运行 React 原型](../README.md#run-the-prototype)现使用实际源文件/字段组件与保存的 PDF/PNG 配对，375 个单元案例和 Chrome/Edge 共 16 个浏览器运行通过；开发和生产演示页面均已打开检查效果。[Fields 样式](prototype/interactive-fields.png)按负责人提供的 Studio 截图对齐，保留默认折叠、缺失过滤及稳定父子颜色，并统一 Fields/原文置信度格式与不可用来源页诊断。这推进了端到端闭环，但未完成所有格式、React 调用方、分发和 CLI 要求。
+**2026-10-10 进展**：获批的[可运行实现](../README.md#run-the-prototype)现通过 409 个单元案例和 Chrome/Edge 共 52 次运行。公共输入、原生图片格式、八种合成 EXIF 方向及仅本机 HEIF 均执行实际组件路径，页面已查看效果。[Fields 样式](prototype/interactive-fields.png)、置信度及不可用页诊断保持一致。本机 HEIF 批准不等于解码器分发或完整 P0/调用方/CLI 验收。
 
 使用当前 Studio 查看有代表性的 PDF 和图片结果。记录布局、字段名/值/置信度展示、悬停与选择的区别、跨页导航、适应/缩放/平移/旋转，以及缺失源文件或来源定位信息时的行为。如果无法访问 Studio，应记录限制，并保持行为评审门槛未通过。
 
@@ -186,7 +186,7 @@ flowchart LR
 
 **任务 2.3 已交付**：[几何模块](../src/internal/geometry.ts)与[测试](../src/internal/geometry.test.ts)按真实页面尺寸实现可逆视图变换。原实验和已实现原型均保留并检查 1 CSS 像素门槛。
 
-**原型评审门槛（负责人要求）**：[v2 静态设计](prototype/README.md)已获批准，[交互原型](../README.md#run-the-prototype)已实现初始选择/导航/状态方向。首轮实际运行及浏览器检查完成，生产加固前仍待用户复核实际交互与布局。字段预览改放下方小栏，不覆盖原文。HEIF、丰富 P1 面板、完整格式/方向及安装包调用方门槛未取消。
+**原型评审门槛（负责人要求）**：[v2 静态设计](prototype/README.md)与当前[交互基线](../README.md#run-the-prototype)已获批准，可开展任务 2.4 加固。首批公共输入验证覆盖真实 PDF/PNG 的 File、无 MIME 类型 Blob、ArrayBuffer、同源 HTTP 和宿主自有 blob URL，以及调用方数据保留、明确失败/恢复和受控替换/卸载清理。批准解除 UI 实施阻塞，不关闭 HEIF、丰富 P1、完整格式/方向、100 次切换压力或安装包调用方门槛。
 
 **先运行检查点**：任何源文件面板或查看器宿主一旦可挂载，就先启动，在浏览器中查看真实 PDF/图片及字段—原文联动，再扩展功能。不等全部 P0 控件完成，也不用解析日志代替页面效果。
 
@@ -269,18 +269,20 @@ flowchart LR
   "review_gates": [
     {
       "id": "ui-prototype-v1",
-      "status": "interactive-ready-awaiting-user-review",
+      "status": "interactive-baseline-approved-hardening-in-progress",
       "iteration": 2,
       "wireframe_approved": true,
+      "interaction_baseline_approved": true,
+      "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
-      "unit_cases": 375,
-      "browser_runs": 16,
+      "unit_cases": 409,
+      "browser_runs": 52,
       "fields_reference": "docs\\prototype\\interactive-fields.png",
       "reference": "docs\\prototype\\README.md",
       "state_preview": "docs\\prototype\\index.html",
       "state_count": 10,
       "sequence": ["wireframe-review", "interactive-prototype", "browser-review"],
-      "blocks": ["2.4"]
+      "blocks": []
     }
   ],
   "tasks": [
@@ -347,9 +349,9 @@ flowchart LR
     },
     {
       "id": "2.4", "phase": 2, "priority": "P0", "title": "通过内部源文件适配器渲染 PDF", "effort": "M",
-      "status": "prototype-implemented",
-      "execution_ready": false,
-      "blocked_by": "原型代码和浏览器检查已存在；生产加固等待用户交互复核及其他交付门槛。",
+      "status": "in_progress",
+      "execution_ready": true,
+      "implementation_evidence": "交互基线已批准；真实 PDF/PNG 公共输入、调用方数据保留及受控取消/卸载资源配对已验证。完整方向/格式、压力及安装包调用方验收仍开放。",
       "description": "定义私有的页面/渲染/取消/释放契约，实现所选 PDF 适配器与源文件面板，使用本地资源并明确展示失败状态。",
       "files": [
         {"path": "src\\internal\\source.ts", "action": "create"},
@@ -368,11 +370,22 @@ flowchart LR
     },
     {
       "id": "2.5", "phase": 2, "priority": "P0", "title": "通过通用适配器渲染必需图片格式", "effort": "M",
-      "status": "partial-prototype",
+      "status": "in_progress",
+      "implementation_evidence": "原生 PNG/JPEG/BMP 与 DPR1/2 的 EXIF1-8 验证通过；负责人仅批准本机 HEIF 主图/CSP/取消路径并已接入组件。生产拒绝 HEIF 且没有解码二进制；更广真实配对/编解码变体/分发义务仍开放。",
       "description": "复用源文件契约，支持原生/备用解码、方向及原始尺寸。HEIF/HEIC 保持在 P0，明确展示解码错误。",
       "files": [
         {"path": "src\\internal\\imageSource.ts", "action": "create"},
         {"path": "src\\internal\\imageSource.test.ts", "action": "create"},
+        {"path": "src\\internal\\heifSource.ts", "action": "create"},
+        {"path": "src\\internal\\heifSource.test.ts", "action": "create"},
+        {"path": "src\\internal\\heif.worker.ts", "action": "create"},
+        {"path": "tools\\heifDevelopmentAssets.ts", "action": "create"},
+        {"path": "tools\\generate-image-fixtures.mjs", "action": "create"},
+        {"path": "tests\\e2e\\image-formats.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\sourceResources.ts", "action": "create"},
+        {"path": "tsconfig.worker.json", "action": "create"},
+        {"path": "demo\\vite.config.ts", "action": "modify"},
+        {"path": "demo\\App.tsx", "action": "modify"},
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"}
       ],
       "depends_on": ["2.4"],
@@ -429,6 +442,10 @@ flowchart LR
         {"path": "demo\\App.tsx", "action": "create"},
         {"path": "playwright.config.ts", "action": "create"},
         {"path": "tests\\e2e\\prototype.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\source-inputs.html", "action": "create"},
+        {"path": "tests\\e2e\\source-inputs.tsx", "action": "create"},
+        {"path": "tests\\e2e\\source-inputs.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\viewerAssertions.ts", "action": "create"},
         {"path": "demo\\main.tsx", "action": "create"},
         {"path": "demo\\styles.css", "action": "create"},
         {"path": "demo\\vite.config.ts", "action": "create"},
@@ -554,7 +571,7 @@ flowchart LR
 - **宿主原生集成测试**：使用已确认 CLI 仓库的现有运行器，不另建一套 CLI 框架。
 - **人工验证依据**：Studio 对比、依赖/许可证评估，以及负责人批准，仍明确属于人工工作，不计入自动化覆盖。
 
-`npm ci --ignore-scripts`、`npm run typecheck`、`npm run lint`、`npm run test:unit`、`npm run test:e2e`、`npm run build` 和 `npm run build:demo` 已实现。原型有 375 个单元案例，8 个浏览器场景在 Chrome 和 Edge 中共执行 16 次并通过，包括 Fields 尺寸/颜色、缺失过滤、统一置信度及不可用来源页恢复。生产演示已检查效果；完整公共源文件输入矩阵、100 次切换的资源配对断言和隔离 `npm pack` 安装包调用方覆盖仍未完成。
+`npm ci --ignore-scripts`、`npm run typecheck`、`npm run lint`、`npm run test:unit`、`npm run test:e2e`、`npm run build` 和 `npm run build:demo` 已实现。409 个单元案例及 Chrome/Edge 共 52 次运行通过：每个浏览器执行八个原型、十个公共输入及八个图片格式场景。原生 EXIF 在 DPR1/2 检查；HEIF 实际组件 CSP/取消仅用于本机开发。生产原生图片和生产 HEIF 拒绝状态已查看。完整真实格式/方向配对、解码器分发、HTTPS/跨源、100 次压力及隔离调用方仍开放。
 
 常规回归测试使用已保存、已脱敏的真实结果，不实时调用 Analyze。访问真实服务只用于明确批准的测试样本获取，或验证外部 CLI 新分析路径。源文件 URL 测试可以使用本地测试服务器；测试禁止 CU 请求及对必需外部 CDN 资源的依赖。不在测试日志或浏览器产物中记录凭据、SAS URL、客户文档或未经处理的敏感结果。
 
@@ -644,3 +661,5 @@ flowchart LR
 | 2026-10-10 | v2 静态评审获批；实现并立即启动 React 原型，修复本地 Worker URL，验证 363 个单元案例与 10 个浏览器运行，同时保留用户交互/HEIF/安装包/发布门槛。 |
 | 2026-10-10 | 按负责人截图对齐可运行 Fields 图标/间距，增加默认折叠、真实缺失过滤和稳定的后代颜色；验证 368 个单元案例及 14 个浏览器运行，刷新开发/生产截图，没有新增 Analyze 调用。 |
 | 2026-10-10 | 统一 Fields/原文置信度与实际来源页可用性；通过合成失配/恢复验证 375 个单元案例及 16 个浏览器运行，同步路线图/样本覆盖，并明确静态 v2 图片保留历史 UI，不作为最新 Fields 验收基线。 |
+| 2026-10-10 | 负责人批准交互实施基线；新增独立公共输入宿主及受控取消/资源校验，合并 36 次浏览器运行和 36 个相关单元案例通过；单元总数仍为 375，运行组件/演示代码未改，完整 P0/格式/调用方门槛保留。 |
+| 2026-10-10 | 实现通用图片适配器及负责人批准的仅本机 HEIF Worker；原生格式、合成 EXIF/DPR、同源无 eval/无 WASM CSP 与取消通过。验证 409 个单元案例和 52 次浏览器运行，两个分发构建均没有解码二进制，完整 P0/许可门槛保留。 |

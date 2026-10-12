@@ -63,7 +63,7 @@ export function App() {
         <header className="prototype-banner"><h1>CU Result Viewer</h1><span>Interactive prototype · saved data only · not a released package</span></header>
         <div className="prototype-inputs">
             <label className="prototype-picker"><span>Source</span><strong>{input?.name ?? "Loading sample..."}</strong><span className="prototype-browse">Browse...</span>
-                <input type="file" aria-label="Choose source file" accept=".pdf,.png,.jpg,.jpeg,.jpe,.bmp" disabled={!input}
+                <input type="file" aria-label="Choose source file" accept=".pdf,.png,.jpg,.jpeg,.jpe,.bmp,.heif,.heic" disabled={!input}
                     onChange={event => {
                         const file = event.target.files?.[0];
                         if (file) {
@@ -93,6 +93,6 @@ export function App() {
             {input ? <ContentUnderstandingResultViewer source={input.source} result={input.result} /> :
                 <div className="prototype-loading" role="status">{hostError ? "Sample loading failed." : "Loading saved source and result..."}</div>}
         </div>
-        <footer className="prototype-footer">Local source + original Analyze JSON. No upload, authentication or CU service call. <span>PDF/PNG prototype; HEIF and rich P1 panes are not integrated.</span></footer>
+        <footer className="prototype-footer">Local source + original Analyze JSON. No upload, authentication or CU service call. <span>HEIF/HEIC is local-development only; rich P1 panes are not integrated.</span></footer>
     </main>;
 }

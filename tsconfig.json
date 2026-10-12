@@ -28,5 +28,8 @@
     "tests/e2e",
     "playwright.config.ts",
     "vite.config.ts"
+  ],
+  "exclude": [
+    "src/internal/heif.worker.ts"
   ]
 }

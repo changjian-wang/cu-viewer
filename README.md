@@ -85,7 +85,7 @@ PDF.js and the two react-pdf-highlighter projects are candidates to evaluate, no
 - [Development plan (Simplified Chinese)](docs/dev-plan.zh-CN.md): a Chinese translation with the same task identifiers, dependencies, and technical contracts.
 - [Design decisions and Phase 1 evidence](docs/design-decisions.md): approved initial assumptions, actual cu-cli input/geometry evidence, Studio limitations, and remaining gates.
 - [Rendering evaluation](docs/rendering-evaluation.md): actual browser geometry/decoding probes, candidate comparison, and unresolved HEIF license/CSP/lifecycle gates.
-- [UI prototype v2](docs/prototype/README.md): approved [static design gallery](docs/prototype/index.html), the runnable prototype workflow, and actual [Fields](docs/prototype/interactive-fields.png), [PDF](docs/prototype/interactive-pdf.png) and [PNG](docs/prototype/interactive-png.png) screenshots. Interactive user review is the next gate.
+- [UI prototype v2](docs/prototype/README.md): approved [static design gallery](docs/prototype/index.html), the runnable prototype workflow, and actual [Fields](docs/prototype/interactive-fields.png), [PDF](docs/prototype/interactive-pdf.png) and [PNG](docs/prototype/interactive-png.png) screenshots. The owner approved the interactive baseline for task 2.4 hardening; full P0 acceptance remains open.
 
 ## Run the Prototype
 
@@ -106,7 +106,7 @@ If a result references a page absent from the loaded source, its page badge is d
 
 The file pickers belong to the demo host. They read local files and parsed JSON; the component receives original data and never calls CU. Source failure does not hide valid fields, invalid result data does not hide a valid source, and parser issues remain visible. Prototype field previews use a small dock below the document so that they cannot obscure source text.
 
-Known limits: HEIF/HEIC, rich P1 panes, React 18 consumer compatibility, intrinsic orientation/crop fixtures, complete accessibility/touch behavior, isolated packed-package consumers, CLI integration, and release/compliance gates are not complete. Markdown, Paragraphs, Tables, Code and the more-views control match the reference appearance but remain disabled prototype placeholders. Rich Markdown/JSON views are still planned P1 work.
+Known limits: HEIF/HEIC is enabled only for local development validation, not distribution builds. Rich P1 panes, React 18 consumer compatibility, complete intrinsic orientation/crop coverage, accessibility/touch behavior, isolated packed-package consumers, CLI integration and release/compliance gates remain incomplete. Markdown, Paragraphs, Tables, Code and the more-views control remain disabled prototype placeholders.
 
 ## Development Foundation
 
@@ -132,9 +132,50 @@ The [internal parser](src/internal/parseCuResult.ts) accepts the verified `2025-
 
 [Parser tests](src/internal/parseCuResult.test.ts) and input tests account for 49 cases. Direct parsing of the PDF/PNG results yields 100/42 field nodes and 53/13 regions without warnings; these counts do not verify UI effects.
 
-The [geometry module](src/internal/geometry.ts) maps CU coordinates through actual rendered-page dimensions, zoom, pan and quarter-turn rotation, with inverse, fit and raster-size helpers. Shared region validation prevents parser and overlay disagreements. Core input/parser/geometry tests account for 339 cases; source, PDF lifecycle, interaction and display tests bring the current unit total to **375**.
+The [geometry module](src/internal/geometry.ts) maps CU coordinates through actual rendered-page dimensions, zoom, pan and quarter-turn rotation, with inverse, fit and raster-size helpers. Shared region validation prevents parser and overlay disagreements. Core input/parser/geometry tests account for 339 cases; source, PDF/image lifecycle, interaction and display tests bring the current unit total to **409**.
 
-The initial geometry experiment passed 512 rendered-coordinate cases. The actual [React prototype browser suite](tests/e2e/prototype.spec.ts) now passes **16 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: real source/field interaction, PDF/PNG transforms, page bounds, empty/error recovery, local standard fonts, scalar/multiple-content boundaries, resize, source replacement, Studio-style Fields dimensions/colors, missing-field filtering, consistent confidence and unavailable-source-page recovery. Both development and built demo pages were opened and visually checked, including narrow-pane tabs. Development StrictMode cancels and successfully retries two initial sample requests; these expected cancellations are recorded separately from resource errors.
+The initial geometry experiment passed 512 rendered-coordinate cases. The [prototype](tests/e2e/prototype.spec.ts), [public-source input](tests/e2e/source-inputs.spec.ts) and [image-format](tests/e2e/image-formats.spec.ts) suites now pass **52 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: eight prototype, ten public-input and eight image-format scenarios per browser. These include native formats, all eight synthetic JPEG EXIF orientations at DPR 1/2, and local HEIF decoding/CSP/cancellation. Development and built pages were visually checked. Development StrictMode's successfully retried sample-request cancellations are recorded separately from resource errors.
+
+### Public Source Input Verification
+
+The [test-only React host](tests/e2e/source-inputs.tsx) mounts the public component directly with the existing real PDF/PNG pairs. It does not change the product demo or ship in the library/demo build.
+
+| Input | Verified browser behavior |
+| --- | --- |
+| File | Correct page count/dimensions, real values, raster and primary polygon. |
+| Untyped Blob | Content detection without a MIME type; identical raster and grounding. |
+| ArrayBuffer | Identical rendering; caller byte length/hash remain intact after unmount, and the same buffer can be remounted. |
+| Same-origin HTTP URL | Correct rendering, explicit 404/network/empty-response errors, recovery, and cancellation during replacement/unmount. |
+| Host-owned blob URL | Correct rendering; the URL remains readable after viewer unmount and is revoked by the test host when it releases its input. |
+
+The input suite compares actual canvas pixel hashes across representations and independently checks polygon vertices within 1 CSS pixel. Empty/truncated binary inputs are explicit synthetic failure cases: valid fields stay visible, dependent controls are disabled, and valid replacement files recover. Delayed HTTP loads, PDF worker initialization and native-image decoding are cancelled on both replacement and unmount; browser instrumentation checks Worker termination, ImageBitmap closing and object-URL ownership without substituting the rendered output.
+
+```powershell name="Public source input regression"
+npm run test:e2e -- source-inputs.spec.ts
+```
+
+On this Windows checkout, with `npm run dev` running, the test host is at <http://127.0.0.1:5173/@fs/C:/github/cu-result-viewer/tests/e2e/source-inputs.html>. It now also has **Load HEIF**, using a licensed photograph and explicitly synthetic geometry, not a new CU result. This is not an isolated package consumer; HTTPS/cross-origin policies, full format/orientation coverage, 100-switch stress and production embedding remain separate gates.
+
+### Image Formats and Local HEIF Validation
+
+The [common image adapter](src/internal/imageSource.ts) recognizes content signatures rather than filenames/MIME hints. Native PNG/JPEG/BMP decoding explicitly uses EXIF-normalized image orientation, then shares rendering, view rotation and bitmap disposal. JPEG `.jpg`/`.jpeg`/`.jpe` are extension aliases, not different codecs.
+
+- The original receipt PNG and full-size JPEG/BMP derivatives retain their canvas dimensions; the derivatives flatten transparency onto white and reuse saved grounding as an explicitly derived test, not another Analyze call.
+- Eight small synthetic EXIF JPEGs verify mirrored/rotated pixels, normalized dimensions and quarter-turn overlays at DPR 1/2. Their synthetic grounding is in the normalized image frame; this is not evidence of real CU extraction on every EXIF variant.
+- The licensed HEVC-in-HEIF example verifies primary-image selection, five public input representations, caller-buffer preservation, quarter-turn overlays, failure/recovery, and Worker termination on replacement/unmount.
+- HEIF tests apply actual CSP to both page and worker responses: same-origin scripts/workers, no JavaScript eval, no WASM compilation permission and no Blob Worker.
+
+```powershell name="Image format and orientation regression"
+npm run test:e2e -- image-formats.spec.ts
+```
+
+**HEIF/HEIC is development-only, as approved by the owner.** [The local-resource plugin](tools/heifDevelopmentAssets.ts) reads `CU_HEIF_DEV_ASSET_DIR` from the demo's ignored local environment configuration. The directory must contain the unchanged evaluated `libheif-asm.js` 1.23.5 artifact with SHA-256 `804551ee35288509d5bde23c480e956f9d7b2a0dfc0b36a6a9a8a5b01234d276`; see [the evaluation and license gate](docs/rendering-evaluation.md#license-and-distribution-gate). This machine's existing isolated assets are configured; no codec dependency was installed or copied into the repository.
+
+Without local configuration, the HEIF browser scenarios are explicitly skipped with that reason; native format tests still run. The recorded 52 runs used configured local assets, with no HEIF skips.
+
+The [owned Worker](src/internal/heif.worker.ts) decodes lazily off the UI thread with a 30-second development deadline. Production/library builds reject HEIF explicitly and include no LGPL decoder binary. Vite may emit the project's small Worker glue, but it is not an enabled decoder. Missing local resources and unsupported/corrupt files report visible errors; AVIF and image sequences are not advertised as supported.
+
+See [the HEIF running screenshot](docs/prototype/interactive-heif.png). It uses [the sample's original MIT notice](tests/fixtures/images/LICENSE.heif-example.txt). Complete corresponding-source/notices/dependency/update review, broader HEIF codec/orientation/bit-depth fixtures and packed-consumer checks before enabling any decoder distribution, including private packages.
 
 React and React DOM are peers for the intended React 18/19 library; the current runtime uses React 19.3. PDF.js 6.3.289 is the only direct rendering dependency. Its worker/fonts/CMaps/WASM/ICC resources are packaged locally with its license. CU SDKs, Azure credentials, service clients, and the investigated LGPL decoder are not package dependencies. Main source is covered by [MIT](LICENSE); the sample documents retain their [original notice](tests/fixtures/LICENSE.txt).
 

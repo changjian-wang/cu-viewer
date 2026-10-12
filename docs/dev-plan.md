@@ -4,7 +4,7 @@
 > **Target repository**: changjian-wang/cu-result-viewer
 > **Requirements baseline**: [requirements](requirements.md) and [roadmap](roadmap.md), at commit `163814a`
 > **Design approval**: initial baseline and MIT/LGPL-candidate direction approved by the task owner; distribution approval remains pending
-> **Status**: In Progress; v2 wireframe approved; runnable PDF/PNG prototype browser-tested; user interaction review and full P0 gates remain open
+> **Status**: In Progress; approved baseline; task 2.4 inputs and task 2.5 native/EXIF plus local-only HEIF verified; full P0/distribution gates remain open
 > **Last updated**: 2026-10-10
 
 ## Table of Contents
@@ -160,7 +160,7 @@ Effort is provisional: S = hours, M = approximately 1-2 developer days, TBD = ca
 
 **2026-10-09 progress**: G0's design/candidate direction is approved. [Design decisions](design-decisions.md) and the [fixture inventory](../tests/fixtures/manifest.json) preserve the real pairs and [evidence](rendering-evaluation.md). Tasks 2.1-2.3 are delivered with 339 passing unit cases and 512 actual-geometry browser checks. Next is UI prototype review; formal task 2.4 is gated. Reusable viewer rendering, distribution/update obligations and additional UX/sample coverage remain open.
 
-**2026-10-10 progress**: the owner approved v2 static review. A [running React prototype](../README.md#run-the-prototype) now uses the actual source/field components and saved PDF/PNG pairs. Its 375 unit cases and 16 Chrome/Edge browser runs pass; development and built-demo pages were opened and visually checked. [Fields styling](prototype/interactive-fields.png) follows the owner's Studio screenshot, with collapsed groups, missing filtering and stable parent/child colors; Fields/source confidence formatting and unavailable-source-page diagnostics are consistent. This advances the vertical slice but does not complete every format, React consumer, distribution or CLI requirement.
+**2026-10-10 progress**: the approved [running implementation](../README.md#run-the-prototype) now passes 409 unit cases and 52 Chrome/Edge runs. Public inputs, native image formats, eight synthetic EXIF directions and local-only HEIF are exercised in actual components; real pages were visually checked. [Fields styling](prototype/interactive-fields.png), confidence and unavailable-page diagnostics remain consistent. Local HEIF approval is not decoder distribution or full P0/consumer/CLI acceptance.
 
 Use the current Studio with representative PDF and image results. Record layout, field/value/confidence presentation, hover versus selection, cross-page navigation, fit/zoom/pan/rotation, and missing-source/grounding behavior. If Studio is inaccessible, record that limitation and leave the behavioral review gate open.
 
@@ -185,7 +185,7 @@ Use the current Studio with representative PDF and image results. Record layout,
 
 **Task 2.3 delivered**: [geometry](../src/internal/geometry.ts) and [tests](../src/internal/geometry.test.ts) map actual page dimensions with reversible view transforms. The unchanged 1 CSS pixel threshold is now checked in both the original experiment and the implemented prototype.
 
-**Prototype review gate (owner-requested)**: [v2 static design](prototype/README.md) is approved, and the [interactive prototype](../README.md#run-the-prototype) implements the initial selection/navigation/state direction. The first live run and browser checks are complete; final user review of the actual interaction/layout remains open before production hardening. Field previews use a dock rather than covering the document. HEIF, rich P1 panes, full format/orientation and package-consumer gates are unchanged.
+**Prototype review gate (owner-requested)**: [v2 static design](prototype/README.md) and the current [interactive baseline](../README.md#run-the-prototype) are approved for task 2.4 hardening. The first public-input batch verifies real PDF/PNG File, untyped Blob, ArrayBuffer, same-origin HTTP and host-owned blob URLs, caller-data preservation, explicit failures/recovery and controlled replacement/unmount cleanup. This approval removes the UI implementation blocker; it does not close HEIF, rich P1, full format/orientation, 100-switch stress or package-consumer gates.
 
 **Run-first checkpoint**: as soon as any source pane or viewer host is mountable, start it and inspect the real PDF/image and field/source behavior in a browser before expanding features. Do not wait until all P0 controls are complete or substitute parser logs for UI effects.
 
@@ -268,18 +268,20 @@ Paths are relative to the target repository and use Windows separators. `create`
   "review_gates": [
     {
       "id": "ui-prototype-v1",
-      "status": "interactive-ready-awaiting-user-review",
+      "status": "interactive-baseline-approved-hardening-in-progress",
       "iteration": 2,
       "wireframe_approved": true,
+      "interaction_baseline_approved": true,
+      "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
-      "unit_cases": 375,
-      "browser_runs": 16,
+      "unit_cases": 409,
+      "browser_runs": 52,
       "fields_reference": "docs\\prototype\\interactive-fields.png",
       "reference": "docs\\prototype\\README.md",
       "state_preview": "docs\\prototype\\index.html",
       "state_count": 10,
       "sequence": ["wireframe-review", "interactive-prototype", "browser-review"],
-      "blocks": ["2.4"]
+      "blocks": []
     }
   ],
   "tasks": [
@@ -346,9 +348,9 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "2.4", "phase": 2, "priority": "P0", "title": "Render PDF through an internal source adapter", "effort": "M",
-      "status": "prototype-implemented",
-      "execution_ready": false,
-      "blocked_by": "Prototype code and browser checks exist; production hardening awaits user interaction review and remaining delivery gates.",
+      "status": "in_progress",
+      "execution_ready": true,
+      "implementation_evidence": "Interactive baseline approved; real PDF/PNG public inputs, caller-data preservation and controlled cancellation/unmount resource accounting verified. Full orientation/format, stress and package-consumer acceptance remains open.",
       "description": "Define the private page/render/cancel/dispose contract and implement the selected PDF adapter/source pane with local assets and explicit failure states.",
       "files": [
         {"path": "src\\internal\\source.ts", "action": "create"},
@@ -367,11 +369,22 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "2.5", "phase": 2, "priority": "P0", "title": "Render required images through the common adapter", "effort": "M",
-      "status": "partial-prototype",
+      "status": "in_progress",
+      "implementation_evidence": "Native PNG/JPEG/BMP and EXIF 1-8 at DPR1/2 pass; owner-approved local-only HEIF primary/CSP/cancellation path works in the component. Production rejects HEIF and contains no decoder binary; broader real pairs/codec variants/distribution obligations remain open.",
       "description": "Reuse the source contract for native/fallback decoding, orientation and intrinsic dimensions. Keep HEIF/HEIC in P0 and expose decode errors explicitly.",
       "files": [
         {"path": "src\\internal\\imageSource.ts", "action": "create"},
         {"path": "src\\internal\\imageSource.test.ts", "action": "create"},
+        {"path": "src\\internal\\heifSource.ts", "action": "create"},
+        {"path": "src\\internal\\heifSource.test.ts", "action": "create"},
+        {"path": "src\\internal\\heif.worker.ts", "action": "create"},
+        {"path": "tools\\heifDevelopmentAssets.ts", "action": "create"},
+        {"path": "tools\\generate-image-fixtures.mjs", "action": "create"},
+        {"path": "tests\\e2e\\image-formats.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\sourceResources.ts", "action": "create"},
+        {"path": "tsconfig.worker.json", "action": "create"},
+        {"path": "demo\\vite.config.ts", "action": "modify"},
+        {"path": "demo\\App.tsx", "action": "modify"},
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"}
       ],
       "depends_on": ["2.4"],
@@ -428,6 +441,10 @@ Paths are relative to the target repository and use Windows separators. `create`
         {"path": "demo\\App.tsx", "action": "create"},
         {"path": "playwright.config.ts", "action": "create"},
         {"path": "tests\\e2e\\prototype.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\source-inputs.html", "action": "create"},
+        {"path": "tests\\e2e\\source-inputs.tsx", "action": "create"},
+        {"path": "tests\\e2e\\source-inputs.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\viewerAssertions.ts", "action": "create"},
         {"path": "demo\\main.tsx", "action": "create"},
         {"path": "demo\\styles.css", "action": "create"},
         {"path": "demo\\vite.config.ts", "action": "create"},
@@ -553,7 +570,7 @@ Task 2.1 establishes the unit/lint/type/build foundation; browser, component, an
 - **Host-native integration tests**: use the confirmed CLI repository's existing runner rather than creating a competing CLI framework.
 - **Manual evidence**: Studio comparisons, dependency/license evaluation, and owner approval remain explicitly manual. They are not reported as automated coverage.
 
-`npm ci --ignore-scripts`, `npm run typecheck`, `npm run lint`, `npm run test:unit`, `npm run test:e2e`, `npm run build`, and `npm run build:demo` are implemented. The prototype has 375 unit cases and 16 runs from eight browser scenarios executed in both Chrome and Edge, including Fields dimensions/colors, missing filtering, consistent confidence and unavailable-source-page recovery. The built demo is visually verified; the complete public source-input matrix, 100-switch resource accounting and isolated packed-consumer `npm pack` coverage remain open.
+`npm ci --ignore-scripts`, `npm run typecheck`, `npm run lint`, `npm run test:unit`, `npm run test:e2e`, `npm run build`, and `npm run build:demo` are implemented. Current 409 unit cases and 52 Chrome/Edge runs cover eight prototype, ten public-input and eight image-format scenarios per browser. Native EXIF orientations are checked at DPR1/2; HEIF actual-component CSP/cancellation is local-development only. Native production rendering and production HEIF refusal were visually checked. Full real format/orientation pairs, decoder distribution, HTTPS/cross-origin, 100-switch stress and isolated consumers remain open.
 
 Normal regression tests use saved, sanitized real results, not live Analyze calls. Live service access is only an explicitly approved way to acquire fixtures or verify the external fresh-analysis CLI path. Source URL tests may use the local test server; tests deny CU requests and required external CDN assets. Do not record credentials, SAS URLs, customer documents, or raw sensitive results in test logs or browser artifacts.
 
@@ -643,3 +660,5 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-10 | Static v2 review approved; built and immediately ran the React prototype, fixed local worker URLs, verified 363 unit cases and 10 browser runs, and retained user interaction/HEIF/consumer/release gates. |
 | 2026-10-10 | Aligned live Fields icons/spacing with the owner's screenshot; added collapsed groups, truthful missing filtering and stable descendant colors, verified 368 unit cases and 14 browser runs, and refreshed development/production screenshots without new Analyze calls. |
 | 2026-10-10 | Unified Fields/source confidence and actual-source page availability; verified 375 unit cases and 16 browser runs with synthetic mismatch/recovery, synchronized roadmap/fixture coverage, and clarified that static v2 images retain historical UI rather than current Fields acceptance. |
+| 2026-10-10 | Owner approved the interactive implementation baseline; added a test-only public-input host and controlled cancellation/resource checks. Combined 36 browser runs and 36 targeted unit cases pass; the existing unit total stays 375, runtime/demo code is unchanged, and full P0/format/consumer gates remain open. |
+| 2026-10-10 | Implemented the common image adapter and owner-approved local-only HEIF Worker; native formats, synthetic EXIF/DPR and same-origin no-eval/no-WASM CSP/cancellation pass. Verified 409 unit cases and 52 browser runs; no decoder binary entered either distribution build, and full P0/license gates remain open. |

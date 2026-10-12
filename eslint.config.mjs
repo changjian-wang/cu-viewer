@@ -16,4 +16,13 @@ export default defineConfig(
             },
         },
     },
+    {
+        files: ["src/internal/heif.worker.ts"],
+        languageOptions: {
+            parserOptions: {
+                projectService: false,
+                project: "./tsconfig.worker.json",
+            },
+        },
+    },
 );

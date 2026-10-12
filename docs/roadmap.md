@@ -10,16 +10,16 @@ Track implementation work in Issues and P0/P1/P2 milestones once investigation h
 
 The [development plan](dev-plan.md) expands this roadmap into module boundaries, structured tasks, test scenarios, and explicit gates, and records actual progress. Host delivery and P0/P1 release gates remain open independently of the approved initial design.
 
-The owner's UI checkpoint now has approved [v2 static design](prototype/README.md) plus an [interactive prototype](prototype/README.md#当前可操作范围). The latter was run immediately when mountable and has real PDF/PNG browser coverage. The static state gallery remains design-only; the running prototype awaits user review before completing the formal production-ready source/viewer work.
+The owner's UI checkpoint now has approved [v2 static design](prototype/README.md) and an [interactive baseline](prototype/README.md#当前可操作范围) approved for task 2.4 hardening. It was run immediately when mountable and has real PDF/PNG coverage. The static state gallery remains design-only; implementation approval does not close production acceptance.
 
-Checked items below record completed investigation or verified prototype behavior, not a production-release approval. Partial items retain their remaining acceptance work. Current checks pass 375 unit cases and 16 Chrome/Edge browser runs; the full input/format matrix, 100-switch resource accounting, performance budgets, packed consumers, CLI and release/compliance gates remain open.
+Checked items record completed investigation or verified behavior, not production-release approval. Current 409 unit cases and 52 Chrome/Edge browser runs cover public inputs, native formats, synthetic EXIF directions at DPR 1/2 and local HEIF/CSP/cancellation. Full real paired formats/orientation, HEIF distribution, HTTPS/cross-origin, 100-switch stress, budgets, packed consumers and CLI remain open.
 
 ## 1. Validate the Input and UX Reference
 
 - [x] Confirm the verified CU `2025-11-01` API and exact cu-cli saved JSON, including outer response wrappers; other API versions are not approved.
 - [ ] Collect the full real source/result matrix. **Partial:** licensed multi-page PDF and PNG pairs are saved; required image formats and intrinsic orientation/crop fixtures remain incomplete.
 - [x] Record approved public-pair provenance, licenses, hashes and remaining sharing/sample gaps without changing source geometry or raw results.
-- [ ] Confirm the full source geometry/orientation matrix. **Partial:** actual CU values, grounding encoding, page numbers, units and dimensions are verified for the current pairs; intrinsic rotation/crop/EXIF remain open.
+- [ ] Confirm the full source geometry/orientation matrix. **Partial:** CU values/units/dimensions and synthetic native EXIF 1-8 are verified; real CU orientation pairs, intrinsic PDF crops and broader HEIF orientation remain open.
 - [ ] Complete Studio PDF/image walkthroughs. **Partial:** owner-reported single-page controls and screenshots are recorded; extended cross-page/image and exact reference semantics remain open.
 - [ ] Resolve the truncated `Result-pane` requirement with the task owner.
 
@@ -30,7 +30,7 @@ Checked items below record completed investigation or verified prototype behavio
 - [x] Evaluate PDF.js and both highlighter candidates; execute PDF.js geometry/rendering probes and record the wrappers' documentation/peer-dependency limitations without claiming they were browser-tested.
 - [x] Inspect OCR-Form-Tools rendering/geometry patterns without importing its application, service or DI architecture.
 - [x] Prototype native PNG/JPEG/BMP and owned libheif JS/WASM decoding in Chrome/Edge; record extension aliases, derived images and the single HEVC fixture as limited evidence, not full paired-format coverage.
-- [x] Select the common native-image adapter and owned pure-JS HEIF-worker candidate; record bundle/CSP/lifecycle/license costs. Runtime integration and distribution compliance remain open.
+- [x] Implement the common native-image adapter and locally validate the owned pure-JS HEIF Worker/CSP/lifecycle path. The owner approved only local development use; distribution compliance remains open.
 - [x] Record versions, licenses, reuse decisions, limitations and local PDF worker/font/resource requirements.
 
 **Exit check:** the chosen rendering approach handles representative geometry and required formats. A custom PDF renderer requires a documented compelling reason. TIFF and DI do not gate this decision.
@@ -49,11 +49,11 @@ Checked items below record completed investigation or verified prototype behavio
 
 ## 4. Complete P0
 
-- [ ] Complete PDF and all required image format support through the common source-rendering boundary.
+- [ ] Complete PDF and all required image support. **Partial:** native PNG/JPEG/BMP and local-only HEIF are implemented; decoded aliases/derivatives are not independent CU pairs, and production HEIF distribution remains blocked.
 - [ ] Complete production control/transform acceptance. **Partial:** named controls and PDF page bounds work; full format/orientation and repeated-switch coverage remain open.
-- [ ] Complete production field/source acceptance. **Partial:** analyzer-independent GA fields, original values and basic cross-page highlighting are implemented; the full input/fixture matrix is incomplete.
-- [x] Define independent loading, empty, invalid-result and source-error states, including explicit unavailable-source-page diagnostics; remaining input-variant validation stays open.
-- [ ] Complete lifecycle acceptance. **Partial:** obsolete work is cancelled, stale results are suppressed and PDF/image disposal is implemented; 100-switch resource accounting remains open.
+- [ ] Complete production field/source acceptance. **Partial:** real PDF/PNG public-input representations now render the same raster/grounding without modifying caller data; full formats, intrinsic orientation and host URL policies remain incomplete.
+- [x] Verify independent loading, empty, invalid-result and source-error states, unavailable-source-page diagnostics, empty/corrupt binary inputs and HTTP failure/recovery; full format/host acceptance stays open.
+- [ ] Complete lifecycle acceptance. **Partial:** controlled delayed HTTP/PDF-worker/image-decode replacement and unmount tests verify cancellation, stale-result suppression, Worker/bitmap release and host-owned URL preservation; 100-switch stress accounting remains open.
 - [x] Build local PDF worker/fonts/CMaps/WASM/ICC assets with their license; packed-consumer/CSP and resource-specific fixture validation remain open.
 - [x] Provide the saved-source/JSON demo without analysis or authentication.
 - [x] Run focused parser/geometry/source/interaction unit and browser regressions; production coverage gaps remain explicitly listed.

@@ -1,0 +1,17 @@
+{
+  "apiVersion": "2025-11-01",
+  "contents": [
+    {
+      "kind": "document",
+      "unit": "pixel",
+      "pages": [{ "pageNumber": 1, "width": 1280, "height": 854 }],
+      "fields": {
+        "SyntheticRegion": {
+          "type": "string",
+          "valueString": "Synthetic HEIF geometry check, not a CU service extraction",
+          "source": "D(1,640,85,1024,85,1024,512,640,512)"
+        }
+      }
+    }
+  ]
+}

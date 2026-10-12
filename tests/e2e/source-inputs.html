@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CU viewer public-source input tests</title>
+    <style>
+      body { margin: 16px; font: 14px/1.45 "Segoe UI", Arial, sans-serif; }
+      h1 { font-size: 20px; }
+      .input-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
+      .input-controls label { display: flex; align-items: center; gap: 6px; }
+      button, input, select { font: inherit; }
+      .input-workspace { height: 720px; }
+      .input-diagnostics { overflow-wrap: anywhere; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./source-inputs.tsx"></script>
+  </body>
+</html>
