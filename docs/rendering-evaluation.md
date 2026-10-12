@@ -195,3 +195,15 @@ The task 2.3 implementation has now replaced the experimental coordinate mapping
 | React compatibility and host integration | Wrapper peer incompatibility identified; direct adapter recommended. | Real React 18/19 consumer tests, G0 approval, and external CLI handoff. |
 
 G0 is approved for initial development; task 2.1's tooling/types are verified. This investigation and approval do not certify viewer rendering, complete third-party distribution compliance, or authorize a Microsoft release.
+
+## Task 2.5 Local Integration: 2026-10-10
+
+The owner explicitly approved actual-component **local HEIF validation**, not decoder distribution. The [common image adapter](../src/internal/imageSource.ts) now uses signature-based native PNG/JPEG/BMP decoding with EXIF-normalized orientation. The [image browser suite](../tests/e2e/image-formats.spec.ts) covers full-size receipt derivatives, eight clearly synthetic EXIF JPEG orientations at DPR 1/2, and their corner pixels/dimensions/quarter-turn overlays. Derived and synthetic results are not presented as additional service responses.
+
+The [HEIF client](../src/internal/heifSource.ts) creates one owned same-origin classic Worker, transfers only copied bytes, selects the declared primary image, validates its RGBA response and terminates on success/error/abort/deadline. The 30-second deadline is an explicit local-development guard, not a measured performance budget. Actual-component tests cover the licensed example's input representations, regions, caller data, corrupt/missing-resource recovery, replacement and unmount.
+
+Both page and Worker response CSPs are exercised without JavaScript eval, WASM compilation permission or Blob Workers. Local pixels are transferred as RGBA, then turned into an owned ImageBitmap; this implementation does not require an intermediate image URL. [The server-only plugin](../tools/heifDevelopmentAssets.ts) reads a locally configured isolated directory and checks the unchanged 1.23.5 pure-JS SHA-256 above. It serves no arbitrary paths and copies no codec into either build.
+
+Production/library builds explicitly reject HEIF pending review. Vite emits only the project's small Worker glue; no libheif decoder binary is included. [The local running screenshot](prototype/interactive-heif.png) retains the example's [original MIT notice](../tests/fixtures/images/LICENSE.heif-example.txt) and visibly labels its test grounding as synthetic.
+
+Current total validation is **409 unit cases and 52 Chrome/Edge runs**, of which 16 runs belong to image formats/orientation/local HEIF. Native JPEG/BMP also render in the production demo, and production HEIF's explicit refusal was checked without hiding valid fields. This advances the actual integration beyond the earlier isolated probe, but does not complete broader HEIF codecs/bit-depth/intrinsic orientation, real CU per-format pairs, packed consumers, corresponding sources/notices/update review or any release approval.
