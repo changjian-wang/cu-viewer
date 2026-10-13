@@ -21,7 +21,8 @@ try {
 }
 
 New-Item -ItemType Directory -Path $output -Force | Out-Null
-& wasm-bindgen --target no-modules --out-name heic_decoder --out-dir $output $wasm
+& wasm-bindgen --target no-modules --remove-name-section --remove-producers-section `
+    --out-name heic_decoder --out-dir $output $wasm
 if ($LASTEXITCODE -ne 0) {
     throw "HEIC decoder binding generation failed."
 }
@@ -30,7 +31,7 @@ Remove-Item -LiteralPath (Join-Path $output "heic_decoder.d.ts") -Force
 Remove-Item -LiteralPath (Join-Path $output "heic_decoder_bg.wasm.d.ts") -Force
 $expected = @{
     "heic_decoder.js" = "37E9954F836E53CF877418A4AD419FA82F6187ADE49E047543B10FE80340FBEC"
-    "heic_decoder_bg.wasm" = "DFF3CB27E4448BFFAD5FD1AA47EEF6D92C608755E4075DD304A162ECFAB19FE1"
+    "heic_decoder_bg.wasm" = "354AB3F20C1D11FF26F83F8C427BA32C2233F183151B579EA416B8B2FEF39C52"
 }
 foreach ($name in $expected.Keys) {
     $actual = (Get-FileHash -Algorithm SHA256 (Join-Path $output $name)).Hash

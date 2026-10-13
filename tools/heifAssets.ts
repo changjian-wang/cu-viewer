@@ -9,7 +9,7 @@ const assetDirectory = resolve(repository, "assets", "heif");
 const workerSource = resolve(repository, "src", "internal", "heif.worker.ts");
 const assetHashes = new Map([
     ["heic_decoder.js", "37e9954f836e53cf877418a4ad419fa82f6187ade49e047543b10fe80340fbec"],
-    ["heic_decoder_bg.wasm", "dff3cb27e4448bffad5fd1aa47eef6d92c608755e4075dd304a162ecfab19fe1"],
+    ["heic_decoder_bg.wasm", "354ab3f20c1d11ff26f83f8c427ba32c2233f183151b579ea416b8b2fef39c52"],
 ]);
 const copiedAssets = [
     ...assetHashes.keys(),

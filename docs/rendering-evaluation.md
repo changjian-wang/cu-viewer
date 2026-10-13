@@ -219,7 +219,7 @@ The packaged decoder consists of:
 | Asset | Bytes | SHA-256 |
 | --- | ---: | --- |
 | `heic_decoder.js` | 8,273 | `37e9954f836e53cf877418a4ad419fa82f6187ade49e047543b10fe80340fbec` |
-| `heic_decoder_bg.wasm` | 278,994 | `dff3cb27e4448bffad5fd1aa47eef6d92c608755e4075dd304a162ecfab19fe1` |
+| `heic_decoder_bg.wasm` | 263,155 | `354ab3f20c1d11ff26f83f8c427ba32c2233f183151b579ea416b8b2fef39c52` |
 
 Nine generated MIT/Apache fixtures compare against Apple-decoded references. Three are byte-exact; the remainder measure RGB PSNR `47.76-49.80 dB`, luma PSNR `57.62-60.01 dB`, and maximum channel error `2-6`. Chrome/Edge produce identical reviewed RGBA hashes. The licensed 1280x854 sample decodes in approximately `189 ms` (Chrome) and `227 ms` (Edge) in the isolated WASM probe, versus approximately `2,772 ms`/`940 ms` for the previous pure-JS candidate on the same machine.
 
