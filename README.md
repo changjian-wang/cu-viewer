@@ -150,7 +150,7 @@ The separate [packed-consumer matrix](tests/e2e/package-host.spec.ts) adds **16 
 npm run verify:consumer
 ```
 
-The [usage guide](docs/usage.md) explains explicit asset integration and rerunning generated hosts. Vite is an optional build-host peer, not a required browser API or new service dependency. The core CI workflow is configured, but no remote GitHub CI execution is claimed.
+The [usage guide](docs/usage.md) explains explicit asset integration and rerunning generated hosts. Vite is an optional build-host peer, not a required browser API or new service dependency. GitHub Actions now has successful [push validation](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633) and a successful [manually dispatched full matrix](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406) covering core checks, Chrome/Edge functionality, production performance, isolated React 18/19 consumers and the 600-round stress suite. Pixel-exact references remain a fixed-version local gate rather than being rewritten for hosted-runner browser/font versions.
 
 ### Structured Fields and Source Regions
 

@@ -29,7 +29,7 @@
     "behaviorApproval": "Owner approved the current interactive baseline for task 2.4 hardening on 2026-10-10; this is not complete P0 or production-release approval.",
     "diagnosticStates": "Loading, empty and errors are explicit design scenarios, not observed service outcomes.",
     "formalTaskPaused": null,
-    "formalTaskStatus": "rc1-rich-result-performance-risk-closed",
+    "formalTaskStatus": "rc2-remote-ci-risk-closed",
     "realSourceDataUsed": true,
     "interactiveViewerImplemented": true,
     "productionReleaseApproved": false,
@@ -46,7 +46,7 @@
     ],
     "developmentAndBuiltDemoChecked": true,
     "previewLayoutAdjustment": "Field preview is below the document, not covering source text.",
-    "remaining": "Structured fields/multi-region navigation plus safe lazy Markdown/original JSON and their production interaction budget are verified. Paragraphs/Tables/Code, accessible/touch/extensible UX, HEIF distribution, broader codec/orientation/crop, cross-origin/other bundlers, remote CI and release gates remain open.",
+    "remaining": "Structured fields/multi-region navigation plus safe lazy Markdown/original JSON, their production interaction budget and remote CI are verified. Paragraphs/Tables/Code, accessible/touch/extensible UX, HEIF distribution, broader codec/orientation/crop, cross-origin/other bundlers and release gates remain open.",
     "additionalAnalyzeCalls": 0
   },
   "prototypeVisualVerification": {
@@ -121,7 +121,7 @@
   "packedConsumerVerification": {
     "verifiedOn": "2026-10-13",
     "task": "3.3",
-    "status": "vite-consumers-verified-ci-configured-not-remotely-executed",
+    "status": "vite-consumers-and-remote-ci-verified",
     "command": "npm run verify:consumer",
     "suite": "..\\e2e\\package-host.spec.ts",
     "config": "..\\..\\playwright.consumer.config.ts",
@@ -151,9 +151,16 @@
     "approvedBaselineHashesUnchanged": true,
     "decoderDistributed": false,
     "ciConfigured": true,
-    "remoteCiExecuted": false,
+    "remoteCiExecuted": true,
+    "remoteCi": {
+      "push": "https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633",
+      "fullManual": "https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406",
+      "successfulJobs": ["core", "browser", "performance", "packed-consumers", "stress"],
+      "stressRounds": 600,
+      "visualPolicy": "Hosted runners skip only version-sensitive screenshot comparisons; fixed-version local Chrome/Edge retains zero-difference 34-image enforcement."
+    },
     "additionalAnalyzeCalls": 0,
-    "remaining": "Complete required formats/HEIF compliance, broader decoder/cross-origin/other-host matrices, source/decoder performance budgets, remote CI and release approval remain open."
+    "remaining": "Complete required formats/HEIF compliance, broader decoder/cross-origin/other-host matrices, source/decoder performance budgets and release approval remain open."
   },
   "publicSourceInputVerification": {
     "task": "2.4",
@@ -554,6 +561,6 @@
     {"id": "additional-input-shapes", "owner": "Viewer maintainer", "gate": "G2", "status": "structured-and-public-input-pass", "description": "Parser tests cover GA wrappers/value/identity boundaries; real invoice/receipt arrays and real multi-region addresses now pass component/browser behavior. Synthetic cases cover multiple contents, scalar/error and cross-page group regions. HTTPS/cross-origin, full formats and real cross-page structured pairs remain open. Only verified 2025-11-01 is supported."},
     {"id": "cli-host-contract", "owner": "Task owner and toolkit maintainers", "gate": "G4", "status": "deferred", "description": "Per Viewer-first scheduling, CLI contract/integration starts only after G2+G3. Actual data acquisition is verified; --view and saved-result browser hosting are not implemented or approved and do not block Viewer work."},
     {"id": "heif-shipping-decision", "owner": "Project owner and viewer maintainer", "gate": "G2", "status": "distribution-compliance-pending", "description": "MIT/LGPL candidate direction is explicitly approved; worker/CSP probes pass. Complete corresponding-source/notices, dependency/update review, real-format coverage and production packaging before any distribution; no codec assets are currently in the main package."},
-    {"id": "pdf-assets-completeness", "owner": "Viewer maintainer", "gate": "G2", "status": "partial-packed-consumer-pass", "description": "React18/19 actual isolated Vite tgz hosts pass development/production Worker and real standard-font fixture under self-only page/worker CSP; CMap/WASM/ICC delivery and WASM MIME are verified. All codec-specific decode fixtures, other bundlers/CSP/cross-origin environments and remote CI remain open."}
+    {"id": "pdf-assets-completeness", "owner": "Viewer maintainer", "gate": "G2", "status": "partial-packed-consumer-pass", "description": "React18/19 actual isolated Vite tgz hosts pass development/production Worker and real standard-font fixture under self-only page/worker CSP; CMap/WASM/ICC delivery, WASM MIME and remote CI are verified. All codec-specific decode fixtures and other bundlers/CSP/cross-origin environments remain open."}
   ]
 }

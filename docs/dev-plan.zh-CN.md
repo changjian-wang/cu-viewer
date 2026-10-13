@@ -515,7 +515,7 @@ flowchart LR
     {
       "id": "3.3", "phase": 3, "priority": "P0", "title": "打包组件库、编写文档并建立验收门槛", "effort": "M",
       "status": "in_progress",
-      "implementation_evidence": "真实隔离React18/19 Vite tgz宿主在开发/生产通过类型/CSS/本地资源/CSP及旧产品截图；Node插件获批。使用说明/核心CI已配置，远程CI、完整编解码格式及发布门槛保留。",
+      "implementation_evidence": "真实隔离React18/19 Vite tgz宿主在开发/生产通过类型/CSS/本地资源/CSP及旧产品截图；Node插件获批。远程push及手动触发的core/browser/performance/consumer/600轮stress任务通过。完整编解码格式及发布门槛保留。",
       "description": "打包公共类型、限定作用域的样式，以及本地 Worker/解码器资源。增加 CI 和隔离的安装包使用方测试；仅记录已验证的 API、命令、限制与分发策略。",
       "files": [
         {"path": "package.json", "action": "modify"},
@@ -651,7 +651,7 @@ flowchart LR
 - **宿主原生集成测试**：使用已确认 CLI 仓库的现有运行器，不另建一套 CLI 框架。
 - **人工验证依据**：Studio 对比、依赖/许可证评估，以及负责人批准，仍明确属于人工工作，不计入自动化覆盖。
 
-`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建、`npm run verify:performance`和`npm run verify:consumer`已实现。429单元案例、90仓库浏览器和16真实React18/19 Vite包使用方运行通过，本地合计106次。已有600压力轮与30张不变产品图保留，并新增4张任务4.2面板图；核心CI已配置但未远程执行。完整格式/分发、跨源/其他宿主和源文件/解码器预算仍开放。
+`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建、`npm run verify:performance`和`npm run verify:consumer`已实现。429单元案例、90仓库浏览器和16真实React18/19 Vite包使用方运行通过，本地合计106次。已有600压力轮与30张不变产品图保留，并新增4张任务4.2面板图；远程[push CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633)及[完整手动CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406)通过。完整格式/分发、跨源/其他宿主和源文件/解码器预算仍开放。
 
 常规回归测试使用已保存、已脱敏的真实结果，不实时调用 Analyze。访问真实服务只用于明确批准的测试样本获取，或验证外部 CLI 新分析路径。源文件 URL 测试可以使用本地测试服务器；测试禁止 CU 请求及对必需外部 CDN 资源的依赖。不在测试日志或浏览器产物中记录凭据、SAS URL、客户文档或未经处理的敏感结果。
 
@@ -754,3 +754,4 @@ flowchart LR
 | 2026-10-13 | 完成4.1已定范围：真实数组/表格式层级、隐藏后代选择及全部自身/后代来源区域，补充合成跨页覆盖。424单元、80仓库和16消费者运行通过，30张获批图片不变；专属Tables视图/真实跨页结构化配对仍开放，下一项4.2。 |
 | 2026-10-13 | 完成任务4.2：真实安全Markdown（含9个CU HTML表格）、原始交互JSON、标签/源状态保持、攻击/缺失/超限状态及React18/19安装包宿主覆盖。429单元、86仓库及16消费者运行通过；保留原有30张产品图并新增4张富结果面板图。Paragraphs/Tables/Code继续不在范围，下一项4.3。 |
 | 2026-10-13 | RC-1实测并关闭富结果包体/UI阻塞风险：按需chunk将library入口从479.97降至47.29 kB、demo主入口从603.46降至261.31 kB；实测100k/500k上限及Chrome/Edge生产预算通过。当前429单元、90仓库及16消费者运行；4.3继续等待后续风险收敛。 |
+| 2026-10-13 | RC-2建立真实远程CI：push运行38347604633通过core/browser/performance/packed-consumer；手动运行38348199406另通过6测试/600轮stress。hosted runner仅跳过版本敏感像素比较；固定版本本地零差异视觉门槛继续强制。 |

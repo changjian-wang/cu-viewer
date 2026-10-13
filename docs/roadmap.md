@@ -14,7 +14,7 @@ Task numbering now matches the revised phases: Viewer P1 is `4.1-4.4` / G3; CLI 
 
 The owner's UI checkpoint now has approved [v2 static design](prototype/README.md) and an [interactive baseline](prototype/README.md#当前可操作范围) approved for task 2.4 hardening. It was run immediately when mountable and has real PDF/PNG coverage. The static state gallery remains design-only; implementation approval does not close production acceptance.
 
-Checked items record verified scope, not release approval. Current 429 unit cases, 90 repository browser runs and 16 isolated Vite consumer runs pass: 106 local browser runs. Structured arrays, all current source regions, safe lazy-loaded Markdown and the original JSON tree are verified against a production interaction budget. The prior 30 product references remain unchanged and four task 4.2 pane references were added. Remaining rich UX, formats, HEIF distribution, cross-origin, source/decoder budgets, other hosts, remote CI and final CLI remain open.
+Checked items record verified scope, not release approval. Current 429 unit cases, 90 repository browser runs and 16 isolated Vite consumer runs pass: 106 local browser runs. Remote core/browser/performance/consumer jobs and the full 600-round stress matrix also pass. Structured arrays, all current source regions, safe lazy-loaded Markdown and the original JSON tree are verified against a production interaction budget. The prior 30 product references remain unchanged and four task 4.2 pane references were added. Remaining rich UX, formats, HEIF distribution, cross-origin, source/decoder budgets, other hosts and final CLI remain open.
 
 ## 1. Validate the Input and UX Reference
 
