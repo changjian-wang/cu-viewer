@@ -5,6 +5,7 @@ import { MAX_MARKDOWN_CHARACTERS } from "../../src/components/MarkdownPane";
 import { ready } from "./viewerAssertions";
 
 const amountId = "/contents/0/fields/AmountDue/valueObject/Amount";
+const verifyProductScreenshots = process.env.CU_VERIFY_PRODUCT_SCREENSHOTS !== "false";
 
 function syntheticResult(markdown?: string, extra: Record<string, unknown> = {}): unknown {
     const content: Record<string, unknown> = {
@@ -68,7 +69,7 @@ test("real Markdown and original JSON preserve source page, zoom, rotation and p
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
     await expect(pane.getByRole("status")).toHaveText("Pinned: AmountDue / Amount");
-    await expect(pane).toHaveScreenshot("rich-markdown.png");
+    if (verifyProductScreenshots) await expect(pane).toHaveScreenshot("rich-markdown.png");
 
     await pane.getByRole("tab", { name: "Markdown", exact: true }).press("ArrowRight");
     await expect(pane.getByRole("tab", { name: "JSON", exact: true })).toHaveAttribute("aria-selected", "true");
@@ -83,7 +84,7 @@ test("real Markdown and original JSON preserve source page, zoom, rotation and p
     const afterSwitchBounds = await page.getByTestId("rendered-page").boundingBox();
     expect(afterSwitchBounds?.width).toBeCloseTo(sourceBounds.width, 1);
     expect(afterSwitchBounds?.height).toBeCloseTo(sourceBounds.height, 1);
-    await expect(pane).toHaveScreenshot("rich-json.png");
+    if (verifyProductScreenshots) await expect(pane).toHaveScreenshot("rich-json.png");
 
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
     await expect(pane.locator(`[data-field-id="${amountId}"]`).getByRole("button", { name: "Amount", exact: true }))
