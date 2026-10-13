@@ -8,7 +8,7 @@ export default defineConfig({
     workers: 1,
     timeout: 60000,
     use: {
-        baseURL: "http://127.0.0.1:4173",
+        baseURL: "http://127.0.0.1:41873",
         viewport: { width: 1440, height: 1000 },
         trace: "retain-on-failure",
     },
@@ -17,8 +17,8 @@ export default defineConfig({
         { name: "edge", use: { channel: "msedge" } },
     ],
     webServer: {
-        command: "npm run preview:demo",
-        url: "http://127.0.0.1:4173",
-        reuseExistingServer: true,
+        command: "npm run preview:performance",
+        url: "http://127.0.0.1:41873",
+        reuseExistingServer: false,
     },
 });

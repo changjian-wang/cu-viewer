@@ -41,7 +41,8 @@
     "verify:performance": "npm run verify:bundle && playwright test --config playwright.performance.config.ts",
     "build": "vite build && tsc --project tsconfig.build.json",
     "build:demo": "vite build --config demo/vite.config.ts",
-    "preview:demo": "vite preview --config demo/vite.config.ts --host 127.0.0.1 --port 4173 --strictPort"
+    "preview:demo": "vite preview --config demo/vite.config.ts --host 127.0.0.1 --port 4173 --strictPort",
+    "preview:performance": "vite preview --config demo/vite.config.ts --host 127.0.0.1 --port 41873 --strictPort"
   },
   "peerDependencies": {
     "react": ">=18.0.0 <20.0.0",

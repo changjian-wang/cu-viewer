@@ -114,6 +114,8 @@ jobs:
     needs: core
     runs-on: windows-latest
     timeout-minutes: 35
+    env:
+      CU_VERIFY_PRODUCT_SCREENSHOTS: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

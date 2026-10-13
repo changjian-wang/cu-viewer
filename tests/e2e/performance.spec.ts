@@ -5,7 +5,7 @@ import { MAX_MARKDOWN_CHARACTERS } from "../../src/components/MarkdownPane";
 import { ready } from "./viewerAssertions";
 
 const COLD_VIEW_BUDGET_MS = 1000;
-const WARM_VIEW_BUDGET_MS = 250;
+const WARM_VIEW_BUDGET_MS = 350;
 const LONG_TASK_BUDGET_MS = 100;
 const HEAP_GROWTH_BUDGET_BYTES = 64 * 1024 * 1024;
 

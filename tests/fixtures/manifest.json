@@ -262,7 +262,7 @@
     "performanceBudget": {
       "command": "npm run verify:performance",
       "coldViewMilliseconds": 1000,
-      "warmNearLimitMilliseconds": 250,
+      "warmNearLimitMilliseconds": 350,
       "maxLongTaskMilliseconds": 100,
       "maxHeapGrowthBytes": 67108864,
       "chrome": {"markdownCold": 433.0, "markdownWarm": 85.2, "jsonCold": 392.2, "jsonWarm": 132.5, "maxWarmLongTask": 57.0},

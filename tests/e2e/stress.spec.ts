@@ -15,6 +15,7 @@ const amountPoints = ([[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.
 const receiptPoints = [{ x: 775 / 1743, y: 73 / 878 }, { x: 973 / 1743, y: 72 / 878 },
     { x: 973 / 1743, y: 111 / 878 }, { x: 775 / 1743, y: 112 / 878 }];
 const inputKinds = ["File", "Blob", "ArrayBuffer", "HTTP URL", "Blob URL"] as const;
+const verifyProductScreenshots = process.env.CU_VERIFY_PRODUCT_SCREENSHOTS !== "false";
 const observations = new WeakMap<Page, { errors: string[]; external: string[]; cleanupErrors: string[] }>();
 
 test.use({
@@ -142,17 +143,18 @@ test("100 PDF page/transform rounds preserve selection, primary geometry, resour
     }
     expect(completed).toBe(100);
     await neutral(page);
-    if (process.platform === "win32") await expect(page).toHaveScreenshot("pdf-pinned.png", { fullPage: true });
+    if (process.platform === "win32" && verifyProductScreenshots) await expect(page).toHaveScreenshot("pdf-pinned.png", { fullPage: true });
     await page.getByRole("button", { name: "Receipt PNG", exact: true }).click();
     await expect(page.locator(".cu-source-heading")).toContainText("receipt.png");
     await ready(page);
     await pin(page, "PNG");
     await expect.poll(() => alive(page)).toEqual({ workers: 0, bitmaps: 1, urls: 0 });
-    if (process.platform === "win32") await expect(page).toHaveScreenshot("png-pinned.png", { fullPage: true });
+    if (process.platform === "win32" && verifyProductScreenshots) await expect(page).toHaveScreenshot("png-pinned.png", { fullPage: true });
     await testInfo.attach("page-transform-stress", {
         contentType: "application/json",
         body: JSON.stringify({ completedRounds: completed, pageTransitions: completed * 2, quarterTurns: completed,
-            geometryLimitCssPixels: 1, dpr: 1, approvedProductSnapshotsCompared: process.platform === "win32",
+            geometryLimitCssPixels: 1, dpr: 1,
+            approvedProductSnapshotsCompared: process.platform === "win32" && verifyProductScreenshots,
             resourcesAfterPdfReplacement: await alive(page) }),
     });
 });

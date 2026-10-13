@@ -52,7 +52,7 @@ Markdown and JSON are lazy chunks. Fields does not request either chunk until th
 npm run verify:performance
 ```
 
-The current gate allows at most 1,000 ms for first activation, 250 ms for a warm near-limit activation, 100 ms for any observed main-thread long task and 64 MiB heap growth. These are recorded Windows Chrome/Edge engineering limits for the current private Viewer, not a general guarantee for every host device.
+The current gate allows at most 1,000 ms for first activation, 350 ms for a warm near-limit activation, 100 ms for any observed main-thread long task and 64 MiB heap growth. The warm budget includes the 272-276 ms JSON evidence from GitHub's hosted Windows runner; the stricter long-task budget remains unchanged. These are recorded Windows Chrome/Edge engineering limits for the current private Viewer, not a general guarantee for every host device.
 
 ## Vite Resource Delivery
 
