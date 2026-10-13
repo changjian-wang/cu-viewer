@@ -178,6 +178,8 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 **2026-10-13 风险收敛进展**：Fields/Markdown/JSON、按需chunk及生产交互预算通过且不重置源状态。RC-3以固定MIT/Apache `heic-rs 0.1.4` WASM替换历史LGPL HEIF候选：9个已评审RGBA样本、开发/生产CSP、失败/生命周期及真实React18/19 tgz使用方通过。RC-4补充受控第二HTTP源站的CORS成功/失败、匿名跨源源文件请求、Viewer源站PDF/HEIF资源、真实PDF DPR2变换、派生原生格式DPR1/2及合成PDF页框/内置旋转边界。当前429单元、104仓库与24包使用方运行，本地共128次。现有34张参考；RC-3仅为真实HEIF页脚状态刷新22张全页图，面板/布局/Fields参考不变。真实CU JPEG/BMP/HEIF配对、HTTPS/带凭据宿主、专用CMap/ICC解码样本、源文件/解码器预算及发布批准仍开放，4.3继续等待剩余风险门槛。
 
+**2026-10-13 RC-Gate评估：阻塞，未启动任务4.3。** 4.2基线、包体/性能、本地与远程CI、许可宽松HEIF工程交付、受控格式/CORS矩阵、34张视觉参考、React18/19使用方及D6范围决定均通过。门槛仍被四项非代码或缺失依据阻塞：当前私有仓库套餐无法强制required checks（GitHub保护API返回403）、HEVC产品/专利及Microsoft/公开发布批准属于外部审批、缺少独立真实CU JPEG/BMP/HEIF配对且不会伪造或由Viewer发起服务调用、源文件/解码器峰值内存预算尚未测量并批准。CLI工作仍未启动。
+
 使用当前 Studio 查看有代表性的 PDF 和图片结果。记录布局、字段名/值/置信度展示、悬停与选择的区别、跨页导航、适应/缩放/平移/旋转，以及缺失源文件或来源定位信息时的行为。如果无法访问 Studio，应记录限制，并保持行为评审门槛未通过。
 
 **G0 通过条件**：输入/几何依据、运行环境/源文件契约、渲染方案和设计决策均获得任务负责人的批准。不从参考规划文档推断任何 API 或编解码能力。
@@ -762,3 +764,4 @@ flowchart LR
 | 2026-10-13 | RC-3以固定MIT/Apache heic-rs0.1.4 WASM替换已评估但未分发的LGPL decoder。可重现哈希、许可证/SBOM、9样本跨浏览器RGBA、CSP/失败/生命周期及24次React18/19 tgz使用方运行通过。更广真实CU配对及HEVC产品/公开发布批准仍为外部门槛。 |
 | 2026-10-13 | RC-4新增10次仓库运行：第二HTTP源站CORS正/负路径且不转发cookie/Authorization、PDF/HEIF资源保持Viewer同源、真实PDF DPR2首末页变换、派生PNG/JPEG/BMP DPR1/2生命周期，以及合成CropBox/MediaBox/内置旋转边界。远程运行38370248168通过core/browser/performance/packed-consumer；真实CU JPEG/BMP/HEIF配对、HTTPS、专用CMap/ICC解码样本及峰值内存仍开放。 |
 | 2026-10-13 | RC-5解决D6：任务4.3只包含无障碍/触摸/响应式/自动导航，不增加结果面板定制或其他新公共扩展API。组件保持source/result，Vite8是唯一正式支持的bundler配置，其他均明确为未验证。 |
+| 2026-10-13 | 远程运行38372037048全部push job通过后评估RC-Gate。当前私有仓库套餐无法强制required checks、HEVC产品/发布外部批准、缺少独立真实CU JPEG/BMP/HEIF配对及未批准的源文件/解码器内存预算仍阻塞门槛；任务4.3和全部CLI工作均未启动。 |

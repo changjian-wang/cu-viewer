@@ -31,7 +31,7 @@
     "behaviorApproval": "Owner approved the current interactive baseline for task 2.4 hardening on 2026-10-10; this is not complete P0 or production-release approval.",
     "diagnosticStates": "Loading, empty and errors are explicit design scenarios, not observed service outcomes.",
     "formalTaskPaused": null,
-    "formalTaskStatus": "rc3-heif-distribution-risk-engineering-closed",
+    "formalTaskStatus": "rc-gate-blocked-external-and-coverage-dependencies",
     "realSourceDataUsed": true,
     "interactiveViewerImplemented": true,
     "productionReleaseApproved": false,
@@ -354,6 +354,29 @@
     "supportedBundlerProfile": "Vite 8",
     "otherBundlers": "unverified",
     "implementationChanged": false
+  },
+  "riskClosureGate": {
+    "evaluatedOn": "2026-10-13",
+    "status": "blocked",
+    "latestPushRun": "https://github.com/changjian-wang/cu-result-viewer/actions/runs/38372037048",
+    "passed": [
+      "Task4.2 independent baseline and clean commits",
+      "Rich-result lazy chunks and approved interaction budgets",
+      "Local and remote core/browser/performance/packed-consumer validation",
+      "Packaged permissive HEIF engineering and reproducible codec build",
+      "Controlled HTTP CORS, DPR1/2, page-box, rotation and lifecycle matrix",
+      "All 34 fixed-version product references",
+      "React18/19 independent Vite consumers",
+      "D6 no-extension and Vite8-only scope decision"
+    ],
+    "blockedBy": [
+      {"id": "required-check-enforcement", "type": "external", "reason": "GitHub branch protection API returns 403 for the current private-repository plan; successful workflows cannot currently be made required."},
+      {"id": "hevc-release-approval", "type": "external", "reason": "HEVC product/patent and Microsoft/public publication approval remain outside code verification."},
+      {"id": "independent-real-format-pairs", "type": "evidence", "reason": "JPEG/BMP are approved derivatives and HEIF uses licensed decoder fixtures with synthetic grounding; no independent real CU pairs are available, and the Viewer performs no Analyze calls."},
+      {"id": "source-decoder-budgets", "type": "evidence", "reason": "Peak source/decoder memory and full viewport stress budgets are not yet measured and approved."}
+    ],
+    "task43Started": false,
+    "cliWorkStarted": false
   },
   "parserImplementation": {
     "task": "2.2",
