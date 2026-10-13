@@ -48,7 +48,7 @@
     ],
     "developmentAndBuiltDemoChecked": true,
     "previewLayoutAdjustment": "Field preview is below the document, not covering source text.",
-    "remaining": "Structured fields/multi-region navigation, safe lazy Markdown/original JSON, production interaction budget, remote CI, packaged permissive HEIF, controlled HTTP CORS, DPR1/2 page-box/format checks and the D6 no-extension/Vite8-only decision are verified. Paragraphs/Tables/Code, accessible/touch/responsive UX, broader real codec/orientation/crop pairs, HTTPS/credentialed hosts, other unverified bundlers, HEVC product/patent and publication gates remain open.",
+    "remaining": "Structured fields/multi-region navigation, safe lazy Markdown/original JSON, production interaction budget, remote CI, packaged permissive HEIF, controlled HTTP CORS, DPR1/2 page-box/format checks and the D6 no-extension/Vite8-only decision are verified. Paragraphs/Tables/Code, desktop keyboard/focus accessibility, broader real codec/orientation/crop pairs, HTTPS/credentialed hosts, other unverified bundlers, HEVC product/patent and publication gates remain open. Touch/mobile/narrow-layout behavior is outside current scope.",
     "additionalAnalyzeCalls": 0
   },
   "prototypeVisualVerification": {
@@ -319,7 +319,7 @@
     "visualImpact": "Task4.2 changed none of the prior 30 product references and added four rich panes. RC-3 later refreshed 22 footer-bearing full-page references only; rich panes and layout/Fields references remain unchanged. Normal zero-threshold comparison passes all 34.",
     "packedConsumerCoverage": "Real Markdown tables and original JSON load under the existing strict CSP in React 18.3.1 and 19.3.0 Vite development/production consumers.",
     "additionalAnalyzeCalls": 0,
-    "remaining": "Paragraphs/Tables/Code semantics and full accessibility/touch/responsive behavior remain open. D6 excludes result-pane customization and other new extension APIs from task4.3. Source decoding, page rendering and decoder peak-memory budgets remain separate G2 work."
+    "remaining": "Paragraphs/Tables/Code semantics and desktop keyboard/focus accessibility remain open. Touch/mobile/narrow-layout responsiveness and automatic scrolling/centering are excluded from task4.3. D6 excludes result-pane customization and other new extension APIs. Source decoding, page rendering and decoder peak-memory budgets remain separate G2 work."
   },
   "riskClosureFormatVerification": {
     "task": "RC-4",
@@ -350,7 +350,8 @@
     "resultPaneCustomization": "none",
     "newPublicExtensionApis": false,
     "publicProps": ["source", "result"],
-    "task43Scope": ["accessibility", "keyboard", "touch", "responsive-layout", "automatic-scrolling-and-centering"],
+    "task43Scope": ["desktop-accessibility", "keyboard-navigation", "focus-management", "accessible-semantics"],
+    "task43ExcludedScope": ["touch", "mobile", "narrow-layout-responsive-acceptance", "automatic-scrolling-and-centering"],
     "supportedBundlerProfile": "Vite 8",
     "otherBundlers": "unverified",
     "implementationChanged": false

@@ -43,7 +43,7 @@ Build a rendering-only React/TypeScript library that accepts an original PDF/ima
 - **Finish the Viewer, then integrate**: complete the rendering-only P0 library/demo, rich result views and standalone P1 UX, then validate the actual component without cu-cli. Only afterward perform the CLI handoff and integration.
 - **Keep priorities and ownership separate**: existing P0/P1 requirement labels remain unchanged; CLI work is an external delivery stage, not a prerequisite for Viewer development, startup or standalone acceptance. TIFF/DI remain independently scoped P2.
 
-**Owner-approved scheduling change, 2026-10-12**: mainline execution is phases **1 -> 2 -> 3 -> 4 -> 5**, with CLI last. Tasks, acceptance criteria, tests and gates are renumbered to match that order: Viewer P1 is `4.1-4.4` / G3, and CLI is `5.1-5.2` / G4. Phase 6 is an independent P2 follow-up, not a mainline prerequisite. Task **4.2** Fields/Markdown/JSON switching is now verified; the next ordered Viewer task is **4.3**, accessible and responsive UX. Existing technical prerequisites and outstanding P0 format/licensing/CI gates are not silently waived.
+**Owner-approved scheduling change, 2026-10-12**: mainline execution is phases **1 -> 2 -> 3 -> 4 -> 5**, with CLI last. Tasks, acceptance criteria, tests and gates are renumbered to match that order: Viewer P1 is `4.1-4.4` / G3, and CLI is `5.1-5.2` / G4. Phase 6 is an independent P2 follow-up, not a mainline prerequisite. Task **4.2** Fields/Markdown/JSON switching is now verified; the next ordered Viewer task is **4.3**, desktop keyboard/focus accessibility. Existing technical prerequisites and outstanding P0 format/licensing/CI gates are not silently waived.
 
 ## Planning Basis
 
@@ -75,6 +75,7 @@ The plan can be reviewed now, but implementation decisions must not be treated a
 | D4: Distribution and budgets | Private distribution, licensing, peer dependencies, package assets, representative file/result sizes, and measured performance budgets. Public publication requires a separate decision. | Before G2; project owner. |
 | D5: CLI ownership | Preserve verified saved/CLI input evidence; confirm the external repository, maintainer and viewing handoff only in the final CLI phase. | G0 input evidence remains valid; G2 + G3 before task 5.1, approved handoff before 5.2. No Viewer startup/development blocker. |
 | D6: Incomplete extension requirement | Resolved 2026-10-13: do not add result-pane customization or any other new extension API in 4.3; keep `source`/`result`. | Reopen only for a separate approved host requirement. Vite 8 is the only supported bundler profile; others are unverified. |
+| D7: Desktop interaction scope | Task 4.3 covers keyboard navigation, focus and accessible semantics in desktop Chrome/Edge only. | Touch, mobile, narrow-layout responsiveness and automatic scrolling/centering require a separate explicit approval. |
 
 Minimum G0 data is a sanitized, real multi-page PDF/result pair and an image/result pair with verified grounding. Record remaining format/version/sample gaps explicitly. A gap may allow the thin slice to start, but cannot be counted as supported coverage or waived silently at release.
 
@@ -224,20 +225,20 @@ Publish the tested format/browser matrix and measured sample sizes. Missing HEIF
 
 ### Phase 4: Complete Viewer P1 and Standalone Acceptance
 
-**Goal**: finish the Viewer's result representations and accessible/responsive inspection UX before CLI integration, retaining the original-JSON entry point, minimal public API and approved appearance.
+**Goal**: finish the Viewer's result representations and desktop keyboard/focus accessibility before CLI integration, retaining the original-JSON entry point, minimal public API and approved appearance.
 
 | Task | Work and acceptance | Effort |
 | --- | --- | --- |
 | `4.1` | Add structured nested/array/table fields and multiple-region navigation. **AC-4.1**: original relationships remain inspectable and every available region can be reached without losing field identity or selection. | M |
 | `4.2` | Add Fields/Markdown/JSON tabs using safe Markdown and an evaluated mature JSON tree. **AC-4.2**: formatting and expand/collapse work; unsafe HTML/URL content cannot execute; large-result limits are measured and documented. | M |
-| `4.3` | Add accessible keyboard/touch/responsive behavior and refined automatic scrolling/centering without expanding the public API. **AC-4.3**: focus and selection work without a mouse, touch interaction and narrow layouts remain usable, and source/field navigation retains state. | M |
+| `4.3` | Complete desktop Chrome/Edge keyboard navigation, focus management and accessible semantics without expanding the public API. **AC-4.3**: fields, result tabs and source controls work without a mouse; focus is visible, ordered and retained across state changes. | M |
 | `4.4` | Document MCP Apps/MCP UI and chat-host integration design. **AC-4.4**: data delivery, payload constraints, assets/CSP, loading/errors, lifecycle, and trust boundaries are specified without adding service logic to the core. | S |
 
 D6 is resolved: task 4.3 adds no `Result-pane` customization or other host-extension API. Markdown/JSON and the existing `source`/`result` contract remain unchanged. This phase requires MCP integration design/documentation, not an unrequested MCP server implementation.
 
-**Next functional target: 4.3.** Complete keyboard/focus/touch/responsive behavior and refined automatic scrolling/centering without adding public props or extension registries. Fields/Markdown/JSON are implemented; Paragraphs/Tables/Code remain disabled placeholders whose semantics must be explicitly scoped before they are advertised. Preserve the approved Fields layout and task 4.2 source-state guarantees.
+**Next functional target: 4.3.** Complete desktop keyboard navigation, focus management and accessible semantics without adding public props or extension registries. Touch, mobile, narrow-layout responsiveness and automatic scrolling/centering are excluded. Fields/Markdown/JSON are implemented; Paragraphs/Tables/Code remain disabled placeholders whose semantics must be explicitly scoped before they are advertised. Preserve the approved Fields layout and task 4.2 source-state guarantees.
 
-**Exit G3**: P1 rich-view and accessible/responsive acceptance/tests pass; the D6 no-extension decision and limitations are documented.
+**Exit G3**: P1 rich-view and desktop keyboard/focus accessibility acceptance/tests pass; the D6/D7 scope decisions and limitations are documented.
 
 **Standalone Viewer completion**: require **G2 + G3** and reviewed product/independent-consumer evidence. Viewer startup, direct saved-result inspection, rich-pane switching, geometry and lifecycle must work without cu-cli or a new Analyze call. Disabled placeholders cannot count as completed features; preserve approved Fields/layout, with intentional new-view changes reviewed before updating visual baselines.
 
@@ -578,8 +579,8 @@ Paths are relative to the target repository and use Windows separators. `create`
       "tests": [{"id": "T-4.2", "type": "e2e", "framework": "playwright", "description": "Verify actual tab content and preserved source state, headings/lists/tables/code/formatting, original JSON objects/arrays, absent Markdown, unsafe markup/links and the agreed large-result fixture without CLI/service access.", "covers_criteria": ["AC-4.2"]}]
     },
     {
-      "id": "4.3", "phase": 4, "priority": "P1", "title": "Complete accessible and responsive UX", "effort": "M",
-      "description": "Add keyboard/focus/touch/responsive behavior and refined automatic scrolling/centering without expanding the public source/result contract. D6 excludes result-pane customization and other new extension APIs.",
+      "id": "4.3", "phase": 4, "priority": "P1", "title": "Complete desktop keyboard and focus accessibility", "effort": "M",
+      "description": "Complete desktop Chrome/Edge keyboard navigation, focus management and accessible semantics without expanding the public source/result contract. D6 excludes new extension APIs; D7 excludes touch, mobile, narrow-layout responsiveness and automatic scrolling/centering.",
       "files": [
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
         {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
@@ -588,8 +589,8 @@ Paths are relative to the target repository and use Windows separators. `create`
         {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"}
       ],
       "depends_on": ["4.1", "4.2"],
-      "acceptance_criteria": [{"id": "AC-4.3", "text": "Keyboard/focus/touch and narrow layouts are usable; automatic source/field navigation retains state and the public API remains source/result only."}],
-      "tests": [{"id": "T-4.3", "type": "e2e", "framework": "playwright", "description": "Test keyboard-only field/tab/control navigation, touch, responsive sizes, focus retention and automatic scrolling/centering; manually review accessible semantics and verify no new public extension API.", "covers_criteria": ["AC-4.3"]}]
+      "acceptance_criteria": [{"id": "AC-4.3", "text": "Fields, result tabs and source controls are operable without a mouse; focus is visible, ordered and retained across state changes, accessible names/states are correct, and the public API remains source/result only."}],
+      "tests": [{"id": "T-4.3", "type": "e2e", "framework": "playwright", "description": "Test desktop keyboard-only field/tab/source-control navigation, focus order/visibility/retention and accessible roles/names/states in Chrome/Edge; manually review desktop accessibility and verify no new public extension API.", "covers_criteria": ["AC-4.3"]}]
     },
     {
       "id": "4.4", "phase": 4, "priority": "P1", "title": "Specify MCP Apps and chat-host embedding", "effort": "S",
@@ -678,7 +679,7 @@ Prototype source/field/transform/error coverage now exists in [unit tests](../sr
 | Fresh CLI result and previously saved result | Open the approved viewing paths | Same component; saved path makes zero CU calls; local file boundaries hold. | AC-5.1, AC-5.2 / T-5.1, T-5.2 |
 | Nested/array/table fields with several regions | Expand and choose each region | Relationships, selection, and navigation remain correct. | AC-4.1 / T-4.1 |
 | Markdown, original JSON, and adversarial markup/links | Switch panes and expand nodes | Supported formatting/tree behavior; no executable unsafe content. | AC-4.2 / T-4.2 |
-| Keyboard/touch user on a narrow viewport | Navigate fields, tabs and source controls while changing selection | Usable focus/layout, retained state and no new public extension API. | AC-4.3 / T-4.3 |
+| Desktop keyboard user | Navigate fields, tabs and source controls while changing selection | Visible ordered focus, correct accessible states, retained selection and no new public extension API. | AC-4.3 / T-4.3 |
 | Restricted MCP/chat host | Review delivery, load/error and teardown scenarios | Explicit host design and unchanged core boundary. | AC-4.4 / T-4.4 |
 | TIFF or DI candidate scope | Review real samples and proposed follow-up tests | Separate approved P2 plans; no P0/P1 scope creep. | AC-6.1, AC-6.2 / T-6.1, T-6.2 |
 
@@ -731,7 +732,7 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 - **Packaging/reliability**: isolated packed-package embedding passes; no required CDN assets, stale source results, or undisposed owned resources in the defined tests.
 - **Traceability**: every task criterion has a linked test; all automated P0 scenarios and required manual approvals pass before full P0 sign-off.
 - **Delivery order**: standalone Viewer P0/P1 passes G2 + G3 without cu-cli; only afterward start 5.1/5.2 and verify G4. Disabled result-view placeholders never count as complete.
-- **P1/P2 discipline**: P1 rich panes and accessible/responsive UX pass their scenarios; D6 keeps new extension APIs out of scope. TIFF/DI remain separately scoped and do not gate P0/P1.
+- **P1/P2 discipline**: P1 rich panes and desktop keyboard/focus accessibility pass their scenarios; D6 keeps new extension APIs out of scope and D7 excludes touch/mobile/responsive work. TIFF/DI remain separately scoped and do not gate P0/P1.
 
 ## Change Log
 
@@ -762,5 +763,6 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-13 | RC-2 established real remote CI: push run 38347604633 passes core/browser/performance/packed-consumer jobs; manual run 38348199406 also passes the six-test/600-round stress job. Hosted runners skip version-sensitive pixels only; fixed-version local zero-diff visual gates remain mandatory. |
 | 2026-10-13 | RC-3 replaces the evaluated-but-undistributed LGPL decoder with pinned MIT/Apache heic-rs0.1.4 WASM. Reproducible hashes, licenses/SBOM, nine-fixture cross-browser RGBA results, CSP/failure/lifecycle behavior and 24 React18/19 tgz consumer runs pass. Broader real CU pairs and HEVC product/publication approval remain external gates. |
 | 2026-10-13 | RC-4 adds ten repository runs: second-origin HTTP CORS positive/negative behavior with no cookie/Authorization forwarding, viewer-origin PDF/HEIF assets, real PDF DPR2 first/last-page transforms, derived PNG/JPEG/BMP DPR1/2 lifecycle checks and synthetic CropBox/MediaBox/intrinsic-rotation boundaries. Remote run 38370248168 passes core/browser/performance/packed-consumer. Real CU JPEG/BMP/HEIF pairs, HTTPS, dedicated CMap/ICC decode samples and peak memory remain open. |
-| 2026-10-13 | RC-5 resolves D6: task4.3 is accessibility/touch/responsive/automatic-navigation work only, with no result-pane customization or other new public extension API. The component remains source/result, Vite8 is the sole supported bundler profile and other bundlers are explicitly unverified. |
+| 2026-10-13 | RC-5 resolves D6: task4.3 adds no result-pane customization or other new public extension API. The component remains source/result, Vite8 is the sole supported bundler profile and other bundlers are explicitly unverified. |
+| 2026-10-13 | The owner clarifies D7: no touch, mobile, narrow-layout responsiveness or automatic scrolling/centering was requested. Task4.3 is limited to desktop Chrome/Edge keyboard navigation, focus management and accessible semantics. |
 | 2026-10-13 | RC-Gate evaluated after remote run 38372037048 passed all push jobs. It remains blocked by unavailable required-check enforcement on the current private-repository plan, external HEVC/product/publication approval, missing independent real CU JPEG/BMP/HEIF pairs and unapproved source/decoder memory budgets. Task4.3 and all CLI work remain unstarted. |

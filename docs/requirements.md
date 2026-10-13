@@ -4,7 +4,7 @@
 
 This document organizes the supplied task brief, "Reusable React Component for Content Understanding Field Extraction Result Viewer", while preserving its goals, component boundary, and priorities. Headings and repeated diagrams have been condensed. This is a requirements baseline, not a statement of implemented functionality.
 
-The supplied brief ends with the incomplete extensibility item `Result-pane`. Its missing content is not inferred here. On 2026-10-13 the task owner resolved current-delivery scope: do not add result-pane customization or other new host-extension APIs in task 4.3; retain only the `source`/`result` public contract and complete accessibility, touch and responsive behavior. A future extension API requires a separate approved host need.
+The supplied brief ends with the incomplete extensibility item `Result-pane`. Its missing content is not inferred here. On 2026-10-13 the task owner resolved current-delivery scope: do not add result-pane customization or other new host-extension APIs in task 4.3; retain only the `source`/`result` public contract. The owner subsequently clarified that touch, mobile, narrow-layout responsiveness and automatic scrolling/centering were not requested; task 4.3 is desktop keyboard/focus accessibility only. A future extension or interaction scope requires a separate approved host need.
 
 The acceptance checks below are proposed ways to verify the brief. API details, library choices, browser targets, and implementation plans remain subject to validation.
 
@@ -114,7 +114,7 @@ If the field is on another page, interaction navigates to that page/location. Hi
 - Resize.
 - Page navigation.
 
-Use Studio as the reference for hover, selection, polygon presentation, and behavior when the source or grounding information is unavailable. Refined multiple-region, keyboard, touch, and automatic scrolling/centering behavior belongs to P1.
+Use Studio as the reference for hover, selection, polygon presentation, and behavior when the source or grounding information is unavailable. Refined multiple-region and desktop keyboard/focus behavior belongs to P1. Touch, mobile/narrow-layout responsiveness and automatic scrolling/centering were planning additions without verified primary-requirement evidence and are excluded from the current scope.
 
 ## P0: Viewer Controls
 
@@ -188,9 +188,6 @@ Add or improve:
 - Arrays and tables.
 - Multiple source regions.
 - Accessibility and keyboard interaction.
-- Touch interaction.
-- Responsive layout.
-- Automatic scrolling/centering.
 - Host customization and extensibility named in the original brief; deferred outside the current delivery by D6 rather than inferred from the truncated text.
 - MCP App / MCP UI integration design and documentation, including use in chat hosts.
 

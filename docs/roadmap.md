@@ -23,7 +23,7 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Record approved public-pair provenance, licenses, hashes and remaining sharing/sample gaps without changing source geometry or raw results.
 - [ ] Confirm the full source geometry/orientation matrix. **Partial:** CU values/units/dimensions, real PDF DPR 1/2 transforms, synthetic CropBox/MediaBox/intrinsic rotation and native EXIF 1-8 are verified; real CU crop/orientation pairs and broader HEIF orientation remain open.
 - [ ] Complete Studio PDF/image walkthroughs. **Partial:** owner-reported single-page controls and screenshots are recorded; extended cross-page/image and exact reference semantics remain open.
-- [x] Resolve the truncated `Result-pane` requirement: D6 keeps task 4.3 on accessibility/responsive UX and adds no new extension API; Vite 8 is the supported bundler profile.
+- [x] Resolve the truncated `Result-pane` requirement: D6 adds no new extension API; task 4.3 is desktop keyboard/focus accessibility only and Vite 8 is the supported bundler profile.
 
 **Exit check:** verified sample inventory, input assumptions, and Studio observations are recorded. Do not invent CU structures from historical DI examples or label synthetic output as a successful service response.
 
@@ -71,12 +71,12 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Implement actual Fields/Markdown/JSON switching; preserve document page/zoom/rotation/pan/pin/region state and approved Fields appearance rather than merely enabling empty tabs.
 - [x] Add safe client-side Markdown with headings, lists, GFM, sanitized CU HTML tables, code blocks and formatting; omit active content, dangerous URLs and remote images.
 - [x] Evaluate and integrate a mature MIT expandable JSON-tree component for the original input, with measured 500,000-character/20,000-value limits and lazy result-view chunks.
-- [ ] Complete accessibility, keyboard, touch, responsive layout, and refined automatic scrolling/centering.
+- [ ] Complete desktop keyboard navigation, visible/stable focus and accessible semantics in Chrome/Edge.
 - [x] Resolve D6 without inventing an API: task 4.3 adds no selection callbacks, custom renderers, viewer events, toolbar/layout customization, result-view registry or initial-view options. Reopen only for a separate approved host need.
 - [ ] Specify MCP Apps / MCP UI and chat-host integration design, including host-to-viewer data delivery and asset packaging, without service logic in the core.
 - [x] Test real PDF/PNG rich panes, security, missing/invalid/oversized states, keyboard tab switching and React 18/19 package-host behavior in Chrome/Edge.
 
-**Exit check:** Viewer G2 + G3 pass with independent startup, usable rich views, reviewed accessible/responsive UX, the D6 no-extension decision, package and product parity. Current Paragraphs/Tables/Code/more placeholders need explicit semantics/scope before they can count as features. No CLI contract is required for this acceptance.
+**Exit check:** Viewer G2 + G3 pass with independent startup, usable rich views, reviewed desktop keyboard/focus accessibility, the D6 no-extension decision, package and product parity. Current Paragraphs/Tables/Code/more placeholders need explicit semantics/scope before they can count as features. No CLI contract is required for this acceptance.
 
 ## 6. Integrate with cu-cli Last
 
@@ -100,4 +100,4 @@ Checked items record verified scope, not release approval. Current 429 unit case
 
 ## Immediate Next Step
 
-The next ordered Viewer task is **4.3: accessible and responsive UX**. Start from the verified Fields/Markdown/JSON state while retaining existing technical prerequisites and closing remaining Viewer P0 validation. D6 is resolved: do not add result-pane customization or any other new public extension API. Do not start CLI contract/implementation before Viewer completion, count Paragraphs/Tables/Code placeholders as delivered, or waive HEIF compliance.
+The next ordered Viewer task is **4.3: desktop keyboard/focus accessibility**. Start from the verified Fields/Markdown/JSON state while retaining existing technical prerequisites and closing remaining Viewer P0 validation. Touch, mobile, narrow-layout responsiveness and automatic scrolling/centering are not current requirements. D6 is resolved: do not add result-pane customization or any other new public extension API. Do not start CLI contract/implementation before Viewer completion, count Paragraphs/Tables/Code placeholders as delivered, or waive HEIF compliance.
