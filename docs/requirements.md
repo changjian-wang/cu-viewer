@@ -6,7 +6,7 @@ This document organizes the supplied task brief, "Reusable React Component for C
 
 The owner-provided requirement is the authoritative baseline. It explicitly includes P1 accessibility, keyboard interaction, touch interaction, responsive layout, automatic scrolling/centering, host customization/extensibility, and MCP Apps/MCP UI integration design/documentation. It does not state a separate mobile-app requirement. The supplied brief ends with the incomplete extensibility item `Result-pane`; its missing content is not inferred here.
 
-On 2026-10-13 the owner additionally confirmed conditional Paragraphs, Tables and Code result views, Windows Narrator acceptance, and Vite 8 as the current supported bundler profile. These supplements are labeled separately rather than presented as text from the original brief.
+On 2026-10-13 the owner additionally confirmed the complete dynamic Studio result views, Windows Narrator acceptance, Vite 8 as the current supported bundler profile, and a desktop-only current delivery. Touch remains in the source P1 requirement but is deferred from current tasks. These supplements and scheduling decisions are labeled separately rather than presented as text from the original brief.
 
 The acceptance checks below are proposed ways to verify the brief. API details, library choices, browser targets, and implementation plans remain subject to validation.
 

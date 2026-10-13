@@ -159,7 +159,7 @@ PDF 状态使用[真实源文件](../../tests/fixtures/mixed-financial-docs.pdf)
 
 任务3.3已验证真实tgz在仓库外React18.3.1/19.3.0使用方中的类型、CSS、开发/生产及严格页面/Worker CSP。默认、PDF固定、PNG固定直接匹配旧产品图；包内HEIF另在`wasm-unsafe-eval`且无通用`unsafe-eval`的Worker策略下通过。用户批准可选Node端`viewerAssets()`资产插件，React输入仍仅source/result；资源404和宿主丢目录斜线根因已修复。CMaps/WASM/ICC已核对文件交付，不等同所有对应PDF编解码已测。详见[使用说明](../usage.md)。
 
-任务4.1已验证真实LineItems数组层级、重复子字段稳定身份和真实BillingAddress两个来源区域；合成跨页结构化数组只用于证明全部后代区域可达，不冒充服务输出。任务4.2已验证真实PDF/PNG Markdown、发票9个原始HTML表格、原始JSON envelope、缺失/危险/超限状态及切换状态保持。下一项结果视图工作是实现已确认的Paragraphs/Tables/Code条件标签，然后完成原始需求明确的无障碍、键盘、触摸、响应式、自动滚动/居中和扩展点。
+任务4.1已验证真实LineItems数组层级、重复子字段稳定身份和真实BillingAddress两个来源区域；合成跨页结构化数组只用于证明全部后代区域可达，不冒充服务输出。任务4.2已验证真实PDF/PNG Markdown、发票9个原始HTML表格、原始JSON envelope、缺失/危险/超限状态及切换状态保持。下一项是实现已批准的动态Studio标签，再完成4.3a桌面交互/无障碍和4.3b具名扩展点；触摸保持延期。
 
 2026-10-12 的压力批次在每个浏览器完成 100 轮 PDF 翻页/变换、100 次五种公共输入源替换、100 次挂起 HTTP 取消（50 替换/50 卸载），逐轮核对选择、真实值、1 CSS px 几何和资源归属。压力后的当前产品 PDF/PNG 直接匹配已有截图，而不是重新打开页面后假称恢复；真正卸载/释放时 Worker、位图和对象 URL 配对归零。
 
@@ -176,4 +176,4 @@ PDF 状态使用[真实源文件](../../tests/fixtures/mixed-financial-docs.pdf)
 
 原型已复用现有解析器/几何模块并新增私有源文件/PDF 适配器，PDF.js 资源本地提供。首次页面能启动时已先运行，修复了 Worker 路径和布局问题，再补测试；原始样本及 Azure 配置未改，没有新服务调用。
 
-当前批准不关闭完整P0门槛。DPR1 PDF/PNG压力、DPR1/2格式与合成页框边界、受控HTTP跨源、富结果生产交互预算、包内HEIF和React18/19隔离Vite包使用方已验证；HTTPS/带凭据跨源、更广HEIF alpha/非零变换/10-bit、真实CU方向/裁剪配对、专用CMap/ICC解码样本、源文件/解码器峰值内存预算、其他宿主、无障碍/键盘/触摸/响应式、自动滚动/居中、扩展点、MCP/CLI及HEVC产品/发布批准仍保留。原始需求未单列移动端应用。
+当前Viewer开发/私有验收RC门槛已通过。DPR1 PDF/PNG压力、DPR1/2格式与合成页框边界、受控匿名HTTP跨源、富结果生产交互预算、包内HEIF和React18/19隔离Vite包使用方已验证；后续仍需动态结果视图、4.3a桌面交互/无障碍、4.3b扩展点、MCP设计及CLI。HEVC产品/公开发布审批只阻塞公开分发；触摸与Result-pane截断后半段延期。
