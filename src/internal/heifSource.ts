@@ -2,9 +2,6 @@ import { abortIfNeeded } from "./source";
 
 export async function decodeHeif(bytes: ArrayBuffer, signal: AbortSignal): Promise<ImageBitmap> {
     abortIfNeeded(signal);
-    if (!import.meta.env.DEV) {
-        throw new Error("HEIF/HEIC decoding is development-only pending decoder distribution review; this build does not include the decoder.");
-    }
     const pixels = await new Promise<ImageData>((resolve, reject) => {
         let worker: Worker | undefined;
         let timer: ReturnType<typeof setTimeout> | undefined;
@@ -26,10 +23,13 @@ export async function decodeHeif(bytes: ArrayBuffer, signal: AbortSignal): Promi
         };
         const abort = (): void => finish(new DOMException("HEIF decoding was cancelled.", "AbortError"));
         try {
-            worker = new Worker(new URL("./heif.worker.ts", import.meta.url), { type: "classic" });
+            const assetDirectory = "./heif/";
+            const resources = new URL(assetDirectory, import.meta.url);
+            if (!resources.pathname.endsWith("/")) resources.pathname += "/";
+            worker = new Worker(new URL("heif.worker.js", resources), { type: "classic" });
             worker.onerror = event => {
                 event.preventDefault();
-                finish(new Error(event.message || "The local HEIF worker failed."));
+                finish(new Error(event.message || "The HEIF decoder worker failed."));
             };
             worker.onmessageerror = () => finish(new Error("The HEIF worker response could not be read."));
             worker.onmessage = (event: MessageEvent<unknown>) => {
@@ -54,7 +54,7 @@ export async function decodeHeif(bytes: ArrayBuffer, signal: AbortSignal): Promi
                 finish(new Error("The HEIF worker returned an invalid image response."));
             };
             signal.addEventListener("abort", abort, { once: true });
-            timer = setTimeout(() => finish(new Error("HEIF decoding exceeded the 30-second development deadline.")), 30000);
+            timer = setTimeout(() => finish(new Error("HEIF decoding exceeded the 30-second deadline.")), 30000);
             const owned = bytes.slice(0);
             worker.postMessage({ bytes: owned }, [owned]);
         } catch (error) {

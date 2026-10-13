@@ -1,7 +1,7 @@
 # Using the Packed Viewer
 
 > Verified locally on Windows with React/React DOM 18.3.1 and 19.3.0, Vite 8.3.2, TypeScript 6.0.3, Chrome 154.0.8037.98 and Edge 155.0.4283.45.
-> This is a private implementation candidate, not a published package or complete P0/release approval. HEIF decoder distribution remains disabled.
+> This is a private implementation candidate, not a published package or complete P0/release approval. Packaged HEIF decoding is technically verified; HEVC product/patent and publication approval remain separate.
 
 ## Install a Private Artifact
 
@@ -67,7 +67,7 @@ export default defineConfig({
 });
 ```
 
-`viewerAssets()` serves an allowlisted set of PDF Worker/font/CMap/WASM/ICC files during development, then copies the corresponding local dependency resources and licenses to the host's asset directory for builds. It defaults to `build.assetsDir` plus `pdfjs`; the same resources remain in the package's own distribution directory.
+`viewerAssets()` serves allowlisted PDF Worker/font/CMap/WASM/ICC files plus the packaged HEIF Worker/JS/WASM/notices during development, then copies the same resources and licenses into the host build. PDF assets default to `build.assetsDir/pdfjs`; HEIF assets use the sibling `build.assetsDir/heif`. The same resources remain in the package distribution.
 
 For an explicit output layout, `viewerAssets("assets/pdfjs")` is supported. The target must be a non-root subdirectory of the host build output and must match the directory resolved beside the bundled viewer entry. Root/parent/outside paths are rejected. Custom bundler/chunk layouts need separate verification.
 
@@ -75,7 +75,8 @@ This plugin:
 
 - Is imported by the Vite configuration, not the browser React entry.
 - Uses the pinned `pdfjs-dist` dependency, without a CDN or CU SDK.
-- Does not provide arbitrary filesystem access, authentication, a source-file server or HEIF codec assets.
+- Ships the hash-pinned permissive `heic-rs 0.1.4` decoder only under the allowlisted `heif` resource path.
+- Does not provide arbitrary filesystem access, authentication or a source-file server.
 - Has Vite as an optional peer (`>=8 <9`); the tested version is 8.3.2.
 
 The independent consumer first reproduced a Worker 404 without this integration. Development also exposed a host directory-URL rewrite dropping its trailing slash; the adapter now normalizes the directory pathname before creating child asset URLs. A Vite build can still warn that this resource directory does not exist until the plugin's copy hook runs. Real consumer requests, not warning suppression, verify the final delivery.
@@ -97,7 +98,13 @@ object-src 'none'
 
 Inline styles are used for geometry and React layout, not inline script execution. The tested PDF/font/PNG paths require neither script eval nor Blob Worker permission. The development fixture adds only its explicit loopback WebSocket origin for Vite HMR.
 
-This is a verified fixture policy, not a guarantee for every PDF or embedding environment. Delivering a WASM file with the correct MIME type is not proof that a decoder needing WASM compilation works under this policy. Real CMap/ICC/codec-specific PDFs, cross-origin sources and other host restrictions remain additional acceptance work.
+HEIF performs WebAssembly compilation inside its owned Worker. Hosts that enable HEIF must add `'wasm-unsafe-eval'` to the Worker's `script-src` policy (or to the shared page/Worker policy when headers are common). General JavaScript `'unsafe-eval'` and Blob Worker permission remain unnecessary:
+
+```text name="Verified HEIF Worker CSP addition"
+script-src 'self' 'wasm-unsafe-eval'
+```
+
+This is a verified fixture policy, not a guarantee for every PDF or embedding environment. Real CMap/ICC/codec-specific PDFs, cross-origin sources and other host restrictions remain additional acceptance work.
 
 ## Independent Package Verification
 
@@ -112,7 +119,7 @@ npm run verify:consumer
 | React 18 | React/React DOM 18.3.1 | `@types/react` 18.3.31 / `@types/react-dom` 18.3.7 |
 | React 19 | React/React DOM 19.3.0 | Both declaration packages 19.3.0 |
 
-It compiles the public API and builds both hosts, then runs [package tests](../tests/e2e/package-host.spec.ts) in production and development with Chrome/Edge: **16 browser runs**. Actual PDF/PNG, real page navigation/pinning, real Markdown tables, original JSON expansion, local standard fonts and CMap/WASM/ICC resource delivery are checked under CSP. Product default/PDF-pin/PNG-pin screenshots compare directly to the existing approved baselines, at the original zero-difference settings.
+It compiles the public API and builds both hosts, then runs [package tests](../tests/e2e/package-host.spec.ts) in production and development with Chrome/Edge: **24 browser runs**. Actual PDF/PNG/HEIF, real page navigation/pinning, rich results, local standard fonts, PDF resources and the packaged HEIF Worker/JS/WASM are checked under CSP. Product default/PDF-pin/PNG-pin screenshots compare directly to the existing approved baselines at zero difference.
 
 The verifier uses canonical Windows long paths rather than DOS 8.3 aliases, retaining Vite's strict file-serving boundary. Local projects, locks, artifact inventory and verification result remain in its generated temporary workspace for inspection; its servers are started/stopped by the test runner. Nothing is published or pushed.
 
@@ -130,7 +137,7 @@ Default repository E2E runs deliberately exclude package tests; the consumer con
 
 ## Remaining Gates
 
-- HEIF production decoding stays explicitly disabled; no LGPL decoder binary/private local configuration is in the artifact.
-- Native required formats, broader real PDF/CMap/ICC/WASM cases, orientation/crop/bit-depth, source/decoder performance budgets and wider host policies are not all established by this package matrix. Rich-result activation has its separate production budget above.
+- HEIF production decoding is enabled with a pinned MIT/Apache WASM decoder; no LGPL decoder or private local configuration is present. HEVC patent/product and public-release approval remain separate.
+- Broader real PDF/CMap/ICC cases, real CU image pairs, HEIF alpha/nonzero transforms/10-bit production fixtures, source/decoder peak-memory budgets and wider host policies are not all established by this package matrix. Rich-result activation has its separate production budget above.
 - The [CI workflow](../.github/workflows/ci.yml) has successful [push](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633) and [full manual](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406) runs. Core, Chrome/Edge functionality, production performance, isolated React 18/19 consumers and 600 stress rounds pass remotely. Hosted-runner browser/font versions do not replace the fixed-version pixel references; remote jobs skip only those screenshot comparisons while retaining behavior, geometry, CSP, Worker and resource assertions.
 - CLI integration, public distribution, final third-party notices/source review and release approval remain separate.

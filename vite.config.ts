@@ -1,9 +1,10 @@
 import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
+import { heifAssets } from "./tools/heifAssets.ts";
 import { pdfAssets } from "./tools/pdfAssets.ts";
 
 export default defineConfig({
-    plugins: [pdfAssets("pdfjs")],
+    plugins: [pdfAssets("pdfjs"), heifAssets("heif")],
     build: {
         lib: {
             entry: {

@@ -23,9 +23,16 @@ const pack = packed[0];
 assert.ok(!/[\\/]/.test(pack.filename), "The tarball name is not local to the artifact directory.");
 assert.ok(Array.isArray(pack.files), "npm pack did not provide the file inventory.");
 for (const entry of pack.files) {
-    assert.ok(!/(^|\/)(?:\.env(?:\.|\/|$)|(?:tests|demo|node_modules)(?:\/|$)|libheif-asm\.js$)/.test(entry.path), `Unexpected distribution file: ${entry.path}`);
+    assert.ok(!/(^|\/)(?:\.env(?:\.|\/|$)|(?:tests|demo|node_modules)(?:\/|$)|libheif)/i.test(entry.path), `Unexpected distribution file: ${entry.path}`);
 }
-for (const path of ["dist/index.js", "dist/index.d.ts", "dist/vite.js", "dist/vite.d.ts", "dist/styles.css", "dist/pdfjs/build/pdf.worker.mjs", "dist/pdfjs/LICENSE", "LICENSE", "docs/usage.md"]) {
+for (const path of [
+    "dist/index.js", "dist/index.d.ts", "dist/vite.js", "dist/vite.d.ts", "dist/styles.css",
+    "dist/pdfjs/build/pdf.worker.mjs", "dist/pdfjs/LICENSE",
+    "dist/heif/heif.worker.js", "dist/heif/heic_decoder.js", "dist/heif/heic_decoder_bg.wasm",
+    "dist/heif/LICENSE-heic-rs-MIT", "dist/heif/LICENSE-heic-rs-APACHE",
+    "dist/heif/LICENSE-wasm-bindgen-MIT", "dist/heif/LICENSE-wasm-bindgen-APACHE",
+    "dist/heif/SBOM.json", "dist/heif/THIRD-PARTY-NOTICES.txt", "LICENSE", "docs/usage.md",
+]) {
     assert.ok(pack.files.some(entry => entry.path === path), `The packed artifact is missing ${path}.`);
 }
 writeFileSync(join(artifacts, "pack-report.json"), JSON.stringify(packed, null, 2) + "\n");
@@ -52,8 +59,9 @@ writeFileSync(join(workspace, "verification.json"), JSON.stringify({
     profiles: inventory.profiles,
     modes: ["production", "development"],
     browsers: ["chrome", "edge"],
-    packageBrowserRuns: 16,
+    packageBrowserRuns: 24,
     aliasOrSharedNodeModules: false,
-    decoderDistributed: false,
+    decoderDistributed: true,
+    decoder: "heic-rs 0.1.4 WASM",
 }, null, 2) + "\n");
 console.log(`PASS: isolated packed React 18/19 verification completed in ${workspace}; temporary servers were owned and stopped by the test runner.`);

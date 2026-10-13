@@ -1,19 +1,19 @@
-interface HeifImage {
-    is_primary(): boolean;
-    get_width(): number;
-    get_height(): number;
-    display(pixels: ImageData, callback: (result: ImageData | null) => void): void;
+interface DecodedImage {
+    readonly width: number;
+    readonly height: number;
+    take_rgba(): Uint8Array;
     free(): void;
 }
 
-interface HeifModule {
-    HeifDecoder: new () => { decode(bytes: Uint8Array): HeifImage[] };
+interface HeicDecoder {
+    (input: URL): Promise<unknown>;
+    decode_heic(bytes: Uint8Array, maxPixels: number): DecodedImage;
 }
 
-declare const libheif: () => Promise<HeifModule>;
+declare const wasm_bindgen: HeicDecoder;
 
 async function decode(event: MessageEvent<unknown>): Promise<void> {
-    let images: HeifImage[] = [];
+    let image: DecodedImage | undefined;
     try {
         const data = event.data;
         if (!data || typeof data !== "object" || !("bytes" in data) ||
@@ -21,37 +21,30 @@ async function decode(event: MessageEvent<unknown>): Promise<void> {
             throw new Error("Nonempty owned HEIF bytes are required.");
         }
         try {
-            importScripts(new URL("./heif-codec/libheif-asm.js", self.location.href).href);
+            importScripts(new URL("./heic_decoder.js", self.location.href).href);
         } catch (error) {
-            throw new Error("The local HEIF decoder could not be loaded. Configure CU_HEIF_DEV_ASSET_DIR for development validation.", { cause: error });
+            throw new Error("The HEIF decoder script could not be loaded.", { cause: error });
         }
-        if (typeof libheif !== "function") throw new Error("The local libheif factory is unavailable.");
-        const module = await libheif();
-        images = new module.HeifDecoder().decode(new Uint8Array(data.bytes));
-        const primary = images.filter(image => image.is_primary());
-        if (primary.length !== 1) throw new Error("Exactly one declared primary HEIF image is required.");
-        const image = primary[0];
-        if (!image) throw new Error("The primary HEIF image is missing.");
-        const width = image.get_width();
-        const height = image.get_height();
+        if (typeof wasm_bindgen !== "function" || typeof wasm_bindgen.decode_heic !== "function") {
+            throw new Error("The HEIF decoder factory is unavailable.");
+        }
+        await wasm_bindgen(new URL("./heic_decoder_bg.wasm", self.location.href));
+        image = wasm_bindgen.decode_heic(new Uint8Array(data.bytes), 40_000_000);
+        const width = image.width;
+        const height = image.height;
         if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0 ||
             !Number.isSafeInteger(width * height * 4)) {
-            throw new Error("The primary HEIF image has invalid dimensions.");
+            throw new Error("The decoded HEIF image has invalid dimensions.");
         }
-        const pixels = new ImageData(width, height);
-        for (let index = 3; index < pixels.data.length; index += 4) pixels.data[index] = 255;
-        const displayed = await new Promise<ImageData>((resolve, reject) => {
-            image.display(pixels, result => {
-                if (result) resolve(result);
-                else reject(new Error("HEIF pixel conversion failed."));
-            });
-        });
-        const rgba = displayed.data.buffer;
+        const pixels = image.take_rgba();
+        image = undefined;
+        if (pixels.byteLength !== width * height * 4) throw new Error("The HEIF decoder returned an invalid pixel buffer.");
+        const rgba = pixels.buffer.slice(pixels.byteOffset, pixels.byteOffset + pixels.byteLength);
         self.postMessage({ type: "decoded", width, height, rgba }, [rgba]);
     } catch (error) {
         self.postMessage({ type: "error", message: error instanceof Error ? error.message : String(error) });
     } finally {
-        for (const image of images) image.free();
+        image?.free();
     }
 }
 

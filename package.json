@@ -38,6 +38,7 @@
     "test:consumer": "playwright test --config playwright.consumer.config.ts",
     "verify:consumer": "node tools/verify-packed-consumers.mjs",
     "verify:bundle": "npm run build && npm run build:demo && node tools/verify-rich-result-build.mjs",
+    "verify:heif-codec": "pwsh -NoProfile -File ./tools/build-heic-codec.ps1",
     "verify:performance": "npm run verify:bundle && playwright test --config playwright.performance.config.ts",
     "build": "vite build && tsc --project tsconfig.build.json",
     "build:demo": "vite build --config demo/vite.config.ts",

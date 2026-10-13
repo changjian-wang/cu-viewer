@@ -21,7 +21,7 @@ export function detectImageFormat(bytes: Uint8Array): ImageFormat {
         if (brands.includes("msf1")) throw new Error("HEIF image sequences are not supported; provide a still primary image.");
         if (brands.some(brand => heifBrands.has(brand))) return "heif";
     }
-    throw new Error("The supplied image is unsupported or corrupt. Supported sources are PNG, JPEG, BMP and development-only HEIF/HEIC.");
+    throw new Error("The supplied image is unsupported or corrupt. Supported sources are PNG, JPEG, BMP, HEIF and HEIC.");
 }
 
 export async function createImageSource(bytes: ArrayBuffer, name: string, signal: AbortSignal): Promise<LoadedSource> {

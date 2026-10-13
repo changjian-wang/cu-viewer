@@ -2,7 +2,7 @@
 
 > **Plan task**: [1.2: Evaluate rendering and decoding](dev-plan.md#phase-1-evidence-and-decisions)
 > **Date**: 2026-10-09
-> **Status**: initial design and MIT/LGPL-candidate direction approved; implementation and distribution obligations remain gated
+> **Status**: historical LGPL evaluation retained; RC-3 selected packaged MIT/Apache `heic-rs` WASM, with broader coverage and release approval still gated
 > **Boundary**: isolated probes, not the reusable viewer, package-consumer tests, or Studio automation
 
 ## Recommendation
@@ -207,3 +207,24 @@ Both page and Worker response CSPs are exercised without JavaScript eval, WASM c
 Production/library builds explicitly reject HEIF pending review. Vite emits only the project's small Worker glue; no libheif decoder binary is included. [The local running screenshot](prototype/interactive-heif.png) retains the example's [original MIT notice](../tests/fixtures/images/LICENSE.heif-example.txt) and visibly labels its test grounding as synthetic.
 
 Current total validation is **409 unit cases and 52 Chrome/Edge runs**, of which 16 runs belong to image formats/orientation/local HEIF. Native JPEG/BMP also render in the production demo, and production HEIF's explicit refusal was checked without hiding valid fields. This advances the actual integration beyond the earlier isolated probe, but does not complete broader HEIF codecs/bit-depth/intrinsic orientation, real CU per-format pairs, packed consumers, corresponding sources/notices/update review or any release approval.
+
+## RC-3 Production Decoder Selection: 2026-10-13
+
+The local-only section above is retained as historical evidence, not current behavior. Target Chrome 154 and Edge 155 fail the licensed HEIC sample through `<img>` and `createImageBitmap`; `ImageDecoder` is unavailable, so native decoding cannot satisfy P0.
+
+RC-3 evaluated and selected `heic-rs 0.1.4` at verified revision `999470f514c8e9a1a7c37ea44ba70cc32b1308fe`. It is a pure-Rust HEIC decoder under MIT OR Apache-2.0 with no C library, `libheif`, `libde265` or FFmpeg dependency. The browser wrapper pins `wasm-bindgen 0.2.129`; [Cargo inputs](../codecs/heic-rs-wasm), [build script](../tools/build-heic-codec.ps1), [licenses/notices/SBOM](../assets/heif) and generated hashes are checked in. Rebuilding is a release verification step; ordinary npm installs/builds do not require Rust.
+
+The packaged decoder consists of:
+
+| Asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `heic_decoder.js` | 8,273 | `37e9954f836e53cf877418a4ad419fa82f6187ade49e047543b10fe80340fbec` |
+| `heic_decoder_bg.wasm` | 278,994 | `dff3cb27e4448bffad5fd1aa47eef6d92c608755e4075dd304a162ecfab19fe1` |
+
+Nine generated MIT/Apache fixtures compare against Apple-decoded references. Three are byte-exact; the remainder measure RGB PSNR `47.76-49.80 dB`, luma PSNR `57.62-60.01 dB`, and maximum channel error `2-6`. Chrome/Edge produce identical reviewed RGBA hashes. The licensed 1280x854 sample decodes in approximately `189 ms` (Chrome) and `227 ms` (Edge) in the isolated WASM probe, versus approximately `2,772 ms`/`940 ms` for the previous pure-JS candidate on the same machine.
+
+The Worker requires same-origin scripts/resources and CSP `script-src 'self' 'wasm-unsafe-eval'`; general JavaScript `unsafe-eval` and Blob Workers remain unnecessary. A negative policy test confirms that removing WASM permission fails explicitly and recovers. A 40-million-pixel ceiling, empty/truncated/corrupt inputs, missing assets, replacement, unmount and deadline behavior are covered.
+
+Actual tgz installations now exercise HEIF in React 18/19, Vite development/production and Chrome/Edge, for 24 consumer runs. The old LGPL decoder is absent from repository/package inventories. RustSec scanning of the 14 locked wrapper/build dependencies reported no advisory match using 1,307 advisories.
+
+This closes the LGPL distribution blocker. It does not by itself approve HEVC patent/product use, Microsoft/public publication, real CU HEIF pairs, alpha, nonzero `irot`/`imir`, 10-bit production samples or all HEVC coding tools. Those remain explicit release/coverage gates rather than hidden decoder claims.

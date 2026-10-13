@@ -8,7 +8,7 @@ A reusable React/TypeScript component for inspecting Azure Content Understanding
 
 **Development order: Viewer first, cu-cli last.** Complete Viewer P0/P1 functionality and standalone acceptance before CLI contract or integration work. CLI is one external host option, not a prerequisite for starting or reviewing the Viewer. Fields/Markdown/JSON switching (task 4.2) is implemented; the next ordered task is accessible UX and reviewed extensions (task 4.3). Current technical/format/license gates remain tracked.
 
-The repository is private. The task owner approved the initial design, MIT for the main component, and LGPL decoder candidates subject to compliance before any distribution. The eventual goal is a Microsoft open-source project, not an already approved Microsoft publication. Copyright ownership, third-party distribution obligations, and release approval remain gated.
+The repository is private. The task owner approved the initial design and open-source dependency direction. The evaluated LGPL decoder is not distributed: production HEIF/HEIC now uses pinned `heic-rs 0.1.4` WASM under MIT OR Apache-2.0 with checked-in licenses, SBOM and reproducible build inputs. The eventual goal is a Microsoft open-source project, not an already approved Microsoft publication. Copyright ownership, HEVC patent/product review and release approval remain gated.
 
 ## Objective
 
@@ -25,7 +25,7 @@ Implemented prototype input shape, not a stable published API:
 />
 ```
 
-Source input is `File | Blob | ArrayBuffer | string`, and result input is `unknown` containing parsed, serialized CU Analyze JSON. Strings are HTTP, HTTPS, or host-owned blob URLs, not filesystem paths or data URLs. PDF/PNG/JPEG/BMP are identified from content; HEIF/HEIC is local-development only and remains an unresolved P0 distribution requirement.
+Source input is `File | Blob | ArrayBuffer | string`, and result input is `unknown` containing parsed, serialized CU Analyze JSON. Strings are HTTP, HTTPS, or host-owned blob URLs, not filesystem paths or data URLs. PDF/PNG/JPEG/BMP/HEIF/HEIC are identified from content. HEIF image sequences and AVIF remain explicitly unsupported.
 
 ## Component Boundary
 
@@ -114,7 +114,7 @@ Use **Markdown** to render the selected content item's `content.markdown`. Real 
 
 The Studio-style **…** control is the **JSON** tab and displays its label after selection. It renders the original caller-provided operation envelope or inner result, not the internal parsed field model. The root starts expanded and nested objects/arrays are keyboard-expandable. Results over 500,000 serialized characters or 20,000 values, circular values and other non-JSON input receive explicit states. Switching Fields/Markdown/JSON preserves source page, zoom, rotation and pinned field/region state.
 
-Known limits: HEIF/HEIC remains local-development only, not a distribution feature. React 18/19 isolated Vite consumers now pass for the verified PDF/PNG and rich-result scope. Paragraphs/Tables/Code, full format/orientation/crop coverage, accessibility/touch, wider bundler/host environments, CLI and release/compliance gates remain incomplete.
+Known limits: packaged HEIF covers reviewed still-image fixtures but not all HEVC tools, alpha, nonzero transforms, image sequences or AVIF. React 18/19 isolated Vite consumers pass PDF/PNG/HEIF and rich results. Paragraphs/Tables/Code, full real format/orientation/crop coverage, accessibility/touch, wider bundler/host environments, CLI and product/publication gates remain incomplete.
 
 ## Development Foundation
 
@@ -142,9 +142,9 @@ The [internal parser](src/internal/parseCuResult.ts) accepts the verified `2025-
 
 The [geometry module](src/internal/geometry.ts) maps CU coordinates through actual rendered-page dimensions, zoom, pan and quarter-turn rotation, with inverse, fit and raster-size helpers. Shared validation prevents parser/overlay disagreements. Core input/parser/geometry accounts for 339 cases; lifecycle, structured Fields, rich results, interaction, directory-URL and resource-plugin tests bring the current total to **429**.
 
-The initial geometry experiment passed 512 rendered-coordinate cases. The [prototype](tests/e2e/prototype.spec.ts), [public-source input](tests/e2e/source-inputs.spec.ts), [image-format](tests/e2e/image-formats.spec.ts), [product visual](tests/e2e/visual.spec.ts), [rich-result](tests/e2e/rich-results.spec.ts), [production performance](tests/e2e/performance.spec.ts) and [stress](tests/e2e/stress.spec.ts) suites now pass **90 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: ten prototype, ten public-input, eight image-format, nine visual, three rich-result, two performance and three stress scenarios per browser. Six stress runs execute 600 measured rounds, not 600 distinct tests. Normal cancelled/retried requests remain distinct from errors.
+The initial geometry experiment passed 512 rendered-coordinate cases. The [prototype](tests/e2e/prototype.spec.ts), [public-source input](tests/e2e/source-inputs.spec.ts), [image-format](tests/e2e/image-formats.spec.ts), [product visual](tests/e2e/visual.spec.ts), [rich-result](tests/e2e/rich-results.spec.ts), [production performance](tests/e2e/performance.spec.ts) and [stress](tests/e2e/stress.spec.ts) suites now pass **94 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: ten prototype, ten public-input, ten image-format, nine visual, three rich-result, two performance and three stress scenarios per browser. Six stress runs execute 600 measured rounds, not 600 distinct tests. Normal cancelled/retried requests remain distinct from errors.
 
-The separate [packed-consumer matrix](tests/e2e/package-host.spec.ts) adds **16 runs**: React 18.3.1/19.3.0, production/development, Chrome/Edge and two scenarios each. These are actual tgz installations outside the repository, not shared dependencies or source aliases. Combined local browser evidence is **106 runs**. PDF/PNG, Markdown/JSON lazy chunks, types/CSS, local Worker/fonts, CSP, CMap/WASM/ICC delivery and unchanged product screenshot references pass.
+The separate [packed-consumer matrix](tests/e2e/package-host.spec.ts) adds **24 runs**: React 18.3.1/19.3.0, production/development, Chrome/Edge and three scenarios each. These are actual tgz installations outside the repository, not shared dependencies or source aliases. Combined local browser evidence is **118 runs**. PDF/PNG/HEIF, Markdown/JSON lazy chunks, types/CSS, local Worker/fonts, CSP, PDF resources, packaged HEIF resources and reviewed product screenshot references pass.
 
 ```powershell name="Independent packed package verification"
 npm run verify:consumer
@@ -186,7 +186,7 @@ The visual suites freeze **34 screenshot baselines**: the existing 30 approved p
 - Chrome Fields pixels must also match the existing [approved reference](docs/prototype/interactive-fields.png) exactly. Edge has a separate baseline for its native scrollbar differences; no UI regions are masked.
 - Screenshot comparison uses color threshold `0` and `maxDiffPixels: 0`. Actual polygon vertices separately retain the `1 CSS px` geometry limit.
 - Normal tests never update or create missing baselines. A drift probe changes the dot size from 12 to 14 px in test-only DOM styling, verifies a screenshot mismatch, removes the probe, and verifies recovery.
-- The original visual suite passed 36 repeated comparison runs without changing any of its 30 baseline hashes. Task 4.2 added four new references only after running and inspecting the actual panes; a normal no-update run then matched all 34. Separate 100-round PDF/PNG stress scenarios verify state/resource behavior against the original product images.
+- The original visual suite passed 36 repeated comparison runs without changing any of its 30 baseline hashes. Task 4.2 added four pane references. RC-3 intentionally refreshed 22 full-page product images solely for the truthful HEIF footer status; eight pane-only product references, all four rich-pane references, component layout and the approved Chrome Fields crop were unchanged. A normal no-update run matches all 34, including the drift probe. Separate 100-round PDF/PNG stress scenarios verify state/resource behavior against these references.
 
 ```powershell name="Immutable product visual regression"
 npm run test:e2e -- visual.spec.ts
@@ -242,28 +242,32 @@ npm run test:e2e -- source-inputs.spec.ts
 
 On this Windows checkout, with `npm run dev` running, the test host is at <http://127.0.0.1:5173/@fs/C:/github/cu-result-viewer/tests/e2e/source-inputs.html>. It also has **Load HEIF**, using a licensed photograph and explicitly synthetic geometry. PDF/PNG 100-round stress now passes; HTTPS/cross-origin policies, broader format/orientation stress and production embedding remain separate gates.
 
-### Image Formats and Local HEIF Validation
+### Image Formats and Packaged HEIF
 
 The [common image adapter](src/internal/imageSource.ts) recognizes content signatures rather than filenames/MIME hints. Native PNG/JPEG/BMP decoding explicitly uses EXIF-normalized image orientation, then shares rendering, view rotation and bitmap disposal. JPEG `.jpg`/`.jpeg`/`.jpe` are extension aliases, not different codecs.
 
 - The original receipt PNG and full-size JPEG/BMP derivatives retain their canvas dimensions; the derivatives flatten transparency onto white and reuse saved grounding as an explicitly derived test, not another Analyze call.
 - Eight small synthetic EXIF JPEGs verify mirrored/rotated pixels, normalized dimensions and quarter-turn overlays at DPR 1/2. Their synthetic grounding is in the normalized image frame; this is not evidence of real CU extraction on every EXIF variant.
 - The licensed HEVC-in-HEIF example verifies primary-image selection, five public input representations, caller-buffer preservation, quarter-turn overlays, failure/recovery, and Worker termination on replacement/unmount.
-- HEIF tests apply actual CSP to both page and worker responses: same-origin scripts/workers, no JavaScript eval, no WASM compilation permission and no Blob Worker.
+- HEIF tests apply actual CSP to both page and worker responses: same-origin scripts/workers, `wasm-unsafe-eval` without general JavaScript `unsafe-eval`, and no Blob Worker.
 
 ```powershell name="Image format and orientation regression"
 npm run test:e2e -- image-formats.spec.ts
 ```
 
-**HEIF/HEIC is development-only, as approved by the owner.** [The local-resource plugin](tools/heifDevelopmentAssets.ts) reads `CU_HEIF_DEV_ASSET_DIR` from the demo's ignored local environment configuration. The directory must contain the unchanged evaluated `libheif-asm.js` 1.23.5 artifact with SHA-256 `804551ee35288509d5bde23c480e956f9d7b2a0dfc0b36a6a9a8a5b01234d276`; see [the evaluation and license gate](docs/rendering-evaluation.md#license-and-distribution-gate). This machine's existing isolated assets are configured; no codec dependency was installed or copied into the repository.
+HEIF/HEIC uses a packaged pure-Rust `heic-rs 0.1.4` decoder compiled to WASM. Chrome 154 and Edge 155 do not decode the fixture through `<img>` or `createImageBitmap`, so the fallback remains required. The previous `libheif/libde265` candidate is retained only as historical evaluation evidence and is absent from the repository, build and tgz.
 
-Without local configuration, the HEIF browser scenarios are explicitly skipped with that reason; native format tests still run. The recorded 76 combined runs used configured local assets, with no HEIF skips.
+The decoder is lazy and owned by a same-origin classic Worker. A 40-million-pixel ceiling rejects oversized allocations before returning RGBA. Nine generated MIT/Apache HEIC fixtures cover single images, tiled grids, 8-bit colour, large images, rotated dimensions and EXIF; Chrome/Edge RGBA hashes match, including three exact Apple-reference cases and remaining RGB PSNR of 47.76-49.80 dB. Empty/truncated input, denied WASM CSP, missing assets, replacement, unmount and recovery are explicit tests.
 
-The [owned Worker](src/internal/heif.worker.ts) decodes lazily off the UI thread with a 30-second development deadline. Production/library builds reject HEIF explicitly and include no LGPL decoder binary. Vite may emit the project's small Worker glue, but it is not an enabled decoder. Missing local resources and unsupported/corrupt files report visible errors; AVIF and image sequences are not advertised as supported.
+The [owned Worker](src/internal/heif.worker.ts) decodes lazily off the UI thread with a 30-second deadline. Library/demo builds and the optional `viewerAssets()` plugin ship the same hash-pinned Worker, JS binding, WASM, notices, licenses and [SBOM](assets/heif/SBOM.json). [Rust wrapper source and lock](codecs/heic-rs-wasm) plus [the build script](tools/build-heic-codec.ps1) reproduce the reviewed artifacts. Normal npm builds do not require Rust.
 
-See [the HEIF running screenshot](docs/prototype/interactive-heif.png). It uses [the sample's original MIT notice](tests/fixtures/images/LICENSE.heif-example.txt). Complete corresponding-source/notices/dependency/update review, broader HEIF codec/orientation/bit-depth fixtures and packed-consumer checks before enabling any decoder distribution, including private packages.
+```powershell name="Reproduce the packaged HEIF decoder"
+npm run verify:heif-codec
+```
 
-React and React DOM are peers for the intended React 18/19 library; the current runtime uses React 19.3. PDF.js 6.3.289 is the only direct rendering dependency. Its worker/fonts/CMaps/WASM/ICC resources are packaged locally with its license. CU SDKs, Azure credentials, service clients, and the investigated LGPL decoder are not package dependencies. Main source is covered by [MIT](LICENSE); the sample documents retain their [original notice](tests/fixtures/LICENSE.txt).
+See [the HEIF running screenshot](docs/prototype/interactive-heif.png). It uses [the sample's original MIT notice](tests/fixtures/images/LICENSE.heif-example.txt). Actual tgz consumers pass React 18/19, development/production, Chrome/Edge, WASM-only Worker CSP and local asset delivery. Broader real CU HEIF pairs, nonzero `irot`/`imir`, alpha, 10-bit production fixtures, HEVC patent review and publication approval remain separate gates.
+
+React and React DOM are peers for the intended React 18/19 library; the current runtime uses React 19.3. PDF.js 6.3.289 remains the only npm rendering dependency. Its worker/fonts/CMaps/WASM/ICC resources are packaged locally with its license; the HEIF decoder is a checked-in generated asset with separate permissive notices. CU SDKs, Azure credentials, service clients, and the investigated LGPL decoder are not package dependencies. Main source is covered by [MIT](LICENSE); the sample documents retain their [original notice](tests/fixtures/LICENSE.txt).
 
 The npm lockfile uses the environment's existing Microsoft public package feed without embedded credentials. A cold installation outside this environment and the final public distribution/asset layout must still be verified before release.
 

@@ -76,7 +76,7 @@
             <tr><td>原始 JSON 树</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-json-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-json-edge-win32.png">查看</a></td></tr>
           </tbody>
         </table>
-        <p>原九个视觉场景两浏览器共18次，重复比较36次保持30图哈希；14px圆点漂移能检测。富结果测试新增每浏览器两图，普通运行匹配全部34张；另有4次生产性能预算运行。PDF/PNG压力共600轮，修复平移滚动条偏移但没有重录旧基线。仓库回归90次，另React18/19真实安装包开发/生产CSP与原型匹配16次，本地合计106次。仍不等于完整格式、所有宿主、CI或P0验收。</p>
+        <p>原九个视觉场景两浏览器共18次；富结果测试新增每浏览器两图。RC-3仅为真实HEIF支持状态刷新22张含页脚的全页图，8张面板产品图、4张富结果图、布局与Fields参考未改；普通运行匹配全部34张，14px圆点漂移仍能检测。另有4次生产性能预算、600轮PDF/PNG压力、94次仓库回归及24次React18/19安装包PDF/PNG/HEIF验证，本地合计118次。仍不等于完整格式、所有宿主或P0/发布验收。</p>
       </section>
       <p class="note">以下图片保留为 v2 历史评审稿，不是最新 Fields 的像素验收基线。可运行版本已按后续反馈默认折叠组、隐藏未返回字段、移除 Clear 和旧固定状态栏、省略缺失置信度，并将原文预览放在文档下方；Fields 与预览置信度统一为两位小数。最新行为以<a href="README.md">原型说明</a>及运行截图为准。</p>
       <section id="main">

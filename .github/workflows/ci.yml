@@ -131,3 +131,22 @@ jobs:
           name: stress-failures
           path: test-results
           if-no-files-found: ignore
+
+  heif-codec:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: core
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install locked Rust toolchain
+        run: |
+          rustup toolchain install 1.94.1 --profile minimal --no-self-update
+          rustup default 1.94.1
+          rustup target add wasm32-unknown-unknown
+      - name: Install locked wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+      - name: Reproduce packaged HEIF decoder
+        run: .\tools\build-heic-codec.ps1
+      - name: Verify generated decoder is unchanged
+        run: git diff --exit-code -- assets/heif

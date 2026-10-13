@@ -6,7 +6,7 @@ The private repository and initial documentation are the starting point. G0 and 
 
 **Owner-approved order, 2026-10-12: complete the standalone Viewer first, integrate cu-cli last.** Finish Viewer P0, rich result views and P1 UX, then independent acceptance; only afterward start the CLI contract and implementation. A demo or ordinary React host can run the Viewer without cu-cli. Preserve the rendering-only boundary.
 
-Track implementation work in Issues and P0/P1/P2 milestones once investigation has refined the tasks. The initial MIT/LGPL-candidate direction is approved; no delivery dates, completed distribution compliance, or release approval are assumed here.
+Track implementation work in Issues and P0/P1/P2 milestones once investigation has refined the tasks. The initial LGPL candidate was evaluated but is not distributed; production now uses a pinned MIT/Apache decoder. No delivery dates, HEVC patent/publication approval, or complete release approval are assumed here.
 
 The [development plan](dev-plan.md) expands this roadmap into module boundaries, structured tasks, test scenarios, and explicit gates, and records actual progress. Host delivery and P0/P1 release gates remain open independently of the approved initial design.
 
@@ -14,7 +14,7 @@ Task numbering now matches the revised phases: Viewer P1 is `4.1-4.4` / G3; CLI 
 
 The owner's UI checkpoint now has approved [v2 static design](prototype/README.md) and an [interactive baseline](prototype/README.md#当前可操作范围) approved for task 2.4 hardening. It was run immediately when mountable and has real PDF/PNG coverage. The static state gallery remains design-only; implementation approval does not close production acceptance.
 
-Checked items record verified scope, not release approval. Current 429 unit cases, 90 repository browser runs and 16 isolated Vite consumer runs pass: 106 local browser runs. Remote core/browser/performance/consumer jobs and the full 600-round stress matrix also pass. Structured arrays, all current source regions, safe lazy-loaded Markdown and the original JSON tree are verified against a production interaction budget. The prior 30 product references remain unchanged and four task 4.2 pane references were added. Remaining rich UX, formats, HEIF distribution, cross-origin, source/decoder budgets, other hosts and final CLI remain open.
+Checked items record verified scope, not release approval. Current 429 unit cases, 94 repository browser runs and 24 isolated Vite consumer runs pass: 118 local browser runs. Remote core/browser/performance/consumer jobs and the full 600-round stress matrix also pass. Structured arrays, all current source regions, rich results and packaged permissive HEIF are verified. There are 34 reviewed references; RC-3 refreshed 22 full-page images only for the truthful HEIF footer, while pane/layout/Fields references remained unchanged. Remaining rich UX, real format pairs, cross-origin, source/decoder budgets, other hosts, HEVC product/publication approval and final CLI remain open.
 
 ## 1. Validate the Input and UX Reference
 
@@ -32,7 +32,7 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Evaluate PDF.js and both highlighter candidates; execute PDF.js geometry/rendering probes and record the wrappers' documentation/peer-dependency limitations without claiming they were browser-tested.
 - [x] Inspect OCR-Form-Tools rendering/geometry patterns without importing its application, service or DI architecture.
 - [x] Prototype native PNG/JPEG/BMP and owned libheif JS/WASM decoding in Chrome/Edge; record extension aliases, derived images and the single HEVC fixture as limited evidence, not full paired-format coverage.
-- [x] Implement the common native-image adapter and locally validate the owned pure-JS HEIF Worker/CSP/lifecycle path. The owner approved only local development use; distribution compliance remains open.
+- [x] Implement the common native-image adapter and replace the local LGPL candidate with a packaged, reproducible MIT/Apache `heic-rs` WASM Worker. Development/production, CSP, lifecycle and isolated consumers pass.
 - [x] Record versions, licenses, reuse decisions, limitations and local PDF worker/font/resource requirements.
 
 **Exit check:** the chosen rendering approach handles representative geometry and required formats. A custom PDF renderer requires a documented compelling reason. TIFF and DI do not gate this decision.
@@ -52,11 +52,11 @@ Checked items record verified scope, not release approval. Current 429 unit case
 
 ## 4. Complete P0
 
-- [ ] Complete PDF and all required image support. **Partial:** native PNG/JPEG/BMP and local-only HEIF are implemented; decoded aliases/derivatives are not independent CU pairs, and production HEIF distribution remains blocked.
+- [ ] Complete PDF and all required image support. **Partial:** native PNG/JPEG/BMP and packaged HEIF/HEIC are implemented; decoded aliases/derivatives are not independent CU pairs, and broader real CU/HEIF alpha/transform/10-bit coverage remains open.
 - [ ] Complete production control/transform acceptance. **Partial:** PDF page/transform/pan 100-round checks now pass with stable geometry and approved final appearance; full format/orientation/DPR matrices remain open.
 - [ ] Complete production field/source acceptance. **Partial:** real PDF/PNG public-input representations now render the same raster/grounding without modifying caller data; full formats, intrinsic orientation and host URL policies remain incomplete.
 - [x] Verify independent loading, empty, invalid-result and source-error states, unavailable-source-page diagnostics, empty/corrupt binary inputs and HTTP failure/recovery; full format/host acceptance stays open.
-- [ ] Complete lifecycle acceptance. **Partial:** 100 public-input replacements and 100 pending HTTP cancellations per browser verify PDF/PNG resource ownership and real aborts; broader HEIF/format/DPR stress, memory budgets and consumer acceptance remain open.
+- [ ] Complete lifecycle acceptance. **Partial:** 100 public-input replacements and 100 pending HTTP cancellations per browser verify PDF/PNG resource ownership; HEIF success/error/CSP/replacement/unmount and 24 isolated consumer runs pass. Broader format/DPR stress and source/decoder memory budgets remain open.
 - [x] Deliver local Worker/fonts/CMaps/WASM/ICC assets with their license; approved optional Node-only Vite integration now passes isolated package/CSP/font cases. Real CMap/ICC/WASM-specific decode fixtures remain open.
 - [x] Provide the saved-source/JSON demo without analysis or authentication.
 - [x] Run focused parser/geometry/source/interaction unit and browser regressions; production coverage gaps remain explicitly listed.

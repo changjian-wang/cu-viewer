@@ -81,12 +81,16 @@ for (const profile of profiles) {
     for (const name of ["mixed-financial-docs.pdf", "mixed-financial-docs.cu.json", "receipt.png", "receipt.cu.json", "LICENSE.txt"]) {
         copyFileSync(join(repository, "tests", "fixtures", name), join(directory, "fixtures", name));
     }
+    for (const name of ["example.heic", "example.synthetic.cu.json"]) {
+        copyFileSync(join(repository, "tests", "fixtures", "images", name), join(directory, "fixtures", name));
+    }
 }
 writeFileSync(join(output, "consumers.json"), JSON.stringify({
     generatedFrom: "Actual demo host with only public package/CSS imports and relocated licensed fixtures.",
     repositoryAliases: false,
     sharedNodeModules: false,
-    decoderAssetsIncluded: false,
+    decoderAssetsIncluded: true,
+    decoder: "heic-rs 0.1.4 WASM",
     profiles: profiles.map(profile => ({ ...profile, directory: join(output, profile.name) })),
 }, null, 2) + "\n");
 console.log(`Prepared isolated React 18/19 manifests and actual demo hosts in ${output}. Install their own dependencies before validation.`);

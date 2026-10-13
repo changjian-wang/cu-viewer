@@ -3,7 +3,7 @@
 > **领域**：集成 / 可复用 React 组件
 > **目标仓库**：changjian-wang/cu-result-viewer
 > **需求基线**：[需求](requirements.md)与[路线图](roadmap.md)，对应提交 `163814a`
-> **设计批准情况**：负责人已批准初始基线和 MIT/LGPL 候选方向；分发批准仍待完成
+> **设计批准情况**：负责人已批准初始基线；RC-3已选择包内MIT/Apache `heic-rs`替代历史LGPL候选。HEVC产品/专利及公开发布批准仍待完成。
 > **状态**：实施中；获批产品外观已固化并加入视觉测试，保留 2.4/2.5 已验证范围；完整 P0/分发门槛仍开放
 > **执行顺序**：先完成可独立运行的 Viewer P0/P1 本体及验收，cu-cli 集成为主线最后阶段
 > **最后更新**：2026-10-12
@@ -176,7 +176,7 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 **2026-10-13 任务4.1进展**：真实发票/收据数组、稳定的 `Item N` 标签、隐藏后代选择及当前全部字段/组来源区域已实现。真实BillingAddress区域切换和合成跨页结构化组在Chrome/Edge通过。该检查点有424单元、80仓库浏览器及16包使用方运行通过，30张产品基线未改。不宣称专属Tables视图或真实跨页结构化CU配对完成。
 
-**2026-10-13 任务4.2/RC-1进展**：Fields、安全清洗的Markdown与调用方原始可展开JSON现可切换，且不重置源页码/缩放/旋转/平移/固定字段/区域状态。真实PDF/PNG Markdown、9个CU HTML发票表格、缺失内容、主动攻击内容/URL/图片、原始envelope键、解析器拒绝但仍可查看的原始JSON，以及实测上限（Markdown 100,000字符；JSON 500,000字符或20,000个值）均在Chrome/Edge及隔离React18/19 Vite使用方通过。Markdown/JSON已拆为按需chunk，默认library/demo入口不再包含它们或触发Vite 500 kB警告，生产交互预算在两浏览器通过。当前429单元、90仓库与16包使用方运行，本地共106次。原有30张产品图不变，新增4张任务4.2面板图；Paragraphs/Tables/Code待定范围并保持禁用。4.3继续等待后续风险收敛。
+**2026-10-13 风险收敛进展**：Fields/Markdown/JSON、按需chunk及生产交互预算通过且不重置源状态。RC-3另以固定MIT/Apache `heic-rs 0.1.4` WASM替换历史LGPL HEIF候选：9个已评审RGBA样本、开发/生产CSP、失败/生命周期及真实React18/19 tgz使用方通过。当前429单元、94仓库与24包使用方运行，本地共118次。现有34张参考；RC-3仅为真实HEIF页脚状态刷新22张全页图，面板/布局/Fields参考不变。更广真实CU图片配对和发布批准仍开放，4.3继续等待剩余风险门槛。
 
 使用当前 Studio 查看有代表性的 PDF 和图片结果。记录布局、字段名/值/置信度展示、悬停与选择的区别、跨页导航、适应/缩放/平移/旋转，以及缺失源文件或来源定位信息时的行为。如果无法访问 Studio，应记录限制，并保持行为评审门槛未通过。
 
@@ -320,9 +320,9 @@ flowchart LR
       "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
       "unit_cases": 429,
-      "browser_runs": 106,
-      "repository_browser_runs": 90,
-      "packed_consumer_browser_runs": 16,
+      "browser_runs": 118,
+      "repository_browser_runs": 94,
+      "packed_consumer_browser_runs": 24,
       "stress_browser_runs": 6,
       "stress_rounds_per_browser": 300,
       "visual_browser_runs": 18,
@@ -422,7 +422,7 @@ flowchart LR
     {
       "id": "2.5", "phase": 2, "priority": "P0", "title": "通过通用适配器渲染必需图片格式", "effort": "M",
       "status": "in_progress",
-      "implementation_evidence": "原生 PNG/JPEG/BMP 与 DPR1/2 的 EXIF1-8 验证通过；负责人仅批准本机 HEIF 主图/CSP/取消路径并已接入组件。生产拒绝 HEIF 且没有解码二进制；更广真实配对/编解码变体/分发义务仍开放。",
+      "implementation_evidence": "原生PNG/JPEG/BMP与DPR1/2的EXIF1-8验证通过。生产HEIF使用固定宽松许可heic-rs0.1.4 WASM，具备可重现Rust输入、许可证/SBOM、9样本RGBA corpus、严格仅WASM Worker CSP、生命周期及真实React18/19 tgz开发/生产覆盖。更广真实CU配对、alpha/非零变换/10-bit及HEVC产品/发布批准仍开放。",
       "description": "复用源文件契约，支持原生/备用解码、方向及原始尺寸。HEIF/HEIC 保持在 P0，明确展示解码错误。",
       "files": [
         {"path": "src\\internal\\imageSource.ts", "action": "create"},
@@ -430,7 +430,10 @@ flowchart LR
         {"path": "src\\internal\\heifSource.ts", "action": "create"},
         {"path": "src\\internal\\heifSource.test.ts", "action": "create"},
         {"path": "src\\internal\\heif.worker.ts", "action": "create"},
-        {"path": "tools\\heifDevelopmentAssets.ts", "action": "create"},
+        {"path": "tools\\heifAssets.ts", "action": "create"},
+        {"path": "tools\\build-heic-codec.ps1", "action": "create"},
+        {"path": "codecs\\heic-rs-wasm", "action": "create"},
+        {"path": "assets\\heif", "action": "create"},
         {"path": "tools\\generate-image-fixtures.mjs", "action": "create"},
         {"path": "tests\\e2e\\image-formats.spec.ts", "action": "create"},
         {"path": "tests\\e2e\\sourceResources.ts", "action": "create"},
@@ -555,7 +558,7 @@ flowchart LR
     {
       "id": "4.2", "phase": 4, "priority": "P1", "title": "增加安全 Markdown 与交互式 JSON 面板", "effort": "M",
       "status": "done",
-      "implementation_evidence": "固定版本且MIT、兼容React18/19的Markdown/GFM/原始HTML清洗和JSON树依赖渲染真实PDF/PNG结果。Chrome/Edge安全、缺失/无效/超限状态、原始envelope展开、源状态保持、4张新增面板图和隔离安装包使用方均通过；原有30张产品图继续作为逐图比较目标。",
+      "implementation_evidence": "固定版本且MIT、兼容React18/19的Markdown/GFM/原始HTML清洗和JSON树依赖渲染真实PDF/PNG结果。Chrome/Edge安全、缺失/无效/超限状态、原始envelope展开、源状态保持、4张新增面板图和隔离安装包使用方均通过。任务4.2未改旧视觉；RC-3后续只刷新含页脚的全页参考。",
       "description": "评估成熟Markdown/JSON组件，真正实现Fields/Markdown/JSON切换、许可证评审、安全内容及实测大小限制；保留文档页码/缩放/固定状态与获批Fields外观，无CLI依赖。",
       "files": [
         {"path": "src\\components\\MarkdownPane.tsx", "action": "create"},
@@ -651,7 +654,7 @@ flowchart LR
 - **宿主原生集成测试**：使用已确认 CLI 仓库的现有运行器，不另建一套 CLI 框架。
 - **人工验证依据**：Studio 对比、依赖/许可证评估，以及负责人批准，仍明确属于人工工作，不计入自动化覆盖。
 
-`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建、`npm run verify:performance`和`npm run verify:consumer`已实现。429单元案例、90仓库浏览器和16真实React18/19 Vite包使用方运行通过，本地合计106次。已有600压力轮与30张不变产品图保留，并新增4张任务4.2面板图；远程[push CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633)及[完整手动CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406)通过。完整格式/分发、跨源/其他宿主和源文件/解码器预算仍开放。
+`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建、`npm run verify:performance`和`npm run verify:consumer`已实现。429单元案例、94仓库浏览器和24真实React18/19 Vite包使用方运行通过，本地合计118次。已有600压力轮及34张评审参考通过；RC-3仅为HEIF状态页脚刷新22张全页图。远程[push CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633)及[完整手动CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406)通过。更广真实格式配对、跨源/其他宿主和源文件/解码器预算仍开放。
 
 常规回归测试使用已保存、已脱敏的真实结果，不实时调用 Analyze。访问真实服务只用于明确批准的测试样本获取，或验证外部 CLI 新分析路径。源文件 URL 测试可以使用本地测试服务器；测试禁止 CU 请求及对必需外部 CDN 资源的依赖。不在测试日志或浏览器产物中记录凭据、SAS URL、客户文档或未经处理的敏感结果。
 
@@ -755,3 +758,4 @@ flowchart LR
 | 2026-10-13 | 完成任务4.2：真实安全Markdown（含9个CU HTML表格）、原始交互JSON、标签/源状态保持、攻击/缺失/超限状态及React18/19安装包宿主覆盖。429单元、86仓库及16消费者运行通过；保留原有30张产品图并新增4张富结果面板图。Paragraphs/Tables/Code继续不在范围，下一项4.3。 |
 | 2026-10-13 | RC-1实测并关闭富结果包体/UI阻塞风险：按需chunk将library入口从479.97降至47.29 kB、demo主入口从603.46降至261.31 kB；实测100k/500k上限及Chrome/Edge生产预算通过。当前429单元、90仓库及16消费者运行；4.3继续等待后续风险收敛。 |
 | 2026-10-13 | RC-2建立真实远程CI：push运行38347604633通过core/browser/performance/packed-consumer；手动运行38348199406另通过6测试/600轮stress。hosted runner仅跳过版本敏感像素比较；固定版本本地零差异视觉门槛继续强制。 |
+| 2026-10-13 | RC-3以固定MIT/Apache heic-rs0.1.4 WASM替换已评估但未分发的LGPL decoder。可重现哈希、许可证/SBOM、9样本跨浏览器RGBA、CSP/失败/生命周期及24次React18/19 tgz使用方运行通过。更广真实CU配对及HEVC产品/公开发布批准仍为外部门槛。 |

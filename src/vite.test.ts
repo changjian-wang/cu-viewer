@@ -10,7 +10,7 @@ describe("optional Node-only viewer resource plugin", () => {
             plugins: [plugin],
             build: { outDir: "dist-plugin-check", assetsDir: "host-assets" },
         }, "build");
-        expect(config.plugins.some(value => value.name === "local-cu-viewer-pdf-assets")).toBe(true);
+        expect(config.plugins.some(value => value.name === "local-cu-viewer-assets")).toBe(true);
         expect(config.build.assetsDir).toBe("host-assets");
     });
 

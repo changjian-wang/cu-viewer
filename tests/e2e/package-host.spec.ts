@@ -6,12 +6,15 @@ import { checkPolygon, ready } from "./viewerAssertions";
 import { alive, trackSourceResources } from "./sourceResources";
 import { standardFontPdf } from "./pdfFixtures";
 
-const observations = new WeakMap<Page, { errors: string[]; external: string[]; failed: string[]; workers: string[]; fonts: string[] }>();
+const observations = new WeakMap<Page, {
+    errors: string[]; external: string[]; failed: string[]; workers: string[]; fonts: string[]; heif: string[];
+}>();
 const amountRow = '[data-field-id="/contents/0/fields/AmountDue/valueObject/Amount"]';
 const amountPoints = ([[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.3628, 8.2124]] as const)
     .map(([x, y]) => ({ x: x / 8.5, y: y / 11 }));
 const receiptPoints = [{ x: 775 / 1743, y: 73 / 878 }, { x: 973 / 1743, y: 72 / 878 },
     { x: 973 / 1743, y: 111 / 878 }, { x: 775 / 1743, y: 112 / 878 }];
+const heifPoints = [{ x: 0.5, y: 85 / 854 }, { x: 0.8, y: 85 / 854 }, { x: 0.8, y: 512 / 854 }, { x: 0.5, y: 512 / 854 }];
 const verifyProductScreenshots = process.env.CU_VERIFY_PRODUCT_SCREENSHOTS !== "false";
 
 test.beforeEach(async ({ page, context }, testInfo) => {
@@ -33,9 +36,10 @@ test.beforeEach(async ({ page, context }, testInfo) => {
 
     const origin = new URL(base).origin;
     const websocket = mode === "development" ? ` ws://127.0.0.1:${new URL(base).port}` : "";
-    const policy = `default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'${websocket}; object-src 'none'`;
-    const observed: { errors: string[]; external: string[]; failed: string[]; workers: string[]; fonts: string[] } = {
-        errors: [], external: [], failed: [], workers: [], fonts: [],
+    const wasm = testInfo.title.includes("HEIF") ? " 'wasm-unsafe-eval'" : "";
+    const policy = `default-src 'self'; script-src 'self'${wasm}; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'${websocket}; object-src 'none'`;
+    const observed: { errors: string[]; external: string[]; failed: string[]; workers: string[]; fonts: string[]; heif: string[] } = {
+        errors: [], external: [], failed: [], workers: [], fonts: [], heif: [],
     };
     observations.set(page, observed);
     page.on("pageerror", error => observed.errors.push(error.message));
@@ -47,6 +51,13 @@ test.beforeEach(async ({ page, context }, testInfo) => {
             expect(response.headers()["content-security-policy"]).toBe(policy);
         }
         if (url.includes("pdfjs/standard_fonts/")) observed.fonts.push(url);
+        if (url.includes("/heif/")) {
+            observed.heif.push(url);
+            if (url.endsWith("/heif.worker.js")) {
+                expect(response.headers()["content-security-policy"]).toBe(policy);
+            }
+            if (url.endsWith(".wasm")) expect(response.headers()["content-type"]).toContain("application/wasm");
+        }
     });
     await context.route("**/*", async route => {
         const url = route.request().url();
@@ -134,4 +145,23 @@ test("isolated packed consumer loads local standard fonts rather than relying on
         expect((await response.body()).length).toBeGreaterThan(0);
         if (filename.endsWith(".wasm")) expect(response.headers()["content-type"]).toContain("application/wasm");
     }
+});
+
+test("isolated packed consumer decodes packaged HEIF under a WASM-only worker CSP", async ({ page }, testInfo) => {
+    const directory: unknown = testInfo.project.metadata.consumerDirectory;
+    if (typeof directory !== "string") throw new Error("The isolated consumer directory is unavailable.");
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles(join(directory, "fixtures", "example.synthetic.cu.json"));
+    await page.getByLabel("Choose source file").setInputFiles(join(directory, "fixtures", "example.heic"));
+    await expect(page.locator(".cu-source-heading")).toContainText("example.heic");
+    await ready(page);
+    await expect(page.locator(".cu-source-heading")).toContainText("1280 × 854 px");
+    await page.getByRole("button", { name: "SyntheticRegion", exact: true }).click();
+    await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
+    await checkPolygon(page, heifPoints, 0);
+    await expect.poll(() => alive(page)).toEqual({ workers: 0, bitmaps: 1, urls: 0 });
+    const heif = observations.get(page)?.heif ?? [];
+    expect(heif.some(url => url.endsWith("/heif/heif.worker.js"))).toBe(true);
+    expect(heif.some(url => url.endsWith("/heif/heic_decoder.js"))).toBe(true);
+    expect(heif.some(url => url.endsWith("/heif/heic_decoder_bg.wasm"))).toBe(true);
+    expect(heif.every(url => !url.toLowerCase().includes("libheif"))).toBe(true);
 });

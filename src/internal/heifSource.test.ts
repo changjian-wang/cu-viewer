@@ -20,7 +20,6 @@ beforeEach(() => {
         constructor(readonly data: Uint8ClampedArray, readonly width: number, readonly height: number) {}
     });
     vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({ width: 2, height: 1, close: vi.fn() }));
-    vi.stubEnv("DEV", true);
 });
 
 afterEach(() => {
@@ -35,12 +34,12 @@ function worker(): TestWorker {
     return value;
 }
 
-describe("development-only owned HEIF decoder", () => {
-    it("decodes through a local classic worker, copies caller input and terminates after success", async () => {
+describe("packaged owned HEIF decoder", () => {
+    it("decodes through the packaged classic worker, copies caller input and terminates after success", async () => {
         const bytes = new Uint8Array([1, 2, 3]).buffer;
         const loading = decodeHeif(bytes, new AbortController().signal);
         const active = worker();
-        expect(active.url.pathname).toContain("heif.worker.ts");
+        expect(active.url.pathname).toContain("/heif/heif.worker.js");
         expect(active.options.type).toBe("classic");
         const message: unknown = active.postMessage.mock.calls[0]?.[0];
         if (!message || typeof message !== "object" || !("bytes" in message)) throw new Error("Missing owned input.");
@@ -53,10 +52,13 @@ describe("development-only owned HEIF decoder", () => {
         expect(active.onmessage).toBeNull();
     });
 
-    it("rejects production decoding without creating a worker or relying on hidden assets", async () => {
+    it("uses the same packaged worker in production builds", async () => {
         vi.stubEnv("DEV", false);
-        await expect(decodeHeif(new ArrayBuffer(1), new AbortController().signal)).rejects.toThrow("development-only");
-        expect(TestWorker.created).toHaveLength(0);
+        const loading = decodeHeif(new ArrayBuffer(1), new AbortController().signal);
+        const active = worker();
+        active.onmessage?.(new MessageEvent("message", { data: { type: "error", message: "synthetic packaged decoder error" } }));
+        await expect(loading).rejects.toThrow("synthetic packaged decoder error");
+        expect(active.terminate).toHaveBeenCalledTimes(1);
     });
 
     it("does not create a worker for an already cancelled input", async () => {
@@ -112,7 +114,7 @@ describe("development-only owned HEIF decoder", () => {
         expect(next.terminate).toHaveBeenCalledTimes(1);
     });
 
-    it("terminates a hung decode at the explicit development deadline", async () => {
+    it("terminates a hung decode at the explicit deadline", async () => {
         vi.useFakeTimers();
         const loading = decodeHeif(new ArrayBuffer(1), new AbortController().signal);
         const rejected = expect(loading).rejects.toThrow("30-second");

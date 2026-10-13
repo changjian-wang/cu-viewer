@@ -3,7 +3,7 @@
 > **Area**: integration / reusable React component
 > **Target repository**: changjian-wang/cu-result-viewer
 > **Requirements baseline**: [requirements](requirements.md) and [roadmap](roadmap.md), at commit `163814a`
-> **Design approval**: initial baseline and MIT/LGPL-candidate direction approved by the task owner; distribution approval remains pending
+> **Design approval**: initial baseline approved; RC-3 selected packaged MIT/Apache `heic-rs` instead of the historical LGPL candidate. HEVC product/patent and publication approval remain pending.
 > **Status**: In Progress; approved product appearance frozen and visually tested; task 2.4/2.5 verified scope retained; full P0/distribution gates remain open
 > **Execution order**: complete the standalone Viewer P0/P1 scope and acceptance first; cu-cli integration is the final mainline stage
 > **Last updated**: 2026-10-12
@@ -175,7 +175,7 @@ Phase, task, acceptance and test number prefixes below now use the same revised 
 
 **2026-10-13 task 4.1 progress**: real invoice/receipt arrays, stable one-based item labels, hidden-descendant selection and all current field/group source regions are implemented. Real BillingAddress region switching and a synthetic cross-page structured group pass in Chrome/Edge. At that checkpoint 424 unit cases, 80 repository browser runs and 16 packed-consumer runs passed; all 30 existing product references remained unchanged. Dedicated Tables view and real cross-page structured CU pairs are not claimed.
 
-**2026-10-13 task 4.2/RC-1 progress**: Fields, sanitized Markdown and the original expandable JSON input now switch without resetting source page/zoom/rotation/pan/pin/region state. Real PDF/PNG Markdown, nine CU HTML invoice tables, missing content, adversarial active content/URLs/images, original envelope keys, parser-rejected raw JSON and measured limits (100,000 Markdown characters; 500,000 JSON characters or 20,000 values) pass in Chrome/Edge and isolated React 18/19 Vite consumers. Markdown/JSON are lazy chunks; the default library/demo entry no longer contains them or triggers Vite's 500 kB advisory, and the production interaction budget passes in both browsers. Current totals are 429 unit cases, 90 repository runs and 16 packed-consumer runs: 106 local browser runs. The original 30 product references are unchanged; four task 4.2 pane references were added. Paragraphs/Tables/Code remain disabled pending scope. Task 4.3 remains after risk closure.
+**2026-10-13 risk-closure progress**: Fields/Markdown/JSON, lazy chunking and the production interaction budget pass without resetting source state. RC-3 also replaces the historical LGPL HEIF candidate with pinned MIT/Apache `heic-rs 0.1.4` WASM: nine reviewed RGBA fixtures, development/production CSP, failure/lifecycle behavior and actual React 18/19 tgz consumers pass. Current totals are 429 unit cases, 94 repository runs and 24 packed-consumer runs: 118 local browser runs. There are 34 references; RC-3 refreshed 22 full-page images only for the truthful HEIF footer while pane/layout/Fields references remained unchanged. Broader real CU image pairs and release approval remain open; task 4.3 stays behind the remaining risk gate.
 
 Use the current Studio with representative PDF and image results. Record layout, field/value/confidence presentation, hover versus selection, cross-page navigation, fit/zoom/pan/rotation, and missing-source/grounding behavior. If Studio is inaccessible, record that limitation and leave the behavioral review gate open.
 
@@ -319,9 +319,9 @@ Paths are relative to the target repository and use Windows separators. `create`
       "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
       "unit_cases": 429,
-      "browser_runs": 106,
-      "repository_browser_runs": 90,
-      "packed_consumer_browser_runs": 16,
+      "browser_runs": 118,
+      "repository_browser_runs": 94,
+      "packed_consumer_browser_runs": 24,
       "stress_browser_runs": 6,
       "stress_rounds_per_browser": 300,
       "visual_browser_runs": 18,
@@ -421,7 +421,7 @@ Paths are relative to the target repository and use Windows separators. `create`
     {
       "id": "2.5", "phase": 2, "priority": "P0", "title": "Render required images through the common adapter", "effort": "M",
       "status": "in_progress",
-      "implementation_evidence": "Native PNG/JPEG/BMP and EXIF 1-8 at DPR1/2 pass; owner-approved local-only HEIF primary/CSP/cancellation path works in the component. Production rejects HEIF and contains no decoder binary; broader real pairs/codec variants/distribution obligations remain open.",
+      "implementation_evidence": "Native PNG/JPEG/BMP and EXIF 1-8 at DPR1/2 pass. Production HEIF uses pinned permissive heic-rs0.1.4 WASM with reproducible Rust inputs, licenses/SBOM, nine-fixture RGBA corpus, strict WASM-only Worker CSP, lifecycle and actual React18/19 tgz dev/prod coverage. Broader real CU pairs, alpha/nonzero transforms/10-bit and HEVC product/release approval remain open.",
       "description": "Reuse the source contract for native/fallback decoding, orientation and intrinsic dimensions. Keep HEIF/HEIC in P0 and expose decode errors explicitly.",
       "files": [
         {"path": "src\\internal\\imageSource.ts", "action": "create"},
@@ -429,7 +429,10 @@ Paths are relative to the target repository and use Windows separators. `create`
         {"path": "src\\internal\\heifSource.ts", "action": "create"},
         {"path": "src\\internal\\heifSource.test.ts", "action": "create"},
         {"path": "src\\internal\\heif.worker.ts", "action": "create"},
-        {"path": "tools\\heifDevelopmentAssets.ts", "action": "create"},
+        {"path": "tools\\heifAssets.ts", "action": "create"},
+        {"path": "tools\\build-heic-codec.ps1", "action": "create"},
+        {"path": "codecs\\heic-rs-wasm", "action": "create"},
+        {"path": "assets\\heif", "action": "create"},
         {"path": "tools\\generate-image-fixtures.mjs", "action": "create"},
         {"path": "tests\\e2e\\image-formats.spec.ts", "action": "create"},
         {"path": "tests\\e2e\\sourceResources.ts", "action": "create"},
@@ -554,7 +557,7 @@ Paths are relative to the target repository and use Windows separators. `create`
     {
       "id": "4.2", "phase": 4, "priority": "P1", "title": "Add safe Markdown and interactive JSON panes", "effort": "M",
       "status": "done",
-      "implementation_evidence": "Exact MIT React18/19-compatible Markdown/GFM/raw-HTML-sanitize and JSON-tree dependencies render real PDF/PNG output. Chrome/Edge security, missing/invalid/oversized states, original-envelope expansion, source-state retention, four new pane references and isolated packed consumers pass; the previous 30 product images remain byte-for-byte comparison targets.",
+      "implementation_evidence": "Exact MIT React18/19-compatible Markdown/GFM/raw-HTML-sanitize and JSON-tree dependencies render real PDF/PNG output. Chrome/Edge security, missing/invalid/oversized states, original-envelope expansion, source-state retention, four new pane references and isolated packed consumers pass. Task4.2 changed no prior visual; RC-3 later refreshed only footer-bearing full-page references.",
       "description": "Evaluate mature Markdown/JSON components and implement real Fields/Markdown/JSON switching with reviewed licenses, safe content and measured size limits; retain document page/zoom/pin state and approved Fields appearance. No CLI dependency.",
       "files": [
         {"path": "src\\components\\MarkdownPane.tsx", "action": "create"},
@@ -650,7 +653,7 @@ Task 2.1 establishes the unit/lint/type/build foundation; browser, component, an
 - **Host-native integration tests**: use the confirmed CLI repository's existing runner rather than creating a competing CLI framework.
 - **Manual evidence**: Studio comparisons, dependency/license evaluation, and owner approval remain explicitly manual. They are not reported as automated coverage.
 
-`npm ci --ignore-scripts`, type/lint/unit/E2E/build, `npm run verify:performance` and `npm run verify:consumer` are implemented. Current 429 unit cases, 90 repository browser runs and 16 actual React18/19 Vite consumer runs pass: 106 local browser executions. Existing 600 stress rounds and 30 unchanged product images remain covered, with four new task 4.2 pane references. Remote [push CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633) and [full manual CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406) pass. Full formats/distribution, cross-origin/other hosts and source/decoder budgets remain open.
+`npm ci --ignore-scripts`, type/lint/unit/E2E/build, `npm run verify:performance` and `npm run verify:consumer` are implemented. Current 429 unit cases, 94 repository browser runs and 24 actual React18/19 Vite consumer runs pass: 118 local browser executions. Existing 600 stress rounds and 34 reviewed references pass; RC-3 refreshed 22 full-page images only for the HEIF status footer. Remote [push CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633) and [full manual CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406) pass. Broader real format pairs, cross-origin/other hosts and source/decoder budgets remain open.
 
 Normal regression tests use saved, sanitized real results, not live Analyze calls. Live service access is only an explicitly approved way to acquire fixtures or verify the external fresh-analysis CLI path. Source URL tests may use the local test server; tests deny CU requests and required external CDN assets. Do not record credentials, SAS URLs, customer documents, or raw sensitive results in test logs or browser artifacts.
 
@@ -754,3 +757,4 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-13 | Completed task 4.2: real sanitized Markdown (including nine CU HTML tables), original interactive JSON, tab/source-state retention, adversarial/missing/oversized states and React18/19 package-host coverage. Verified 429 unit, 86 repository and 16 consumer runs; retained all 30 existing product images and added four rich-pane references. Paragraphs/Tables/Code remain scoped out; 4.3 is next. |
 | 2026-10-13 | RC-1 measured and closed the rich-result bundle/UI-blocking risk: lazy chunks reduce the library entry from 479.97 to 47.29 kB and demo main from 603.46 to 261.31 kB; measured 100k/500k limits and production Chrome/Edge budgets pass. Current evidence is 429 unit, 90 repository and 16 consumer runs; 4.3 remains gated by later risk-closure steps. |
 | 2026-10-13 | RC-2 established real remote CI: push run 38347604633 passes core/browser/performance/packed-consumer jobs; manual run 38348199406 also passes the six-test/600-round stress job. Hosted runners skip version-sensitive pixels only; fixed-version local zero-diff visual gates remain mandatory. |
+| 2026-10-13 | RC-3 replaces the evaluated-but-undistributed LGPL decoder with pinned MIT/Apache heic-rs0.1.4 WASM. Reproducible hashes, licenses/SBOM, nine-fixture cross-browser RGBA results, CSP/failure/lifecycle behavior and 24 React18/19 tgz consumer runs pass. Broader real CU pairs and HEVC product/publication approval remain external gates. |

@@ -6,3 +6,4 @@ playwright-report/
 test-results/
 *.tgz
 .env.local
+codecs/**/target/
