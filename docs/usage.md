@@ -44,7 +44,15 @@ Keep the package CSS and provide a bounded host height. Fonts, browser/viewport 
 
 Switching views does not replace or reinitialize the source pane, so page, zoom, rotation, pan, pinned field and selected source-region index remain intact. Selecting another result content is a separate operation and retains its existing page/selection behavior.
 
-To bound synchronous client rendering, Markdown is limited to 1,000,000 characters. JSON is limited to 2,000,000 serialized characters and 20,000 values. Inputs beyond a limit receive an explicit state and remain caller-owned; the component does not truncate or mutate them. Circular, non-finite and other non-JSON values are also reported explicitly. Hosts that need to inspect larger results should provide a separate download or specialized large-document workflow rather than raising these internal limits without measuring the target devices.
+To bound synchronous client rendering, Markdown is limited to 100,000 characters. JSON is limited to 500,000 serialized characters and 20,000 values. These limits retain substantial headroom over the verified 5,125-character Markdown and 393.5 kB Analyze result while avoiding the measured long tasks above those boundaries. Inputs beyond a limit receive an explicit state and remain caller-owned; the component does not truncate or mutate them. Circular, non-finite and other non-JSON values are also reported explicitly. Hosts that need to inspect larger results should provide a separate download or specialized large-document workflow rather than raising these internal limits without measuring the target devices.
+
+Markdown and JSON are lazy chunks. Fields does not request either chunk until the corresponding tab is activated. Run the production Chrome/Edge budget after changing rich-result dependencies, limits or rendering:
+
+```powershell name="Verify production rich-result performance"
+npm run verify:performance
+```
+
+The current gate allows at most 1,000 ms for first activation, 250 ms for a warm near-limit activation, 100 ms for any observed main-thread long task and 64 MiB heap growth. These are recorded Windows Chrome/Edge engineering limits for the current private Viewer, not a general guarantee for every host device.
 
 ## Vite Resource Delivery
 
@@ -123,6 +131,6 @@ Default repository E2E runs deliberately exclude package tests; the consumer con
 ## Remaining Gates
 
 - HEIF production decoding stays explicitly disabled; no LGPL decoder binary/private local configuration is in the artifact.
-- Native required formats, broader real PDF/CMap/ICC/WASM cases, orientation/crop/bit-depth, performance budgets and wider host policies are not all established by this package matrix.
+- Native required formats, broader real PDF/CMap/ICC/WASM cases, orientation/crop/bit-depth, source/decoder performance budgets and wider host policies are not all established by this package matrix. Rich-result activation has its separate production budget above.
 - The [core CI workflow](../.github/workflows/ci.yml) is configured for install/type/lint/unit/build/pack checks but has not been run on GitHub in this session. Its unreviewed browser/font environment is not automatically substituted for the approved visual references.
 - CLI integration, public distribution, final third-party notices/source review and release approval remain separate.

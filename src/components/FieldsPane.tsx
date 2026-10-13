@@ -1,9 +1,10 @@
-import { useId, useRef, useState } from "react";
+import { lazy, Suspense, useId, useRef, useState } from "react";
 import type { CuContent, CuField, CuParseIssue } from "../internal/types";
 import { displayValue, fieldColor, fieldDisplayName, fieldLabel, formatConfidence, primaryRegion } from "../internal/interaction";
 import { unavailableSourcePageMessage } from "../internal/source";
-import { JsonPane } from "./JsonPane";
-import { MarkdownPane } from "./MarkdownPane";
+
+const MarkdownPane = lazy(() => import("./MarkdownPane").then(module => ({ default: module.MarkdownPane })));
+const JsonPane = lazy(() => import("./JsonPane").then(module => ({ default: module.JsonPane })));
 
 type ResultView = "fields" | "markdown" | "json";
 
@@ -188,9 +189,13 @@ export function FieldsPane(props: FieldsPaneProps) {
                 {contentSelector}
                 {props.error
                     ? <div className="cu-state cu-error" role="alert"><h2>Result could not be read</h2><p>{props.error}</p></div>
-                    : <MarkdownPane markdown={props.content?.markdown} />}
+                    : <Suspense fallback={<div className="cu-state" role="status">Loading Markdown view…</div>}>
+                        <MarkdownPane markdown={props.content?.markdown} />
+                    </Suspense>}
             </>}
-            {view === "json" && <JsonPane value={props.result} />}
+            {view === "json" && <Suspense fallback={<div className="cu-state" role="status">Loading JSON view…</div>}>
+                <JsonPane value={props.result} />
+            </Suspense>}
         </div>
         <footer className="cu-results-footer">
             {view === "fields" && "Field colors link to source regions. Confidence is supplied by CU, not an accuracy judgment."}

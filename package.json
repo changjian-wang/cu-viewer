@@ -37,6 +37,8 @@
     "test:e2e": "playwright test",
     "test:consumer": "playwright test --config playwright.consumer.config.ts",
     "verify:consumer": "node tools/verify-packed-consumers.mjs",
+    "verify:bundle": "npm run build && npm run build:demo && node tools/verify-rich-result-build.mjs",
+    "verify:performance": "npm run verify:bundle && playwright test --config playwright.performance.config.ts",
     "build": "vite build && tsc --project tsconfig.build.json",
     "build:demo": "vite build --config demo/vite.config.ts",
     "preview:demo": "vite preview --config demo/vite.config.ts --host 127.0.0.1 --port 4173 --strictPort"

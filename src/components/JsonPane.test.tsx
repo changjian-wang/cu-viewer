@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { JsonPane, MAX_JSON_CHARACTERS } from "./JsonPane";
+import { JsonPane, MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "./JsonPane";
 
 afterEach(cleanup);
 
@@ -32,5 +32,8 @@ describe("original JSON result presentation", () => {
 
         rerender(<JsonPane value={{ value: "x".repeat(MAX_JSON_CHARACTERS + 1) }} />);
         expect(screen.getByRole("alert").textContent).toContain("JSON is too large to render");
+
+        rerender(<JsonPane value={{ values: Array.from({ length: MAX_JSON_VALUES + 1 }, () => 0) }} />);
+        expect(screen.getByRole("alert").textContent).toContain(`${MAX_JSON_VALUES.toLocaleString("en-US")}-value limit`);
     });
 });

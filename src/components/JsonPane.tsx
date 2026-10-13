@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 
-export const MAX_JSON_CHARACTERS = 2_000_000;
+export const MAX_JSON_CHARACTERS = 500_000;
 export const MAX_JSON_VALUES = 20_000;
 
 const jsonStyles = {
@@ -43,22 +43,20 @@ class JsonLimitError extends Error {
 }
 
 function inspectJson(value: unknown): JsonInspection {
-    let estimatedCharacters = 0;
     let values = 0;
     try {
-        const serialized = JSON.stringify(value, (key, nested: unknown) => {
+        const serialized = JSON.stringify(value, (_key, nested: unknown) => {
             values += 1;
-            estimatedCharacters += key.length + 4;
-            if (typeof nested === "string") estimatedCharacters += nested.length;
-            else if (typeof nested === "number") {
+            if (typeof nested === "string" && nested.length > MAX_JSON_CHARACTERS) {
+                throw new JsonLimitError(nested.length, values);
+            }
+            if (typeof nested === "number") {
                 if (!Number.isFinite(nested)) throw new TypeError("The result contains a non-finite number and is not serialized JSON.");
-                estimatedCharacters += 24;
-            } else if (typeof nested === "boolean" || nested === null) estimatedCharacters += 5;
-            else if (typeof nested === "undefined" || typeof nested === "function" || typeof nested === "symbol" || typeof nested === "bigint") {
+            } else if (typeof nested === "undefined" || typeof nested === "function" || typeof nested === "symbol" || typeof nested === "bigint") {
                 throw new TypeError(`The result contains a non-JSON ${typeof nested} value.`);
             }
-            if (estimatedCharacters > MAX_JSON_CHARACTERS || values > MAX_JSON_VALUES) {
-                throw new JsonLimitError(estimatedCharacters, values);
+            if (values > MAX_JSON_VALUES) {
+                throw new JsonLimitError(0, values);
             }
             return nested;
         });

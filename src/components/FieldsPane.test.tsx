@@ -102,18 +102,18 @@ describe("structured Fields presentation", () => {
         expect(unavailable.getAttribute("title")).toContain("Page 1 is not present");
     });
 
-    it("switches real result views with tab semantics without losing Fields expansion state", () => {
+    it("switches real result views with tab semantics without losing Fields expansion state", async () => {
         const fixture = structuredContent();
         fixture.content.markdown = "# Extracted title";
         renderPane(fixture.content);
 
         fireEvent.click(screen.getByRole("button", { name: "Expand Rows" }));
         fireEvent.click(screen.getByRole("tab", { name: "Markdown" }));
-        expect(screen.getByRole("heading", { name: "Extracted title" })).toBeTruthy();
+        expect(await screen.findByRole("heading", { name: "Extracted title" }, { timeout: 5000 })).toBeTruthy();
         expect(screen.getByRole("tab", { name: "Markdown" }).getAttribute("aria-selected")).toBe("true");
 
         fireEvent.keyDown(screen.getByRole("tab", { name: "Markdown" }), { key: "ArrowRight" });
-        expect(screen.getByRole("tree", { name: "Original Analyze result JSON" })).toBeTruthy();
+        expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" }, { timeout: 5000 })).toBeTruthy();
         expect(screen.getByText(/rawOnly/)).toBeTruthy();
 
         fireEvent.keyDown(screen.getByRole("tab", { name: "JSON" }), { key: "Home" });

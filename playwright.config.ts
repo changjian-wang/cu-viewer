@@ -3,7 +3,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
     testDir: "./tests/e2e",
-    testIgnore: "package-host.spec.ts",
+    testIgnore: ["package-host.spec.ts", "performance.spec.ts"],
     fullyParallel: false,
     workers: 1,
     timeout: 60000,

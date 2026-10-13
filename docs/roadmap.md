@@ -14,7 +14,7 @@ Task numbering now matches the revised phases: Viewer P1 is `4.1-4.4` / G3; CLI 
 
 The owner's UI checkpoint now has approved [v2 static design](prototype/README.md) and an [interactive baseline](prototype/README.md#当前可操作范围) approved for task 2.4 hardening. It was run immediately when mountable and has real PDF/PNG coverage. The static state gallery remains design-only; implementation approval does not close production acceptance.
 
-Checked items record verified scope, not release approval. Current 429 unit cases, 86 repository browser runs and 16 isolated Vite consumer runs pass: 102 local browser runs. Structured arrays, all current source regions, safe Markdown and the original JSON tree are verified. The prior 30 product references remain unchanged and four task 4.2 pane references were added. Remaining rich UX, formats, HEIF distribution, cross-origin, broader stress/budgets, other hosts, remote CI and final CLI remain open.
+Checked items record verified scope, not release approval. Current 429 unit cases, 90 repository browser runs and 16 isolated Vite consumer runs pass: 106 local browser runs. Structured arrays, all current source regions, safe lazy-loaded Markdown and the original JSON tree are verified against a production interaction budget. The prior 30 product references remain unchanged and four task 4.2 pane references were added. Remaining rich UX, formats, HEIF distribution, cross-origin, source/decoder budgets, other hosts, remote CI and final CLI remain open.
 
 ## 1. Validate the Input and UX Reference
 
@@ -60,7 +60,7 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Deliver local Worker/fonts/CMaps/WASM/ICC assets with their license; approved optional Node-only Vite integration now passes isolated package/CSP/font cases. Real CMap/ICC/WASM-specific decode fixtures remain open.
 - [x] Provide the saved-source/JSON demo without analysis or authentication.
 - [x] Run focused parser/geometry/source/interaction unit and browser regressions; production coverage gaps remain explicitly listed.
-- [x] Record tested browsers and representative fixture sizes; full format coverage and approved performance budgets remain open.
+- [x] Record tested browsers, representative fixture sizes and a production rich-result interaction budget; full format coverage plus source/decoder peak-memory budgets remain open.
 - [x] Document public inputs, optional Vite assets, CSS and isolated pack verification in the usage guide; wider host/CI and full P0 gates remain open.
 
 **Exit check:** complete Viewer P0 scenarios and independent embedding without a CLI dependency. Retain format/license/CI/performance gates; overall CLI delivery is assessed separately at the final stage.
@@ -70,7 +70,7 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Implement scoped structured fields and multiple-region navigation: stable nested/array identities, table-like real LineItems, collapsed-selection retention, all own/descendant source regions and synthetic cross-page group coverage. A dedicated Tables result pane is not implied.
 - [x] Implement actual Fields/Markdown/JSON switching; preserve document page/zoom/rotation/pan/pin/region state and approved Fields appearance rather than merely enabling empty tabs.
 - [x] Add safe client-side Markdown with headings, lists, GFM, sanitized CU HTML tables, code blocks and formatting; omit active content, dangerous URLs and remote images.
-- [x] Evaluate and integrate a mature MIT expandable JSON-tree component for the original input, with explicit 2,000,000-character/20,000-value limits.
+- [x] Evaluate and integrate a mature MIT expandable JSON-tree component for the original input, with measured 500,000-character/20,000-value limits and lazy result-view chunks.
 - [ ] Complete accessibility, keyboard, touch, responsive layout, and refined automatic scrolling/centering.
 - [ ] Add grounded extension points for selection callbacks, custom fields, viewer events, toolbar/layout customization, initial page, and initial zoom/fit mode.
 - [ ] Specify MCP Apps / MCP UI and chat-host integration design, including host-to-viewer data delivery and asset packaging, without service logic in the core.

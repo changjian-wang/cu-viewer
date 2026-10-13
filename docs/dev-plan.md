@@ -175,7 +175,7 @@ Phase, task, acceptance and test number prefixes below now use the same revised 
 
 **2026-10-13 task 4.1 progress**: real invoice/receipt arrays, stable one-based item labels, hidden-descendant selection and all current field/group source regions are implemented. Real BillingAddress region switching and a synthetic cross-page structured group pass in Chrome/Edge. At that checkpoint 424 unit cases, 80 repository browser runs and 16 packed-consumer runs passed; all 30 existing product references remained unchanged. Dedicated Tables view and real cross-page structured CU pairs are not claimed.
 
-**2026-10-13 task 4.2 progress**: Fields, sanitized Markdown and the original expandable JSON input now switch without resetting source page/zoom/rotation/pan/pin/region state. Real PDF/PNG Markdown, nine CU HTML invoice tables, missing content, adversarial active content/URLs/images, original envelope keys, parser-rejected raw JSON and explicit limits (1,000,000 Markdown characters; 2,000,000 JSON characters or 20,000 values) pass in Chrome/Edge and isolated React 18/19 Vite consumers. Current totals are 429 unit cases, 86 repository runs and 16 packed-consumer runs: 102 local browser runs. The original 30 product references are unchanged; four task 4.2 pane references were added. Paragraphs/Tables/Code remain disabled pending scope. Task 4.3 is next.
+**2026-10-13 task 4.2/RC-1 progress**: Fields, sanitized Markdown and the original expandable JSON input now switch without resetting source page/zoom/rotation/pan/pin/region state. Real PDF/PNG Markdown, nine CU HTML invoice tables, missing content, adversarial active content/URLs/images, original envelope keys, parser-rejected raw JSON and measured limits (100,000 Markdown characters; 500,000 JSON characters or 20,000 values) pass in Chrome/Edge and isolated React 18/19 Vite consumers. Markdown/JSON are lazy chunks; the default library/demo entry no longer contains them or triggers Vite's 500 kB advisory, and the production interaction budget passes in both browsers. Current totals are 429 unit cases, 90 repository runs and 16 packed-consumer runs: 106 local browser runs. The original 30 product references are unchanged; four task 4.2 pane references were added. Paragraphs/Tables/Code remain disabled pending scope. Task 4.3 remains after risk closure.
 
 Use the current Studio with representative PDF and image results. Record layout, field/value/confidence presentation, hover versus selection, cross-page navigation, fit/zoom/pan/rotation, and missing-source/grounding behavior. If Studio is inaccessible, record that limitation and leave the behavioral review gate open.
 
@@ -319,8 +319,8 @@ Paths are relative to the target repository and use Windows separators. `create`
       "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
       "unit_cases": 429,
-      "browser_runs": 102,
-      "repository_browser_runs": 86,
+      "browser_runs": 106,
+      "repository_browser_runs": 90,
       "packed_consumer_browser_runs": 16,
       "stress_browser_runs": 6,
       "stress_rounds_per_browser": 300,
@@ -650,7 +650,7 @@ Task 2.1 establishes the unit/lint/type/build foundation; browser, component, an
 - **Host-native integration tests**: use the confirmed CLI repository's existing runner rather than creating a competing CLI framework.
 - **Manual evidence**: Studio comparisons, dependency/license evaluation, and owner approval remain explicitly manual. They are not reported as automated coverage.
 
-`npm ci --ignore-scripts`, type/lint/unit/E2E/build commands and `npm run verify:consumer` are implemented. Current 429 unit cases, 86 repository browser runs and 16 actual React18/19 Vite consumer runs pass: 102 local browser executions. Existing 600 stress rounds and 30 unchanged product images remain covered, with four new task 4.2 pane references. Core CI is configured, not remotely executed. Full formats/distribution, cross-origin/other hosts, broader stress and memory/latency budgets remain open.
+`npm ci --ignore-scripts`, type/lint/unit/E2E/build, `npm run verify:performance` and `npm run verify:consumer` are implemented. Current 429 unit cases, 90 repository browser runs and 16 actual React18/19 Vite consumer runs pass: 106 local browser executions. Existing 600 stress rounds and 30 unchanged product images remain covered, with four new task 4.2 pane references. Core CI is configured, not remotely executed. Full formats/distribution, cross-origin/other hosts and source/decoder budgets remain open.
 
 Normal regression tests use saved, sanitized real results, not live Analyze calls. Live service access is only an explicitly approved way to acquire fixtures or verify the external fresh-analysis CLI path. Source URL tests may use the local test server; tests deny CU requests and required external CDN assets. Do not record credentials, SAS URLs, customer documents, or raw sensitive results in test logs or browser artifacts.
 
@@ -752,3 +752,4 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-12 | Owner required Viewer-first delivery: renumber P1 as 4.1-4.4/G3 and CLI as 5.1-5.2/G4, then synchronize acceptance/test IDs, dependencies, gates and rollout. Preserve verified completion evidence and separate P2; next Viewer functional target is real rich-pane switching in 4.2. |
 | 2026-10-13 | Completed scoped task4.1: stable real array/table-like hierarchy, hidden descendant selection and every own/descendant source region, with synthetic cross-page coverage. Verified424 unit,80 repository and16 consumer runs;30 approved images unchanged. Dedicated Tables pane and real cross-page structured pair remain open;4.2 is next. |
 | 2026-10-13 | Completed task 4.2: real sanitized Markdown (including nine CU HTML tables), original interactive JSON, tab/source-state retention, adversarial/missing/oversized states and React18/19 package-host coverage. Verified 429 unit, 86 repository and 16 consumer runs; retained all 30 existing product images and added four rich-pane references. Paragraphs/Tables/Code remain scoped out; 4.3 is next. |
+| 2026-10-13 | RC-1 measured and closed the rich-result bundle/UI-blocking risk: lazy chunks reduce the library entry from 479.97 to 47.29 kB and demo main from 603.46 to 261.31 kB; measured 100k/500k limits and production Chrome/Edge budgets pass. Current evidence is 429 unit, 90 repository and 16 consumer runs; 4.3 remains gated by later risk-closure steps. |

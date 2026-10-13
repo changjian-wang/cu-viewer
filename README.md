@@ -110,9 +110,9 @@ If a result references a page absent from the loaded source, its page badge is d
 
 The file pickers belong to the demo host. They read local files and parsed JSON; the component receives original data and never calls CU. Source failure does not hide valid fields, invalid result data does not hide a valid source, and parser issues remain visible. Prototype field previews use a small dock below the document so that they cannot obscure source text.
 
-Use **Markdown** to render the selected content item's `content.markdown`. Real CU HTML tables are parsed and then sanitized; scripts, frames, event handlers, dangerous links and remote images are not rendered. HTTP/HTTPS/mail links open with `noopener noreferrer`. Markdown over 1,000,000 characters stops at an explicit limit state rather than freezing the pane.
+Use **Markdown** to render the selected content item's `content.markdown`. Real CU HTML tables are parsed and then sanitized; scripts, frames, event handlers, dangerous links and remote images are not rendered. HTTP/HTTPS/mail links open with `noopener noreferrer`. Markdown over 100,000 characters stops at an explicit limit state rather than freezing the pane.
 
-The Studio-style **…** control is the **JSON** tab and displays its label after selection. It renders the original caller-provided operation envelope or inner result, not the internal parsed field model. The root starts expanded and nested objects/arrays are keyboard-expandable. Results over 2,000,000 serialized characters or 20,000 values, circular values and other non-JSON input receive explicit states. Switching Fields/Markdown/JSON preserves source page, zoom, rotation and pinned field/region state.
+The Studio-style **…** control is the **JSON** tab and displays its label after selection. It renders the original caller-provided operation envelope or inner result, not the internal parsed field model. The root starts expanded and nested objects/arrays are keyboard-expandable. Results over 500,000 serialized characters or 20,000 values, circular values and other non-JSON input receive explicit states. Switching Fields/Markdown/JSON preserves source page, zoom, rotation and pinned field/region state.
 
 Known limits: HEIF/HEIC remains local-development only, not a distribution feature. React 18/19 isolated Vite consumers now pass for the verified PDF/PNG and rich-result scope. Paragraphs/Tables/Code, full format/orientation/crop coverage, accessibility/touch, wider bundler/host environments, CLI and release/compliance gates remain incomplete.
 
@@ -142,9 +142,9 @@ The [internal parser](src/internal/parseCuResult.ts) accepts the verified `2025-
 
 The [geometry module](src/internal/geometry.ts) maps CU coordinates through actual rendered-page dimensions, zoom, pan and quarter-turn rotation, with inverse, fit and raster-size helpers. Shared validation prevents parser/overlay disagreements. Core input/parser/geometry accounts for 339 cases; lifecycle, structured Fields, rich results, interaction, directory-URL and resource-plugin tests bring the current total to **429**.
 
-The initial geometry experiment passed 512 rendered-coordinate cases. The [prototype](tests/e2e/prototype.spec.ts), [public-source input](tests/e2e/source-inputs.spec.ts), [image-format](tests/e2e/image-formats.spec.ts), [product visual](tests/e2e/visual.spec.ts), [rich-result](tests/e2e/rich-results.spec.ts) and [stress](tests/e2e/stress.spec.ts) suites now pass **86 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: ten prototype, ten public-input, eight image-format, nine visual, three rich-result and three stress scenarios per browser. Six stress runs execute 600 measured rounds, not 600 distinct tests. Normal cancelled/retried requests remain distinct from errors.
+The initial geometry experiment passed 512 rendered-coordinate cases. The [prototype](tests/e2e/prototype.spec.ts), [public-source input](tests/e2e/source-inputs.spec.ts), [image-format](tests/e2e/image-formats.spec.ts), [product visual](tests/e2e/visual.spec.ts), [rich-result](tests/e2e/rich-results.spec.ts), [production performance](tests/e2e/performance.spec.ts) and [stress](tests/e2e/stress.spec.ts) suites now pass **90 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: ten prototype, ten public-input, eight image-format, nine visual, three rich-result, two performance and three stress scenarios per browser. Six stress runs execute 600 measured rounds, not 600 distinct tests. Normal cancelled/retried requests remain distinct from errors.
 
-The separate [packed-consumer matrix](tests/e2e/package-host.spec.ts) adds **16 runs**: React 18.3.1/19.3.0, production/development, Chrome/Edge and two scenarios each. These are actual tgz installations outside the repository, not shared dependencies or source aliases. Combined local browser evidence is **102 runs**. PDF/PNG, Markdown/JSON, types/CSS, local Worker/fonts, CSP, CMap/WASM/ICC delivery and unchanged product screenshot references pass.
+The separate [packed-consumer matrix](tests/e2e/package-host.spec.ts) adds **16 runs**: React 18.3.1/19.3.0, production/development, Chrome/Edge and two scenarios each. These are actual tgz installations outside the repository, not shared dependencies or source aliases. Combined local browser evidence is **106 runs**. PDF/PNG, Markdown/JSON lazy chunks, types/CSS, local Worker/fonts, CSP, CMap/WASM/ICC delivery and unchanged product screenshot references pass.
 
 ```powershell name="Independent packed package verification"
 npm run verify:consumer
@@ -168,7 +168,13 @@ Default/hover/pinned prototype screenshots did not change. This does not impleme
 
 Task 4.2 is implemented with exact MIT-licensed dependencies: React Markdown 10.1.0, remark-gfm 4.0.1, rehype-raw 7.0.0, rehype-sanitize 6.0.0 and react-json-view-lite 2.5.0. The Markdown pipeline supports headings, lists, GFM, fenced/inline code and sanitized raw CU tables. The JSON tree retains the original input reference and starts with only its root expanded.
 
-Real PDF/PNG Markdown, all nine invoice tables, absent Markdown, unsafe HTML/URLs/images, original envelope keys, nested object/array expansion, parser-rejected but still inspectable raw JSON, explicit size/value limits and tab/source-state retention pass in Chrome/Edge. Four new rich-pane references were added; the prior 30 approved product references still compare at zero differing pixels. Dedicated Paragraphs/Tables/Code tabs remain out of scope until their semantics are agreed. The next ordered functional task is **4.3**.
+Markdown and JSON are separate lazy chunks. The default library entry is 47.29 kB minified / 14.19 kB gzip, compared with 479.97 kB / 127.76 kB before splitting; the demo main chunk is 261.31 kB / 82.28 kB and no longer triggers Vite's 500 kB advisory. The production budget verifies no rich chunk is requested on Fields, cold view activation within 1,000 ms, near-limit warm activation within 250 ms, no task over 100 ms and no more than 64 MiB heap growth on the recorded Chrome/Edge environment.
+
+Real PDF/PNG Markdown, all nine invoice tables, absent Markdown, unsafe HTML/URLs/images, original envelope keys, nested object/array expansion, parser-rejected but still inspectable raw JSON, measured size/value limits and tab/source-state retention pass in Chrome/Edge. Four new rich-pane references were added; the prior 30 approved product references still compare at zero differing pixels. Dedicated Paragraphs/Tables/Code tabs remain out of scope until their semantics are agreed. The next ordered functional task is **4.3**.
+
+```powershell name="Production rich-result budget"
+npm run verify:performance
+```
 
 ### Approved Product Appearance
 

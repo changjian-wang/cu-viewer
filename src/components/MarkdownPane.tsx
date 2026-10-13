@@ -4,7 +4,7 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 
-export const MAX_MARKDOWN_CHARACTERS = 1_000_000;
+export const MAX_MARKDOWN_CHARACTERS = 100_000;
 
 const safeUrlTransform: UrlTransform = (url, key) => {
     if (key !== "href") return null;

@@ -28,6 +28,7 @@
     "tests/e2e",
     "playwright.config.ts",
     "playwright.consumer.config.ts",
+    "playwright.performance.config.ts",
     "vite.config.ts"
   ],
   "exclude": [
