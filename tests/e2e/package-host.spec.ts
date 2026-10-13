@@ -119,7 +119,7 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
     await expect(pane.getByRole("heading", { name: "INVOICE", exact: true })).toBeVisible();
     await expect(pane.getByRole("table")).toHaveCount(9);
-    await pane.getByRole("tab", { name: "JSON", exact: true }).click();
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(pane.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();
 });

@@ -582,6 +582,8 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "4.2a", "phase": 4, "priority": "P1", "title": "Add dynamic Studio result views", "effort": "L",
+      "status": "in_progress",
+      "implementation_evidence": "Batch one implements GA/Preview version and detail-container guards, Studio-ordered non-empty tabs, Result replacing ellipsis/JSON, content-view retention/fallback and visible warnings without mutating input or remounting SourcePane. Dedicated detail renderers, thumbnails, metadata copying and Code samples remain batch two. Unit443, focused browser36, performance4 and functional consumer24 pass; existing screenshot files are not updated.",
       "description": "Read API version from original JSON and derive the ordered known Studio tabs from actual non-empty selected-content values. Add Paragraphs, Tables, Figures, Signatures, Metadata, Result and Code around existing Fields/Markdown; never leave disabled placeholders or execute service logic.",
       "files": [
         {"path": "src\\components\\ParagraphsPane.tsx", "action": "create"},
@@ -594,6 +596,8 @@ Paths are relative to the target repository and use Windows separators. `create`
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
         {"path": "src\\internal\\parseCuResult.ts", "action": "modify"},
         {"path": "src\\internal\\types.ts", "action": "modify"},
+        {"path": "src\\internal\\resultViews.ts", "action": "create"},
+        {"path": "src\\internal\\resultViews.test.ts", "action": "create"},
         {"path": "src\\styles.css", "action": "modify"},
         {"path": "tests\\e2e\\rich-results.spec.ts", "action": "modify"}
       ],
@@ -807,3 +811,4 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-13 | Initial RC-5 scope notes incorrectly removed explicit P1 touch/responsive/automatic-navigation and extension requirements. The owner-provided source requirement supersedes that reduction; only the truncated `Result-pane` tail remains unresolved. Vite8 remains the current supported bundler profile. |
 | 2026-10-13 | Requirements reconciliation approves task4.2a dynamic Studio tabs: Fields, Markdown, Paragraphs, Tables, Figures, Signatures, Metadata, Result and Code are derived from GA/Preview returned values; inapplicable tabs hide. Accessibility includes Chrome/Edge automation and a Windows Narrator walkthrough; no separate mobile-app requirement is inferred. |
 | 2026-10-13 | RC-Gate reevaluated after owner review: required-check enforcement is nonblocking when remote CI succeeds; per-encoding Analyze pairs and hard source memory/latency budgets are not required; HEVC approval is public-release-only. The gate passes for Viewer development/private acceptance and approved task4.2a may start. |
+| 2026-10-13 | Task4.2a batch one delivers GA/Preview parsing guards and dynamic Studio tab availability/switching, including Result, content fallback and visible malformed-detail warnings. Verified443 unit,36 focused functional browser,4 performance and24 functional consumer runs. Dedicated renderers remain pending; the tab header intentionally changed and existing34 visual references are retained pending reviewed updates, not claimed to match this batch. |

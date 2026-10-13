@@ -1,4 +1,4 @@
-import type { CuContent, CuField, CuPage, CuParseIssue, CuRegion, CuResultModel } from "./types";
+import type { CuContent, CuDetailRecord, CuField, CuPage, CuParseIssue, CuRegion, CuResultModel } from "./types";
 import { GeometryError, validateRegion } from "./geometry";
 
 const valueKeys = new Map([
@@ -284,6 +284,33 @@ function parseFields(raw: unknown, content: CuContent, rootPath: string, issues:
     return fields;
 }
 
+function parseDetails(raw: unknown, path: string, issues: CuParseIssue[]): CuDetailRecord[] | undefined {
+    if (raw === undefined || raw === null) return undefined;
+    if (!isArray(raw)) {
+        warn(issues, "invalid-content-detail", path, "Result details must be an array of objects.");
+        return undefined;
+    }
+    return raw.filter((entry: unknown, index): entry is CuDetailRecord => {
+        if (isRecord(entry)) return true;
+        warn(issues, "invalid-content-detail", `${path}/${index}`, "Each result detail must be an object.");
+        return false;
+    });
+}
+
+function parseMetadata(raw: unknown, path: string, issues: CuParseIssue[]): Record<string, string> | undefined {
+    if (raw === undefined || raw === null) return undefined;
+    if (!isRecord(raw)) {
+        warn(issues, "invalid-content-metadata", path, "Content metadata must be an object of string values.");
+        return undefined;
+    }
+    const entries: [string, string][] = [];
+    for (const [key, value] of Object.entries(raw)) {
+        if (typeof value === "string") entries.push([key, value]);
+        else warn(issues, "invalid-content-metadata", `${path}/${pointerSegment(key)}`, "Metadata values must be strings.");
+    }
+    return Object.fromEntries(entries);
+}
+
 export function parseCuResult(input: unknown): CuResultModel {
     if (!isRecord(input)) fail("invalid-result", "", "Pass parsed serialized CU JSON as an object.");
     let result = input;
@@ -294,11 +321,11 @@ export function parseCuResult(input: unknown): CuResultModel {
         result = input.result;
         rootPath = "/result";
     }
-    if (result.apiVersion !== "2025-11-01") {
-        fail("unsupported-api-version", `${rootPath}/apiVersion`, "Only the verified 2025-11-01 CU API result is supported.");
+    if (result.apiVersion !== "2025-11-01" && result.apiVersion !== "2026-06-01-preview") {
+        fail("unsupported-api-version", `${rootPath}/apiVersion`, "Supported CU API versions are 2025-11-01 and 2026-06-01-preview.");
     }
     if (!isArray(result.contents)) fail("invalid-contents", `${rootPath}/contents`, "The CU result must contain a contents array.");
-    const model: CuResultModel = { apiVersion: "2025-11-01", original: input, contents: [], issues: [] };
+    const model: CuResultModel = { apiVersion: result.apiVersion, original: input, contents: [], issues: [] };
     const analyzerId = optionalString(result, "analyzerId", rootPath);
     if (analyzerId !== undefined) model.analyzerId = analyzerId;
     for (const [index, entry] of result.contents.entries()) {
@@ -317,6 +344,26 @@ export function parseCuResult(input: unknown): CuResultModel {
         else if (entry.unit !== undefined) warn(model.issues, "unverified-unit", `${path}/unit`, "Only verified inch/pixel source units can be mapped.");
         const markdown = optionalString(entry, "markdown", path);
         if (markdown !== undefined) content.markdown = markdown;
+        const contentAnalyzerId = optionalString(entry, "analyzerId", path);
+        if (contentAnalyzerId !== undefined) content.analyzerId = contentAnalyzerId;
+        for (const key of ["paragraphs", "tables", "figures", "signatures"] as const) {
+            if (key === "signatures" && model.apiVersion !== "2026-06-01-preview") {
+                if (entry[key] !== undefined && entry[key] !== null) {
+                    warn(model.issues, "unverified-content-property", `${path}/${key}`,
+                        "Signatures are only mapped for 2026-06-01-preview; inspect the original data in Result.");
+                }
+                continue;
+            }
+            const details = parseDetails(entry[key], `${path}/${key}`, model.issues);
+            if (details !== undefined) content[key] = details;
+        }
+        if (model.apiVersion === "2026-06-01-preview") {
+            const metadata = parseMetadata(entry.metadata, `${path}/metadata`, model.issues);
+            if (metadata !== undefined) content.metadata = metadata;
+        } else if (entry.metadata !== undefined && entry.metadata !== null) {
+            warn(model.issues, "unverified-content-property", `${path}/metadata`,
+                "Content metadata is only mapped for 2026-06-01-preview; inspect the original data in Result.");
+        }
         for (const key of ["startPageNumber", "endPageNumber"] as const) {
             if (entry[key] !== undefined) {
                 if (!isPageNumber(entry[key])) fail("invalid-page-range", `${path}/${key}`, "Content page ranges must use positive page numbers.");

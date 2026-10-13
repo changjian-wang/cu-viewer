@@ -23,7 +23,7 @@ function syntheticResult(markdown?: string, extra: Record<string, unknown> = {})
             kind: "document",
             unit: "pixel",
             pages: [{ pageNumber: 1, width: 1743, height: 878, angle: 0 }],
-            fields: {},
+            fields: { Synthetic: { type: "string", valueString: "Synthetic performance fixture" } },
             ...(markdown === undefined ? {} : { markdown }),
         }],
         ...extra,
@@ -129,7 +129,7 @@ test("JSON stays lazy and within the production interaction budget", async ({ pa
 
     const cold = await measure(
         page,
-        () => page.getByRole("tab", { name: "JSON", exact: true }).click(),
+        () => page.getByRole("tab", { name: "Result", exact: true }).click(),
         () => page.getByRole("tree", { name: "Original Analyze result JSON" }).waitFor(),
     );
     expectWithinBudget(cold, COLD_VIEW_BUDGET_MS);
@@ -142,7 +142,7 @@ test("JSON stays lazy and within the production interaction budget", async ({ pa
     }));
     const warm = await measure(
         page,
-        () => page.getByRole("tab", { name: "JSON", exact: true }).click(),
+        () => page.getByRole("tab", { name: "Result", exact: true }).click(),
         () => page.getByRole("tree", { name: "Original Analyze result JSON" }).waitFor(),
     );
     expectWithinBudget(warm, WARM_VIEW_BUDGET_MS);

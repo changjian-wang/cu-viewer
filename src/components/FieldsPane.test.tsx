@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { FieldsPane } from "./FieldsPane";
-import type { CuContent, CuField, CuRegion } from "../internal/types";
+import type { CuApiVersion, CuContent, CuField, CuRegion } from "../internal/types";
 
 function region(pageNumber: number): CuRegion {
     return { pageNumber, polygon: [
@@ -48,16 +48,17 @@ function structuredContent(): { content: CuContent; rows: CuField; first: CuFiel
 
 function renderPane(content: CuContent, selected: CuField | null = null,
     isPageAvailable: (pageNumber: number) => boolean = () => true,
-    result: unknown = { apiVersion: "2025-11-01", rawOnly: "preserved" }) {
+    result: unknown = { apiVersion: "2025-11-01", rawOnly: "preserved" },
+    context: { apiVersion?: CuApiVersion; analyzerId?: string } = {}) {
     const onSelect = vi.fn();
-    const view = render(<FieldsPane
-        result={result}
-        content={content} contents={[content]} contentIndex={0} issues={[]} error={null}
-        selected={selected} hovered={null} sourceReady={true} isPageAvailable={isPageAvailable}
-        onContentChange={vi.fn()} onHover={vi.fn()} onLeave={vi.fn()}
-        onSelect={onSelect} onClear={vi.fn()}
-    />);
-    return { ...view, onSelect };
+    const props = {
+        result, content, contents: [content], contentIndex: 0, issues: [], error: null,
+        selected, hovered: null, sourceReady: true, isPageAvailable,
+        onContentChange: vi.fn(), onHover: vi.fn(), onLeave: vi.fn(), onSelect, onClear: vi.fn(),
+        ...context,
+    };
+    const view = render(<FieldsPane {...props} />);
+    return { ...view, onSelect, rerenderContent: (next: CuContent) => view.rerender(<FieldsPane {...props} content={next} />) };
 }
 
 afterEach(cleanup);
@@ -116,11 +117,61 @@ describe("structured Fields presentation", () => {
         expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" }, { timeout: 5000 })).toBeTruthy();
         expect(screen.getByText(/rawOnly/)).toBeTruthy();
 
-        fireEvent.keyDown(screen.getByRole("tab", { name: "JSON" }), { key: "Home" });
+        fireEvent.keyDown(screen.getByRole("tab", { name: "Result" }), { key: "Home" });
         expect(screen.getByRole("button", { name: "Collapse Rows" })).toBeTruthy();
         expect(screen.getByRole("tab", { name: "Fields" }).getAttribute("aria-selected")).toBe("true");
-        expect(screen.getByRole("tab", { name: "Paragraphs" }).hasAttribute("disabled")).toBe(true);
-        expect(screen.getByRole("tab", { name: "Tables" }).hasAttribute("disabled")).toBe(true);
-        expect(screen.getByRole("tab", { name: "Code" }).hasAttribute("disabled")).toBe(true);
+        expect(screen.queryByRole("tab", { name: "Paragraphs" })).toBeNull();
+        expect(screen.queryByRole("tab", { name: "Tables" })).toBeNull();
+        expect(screen.queryByRole("tab", { name: "Code" })).toBeNull();
+    });
+
+    it("renders only available Studio tabs and uses keyboard order without disabled placeholders", async () => {
+        const { content } = structuredContent();
+        Object.assign(content, {
+            markdown: "# Saved",
+            paragraphs: [{ content: "Saved paragraph" }],
+            tables: [{ rowCount: 1, columnCount: 1 }],
+            figures: [{ id: "figure-1" }],
+            signatures: [{ id: "signature-1" }],
+            metadata: { Author: "Contoso" },
+        });
+        const { container } = renderPane(content, null, () => true, { rawOnly: "preserved" },
+            { apiVersion: "2026-06-01-preview", analyzerId: "saved-analyzer" });
+        expect(screen.getAllByRole("tab").map(tab => tab.textContent))
+            .toEqual(["Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result", "Code"]);
+        expect(container.querySelectorAll('[role="tab"][disabled]')).toHaveLength(0);
+        fireEvent.keyDown(screen.getByRole("tab", { name: "Fields" }), { key: "End" });
+        expect(screen.getByRole("tab", { name: "Code" }).getAttribute("aria-selected")).toBe("true");
+        expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Code" }));
+        expect(screen.getByRole("heading", { name: "Code view is not implemented yet" })).toBeTruthy();
+        fireEvent.keyDown(screen.getByRole("tab", { name: "Code" }), { key: "ArrowLeft" });
+        expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" })).toBeTruthy();
+        expect(screen.getByText(/rawOnly/)).toBeTruthy();
+        fireEvent.keyDown(screen.getByRole("tab", { name: "Result" }), { key: "ArrowLeft" });
+        expect(screen.getByRole("heading", { name: "Metadata view is not implemented yet" })).toBeTruthy();
+    });
+
+    it("retains an applicable view on content changes and selects a stable fallback when its data disappears", async () => {
+        const { content } = structuredContent();
+        content.markdown = "# First content";
+        const { rerenderContent } = renderPane(content);
+        fireEvent.click(screen.getByRole("tab", { name: "Markdown" }));
+        expect(await screen.findByRole("heading", { name: "First content" })).toBeTruthy();
+        rerenderContent({ ...content, id: "/contents/1", markdown: "# Second content" });
+        expect(await screen.findByRole("heading", { name: "Second content" })).toBeTruthy();
+        expect(screen.getByRole("tab", { name: "Markdown" }).getAttribute("aria-selected")).toBe("true");
+        rerenderContent({ ...content, id: "/contents/2", markdown: "" });
+        expect(screen.queryByRole("tab", { name: "Markdown" })).toBeNull();
+        expect(screen.getByRole("tab", { name: "Fields" }).getAttribute("aria-selected")).toBe("true");
+        rerenderContent({ ...content, id: "/contents/1" });
+        expect(screen.getByRole("tab", { name: "Fields" }).getAttribute("aria-selected")).toBe("true");
+    });
+
+    it("does not show a Fields tab for contents with no fields", async () => {
+        const content: CuContent = { id: "/contents/0", kind: "document", pages: [], fields: [], markdown: " \n" };
+        renderPane(content);
+        expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Result"]);
+        expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" })).toBeTruthy();
+        expect(screen.queryByRole("switch", { name: "Hide missing fields" })).toBeNull();
     });
 });

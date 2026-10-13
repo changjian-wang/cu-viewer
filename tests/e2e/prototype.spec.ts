@@ -323,10 +323,9 @@ test("Fields matches Studio grouping, icons, badges and spacing without altering
     await expect(address.locator(".cu-confidence")).toHaveText("31.70%");
     await expect(pane.getByRole("tab").filter({ hasText: /Markdown|Paragraphs|Tables|Code/ })).toHaveCount(4);
     await expect(pane.getByRole("tab", { name: "Markdown", exact: true })).toBeEnabled();
-    await expect(pane.getByRole("tab", { name: "JSON", exact: true })).toBeEnabled();
-    for (const placeholder of ["Paragraphs", "Tables", "Code"]) {
-        await expect(pane.getByRole("tab", { name: placeholder, exact: true })).toBeDisabled();
-    }
+    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeEnabled();
+    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Markdown", "Paragraphs", "Tables", "Result", "Code"]);
+    await expect(pane.locator('[role="tab"][disabled]')).toHaveCount(0);
 
     const appearance = await group.evaluate(element => {
         const dot = element.querySelector(".cu-dot");
@@ -385,10 +384,14 @@ test("Fields matches Studio grouping, icons, badges and spacing without altering
 
     for (const width of [972, 880]) {
         await page.setViewportSize({ width, height: 850 });
-        const tabs = await pane.locator(".cu-result-tabs").evaluate(element => ({
-            width: element.clientWidth, contentWidth: element.scrollWidth,
-        }));
-        expect(tabs.contentWidth).toBeLessThanOrEqual(tabs.width);
+        const tabs = pane.locator(".cu-result-tabs");
+        await expect(tabs).toHaveCSS("overflow-x", "auto");
+        await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
+        const strip = await tabs.boundingBox();
+        const code = await pane.getByRole("tab", { name: "Code", exact: true }).boundingBox();
+        if (!strip || !code) throw new Error("The dynamic tabs are not laid out.");
+        expect(code.x).toBeGreaterThanOrEqual(strip.x - 1);
+        expect(code.x + code.width).toBeLessThanOrEqual(strip.x + strip.width + 1);
     }
 });
 

@@ -142,6 +142,54 @@ describe("verified CU result parsing", () => {
         expect(byId(inner, "/contents/0/fields/MerchantName").path).toBe("/contents/0/fields/MerchantName");
         expect(inner.original).toBe(raw.result);
     });
+
+    it.each(["2025-11-01", "2026-06-01-preview"])("retains %s detail values and unknown properties without mutation", apiVersion => {
+        const paragraphs = [{ content: "Saved paragraph", source: "D(1,10,20,30,40)" }];
+        const tables = [{ rowCount: 1, columnCount: 1, cells: [{ content: "Saved cell" }] }];
+        const figures = [{ id: "figure-1", description: "Saved figure" }];
+        const signatures = [{ id: "signature-1", source: "D(1,10,20,30,40)" }];
+        const metadata = { Author: "Contoso", Title: "Saved document" };
+        const result = {
+            apiVersion,
+            analyzerId: "root-analyzer",
+            unknownProperty: { retained: false },
+            contents: [{
+                kind: "document",
+                analyzerId: "content-analyzer",
+                fields: { Zero: { type: "integer", valueInteger: 0 } },
+                paragraphs, tables, figures,
+                ...(apiVersion === "2026-06-01-preview" ? { signatures, metadata } : {}),
+            }],
+        };
+        const input = { status: "Succeeded", result, usage: { units: 0 } };
+        const before = JSON.stringify(input);
+        deepFreeze(input);
+        for (const value of [input, result]) {
+            const model = parseCuResult(value);
+            const content = first(model.contents);
+            expect(model.apiVersion).toBe(apiVersion);
+            expect(model.original).toBe(value);
+            expect(model.analyzerId).toBe("root-analyzer");
+            expect(content.analyzerId).toBe("content-analyzer");
+            expect(content.paragraphs?.[0]).toBe(paragraphs[0]);
+            expect(content.tables?.[0]).toBe(tables[0]);
+            expect(content.figures?.[0]).toBe(figures[0]);
+            expect(content.signatures).toEqual(apiVersion === "2026-06-01-preview" ? signatures : undefined);
+            expect(content.metadata).toEqual(apiVersion === "2026-06-01-preview" ? metadata : undefined);
+            expect(model.issues).toEqual([]);
+        }
+        expect(JSON.stringify(input)).toBe(before);
+    });
+
+    it("retains real fixture paragraphs and tables for dynamic view availability", () => {
+        const invoice = first(parseCuResult(fixture("mixed-financial-docs")).contents);
+        const receipt = first(parseCuResult(fixture("receipt")).contents);
+        expect(invoice.paragraphs?.length).toBeGreaterThan(0);
+        expect(invoice.tables).toHaveLength(9);
+        expect(receipt.paragraphs?.length).toBeGreaterThan(0);
+        expect(receipt.tables).toBeUndefined();
+        expect(invoice.figures).toBeUndefined();
+    });
 });
 
 describe("synthetic field and metadata boundaries", () => {
@@ -257,10 +305,65 @@ describe("explicit errors and nonfatal grounding diagnostics", () => {
     });
 
     it("rejects unverified API versions and malformed result containers", () => {
-        expect(parseError({ apiVersion: "2026-06-01-preview", contents: [] }).code).toBe("unsupported-api-version");
+        expect(parseError({ apiVersion: "2026-06-02-preview", contents: [] }).code).toBe("unsupported-api-version");
         expect(parseError({ apiVersion: "2025-11-01", contents: {} }).code).toBe("invalid-contents");
         expect(parseError(syntheticResult({}, { fields: [] })).code).toBe("invalid-fields");
         expect(parseError(syntheticResult({}, { pages: {} })).code).toBe("invalid-pages");
+    });
+
+    it("reports malformed detail containers while retaining valid fields and raw input", () => {
+        const input = {
+            apiVersion: "2026-06-01-preview",
+            contents: [{
+                kind: "document",
+                fields: { Name: { type: "string", valueString: "retained" } },
+                paragraphs: [null, { content: "retained paragraph" }],
+                tables: "not an array",
+                figures: [false],
+                signatures: {},
+                metadata: { Author: "Contoso", "Invalid/~": 42 },
+            }],
+        };
+        const model = parseCuResult(input);
+        const content = first(model.contents);
+        expect(model.original).toBe(input);
+        expect(content.fields[0]?.value).toBe("retained");
+        expect(content.paragraphs).toEqual([{ content: "retained paragraph" }]);
+        expect(content.tables).toBeUndefined();
+        expect(content.figures).toEqual([]);
+        expect(content.signatures).toBeUndefined();
+        expect(content.metadata).toEqual({ Author: "Contoso" });
+        expect(model.issues.map(issue => issue.path)).toEqual([
+            "/contents/0/paragraphs/0",
+            "/contents/0/tables",
+            "/contents/0/figures/0",
+            "/contents/0/signatures",
+            "/contents/0/metadata/Invalid~1~0",
+        ]);
+    });
+
+    it("does not map preview-only details on GA inputs and reports their paths", () => {
+        const input = syntheticResult({}, { signatures: [{ id: "unexpected" }], metadata: { Author: "unexpected" } });
+        const model = parseCuResult(input);
+        expect(model.original).toBe(input);
+        expect(first(model.contents).signatures).toBeUndefined();
+        expect(first(model.contents).metadata).toBeUndefined();
+        expect(model.issues).toEqual([
+            expect.objectContaining({ code: "unverified-content-property", path: "/contents/0/signatures" }),
+            expect.objectContaining({ code: "unverified-content-property", path: "/contents/0/metadata" }),
+        ]);
+    });
+
+    it("accepts missing, null and empty details without inventing values", () => {
+        const model = parseCuResult({
+            apiVersion: "2026-06-01-preview",
+            contents: [{ kind: "document", paragraphs: null, tables: [], figures: [], signatures: [], metadata: {} }],
+        });
+        const content = first(model.contents);
+        expect(content.paragraphs).toBeUndefined();
+        expect(content.tables).toEqual([]);
+        expect(content.metadata).toEqual({});
+        expect(model.issues).toEqual([]);
     });
 
     it.each([

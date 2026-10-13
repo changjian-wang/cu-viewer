@@ -1,15 +1,17 @@
-import { lazy, Suspense, useId, useRef, useState } from "react";
-import type { CuContent, CuField, CuParseIssue } from "../internal/types";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
+import type { CuApiVersion, CuContent, CuField, CuParseIssue } from "../internal/types";
 import { displayValue, fieldColor, fieldDisplayName, fieldLabel, formatConfidence, primaryRegion } from "../internal/interaction";
+import { availableResultTabs } from "../internal/resultViews";
+import type { ResultView } from "../internal/resultViews";
 import { unavailableSourcePageMessage } from "../internal/source";
 
 const MarkdownPane = lazy(() => import("./MarkdownPane").then(module => ({ default: module.MarkdownPane })));
 const JsonPane = lazy(() => import("./JsonPane").then(module => ({ default: module.JsonPane })));
 
-type ResultView = "fields" | "markdown" | "json";
-
 interface FieldsPaneProps {
     result: unknown;
+    apiVersion?: CuApiVersion | undefined;
+    analyzerId?: string | undefined;
     content: CuContent | undefined;
     issues: CuParseIssue[];
     error: string | null;
@@ -29,16 +31,25 @@ interface FieldsPaneProps {
 export function FieldsPane(props: FieldsPaneProps) {
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [hideMissing, setHideMissing] = useState(true);
-    const [view, setView] = useState<ResultView>("fields");
+    const [requestedView, setView] = useState<ResultView | undefined>("fields");
     const tabRefs = useRef<Partial<Record<ResultView, HTMLButtonElement | null>>>({});
+    const focusedTab = useRef<ResultView | undefined>(undefined);
     const tabBaseId = useId();
+    const tabs = availableResultTabs(props.content, props.result, props.apiVersion, props.analyzerId);
+    const activeTab = tabs.find(tab => tab.id === requestedView) ?? tabs[0];
+    const view = activeTab?.id;
+    useEffect(() => {
+        if (view === requestedView) return;
+        setView(view);
+        if (focusedTab.current === requestedView && view) tabRefs.current[view]?.focus();
+    }, [view, requestedView]);
     const visibleFields = (props.content?.fields ?? []).filter(field => !hideMissing || field.hasValue);
     const selectView = (next: ResultView): void => {
         setView(next);
         tabRefs.current[next]?.focus();
     };
     const onTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, current: ResultView): void => {
-        const views: ResultView[] = ["fields", "markdown", "json"];
+        const views = tabs.map(tab => tab.id);
         const currentIndex = views.indexOf(current);
         let nextIndex: number | undefined;
         if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % views.length;
@@ -126,42 +137,32 @@ export function FieldsPane(props: FieldsPaneProps) {
         className={view === name ? "is-active" : undefined}
         onClick={() => selectView(name)}
         onKeyDown={event => onTabKeyDown(event, name)}
+        onFocus={() => { focusedTab.current = name; }}
+        onBlur={() => { focusedTab.current = undefined; }}
     >{label}</button>;
     return <section className="cu-fields-pane" aria-label="Extraction results">
+        {contentSelector}
         <header className="cu-result-tabs" role="tablist" aria-label="Result views">
-            {tab("fields", "Fields")}
-            {tab("markdown", "Markdown")}
-            {["Paragraphs", "Tables", "Code"].map(name => <button
-                key={name} type="button" role="tab" aria-selected="false" disabled
-                title={`${name} is a prototype placeholder, not an implemented result view.`}
-            >{name}</button>)}
-            <button
-                ref={element => { tabRefs.current.json = element; }}
-                id={`${tabBaseId}-json`}
-                type="button"
-                role="tab"
-                aria-controls={panelId}
-                aria-selected={view === "json"}
-                aria-label="JSON"
-                title="Original Analyze result JSON"
-                tabIndex={view === "json" ? 0 : -1}
-                className={`cu-more-views${view === "json" ? " is-active" : ""}`}
-                onClick={() => selectView("json")}
-                onKeyDown={event => onTabKeyDown(event, "json")}
-            >
-                {view === "json" ? "JSON" : <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                    <circle cx="3" cy="8" r="1" /><circle cx="8" cy="8" r="1" /><circle cx="13" cy="8" r="1" />
-                </svg>}
-            </button>
+            {tabs.map(value => tab(value.id, value.label))}
         </header>
         <span className="cu-visually-hidden" role="status">{props.selected ? `Pinned: ${fieldLabel(props.selected)}` : "No field selected"}</span>
         <div
             id={panelId}
             role="tabpanel"
-            aria-labelledby={`${tabBaseId}-${view}`}
+            aria-labelledby={view ? `${tabBaseId}-${view}` : undefined}
+            aria-label={view ? undefined : "Result status"}
             tabIndex={0}
             className="cu-result-panel"
         >
+            {props.error && <div className="cu-state cu-error" role="alert">
+                <h2>Result could not be read</h2><p>{props.error}</p>
+            </div>}
+            {!props.error && !props.content && <div className="cu-state">
+                <h2>No extracted fields</h2><p>The source can still be inspected. Inspect the original data in Result.</p>
+            </div>}
+            {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} result warnings</summary>
+                <ul>{props.issues.map((issue, index) => <li key={index}><strong>{issue.code}</strong>: {issue.message} <code>{issue.path}</code></li>)}</ul>
+            </details>}
             {view === "fields" && <>
                 <div className="cu-fields-options">
                     <span>Hide missing fields</span>
@@ -174,33 +175,26 @@ export function FieldsPane(props: FieldsPaneProps) {
                         }}
                     ><span /></button>
                 </div>
-                {contentSelector}
-                {props.error ? <div className="cu-state cu-error" role="alert"><h2>Result could not be read</h2><p>{props.error}</p></div> :
-                    !props.content?.fields.length ? <div className="cu-state"><h2>No extracted fields</h2><p>The source can still be inspected.</p></div> :
-                        <>
-                            {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} result warnings</summary>
-                                <ul>{props.issues.map((issue, index) => <li key={index}><strong>{issue.code}</strong>: {issue.message} <code>{issue.path}</code></li>)}</ul>
-                            </details>}
-                            {visibleFields.length ? <div className="cu-fields-scroll">{visibleFields.map(field => renderField(field, 0))}</div> :
-                                <div className="cu-state"><h2>No returned fields</h2><p>Turn off Hide missing fields to inspect missing values.</p></div>}
-                        </>}
+                {visibleFields.length ? <div className="cu-fields-scroll">{visibleFields.map(field => renderField(field, 0))}</div> :
+                    <div className="cu-state"><h2>No returned fields</h2><p>Turn off Hide missing fields to inspect missing values.</p></div>}
             </>}
-            {view === "markdown" && <>
-                {contentSelector}
-                {props.error
-                    ? <div className="cu-state cu-error" role="alert"><h2>Result could not be read</h2><p>{props.error}</p></div>
-                    : <Suspense fallback={<div className="cu-state" role="status">Loading Markdown view…</div>}>
-                        <MarkdownPane markdown={props.content?.markdown} />
-                    </Suspense>}
-            </>}
-            {view === "json" && <Suspense fallback={<div className="cu-state" role="status">Loading JSON view…</div>}>
+            {view === "markdown" && <Suspense fallback={<div className="cu-state" role="status">Loading Markdown view…</div>}>
+                <MarkdownPane markdown={props.content?.markdown} />
+            </Suspense>}
+            {view === "result" && <Suspense fallback={<div className="cu-state" role="status">Loading Result view…</div>}>
                 <JsonPane value={props.result} />
             </Suspense>}
+            {view && view !== "fields" && view !== "markdown" && view !== "result" && <div className="cu-state" role="status">
+                <h2>{activeTab?.label} view is not implemented yet</h2>
+                <p>{view === "code" ? "SDK sample rendering is scheduled for the next batch." :
+                    "The returned data is available in Result. Detailed rendering is scheduled for the next batch."}</p>
+            </div>}
         </div>
         <footer className="cu-results-footer">
             {view === "fields" && "Field colors link to source regions. Confidence is supplied by CU, not an accuracy judgment."}
             {view === "markdown" && "Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered."}
-            {view === "json" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
+            {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
+            {view && view !== "fields" && view !== "markdown" && view !== "result" && "Tab availability is implemented; this view's renderer is not yet implemented."}
         </footer>
     </section>;
 }

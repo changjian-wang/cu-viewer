@@ -31,7 +31,7 @@ export function AnalyzeResultView(props: ContentUnderstandingResultViewerProps) 
 The React API is unchanged:
 
 - `source`: browser File, Blob, caller-owned ArrayBuffer, or an approved HTTP/HTTPS/host-owned blob URL. A filesystem string is not a browser URL.
-- `result`: the original saved CU Analyze JSON parsed as a JavaScript value, not a string or a new normalized viewer schema. Only the verified `2025-11-01` API shapes are advertised.
+- `result`: the original saved CU Analyze JSON parsed as a JavaScript value, not a string or a new normalized viewer schema. The parser recognizes `2025-11-01` and `2026-06-01-preview`; Preview detail-container mapping is covered by synthetic schema-shaped fixtures, not a claim of complete real-service Preview coverage.
 - The component performs rendering, not Analyze, authentication, uploads, analyzer management or LRO polling.
 
 For URL sources, the viewer accepts only HTTP, HTTPS and host-owned blob URLs. Fetch uses `credentials: "same-origin"`: cross-origin requests do not opt into cookies or HTTP authentication and the component does not add an Authorization header. A cross-origin server must return an appropriate CORS response. The checked HTTP loopback matrix covers CORS success for PDF/PNG/HEIF, a missing-CORS failure and recovery; HTTPS/TLS and credentialed cross-origin delivery remain unverified. PDF Worker/font resources and HEIF decoder assets continue to load from the viewer host rather than from the source-file origin.
@@ -40,9 +40,13 @@ Keep the package CSS and provide a bounded host height. Fonts, browser/viewport 
 
 ## Result Views and Content Limits
 
-- **Fields** renders the verified parsed field model and source interactions.
+- **Fields** renders the verified parsed field model and source interactions when the selected content has fields.
 - **Markdown** renders the selected content item's original `markdown`. GFM and CU HTML tables are supported. Raw HTML is parsed only so `rehype-sanitize` can apply its allowlist; scripts, frames, event attributes and dangerous protocols are removed. Remote images are represented as omitted text and never requested.
-- The Studio-style **…** control selects **JSON** and displays that label while active. It renders the original `result` input rather than an internal normalized object. The root starts expanded; nested objects and arrays start collapsed and support keyboard expansion.
+- **Result** replaces the earlier **…/JSON** control and renders the original `result` input rather than an internal normalized object. The root starts expanded; nested objects and arrays start collapsed and support keyboard expansion.
+
+The known tab order is Fields, Markdown, Paragraphs, Tables, Figures, Signatures, Metadata, Result, Code. Tabs without applicable data are omitted, not disabled. Metadata/Signatures require mapped Preview properties; Code requires API version and analyzer ID context, preferring the selected content's analyzer ID. The content selector is available in every view. When switching content, an available active view is retained; otherwise the first available view is selected.
+
+Batch one implements version/container guards, availability and switching only. Dedicated Paragraphs/Tables/Figures/Signatures/Metadata renderers and Code SDK samples are not yet implemented; selecting those tabs shows an explicit pending-renderer state rather than fabricated content. Invalid detail containers produce visible path-specific warnings while valid fields and the unchanged Result remain inspectable.
 
 Switching views does not replace or reinitialize the source pane, so page, zoom, rotation, pan, pinned field and selected source-region index remain intact. Selecting another result content is a separate operation and retains its existing page/selection behavior.
 

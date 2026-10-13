@@ -1,4 +1,6 @@
 export type CuUnit = "inch" | "pixel";
+export type CuApiVersion = "2025-11-01" | "2026-06-01-preview";
+export type CuDetailRecord = Readonly<Record<string, unknown>>;
 
 export interface CuPoint {
     x: number;
@@ -34,10 +36,16 @@ export interface CuField {
 export interface CuContent {
     id: string;
     kind: string;
+    analyzerId?: string;
     unit?: CuUnit;
     startPageNumber?: number;
     endPageNumber?: number;
     markdown?: string;
+    paragraphs?: readonly CuDetailRecord[];
+    tables?: readonly CuDetailRecord[];
+    figures?: readonly CuDetailRecord[];
+    signatures?: readonly CuDetailRecord[];
+    metadata?: Readonly<Record<string, string>>;
     pages: CuPage[];
     fields: CuField[];
 }
@@ -49,7 +57,7 @@ export interface CuParseIssue {
 }
 
 export interface CuResultModel {
-    apiVersion: "2025-11-01";
+    apiVersion: CuApiVersion;
     analyzerId?: string;
     original: unknown;
     contents: CuContent[];

@@ -47,10 +47,7 @@
 .cu-fields-pane { display: flex; flex-direction: column; color: #201f1e; font-size: 14px; line-height: 20px; container: cu-fields / inline-size; }
 .cu-result-tabs { display: flex; flex: none; align-items: stretch; gap: 4px; height: 38px; overflow-x: auto; background: #f0f0f0; }
 .cu-result-tabs button { flex: none; border: 0; border-radius: 3px 3px 0 0; margin: 1px 0 0; padding: 8px 12px; background: #fafafa; color: #004578; font-size: 14px; white-space: nowrap; }
-.cu-result-tabs button:disabled { color: #004578; }
 .cu-result-tabs .is-active { background: #fff; color: #201f1e; font-weight: 600; }
-.cu-result-tabs .cu-more-views { display: flex; align-items: center; justify-content: center; background: transparent; padding: 8px; fill: #323130; }
-.cu-result-tabs .cu-more-views.is-active { background: #fff; padding-inline: 12px; }
 .cu-result-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .cu-fields-options { display: flex; flex: none; align-items: center; justify-content: flex-end; gap: 12px; min-height: 48px; margin: 0 26px 0 10px; padding: 20px 4px 8px; border-bottom: 1px solid #e0e0e0; color: #004578; }
 .cu-hide-missing-switch { position: relative; flex: none; width: 40px; height: 20px; border: 1px solid #605e5c; border-radius: 12px; padding: 0; background: white; }
@@ -124,7 +121,6 @@
 @container cu-fields (max-width: 420px) {
     .cu-result-tabs { gap: 2px; }
     .cu-result-tabs button { padding-left: 8px; padding-right: 8px; font-size: 13px; }
-    .cu-result-tabs .cu-more-views { padding-left: 4px; padding-right: 4px; }
 }
 @container cu-fields (max-width: 350px) {
     .cu-result-tabs button { padding-left: 4px; padding-right: 4px; font-size: 12px; }

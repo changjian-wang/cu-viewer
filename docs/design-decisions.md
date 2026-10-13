@@ -45,7 +45,7 @@ Task 2.2 now provides a private [parser](../src/internal/parseCuResult.ts) and [
 
 Real-fixture runs yield 100 PDF and 42 PNG field nodes, including 12/11 absent values and 53/13 source regions, with zero parser issues. The [45 parser tests](../src/internal/parseCuResult.test.ts) also cover scalar boundaries, stable/escaped identities, multiple contents, rectangles, malformed input, immutable/deep relationships and cycles. Together with the four input-contract cases, 49 tests pass.
 
-Structural errors use `CuResultParseError` with a code/path. Nonfatal confidence/grounding issues remain explicit in the internal model; a future result pane must surface them rather than hide values or draw invented regions. Only GA `2025-11-01` is currently accepted, and newer field/content variants produce unverified-behavior warnings when their values can be retained.
+Structural errors use `CuResultParseError` with a code/path. Nonfatal confidence/grounding issues remain explicit in the internal model. Task4.2a batch one also recognizes `2026-06-01-preview` and guards detail containers for dynamic tabs; malformed details produce visible warnings while original data remains in Result. Dedicated detail rendering is still pending, and synthetic Preview fixtures do not establish full real-service compatibility.
 
 The owner requested a **run-first visual checkpoint**: when a source pane or viewer harness first becomes runnable, start it, load real saved pairs, and inspect browser effects before adding more features. Parser output is not accepted as a substitute for this UI check.
 
@@ -133,6 +133,8 @@ The owner has now supplied signed-in home and Invoice result-page screenshots fr
 The current Studio version selector is set to preview, while the checked-in fixtures use GA `2025-11-01`. Do not infer the sample payload's version from the selector alone or treat its displayed extraction values as the same result as the saved fixtures. For the initial walkthrough, disable Auto run and inspect the existing sample without changing versions or rerunning analysis. Verify field hover, click, pointer exit, and view transformations separately; the single-page sample cannot establish cross-page behavior.
 
 ## Open Gates and Next Work
+
+The 429-unit/128-browser checkpoint below predates task4.2a batch one. The current batch passes 443 unit cases, 36 focused functional browser runs, four performance runs and 24 functional consumer runs. Its dynamic tab-header/empty/error appearance has not been rebaselined; the earlier 34-image zero-diff evidence is historical, not a post-batch-one claim.
 
 The owner approved v2 static review and subsequently agreed to use the current interactive baseline for task 2.4 hardening on 2026-10-10. The [React component](../src/ContentUnderstandingResultViewer.tsx) and [demo host](../demo/App.tsx) render real source/results and preserve the source-plus-original-JSON boundary. The [static gallery](prototype/index.html) remains design-only; the live prototype is at <http://127.0.0.1:5173/> while `npm run dev` is running.
 

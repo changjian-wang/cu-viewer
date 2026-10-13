@@ -71,8 +71,8 @@ test("real Markdown and original JSON preserve source page, zoom, rotation and p
     await expect(pane.getByRole("status")).toHaveText("Pinned: AmountDue / Amount");
     if (verifyProductScreenshots) await expect(pane).toHaveScreenshot("rich-markdown.png");
 
-    await pane.getByRole("tab", { name: "Markdown", exact: true }).press("ArrowRight");
-    await expect(pane.getByRole("tab", { name: "JSON", exact: true })).toHaveAttribute("aria-selected", "true");
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
+    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toHaveAttribute("aria-selected", "true");
     const tree = pane.getByRole("tree", { name: "Original Analyze result JSON" });
     await expect(tree).toBeVisible();
     await expect(tree.locator(".cu-json-label", { hasText: "id:" })).toBeVisible();
@@ -98,7 +98,7 @@ test("real Markdown and original JSON preserve source page, zoom, rotation and p
     await page.getByRole("button", { name: "Next source region" }).click();
     await expect(page.getByRole("complementary", { name: "Source region navigation" })).toContainText("Region 2 of 2");
     await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
-    await pane.getByRole("tab", { name: "JSON", exact: true }).click();
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
     await expect(address.getByRole("button", { name: "BillingAddress", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByRole("complementary", { name: "Source region navigation" })).toContainText("Region 2 of 2");
@@ -152,12 +152,14 @@ test("Markdown sanitizes active content while retaining headings, lists, tables 
 test("missing, malformed and oversized rich results have explicit bounded states", async ({ page }, testInfo) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
     await uploadResult(page, syntheticResult(), "no-markdown.json");
-    await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
-    await expect(pane.getByRole("heading", { name: "No Markdown returned" })).toBeVisible();
+    await expect(pane.getByRole("tab", { name: "Markdown", exact: true })).toHaveCount(0);
+    await expect(pane.getByRole("tab", { name: "Fields", exact: true })).toHaveCount(0);
+    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("rendered-page")).toBeVisible();
 
     const markdownStart = Date.now();
     await uploadResult(page, syntheticResult("x".repeat(MAX_MARKDOWN_CHARACTERS + 1)), "oversized-markdown.json");
+    await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
     await expect(pane.getByRole("alert")).toContainText("Markdown is too large to render");
     const markdownMilliseconds = Date.now() - markdownStart;
 
@@ -165,7 +167,7 @@ test("missing, malformed and oversized rich results have explicit bounded states
     await uploadResult(page, syntheticResult(undefined, {
         oversized: "x".repeat(MAX_JSON_CHARACTERS + 1),
     }), "oversized-json.json");
-    await pane.getByRole("tab", { name: "JSON", exact: true }).click();
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("alert")).toContainText("JSON is too large to render");
     const jsonMilliseconds = Date.now() - jsonStart;
 
@@ -179,7 +181,7 @@ test("missing, malformed and oversized rich results have explicit bounded states
         contents: [],
         rawDiagnostic: "preserved despite parser rejection",
     }, "unsupported-result.json");
-    await pane.getByRole("tab", { name: "JSON", exact: true }).click();
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(pane.locator(".cu-json-label", { hasText: "rawDiagnostic:" })).toBeVisible();
     await expect(page.getByTestId("rendered-page")).toBeVisible();
@@ -188,4 +190,97 @@ test("missing, malformed and oversized rich results have explicit bounded states
         type: "large-result-observation",
         description: `${testInfo.project.name}: Markdown ${markdownMilliseconds} ms; JSON ${jsonMilliseconds} ms. Limits: ${MAX_MARKDOWN_CHARACTERS} Markdown characters, ${MAX_JSON_CHARACTERS} JSON characters, ${MAX_JSON_VALUES} JSON values.`,
     });
+});
+
+test("GA and Preview derive Studio tabs from selected content without changing the source or inventing renderers", async ({ page }) => {
+    const pane = page.getByRole("region", { name: "Extraction results" });
+    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Markdown", "Paragraphs", "Tables", "Result", "Code"]);
+    await expect(pane.locator('[role="tab"][disabled]')).toHaveCount(0);
+    await expect(page.getByRole("combobox", { name: /version/i })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+    await ready(page);
+    await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+    await ready(page);
+    const zoom = await page.getByLabel("Zoom percentage").textContent();
+    const bounds = await page.getByTestId("rendered-page").boundingBox();
+    if (!bounds) throw new Error("The source frame is unavailable.");
+
+    await uploadResult(page, {
+        status: "Succeeded",
+        result: {
+            apiVersion: "2026-06-01-preview",
+            analyzerId: "synthetic-preview-tabs",
+            futureProperty: { retained: false },
+            contents: [{
+                kind: "document", unit: "pixel",
+                pages: [{ pageNumber: 1, width: 1743, height: 878 }],
+                fields: { False: { type: "boolean", valueBoolean: false } },
+                markdown: "# Synthetic Preview tabs",
+                paragraphs: [{ content: "Synthetic paragraph" }],
+                tables: [{ rowCount: 1, columnCount: 1, cells: [{ content: "Synthetic cell" }] }],
+                figures: [{ id: "synthetic-figure" }],
+                signatures: [{ id: "synthetic-signature" }],
+                metadata: { Author: "Synthetic metadata" },
+            }, {
+                kind: "document", fields: {}, markdown: " \n",
+                paragraphs: [], tables: [], figures: null, signatures: [], metadata: {},
+            }],
+        },
+        usage: { units: 0 },
+    }, "synthetic-preview-tabs.json");
+    await expect(pane.getByRole("tab")).toHaveText([
+        "Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result", "Code",
+    ]);
+    await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
+    await expect(pane.getByRole("tab", { name: "Code", exact: true })).toBeFocused();
+    await expect(pane.getByRole("heading", { name: "Code view is not implemented yet" })).toBeVisible();
+    await pane.getByRole("tab", { name: "Code", exact: true }).press("ArrowLeft");
+    await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
+    await expect(pane.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();
+    await pane.locator(".cu-json-label", { hasText: "result:" }).click();
+    await expect(pane.locator(".cu-json-label", { hasText: "futureProperty:" })).toBeVisible();
+    await pane.getByRole("tab", { name: "Result", exact: true }).press("ArrowLeft");
+    await expect(pane.getByRole("heading", { name: "Metadata view is not implemented yet" })).toBeVisible();
+    await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
+    const afterSwitch = await page.getByTestId("rendered-page").boundingBox();
+    expect(afterSwitch?.width).toBeCloseTo(bounds.width, 1);
+    expect(afterSwitch?.height).toBeCloseTo(bounds.height, 1);
+    expect(afterSwitch?.x).toBeCloseTo(bounds.x, 1);
+    expect(afterSwitch?.y).toBeCloseTo(bounds.y, 1);
+
+    await page.getByRole("combobox", { name: "Result content" }).focus();
+    await page.getByRole("combobox", { name: "Result content" }).selectOption("1");
+    await expect(pane.getByRole("tab")).toHaveText(["Result", "Code"]);
+    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("combobox", { name: "Result content" })).toBeFocused();
+    await page.getByRole("combobox", { name: "Result content" }).selectOption("0");
+    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toHaveAttribute("aria-selected", "true");
+
+    await page.getByRole("button", { name: "Receipt PNG", exact: true }).click();
+    await ready(page);
+    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Markdown", "Paragraphs", "Result", "Code"]);
+    await expect(pane.getByRole("tab", { name: "Figures", exact: true })).toHaveCount(0);
+    await expect(pane.getByRole("tab", { name: "Signatures", exact: true })).toHaveCount(0);
+});
+
+test("malformed detail values produce visible warnings while valid fields and original Result remain inspectable", async ({ page }) => {
+    await uploadResult(page, {
+        apiVersion: "2026-06-01-preview",
+        contents: [{
+            kind: "document",
+            fields: { Name: { type: "string", valueString: "Retained field" } },
+            paragraphs: "not an array",
+            metadata: { Invalid: 42 },
+        }],
+    }, "synthetic-malformed-details.json");
+    const pane = page.getByRole("region", { name: "Extraction results" });
+    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Result"]);
+    await expect(pane.locator(".cu-field-value")).toHaveText("Retained field");
+    await pane.locator(".cu-issues summary").click();
+    await expect(pane.locator(".cu-issues")).toContainText("invalid-content-detail");
+    await expect(pane.locator(".cu-issues")).toContainText("/contents/0/metadata/Invalid");
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
+    await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
+    await expect(page.getByTestId("rendered-page")).toBeVisible();
 });

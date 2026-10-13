@@ -12,7 +12,7 @@
 
 可运行版本：在仓库根目录执行 `npm run dev`，打开 <http://127.0.0.1:5173/>。当前页面使用真实保存的 PDF/PNG 配对，不调用服务。实际效果见 [Fields 对照截图](interactive-fields.png)、[PDF 运行截图](interactive-pdf.png)、[PNG 运行截图](interactive-png.png)和[多区域/数组截图](interactive-multi-region.png)。
 
-当前 Fields、Markdown 和 JSON 结果视图可用：Markdown 真实渲染 CU 返回内容并清洗原始 HTML；原型中的“…”入口切换到原始输入 JSON 树。负责人已批准完整动态 Studio 标签映射：Fields、Markdown、Paragraphs、Tables、Figures、Signatures、Metadata、Result、Code；无适用数据时隐藏标签，不保留禁用占位。新增视图尚未实现，切换视图仍必须保持源页码、缩放、旋转、平移及固定字段/区域；cu-cli 延后至 Viewer 本体完成之后。
+当前 Fields、Markdown 和 Result 可用，Result替代原“…”/JSON入口并保留原始输入JSON树。任务4.2a第一批已接入GA/Preview解析与动态Studio标签：Fields、Markdown、Paragraphs、Tables、Figures、Signatures、Metadata、Result、Code按实际非空数据出现，无值隐藏且没有禁用标签。新增专用面板仍待第二批，当前点击会明确提示尚未实现，不冒充完整交付。切换标签保持源状态；content切换重新计算标签并保留适用视图。既有34张截图未重录，新标签栏需要后续视觉评审。
 
 ### 最终产品外观基线
 
