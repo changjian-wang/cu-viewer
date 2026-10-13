@@ -184,13 +184,19 @@ Provide an interactive tree for the supplied Analyze JSON, supporting expand/col
 
 ### Owner-Confirmed Additional Result Views
 
+The Viewer reads `apiVersion` from the original JSON and derives Studio-aligned tabs from actual non-empty values for the selected content. It supports guarded display mappings for `2025-11-01` GA and `2026-06-01-preview`; it does not expose a version selector or perform Analyze. The ordered known tabs are Fields, Markdown, Paragraphs, Tables, Figures, Signatures, Metadata, Result and Code. Unknown properties remain visible in Result rather than creating invented tabs.
+
 These views supplement the original Fields/Markdown/JSON requirement:
 
 - **Paragraphs**: when the selected content has non-empty `paragraphs`, render them in CU return order with optional role and page information. Mouse and keyboard selection navigate to and highlight every supplied source region.
 - **Tables**: when the selected content has non-empty `tables`, render read-only native grids preserving header kinds, row/column positions and spans. Mouse and keyboard cell selection navigate to and highlight the cell source region.
+- **Figures**: when the selected content has non-empty `figures`, crop thumbnails from the loaded source regions; show available kind, role, caption, description, footnotes and page information. Mouse and keyboard selection navigate to and highlight the source region.
+- **Signatures**: when the selected content has non-empty `signatures`, crop source-region thumbnails and show available ID, role and page information. Mouse and keyboard selection navigate to and highlight the source region without inventing a signed/unsigned state.
+- **Metadata**: when the selected content has a non-empty metadata object, render its returned string entries as a read-only key/value table in property order and allow copying individual values.
+- **Result**: render the unchanged original Analyze JSON/envelope, including wrapper and usage keys. The root starts expanded and nested objects/arrays start collapsed.
 - **Code**: when the original result contains analyzer ID and API version values, provide read-only Python, C# and JavaScript Analyze SDK samples with copy. Populate analyzer ID/API version from the result and use safe placeholders for endpoint, key and file URL. Never execute the sample or call Analyze from the Viewer.
 
-Do not render disabled result-view placeholders. Hide Paragraphs or Tables when their corresponding data is empty, and hide Code when analyzer ID/API version is unavailable.
+Do not render disabled result-view placeholders. Recompute applicable tabs when content changes and preserve source page, zoom, rotation, pan and selected field/region across view switches.
 
 ## P1: Advanced UX and Extensibility
 

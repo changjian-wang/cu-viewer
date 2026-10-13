@@ -43,7 +43,7 @@ Build a rendering-only React/TypeScript library that accepts an original PDF/ima
 - **Finish the Viewer, then integrate**: complete the rendering-only P0 library/demo, rich result views and standalone P1 UX, then validate the actual component without cu-cli. Only afterward perform the CLI handoff and integration.
 - **Keep priorities and ownership separate**: existing P0/P1 requirement labels remain unchanged; CLI work is an external delivery stage, not a prerequisite for Viewer development, startup or standalone acceptance. TIFF/DI remain independently scoped P2.
 
-**Owner-approved scheduling change, 2026-10-12**: mainline execution is phases **1 -> 2 -> 3 -> 4 -> 5**, with CLI last. Tasks, acceptance criteria, tests and gates are renumbered to match that order: Viewer P1 is `4.1-4.4` / G3, and CLI is `5.1-5.2` / G4. Phase 6 is an independent P2 follow-up, not a mainline prerequisite. Task **4.2** Fields/Markdown/JSON switching is verified; owner-confirmed task **4.2a** completes Paragraphs/Tables/Code before the remaining P1 UX/extensions. Existing technical prerequisites and outstanding P0 format/licensing/CI gates are not silently waived.
+**Owner-approved scheduling change, 2026-10-12**: mainline execution is phases **1 -> 2 -> 3 -> 4 -> 5**, with CLI last. Tasks, acceptance criteria, tests and gates are renumbered to match that order: Viewer P1 is `4.1-4.4` / G3, and CLI is `5.1-5.2` / G4. Phase 6 is an independent P2 follow-up, not a mainline prerequisite. Task **4.2** Fields/Markdown/JSON switching is verified; approved task **4.2a** completes the dynamic Studio result tabs before the remaining P1 UX/extensions. Existing technical prerequisites and outstanding P0 format/licensing/CI gates are not silently waived.
 
 ## Planning Basis
 
@@ -76,7 +76,7 @@ The plan can be reviewed now, but implementation decisions must not be treated a
 | D5: CLI ownership | Preserve verified saved/CLI input evidence; confirm the external repository, maintainer and viewing handoff only in the final CLI phase. | G0 input evidence remains valid; G2 + G3 before task 5.1, approved handoff before 5.2. No Viewer startup/development blocker. |
 | D6: Incomplete extension requirement | Field callbacks, custom rendering, viewer events, toolbar/layout customization and initial page/zoom/fit are explicit P1 requirements. The original `Result-pane` item is truncated. | Implement the named extension points; clarify only the missing tail instead of inventing it. |
 | D7: P1 interaction scope | Accessibility, keyboard, touch, responsive layout and automatic scrolling/centering are explicit. Chrome/Edge automation and Windows Narrator review are approved supplements. | Do not infer a separate mobile-app requirement. |
-| D8: Additional result views | Paragraphs, Tables and Code are owner-confirmed supplements; empty data hides the tab. | Source-link Paragraphs/Tables; provide read-only Python/C#/JavaScript SDK samples under Code with safe placeholders and no service execution. |
+| D8: Dynamic Studio result views | Ordered known tabs are Fields, Markdown, Paragraphs, Tables, Figures, Signatures, Metadata, Result and Code. Read API version from original JSON; show only applicable non-empty views. | Source-link Paragraphs/Tables/Figures/Signatures; Metadata is key/value; Result is original JSON; Code is read-only Python/C#/JavaScript SDK samples. |
 
 Minimum G0 data is a sanitized, real multi-page PDF/result pair and an image/result pair with verified grounding. Record remaining format/version/sample gaps explicitly. A gap may allow the thin slice to start, but cannot be counted as supported coverage or waived silently at release.
 
@@ -232,13 +232,13 @@ Publish the tested format/browser matrix and measured sample sizes. Missing HEIF
 | --- | --- | --- |
 | `4.1` | Add structured nested/array/table fields and multiple-region navigation. **AC-4.1**: original relationships remain inspectable and every available region can be reached without losing field identity or selection. | M |
 | `4.2` | Add Fields/Markdown/JSON tabs using safe Markdown and an evaluated mature JSON tree. **AC-4.2**: formatting and expand/collapse work; unsafe HTML/URL content cannot execute; large-result limits are measured and documented. | M |
-| `4.2a` | Add conditional Paragraphs/Tables/Code views. **AC-4.2a**: Paragraphs preserve CU order/role/page and source navigation; Tables preserve native grid spans and source-linked cells; Code provides read-only Python/C#/JavaScript SDK samples using result analyzer/API values plus safe placeholders; empty views hide their tabs. | M |
+| `4.2a` | Add approved dynamic Studio result tabs. **AC-4.2a**: read API version from original JSON; conditionally show Fields/Markdown/Paragraphs/Tables/Figures/Signatures/Metadata/Result/Code in Studio order; source-link detail views, preserve source state, retain original JSON and generate safe read-only SDK samples. | L |
 | `4.3` | Complete accessibility, keyboard, touch, responsive layout, automatic scrolling/centering and the explicitly named host extension points. **AC-4.3**: keyboard/touch interaction, responsive embedding, source navigation and extension contracts pass without exposing internal CU/PDF models; Chrome/Edge and Narrator evidence is recorded. | L |
 | `4.4` | Document MCP Apps/MCP UI and chat-host integration design. **AC-4.4**: data delivery, payload constraints, assets/CSP, loading/errors, lifecycle, and trust boundaries are specified without adding service logic to the core. | S |
 
 D6 remains limited to the truncated `Result-pane` tail. The other named extension points are explicit requirements. This phase requires MCP integration design/documentation, not an unrequested MCP server implementation.
 
-**Next functional target: 4.2a.** Implement the confirmed conditional Paragraphs/Tables/Code views and remove disabled placeholders. Then complete the original P1 accessibility/keyboard/touch/responsive/automatic-navigation and named extension requirements. Do not infer a separate mobile-app target or the missing `Result-pane` tail. Preserve the approved Fields layout and task 4.2 source-state guarantees.
+**Next functional target: 4.2a.** Implement the approved dynamic Studio result tabs and remove disabled placeholders. Then complete the original P1 accessibility/keyboard/touch/responsive/automatic-navigation and named extension requirements. Do not infer a separate mobile-app target or the missing `Result-pane` tail. Preserve the approved Fields layout and task 4.2 source-state guarantees.
 
 **Exit G3**: all confirmed result views, P1 interaction UX, named extension points and MCP integration design pass their acceptance/tests; the truncated `Result-pane` limitation is documented.
 
@@ -580,21 +580,25 @@ Paths are relative to the target repository and use Windows separators. `create`
       "tests": [{"id": "T-4.2", "type": "e2e", "framework": "playwright", "description": "Verify actual tab content and preserved source state, headings/lists/tables/code/formatting, original JSON objects/arrays, absent Markdown, unsafe markup/links and the agreed large-result fixture without CLI/service access.", "covers_criteria": ["AC-4.2"]}]
     },
     {
-      "id": "4.2a", "phase": 4, "priority": "P1", "title": "Add conditional Paragraphs, Tables and Code views", "effort": "M",
-      "description": "Implement the owner-confirmed prototype result views without disabled placeholders. Paragraphs and Tables use original CU detail data and source regions; Code provides read-only Analyze SDK samples and never executes service logic.",
+      "id": "4.2a", "phase": 4, "priority": "P1", "title": "Add dynamic Studio result views", "effort": "L",
+      "description": "Read API version from original JSON and derive the ordered known Studio tabs from actual non-empty selected-content values. Add Paragraphs, Tables, Figures, Signatures, Metadata, Result and Code around existing Fields/Markdown; never leave disabled placeholders or execute service logic.",
       "files": [
         {"path": "src\\components\\ParagraphsPane.tsx", "action": "create"},
         {"path": "src\\components\\TablesPane.tsx", "action": "create"},
+        {"path": "src\\components\\FiguresPane.tsx", "action": "create"},
+        {"path": "src\\components\\SignaturesPane.tsx", "action": "create"},
+        {"path": "src\\components\\MetadataPane.tsx", "action": "create"},
         {"path": "src\\components\\CodePane.tsx", "action": "create"},
         {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
+        {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
         {"path": "src\\internal\\parseCuResult.ts", "action": "modify"},
         {"path": "src\\internal\\types.ts", "action": "modify"},
         {"path": "src\\styles.css", "action": "modify"},
         {"path": "tests\\e2e\\rich-results.spec.ts", "action": "modify"}
       ],
       "depends_on": ["4.1", "4.2"],
-      "acceptance_criteria": [{"id": "AC-4.2a", "text": "Paragraphs retain CU order, optional role/page and all source regions; Tables preserve native headers/row-column spans and source-linked cells; Code provides Python/C#/JavaScript samples populated with result analyzerId/API version and safe endpoint/key/file placeholders; inapplicable tabs are hidden."}],
-      "tests": [{"id": "T-4.2a", "type": "integration", "framework": "react-testing-library-and-playwright", "description": "Use real paragraphs/tables and synthetic missing-value boundaries to verify conditional tabs, keyboard/mouse source navigation, native grid spans, Code language switching/copy/placeholders and unchanged source state without any Analyze call.", "covers_criteria": ["AC-4.2a"]}]
+      "acceptance_criteria": [{"id": "AC-4.2a", "text": "For 2025-11-01 GA and 2026-06-01-preview inputs, applicable tabs appear in Studio order and empty tabs are absent. Paragraphs/Tables preserve detail/source structure; Figures/Signatures crop source thumbnails and navigate; Metadata preserves returned key/value order; Result is unchanged original JSON; Code provides Python/C#/JavaScript samples using result analyzerId/API version and safe endpoint/key/file placeholders."}],
+      "tests": [{"id": "T-4.2a", "type": "integration", "framework": "react-testing-library-and-playwright", "description": "Verify version-aware conditional tab derivation, content switching, keyboard/mouse source navigation, native grid spans, figure/signature thumbnails, metadata key/value copying, unchanged Result JSON, Code language switching/copy/placeholders, and preserved source state without any Analyze call.", "covers_criteria": ["AC-4.2a"]}]
     },
     {
       "id": "4.3", "phase": 4, "priority": "P1", "title": "Complete advanced UX and named extension points", "effort": "L",
@@ -700,7 +704,7 @@ Prototype source/field/transform/error coverage now exists in [unit tests](../sr
 | Fresh CLI result and previously saved result | Open the approved viewing paths | Same component; saved path makes zero CU calls; local file boundaries hold. | AC-5.1, AC-5.2 / T-5.1, T-5.2 |
 | Nested/array/table fields with several regions | Expand and choose each region | Relationships, selection, and navigation remain correct. | AC-4.1 / T-4.1 |
 | Markdown, original JSON, and adversarial markup/links | Switch panes and expand nodes | Supported formatting/tree behavior; no executable unsafe content. | AC-4.2 / T-4.2 |
-| Paragraphs, Tables or Code data is present/absent | Switch result views and select source-linked items | Applicable views render the confirmed data/SDK samples; empty views have no tab; source state remains intact. | AC-4.2a / T-4.2a |
+| GA/Preview content has any known result-view value | Select content, switch tabs and choose source-linked items | Studio-ordered applicable tabs render confirmed data/SDK samples; empty views have no tab; original Result and source state remain intact. | AC-4.2a / T-4.2a |
 | Keyboard/touch user or resized embedded host | Navigate, select and trigger automatic source navigation | Accessible focus/semantics, touch operation, responsive layout and source scrolling/centering work; named extension points report the same state. | AC-4.3 / T-4.3 |
 | Restricted MCP/chat host | Review delivery, load/error and teardown scenarios | Explicit host design and unchanged core boundary. | AC-4.4 / T-4.4 |
 | TIFF or DI candidate scope | Review real samples and proposed follow-up tests | Separate approved P2 plans; no P0/P1 scope creep. | AC-6.1, AC-6.2 / T-6.1, T-6.2 |
@@ -786,5 +790,5 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-13 | RC-3 replaces the evaluated-but-undistributed LGPL decoder with pinned MIT/Apache heic-rs0.1.4 WASM. Reproducible hashes, licenses/SBOM, nine-fixture cross-browser RGBA results, CSP/failure/lifecycle behavior and 24 React18/19 tgz consumer runs pass. Broader real CU pairs and HEVC product/publication approval remain external gates. |
 | 2026-10-13 | RC-4 adds ten repository runs: second-origin HTTP CORS positive/negative behavior with no cookie/Authorization forwarding, viewer-origin PDF/HEIF assets, real PDF DPR2 first/last-page transforms, derived PNG/JPEG/BMP DPR1/2 lifecycle checks and synthetic CropBox/MediaBox/intrinsic-rotation boundaries. Remote run 38370248168 passes core/browser/performance/packed-consumer. Real CU JPEG/BMP/HEIF pairs, HTTPS, dedicated CMap/ICC decode samples and peak memory remain open. |
 | 2026-10-13 | Initial RC-5 scope notes incorrectly removed explicit P1 touch/responsive/automatic-navigation and extension requirements. The owner-provided source requirement supersedes that reduction; only the truncated `Result-pane` tail remains unresolved. Vite8 remains the current supported bundler profile. |
-| 2026-10-13 | Requirements reconciliation adds owner-confirmed task4.2a: conditional source-linked Paragraphs, native Tables grids and Python/C#/JavaScript SDK samples under Code. Accessibility includes Chrome/Edge automation and a Windows Narrator walkthrough; no separate mobile-app requirement is inferred. |
+| 2026-10-13 | Requirements reconciliation approves task4.2a dynamic Studio tabs: Fields, Markdown, Paragraphs, Tables, Figures, Signatures, Metadata, Result and Code are derived from GA/Preview returned values; inapplicable tabs hide. Accessibility includes Chrome/Edge automation and a Windows Narrator walkthrough; no separate mobile-app requirement is inferred. |
 | 2026-10-13 | RC-Gate evaluated after remote run 38372037048 passed all push jobs. It remains blocked by unavailable required-check enforcement on the current private-repository plan, external HEVC/product/publication approval, missing independent real CU JPEG/BMP/HEIF pairs and unapproved source/decoder memory budgets. Task4.3 and all CLI work remain unstarted. |

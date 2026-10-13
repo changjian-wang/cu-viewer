@@ -71,7 +71,7 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Implement actual Fields/Markdown/JSON switching; preserve document page/zoom/rotation/pan/pin/region state and approved Fields appearance rather than merely enabling empty tabs.
 - [x] Add safe client-side Markdown with headings, lists, GFM, sanitized CU HTML tables, code blocks and formatting; omit active content, dangerous URLs and remote images.
 - [x] Evaluate and integrate a mature MIT expandable JSON-tree component for the original input, with measured 500,000-character/20,000-value limits and lazy result-view chunks.
-- [ ] Add conditional source-linked Paragraphs and Tables views plus Python/C#/JavaScript Analyze SDK samples under Code; hide tabs without applicable data.
+- [ ] Add the approved dynamic Studio result tabs: source-linked Paragraphs/Tables, source-thumbnail Figures/Signatures, key/value Metadata, original-JSON Result and Python/C#/JavaScript SDK Code. Read API version from result JSON, hide inapplicable tabs and preserve source state.
 - [ ] Complete accessibility, keyboard, touch, responsive layout and automatic scrolling/centering; include Chrome/Edge automation and a Windows Narrator walkthrough without inferring a separate mobile-app target.
 - [ ] Add the explicitly named field callbacks, custom field rendering, viewer events, toolbar/layout customization, initial page and initial zoom/fit extension points.
 - [ ] Specify MCP Apps / MCP UI and chat-host integration design, including host-to-viewer data delivery and asset packaging, without service logic in the core.

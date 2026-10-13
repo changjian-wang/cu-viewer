@@ -12,7 +12,7 @@
 
 可运行版本：在仓库根目录执行 `npm run dev`，打开 <http://127.0.0.1:5173/>。当前页面使用真实保存的 PDF/PNG 配对，不调用服务。实际效果见 [Fields 对照截图](interactive-fields.png)、[PDF 运行截图](interactive-pdf.png)、[PNG 运行截图](interactive-png.png)和[多区域/数组截图](interactive-multi-region.png)。
 
-当前 Fields、Markdown 和 JSON 结果视图可用：Markdown 真实渲染 CU 返回内容并清洗原始 HTML；原型中的“…”入口切换到原始输入 JSON 树，选中后显示 JSON 标签。Paragraphs/Tables/Code 尚未实现，但负责人已确认其交付语义：Paragraphs 与 Tables 关联原文，Code 提供 Python/C#/JavaScript Analyze SDK 示例；无适用数据时隐藏标签，不保留禁用占位。切换视图不重置源页码、缩放、旋转、平移或固定字段/区域；cu-cli 仍延后至 Viewer 本体完成之后。
+当前 Fields、Markdown 和 JSON 结果视图可用：Markdown 真实渲染 CU 返回内容并清洗原始 HTML；原型中的“…”入口切换到原始输入 JSON 树。负责人已批准完整动态 Studio 标签映射：Fields、Markdown、Paragraphs、Tables、Figures、Signatures、Metadata、Result、Code；无适用数据时隐藏标签，不保留禁用占位。新增视图尚未实现，切换视图仍必须保持源页码、缩放、旋转、平移及固定字段/区域；cu-cli 延后至 Viewer 本体完成之后。
 
 ### 最终产品外观基线
 
@@ -110,7 +110,7 @@ PDF 状态使用[真实源文件](../../tests/fixtures/mixed-financial-docs.pdf)
 | 演示宿主 | 紧凑的源文件/保存结果选择与 PDF/PNG 样本入口。 | 负责文件交付、JSON 读取和重试；不上传、分析、认证或配置 Azure。 |
 | 左侧源文件区 | 文档独立滚动/平移；底部上一页、下一页、跳页、缩放、适应及旋转。 | 核心仅渲染源文件和对应有效来源区域。 |
 | 右侧 Fields | 真实层级、默认折叠/缺失过滤、只读值、可选置信度和来源页；固定行强调、独立滚动。 | 不要求调用方按分析器重写 JSON；不编辑服务结果。 |
-| 其他结果视图 | Markdown 显示清洗后的原始内容；“…”入口显示原始 JSON 树；Paragraphs/Tables/Code 使用负责人确认的数据与交互。 | Paragraphs 按返回顺序并关联全部 source；Tables 保留网格跨度并关联单元格；Code 显示 Python/C#/JavaScript SDK 示例；无值隐藏标签。 |
+| 其他结果视图 | 按当前 content 和 API version 动态显示 Studio 已知标签。 | Paragraphs/Tables关联source；Figures/Signatures裁剪缩略图并定位；Metadata为键值表；Result为原始JSON；Code为Python/C#/JavaScript SDK示例；无值隐藏。 |
 
 核心仍接收 `source` 和原始 `result`。Studio 的 Run analysis、自动运行、资源选择、分析器编辑不进入可复用组件。
 
