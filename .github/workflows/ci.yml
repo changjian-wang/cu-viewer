@@ -4,13 +4,20 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   core:
     runs-on: windows-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,6 +28,102 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test:unit
-      - run: npm run build
-      - run: npm run build:demo
+      - run: npm run verify:bundle
+      - run: npm audit --omit=dev --audit-level=moderate
       - run: npm pack --ignore-scripts --dry-run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-build
+          path: |
+            dist
+            dist-demo
+          if-no-files-found: error
+
+  browser:
+    needs: core
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run functional Chrome and Edge suites
+        run: >-
+          npx playwright test
+          tests/e2e/prototype.spec.ts
+          tests/e2e/rich-results.spec.ts
+          tests/e2e/source-inputs.spec.ts
+          tests/e2e/image-formats.spec.ts
+          --project=chrome
+          --project=edge
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failures
+          path: test-results
+          if-no-files-found: ignore
+
+  performance:
+    needs: core
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run verify:performance
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: performance-failures
+          path: test-results/performance
+          if-no-files-found: ignore
+
+  packed-consumers:
+    needs: core
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      CU_VERIFY_PRODUCT_SCREENSHOTS: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run verify:consumer
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: packed-consumer-failures
+          path: test-results
+          if-no-files-found: ignore
+
+  stress:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: core
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run 600-round Chrome and Edge stress suite
+        run: npx playwright test tests/e2e/stress.spec.ts --project=chrome --project=edge
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: stress-failures
+          path: test-results
+          if-no-files-found: ignore

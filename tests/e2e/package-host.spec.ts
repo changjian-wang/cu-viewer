@@ -12,6 +12,7 @@ const amountPoints = ([[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.
     .map(([x, y]) => ({ x: x / 8.5, y: y / 11 }));
 const receiptPoints = [{ x: 775 / 1743, y: 73 / 878 }, { x: 973 / 1743, y: 72 / 878 },
     { x: 973 / 1743, y: 111 / 878 }, { x: 775 / 1743, y: 112 / 878 }];
+const verifyProductScreenshots = process.env.CU_VERIFY_PRODUCT_SCREENSHOTS !== "false";
 
 test.beforeEach(async ({ page, context }, testInfo) => {
     const directory: unknown = testInfo.project.metadata.consumerDirectory;
@@ -76,12 +77,12 @@ test.afterEach(({ page }) => {
 
 test("isolated packed React consumer preserves real PDF/PNG behavior and approved product appearance under host CSP", async ({ page }) => {
     await expect(page.locator("[data-field-depth='0']")).toHaveCount(28);
-    if (process.platform === "win32") await expect(page).toHaveScreenshot("default-pdf.png", { fullPage: true });
+    if (process.platform === "win32" && verifyProductScreenshots) await expect(page).toHaveScreenshot("default-pdf.png", { fullPage: true });
     await page.getByRole("button", { name: "Expand AmountDue", exact: true }).click();
     await page.locator(amountRow).getByRole("button", { name: "Amount", exact: true }).click();
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
     await checkPolygon(page, amountPoints, 0);
-    if (process.platform === "win32") await expect(page).toHaveScreenshot("pdf-pinned.png", { fullPage: true });
+    if (process.platform === "win32" && verifyProductScreenshots) await expect(page).toHaveScreenshot("pdf-pinned.png", { fullPage: true });
     await page.getByRole("textbox", { name: "Page number" }).fill("4");
     await page.getByRole("textbox", { name: "Page number" }).press("Enter");
     await ready(page);
@@ -97,7 +98,7 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await page.getByRole("button", { name: "MerchantName", exact: true }).click();
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
     await checkPolygon(page, receiptPoints, 0);
-    if (process.platform === "win32") await expect(page).toHaveScreenshot("png-pinned.png", { fullPage: true });
+    if (process.platform === "win32" && verifyProductScreenshots) await expect(page).toHaveScreenshot("png-pinned.png", { fullPage: true });
     await expect.poll(() => alive(page)).toEqual({ workers: 0, bitmaps: 1, urls: 0 });
     await expect(page.getByRole("button", { name: "Clear", exact: true })).toHaveCount(0);
 
