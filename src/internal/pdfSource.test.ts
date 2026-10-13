@@ -14,6 +14,32 @@ function deferred<T>() {
 beforeEach(() => mocked.getDocument.mockReset());
 
 describe("prototype PDF source lifecycle", () => {
+    it("keeps child assets inside the PDF directory when a host bundler drops its trailing slash", async () => {
+        const NativeUrl = URL;
+        vi.stubGlobal("URL", class extends NativeUrl {
+            constructor(input: string | URL, base?: string | URL) {
+                super(input, base);
+                if (this.pathname.endsWith("/pdfjs/")) this.pathname = this.pathname.slice(0, -1);
+            }
+        });
+        const destroy = vi.fn().mockResolvedValue(undefined);
+        mocked.getDocument.mockReturnValue({
+            promise: Promise.resolve({ numPages: 1, getPage: () => Promise.resolve({ getViewport: () => ({ width: 100, height: 200 }) }) }),
+            destroy,
+        });
+        try {
+            const source = await createPdfSource(new ArrayBuffer(8), "host-bundled.pdf", new AbortController().signal);
+            expect(mocked.workerOptions.workerSrc).toContain("/pdfjs/build/pdf.worker.mjs");
+            const options: unknown = mocked.getDocument.mock.calls[0]?.[0];
+            if (!options || typeof options !== "object" || !("standardFontDataUrl" in options)) throw new Error("Missing font assets.");
+            expect(options.standardFontDataUrl).toEqual(expect.stringContaining("/pdfjs/standard_fonts/"));
+            await source.dispose();
+            expect(destroy).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
     it("loads page metadata with local resources and disposes the loading task only once", async () => {
         const destroy = vi.fn().mockResolvedValue(undefined);
         const document = {

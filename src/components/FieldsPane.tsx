@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { CuContent, CuField, CuParseIssue } from "../internal/types";
-import { displayValue, fieldColor, fieldLabel, formatConfidence, primaryRegion } from "../internal/interaction";
+import { displayValue, fieldColor, fieldDisplayName, fieldLabel, formatConfidence, primaryRegion } from "../internal/interaction";
 import { unavailableSourcePageMessage } from "../internal/source";
 
 interface FieldsPaneProps {
@@ -30,6 +30,7 @@ export function FieldsPane(props: FieldsPaneProps) {
         const closed = !expanded.has(field.id);
         const color = fieldColor(field, props.content?.fields ?? []);
         const region = primaryRegion(field);
+        const displayName = fieldDisplayName(field);
         const pageAvailable = region ? props.isPageAvailable(region.pageNumber) : false;
         const selected = props.selected?.id === field.id || (group && closed && props.selected?.id.startsWith(`${field.id}/`));
         const children = field.children.filter(child => !hideMissing || child.hasValue);
@@ -39,6 +40,7 @@ export function FieldsPane(props: FieldsPaneProps) {
                 style={{ paddingLeft: `${depth === 0 ? 14 : 36 + Math.min(depth - 1, 7) * 16}px` }}
                 data-field-id={field.id}
                 data-field-depth={depth}
+                data-field-type={field.type}
                 onMouseEnter={() => props.onHover(field)}
                 onMouseLeave={() => props.onLeave(field)}
             >
@@ -47,10 +49,10 @@ export function FieldsPane(props: FieldsPaneProps) {
                         style={{ background: region ? color : "transparent", borderColor: region ? color : "#0078d4" }} />}
                     <button type="button" className="cu-field-name" aria-pressed={props.selected?.id === field.id}
                         title={region ? fieldLabel(field) : `${fieldLabel(field)} · No source region`}
-                        onClick={() => props.onSelect(field)}>{field.name}</button>
+                        onClick={() => props.onSelect(field)}>{displayName}</button>
                     {depth === 0 && region && <button
                         type="button" className="cu-page-badge" disabled={!props.sourceReady || !pageAvailable}
-                        aria-label={`Locate ${field.name} on page ${region.pageNumber}`}
+                        aria-label={`Locate ${displayName} on page ${region.pageNumber}`}
                         title={!props.sourceReady ? "Source is not ready for navigation." :
                             !pageAvailable ? unavailableSourcePageMessage(region.pageNumber) : undefined}
                         onClick={() => props.onSelect(field)}
@@ -60,7 +62,7 @@ export function FieldsPane(props: FieldsPaneProps) {
                         {formatConfidence(field.confidence)}
                     </span>}
                     {group && <button
-                        type="button" className="cu-expand" aria-label={`${closed ? "Expand" : "Collapse"} ${field.name}`}
+                        type="button" className="cu-expand" aria-label={`${closed ? "Expand" : "Collapse"} ${displayName}`}
                         aria-expanded={!closed}
                         onClick={() => setExpanded(current => {
                             const next = new Set(current);

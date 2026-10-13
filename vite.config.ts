@@ -6,14 +6,17 @@ export default defineConfig({
     plugins: [pdfAssets("pdfjs")],
     build: {
         lib: {
-            entry: resolve(import.meta.dirname, "src", "index.ts"),
+            entry: {
+                index: resolve(import.meta.dirname, "src", "index.ts"),
+                vite: resolve(import.meta.dirname, "src", "vite.ts"),
+            },
             formats: ["es"],
-            fileName: "index",
+            fileName: (_format, name) => `${name}.js`,
             cssFileName: "styles",
         },
         sourcemap: true,
         rolldownOptions: {
-            external: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "pdfjs-dist"],
+            external: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "pdfjs-dist", /^node:/],
         },
     },
     test: {

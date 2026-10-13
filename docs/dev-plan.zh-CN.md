@@ -4,8 +4,9 @@
 > **目标仓库**：changjian-wang/cu-result-viewer
 > **需求基线**：[需求](requirements.md)与[路线图](roadmap.md)，对应提交 `163814a`
 > **设计批准情况**：负责人已批准初始基线和 MIT/LGPL 候选方向；分发批准仍待完成
-> **状态**：实施中；基线已批准，2.4 公共输入与 2.5 原生图片/EXIF、仅本机 HEIF 已验证；完整 P0/分发门槛仍开放
-> **最后更新**：2026-10-10
+> **状态**：实施中；获批产品外观已固化并加入视觉测试，保留 2.4/2.5 已验证范围；完整 P0/分发门槛仍开放
+> **执行顺序**：先完成可独立运行的 Viewer P0/P1 本体及验收，cu-cli 集成为主线最后阶段
+> **最后更新**：2026-10-12
 > **语言**：本文件是[英文原版](dev-plan.md)的简体中文译本；技术标识、JSON 键名和枚举值保持原文
 
 ## 目录
@@ -21,9 +22,9 @@
   - [阶段 1：事实验证与决策](#阶段-1事实验证与决策)
   - [阶段 2：端到端最小闭环](#阶段-2端到端最小闭环)
   - [阶段 3：完成 P0 组件库与演示](#阶段-3完成-p0-组件库与演示)
-  - [阶段 4：cu-cli 宿主集成](#阶段-4cu-cli-宿主集成)
-  - [阶段 5：P1 结果查看与宿主体验](#阶段-5p1-结果查看与宿主体验)
-  - [阶段 6：独立规划 P2](#阶段-6独立规划-p2)
+  - [阶段 4：完成 Viewer P1 与独立验收](#阶段-4完成-viewer-p1-与独立验收)
+  - [阶段 5：最后进行 cu-cli 集成](#阶段-5最后进行-cu-cli-集成)
+  - [独立后续：P2 规划](#独立后续p2-规划)
 - [里程碑与实施顺序](#里程碑与实施顺序)
 - [结构化任务清单](#结构化任务清单)
 - [测试计划](#测试计划)
@@ -40,8 +41,10 @@
 开发一个仅负责渲染的 React/TypeScript 组件库，接收原始 PDF/图片和序列化的 CU Analyze JSON，并将提取字段与源文件中的对应区域关联起来。
 
 - **从经过验证的端到端最小闭环开始**：使用真实多页 PDF 和图片，展示不依赖特定分析器的字段，并实现跨页多边形高亮。
-- **先完成 P0，再扩展用户体验**：覆盖全部必需图片格式，保证变换与资源清理可靠，提供本地演示、安装包使用方测试，以及协调完成的 cu-cli 集成。
-- **保持优先级与职责边界独立**：丰富的 Fields/Markdown/JSON 视图和宿主定制属于 P1；MCP 集成设计属于 P1；TIFF 及所有 DI 专属工作属于 P2。
+- **先完成 Viewer，再集成**：完成仅渲染的 P0 组件库/演示、丰富结果视图及 P1 独立交互，再验证实际组件无需 cu-cli 即可工作；随后才做 CLI 交接与集成。
+- **保持优先级与职责边界独立**：原有 P0/P1 需求标记不变；CLI 属于外部交付阶段，不是 Viewer 开发、启动或独立验收的前置条件。TIFF/DI 继续独立 P2。
+
+**2026-10-12 负责人批准的排期调整**：主线按阶段 **1 → 2 → 3 → 4 → 5** 执行，CLI 最后。任务、验收、测试和门槛全部按顺序重编号：Viewer P1 为 `4.1-4.4` / G3，CLI 为 `5.1-5.2` / G4；阶段 6 仅为独立 P2 后续，不是主线前置。下一项 Viewer 功能目标为 **4.2**，真正实现 Fields/Markdown/JSON 切换；既有技术前置以及未完成的 P0 格式/许可/CI 门槛不被默默豁免。
 
 ## 规划依据
 
@@ -71,7 +74,7 @@ cu-cli 提案将其定位为终端原生工具，并排除了 GUI/Studio 替代�
 | D2：运行环境与源文件契约 | React 和浏览器版本；字符串 URL 的协议及加载策略；无类型 Blob/ArrayBuffer 的格式识别；无效或缺失源文件的行为。文件系统路径不是浏览器 URL。 | G0；查看器与宿主负责人。 |
 | D3：渲染与解码 | 比较 PDF.js 和两个高亮库候选；参考 OCR-Form-Tools 的实现模式；记录版本、许可证及本地资源。验证 `.jpg`、`.jpeg`、`.jpe`、`.png`、`.bmp`、`.heif`、`.heic`，包括备用解码方案的成本。 | G0 确定方案；未解决的格式覆盖问题阻塞 P0 验收。 |
 | D4：分发与预算 | 私有分发、许可证、对等依赖、包内资源、代表性文件/结果大小，以及实测性能预算。公开发布需要单独决策。 | G2 之前；项目负责人。 |
-| D5：CLI 职责归属 | 确认实现仓库、维护者、分析/已保存结果入口、实际结果序列化方式，以及对浏览器查看流程的共识。 | 在 G0 提供输入依据；任务 4.2 开始前批准宿主契约。 |
+| D5：CLI 职责归属 | 保留已验证的保存/CLI 输入依据；仅在最后的 CLI 阶段确认外部仓库、维护者与查看交接方案。 | G0 输入依据仍有效；G2 + G3 后开展 5.1，交接获批后开展 5.2。不阻塞 Viewer 启动/开发。 |
 | D6：不完整的扩展需求 | 澄清被截断的 `Result-pane` 条目，不自行编造其 API。 | 在最终确定该 P1 扩展之前；不阻塞 P0。 |
 
 G0 最少需要一组已脱敏的真实多页 PDF/结果配对，以及一组来源定位已验证的图片/结果配对。明确记录其余格式、版本和样本缺口。存在缺口时可以允许最小闭环开始，但不能将缺口计入已支持范围，也不能在发布时默默豁免。
@@ -118,7 +121,7 @@ flowchart LR
     Input --> Viewer
 ```
 
-所有运行时模块均为新增；已有文件只修改文档。CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外部。源文件加载策略允许获取显式传入的源文件 URL，但不允许调用 CU 服务。
+CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外部。演示与普通 React 使用方可独立运行 Viewer，无需 CLI 服务或交接契约。源文件加载策略允许获取显式传入的源文件 URL，但不允许调用 CU 服务。
 
 ### 输入与模块契约
 
@@ -150,6 +153,8 @@ flowchart LR
 
 工作量估算暂定为：S = 数小时，M = 约 1-2 个开发人日，TBD = 宿主调研前无法估算。这些是任务规模估计，不是日期或交付承诺。如果验证后的范围超出一次专注实现会话，应拆分任务。文件操作及验收/测试编号以[结构化清单](#结构化任务清单)为准。
 
+下方阶段、任务、验收和测试编号前缀现已统一对应新的执行顺序。先完成 Viewer 功能与独立验收，再开始任何 CLI 契约或实现；既有 CLI 获取的保存结果可以继续使用，不需要执行集成阶段。
+
 ### 阶段 1：事实验证与决策
 
 **目标**：建立实现所需的事实依据，而不是编造 CU 几何信息或仅凭声誉选择渲染器。
@@ -162,6 +167,14 @@ flowchart LR
 **2026-10-09 进展**：负责人已批准 G0 设计/候选方向。[设计决策](design-decisions.md)与[样本清单](../tests/fixtures/manifest.json)保留真实配对及[依据](rendering-evaluation.md)。任务 2.1-2.3 已交付，339 个单元案例及 512 个实际几何浏览器检查通过。下一项为界面原型评审，正式任务 2.4 受此门槛约束。可复用查看器渲染、分发/更新义务及额外 UX/样本覆盖仍未完成。
 
 **2026-10-10 进展**：获批的[可运行实现](../README.md#run-the-prototype)现通过 409 个单元案例和 Chrome/Edge 共 52 次运行。公共输入、原生图片格式、八种合成 EXIF 方向及仅本机 HEIF 均执行实际组件路径，页面已查看效果。[Fields 样式](prototype/interactive-fields.png)、置信度及不可用页诊断保持一致。本机 HEIF 批准不等于解码器分发或完整 P0/调用方/CLI 验收。
+
+**2026-10-12 进展**：负责人要求最终 UI 与最新获批原型一致。[产品视觉测试](../tests/e2e/visual.spec.ts)新增每浏览器九个场景和 30 张不可自动改写的 Windows 图片，浏览器合并覆盖现为 70 次。连续 36 次比较保持全部图片哈希，Chrome Fields 直接匹配批准 PNG，真实图标尺寸漂移能被检测。产品 UI/样式未改；本批为已实现范围的 2.6/3.1 验收准备，不关闭 2.5 或完整 P0 门槛。
+
+**2026-10-12 压力进展**：[压力测试](../tests/e2e/stress.spec.ts)新增每浏览器三组精确 100 轮，共 600 轮 PDF/PNG 状态/输入/取消及合并 76 次运行。逐轮几何、选择、调用方完整性与资源归属通过。局部舞台裁剪修复了平移滚动条重新居中问题；压力当前上下文仍匹配原型，30 张图片未改。314 个相关单元案例、类型/lint与两种构建通过；更广 HEIF/格式/DPR、内存预算及安装包门槛保留。
+
+**2026-10-12 安装包进展**：用户批准的可选Node端Vite资源交付已在真实React18.3.1/19.3.0 tgz使用方通过，覆盖开发/生产、Chrome/Edge、类型/CSS/Worker/字体和实际宿主CSP。16次包验证加76次仓库回归，本地共92次浏览器与416单元案例；同一产品图无需修改。使用说明/核心CI已配置，不称远程CI或完整P0/发布批准。
+
+**2026-10-13 任务4.1进展**：真实发票/收据数组、稳定的一开始Item标签、隐藏后代选择及当前全部字段/组来源区域已实现。真实BillingAddress区域切换和合成跨页结构化组在Chrome/Edge通过。当前424单元、80仓库浏览器及16包使用方，本地共96次；30张产品基线未改。不宣称专属Tables视图或真实跨页结构化CU配对完成，下一项为4.2。
 
 使用当前 Studio 查看有代表性的 PDF 和图片结果。记录布局、字段名/值/置信度展示、悬停与选择的区别、跨页导航、适应/缩放/平移/旋转，以及缺失源文件或来源定位信息时的行为。如果无法访问 Studio，应记录限制，并保持行为评审门槛未通过。
 
@@ -202,46 +215,52 @@ flowchart LR
 | `3.2` | 增加加载文件与已保存 JSON 的演示，以及浏览器回归测试集。**AC-3.2**：真实配对样本通过所有公共源文件输入变体工作，无需服务访问；输入缺失/无效、文件损坏和页码边界均有可见且有用的处理结果。 | M |
 | `3.3` | 打包组件库、样式和本地渲染资源，增加 CI 与嵌入文档。**AC-3.3**：独立使用方能够加载安装包、类型、CSS、Worker 和解码器资源；文档命令通过，不要求运行时 CDN/CU 依赖。 | M |
 
-发布已测试的格式/浏览器矩阵和实测样本大小。缺少 HEIF/HEIC 依据属于 P0 覆盖缺口，而不是默认延后到 P2。G2 是组件库/演示的验收门槛，不代表外部 CLI 工作已完成。
+发布已测试的格式/浏览器矩阵和实测样本大小。缺少 HEIF/HEIC 依据属于 Viewer P0 覆盖缺口，不是默认延后到 P2。G2 是独立组件库/演示的验收门槛，不要求 CLI 契约或实现。
 
 **G2 通过条件**：全部组件库/演示 P0 场景通过，包括必需图片格式与安装包使用方验证。组件可以进入私有宿主测试。
 
-### 阶段 4：cu-cli 宿主集成
+### 阶段 4：完成 Viewer P1 与独立验收
 
-**目标**：完成所需宿主流程，但不把宿主职责移入组件。
-
-| 任务 | 工作内容与验收 | 工作量 |
-| --- | --- | --- |
-| `4.1` | 就使用已打包查看器和原始 JSON 的最小交接方案达成共识并形成文档。**AC-4.1**：查看器/CLI 负责人批准源文件交付、已保存结果复用、回环地址/文件访问边界、资源加载，以及浏览器/服务器生命周期职责。 | S |
-| `4.2` | 在已确认的 CLI 仓库实现并测试新分析与已保存结果查看路径。**AC-4.2**：目标 `cu analyze sample.pdf --view` 流程打开查看器；约定的已保存结果路径不发起任何新 CU 调用；宿主关闭和文件访问限制符合文档。 | TBD |
-
-在记录 CLI 实现仓库和实际文件路径之前，任务 4.2 明确处于阻塞状态。不编造已有 CLI 命令、已保存结果标志或宿主文件名。如果选择本地服务器，它必须绑定到回环地址，仅暴露显式提供的文件，并从本地加载包内资源。
-
-**G3 通过条件**：两个宿主路径均使用真实源文件/结果配对通过验证。完整 P0 验收要求 G2 和 G3 同时通过；外部延迟不妨碍组件库开发或内部测试。
-
-### 阶段 5：P1 结果查看与宿主体验
-
-**目标**：改善查看体验，同时保留原有的原始 JSON 输入入口。
+**目标**：在 CLI 集成前完成 Viewer 结果表示、查看交互及已评审扩展，保留原始 JSON 入口与获批外观。
 
 | 任务 | 工作内容与验收 | 工作量 |
 | --- | --- | --- |
-| `5.1` | 增加结构化嵌套/数组/表格字段，以及多区域导航。**AC-5.1**：原始关系仍可查看，所有可用区域均可访问，且不丢失字段标识或选择状态。 | M |
-| `5.2` | 使用安全 Markdown 和经过评估的成熟 JSON 树，增加 Fields/Markdown/JSON 标签页。**AC-5.2**：格式展示与展开/折叠正常；不安全的 HTML/URL 内容不能执行；大结果限制经过测量并写入文档。 | M |
-| `5.3` | 增加无障碍键盘/触摸/响应式行为，以及经过评审的扩展点。**AC-5.3**：不使用鼠标也能操作焦点与选择，窄布局仍可用，回调/自定义渲染器/工具栏/布局/初始视图选项通过宿主测试。 | M |
-| `5.4` | 编写 MCP Apps/MCP UI 与聊天宿主的集成设计。**AC-5.4**：明确数据交付、载荷限制、资源/CSP、加载/错误、生命周期和信任边界，不向核心添加服务逻辑。 | S |
+| `4.1` | 增加结构化嵌套/数组/表格字段，以及多区域导航。**AC-4.1**：原始关系仍可查看，所有可用区域均可访问，且不丢失字段标识或选择状态。 | M |
+| `4.2` | 使用安全 Markdown 和经过评估的成熟 JSON 树，增加 Fields/Markdown/JSON 标签页。**AC-4.2**：格式展示与展开/折叠正常；不安全的 HTML/URL 内容不能执行；大结果限制经过测量并写入文档。 | M |
+| `4.3` | 增加无障碍键盘/触摸/响应式行为，以及经过评审的扩展点。**AC-4.3**：不使用鼠标也能操作焦点与选择，窄布局仍可用，回调/自定义渲染器/工具栏/布局/初始视图选项通过宿主测试。 | M |
+| `4.4` | 编写 MCP Apps/MCP UI 与聊天宿主的集成设计。**AC-4.4**：明确数据交付、载荷限制、资源/CSP、加载/错误、生命周期和信任边界，不向核心添加服务逻辑。 | S |
 
-任务 5.3 必须在 D6 解决后才能最终确定 `Result-pane` 定制。Markdown/JSON 及其他已经明确的 P1 行为可以独立推进。本阶段要求 MCP 集成设计/文档，不要求实现未被请求的 MCP 服务器。
+任务 4.3 必须在 D6 解决后才能最终确定 `Result-pane` 定制。Markdown/JSON 及其他已经明确的 P1 行为可以独立推进。本阶段要求 MCP 集成设计/文档，不要求实现未被请求的 MCP 服务器。
 
-**G4 通过条件**：P1 验收/测试以及经过评审的宿主扩展契约完成，并记录限制。
+**下一功能目标：4.2。** 真正实现 Fields/Markdown/JSON 切换、安全 Markdown 与原始 JSON 树；切换结果表示时保留文档页码/缩放/固定选择。当前 Markdown/Paragraphs/Tables/Code/更多控件只是禁用占位，不是已实现视图。Paragraphs/Tables/Code/更多专属语义必须先明确范围再承诺交付；既有 4.1 覆盖结构化字段，不等于自动批准所有 Studio 标签。
 
-### 阶段 6：独立规划 P2
+**G3 通过条件**：P1 验收/测试以及经过评审的宿主扩展契约完成，并记录限制。
+
+**Viewer 本体完成条件**：要求 **G2 + G3** 及产品/独立使用方评审依据通过。Viewer 启动、直接查看保存结果、丰富面板切换、几何与生命周期应无需 cu-cli 或新的 Analyze 调用；禁用占位不能算功能完成。保持已确认的 Fields/布局，新增视图的有意变化须评审后再更新视觉基线。
+
+### 阶段 5：最后进行 cu-cli 集成
+
+**目标**：把已完成的 Viewer 接入一种外部宿主，不把宿主职责移入组件。
+
+**开始门槛**：先完成 Viewer P0/P1 本体及独立验收（**G2 + G3**）。交接契约 `5.1` 和实现 `5.2` 都延后到该门槛之后，均不得阻塞 Viewer 直接运行或开发。
+
+| 任务 | 工作内容与验收 | 工作量 |
+| --- | --- | --- |
+| `5.1` | 就已完成的安装包 Viewer 与原始 JSON 的最小交接形成共识。**AC-5.1**：查看器/CLI 负责人批准源交付、保存结果复用、本地文件边界、资源及浏览器/服务器生命周期。 | S |
+| `5.2` | 在已确认 CLI 仓库实现新分析与保存结果查看。**AC-5.2**：目标 `cu analyze sample.pdf --view` 打开 Viewer；保存结果查看不新增 CU 调用，宿主关闭与文件限制符合契约。 | TBD |
+
+5.2 还需确认 CLI 仓库/负责人、批准 5.1 并检查实际文件目标。不编造 CLI 命令或保存结果标志；选择本地服务器时，必须绑定回环地址、只交付显式文件并本地加载资源。
+
+**G4 通过条件**：两个外部宿主路径使用真实配对通过。G4 关闭 CLI 交付，不属于 Viewer 本体独立验收；原始包含 CLI 的项目要求仍被追踪，但其执行顺序在最后。
+
+### 独立后续：P2 规划
 
 | 任务 | 工作内容与验收 | 工作量 |
 | --- | --- | --- |
 | `6.1` | 调研 TIFF/多页 TIFF、解码器成本、页面元数据和导航。**AC-6.1**：在增加 TIFF 代码之前，记录真实样本覆盖和单独批准的实现/测试范围。 | S |
 | `6.2` | 独立调研 DI 输出版本、字段和坐标约定。**AC-6.2**：真实 DI 测试样本和独立的解析器/几何兼容计划获批；不默默复用 CU 假设。 | S |
 
-这些是后续规划任务，并不代表本草稿已经覆盖 TIFF/DI 实现。只有在范围单独批准后，才创建边界明确的实现任务。两项任务均不是 P0 或 P1 的前置条件。
+这些阶段 6 任务不属于当前主线。只有范围单独批准后，才创建 TIFF/DI 实现任务；两项都不是 Viewer P0/P1 或最后 CLI 阶段的前置条件。
 
 ## 里程碑与实施顺序
 
@@ -250,11 +269,25 @@ flowchart LR
 | G0：验证依据与决策获批 | 1.1、1.2 | 已脱敏的真实配对样本、Studio 访问/评审、负责人的决策。 |
 | G1：源文件与结果关联的最小闭环 | 2.1-2.6、集成浏览器验证 | G0；真实 PDF/图片来源定位信息。 |
 | G2：P0 组件库/演示候选版本 | 3.1-3.3、完整格式矩阵 | G1。 |
-| G3：P0 CLI 集成 | 4.1-4.2、新分析与已保存结果流程 | 发布依赖 G2；实现依赖 D5 和宿主批准。 |
-| G4：P1 | 5.1-5.4 | 实现依赖 G2；G3 不是代码依赖。 |
-| P2 排期 | 6.1-6.2 | G2 架构及负责人单独批准，不依赖 G4。 |
+| G3：Viewer P1 | 4.1-4.4 | 既有 Viewer/安装包技术前置；本体完成要求 G2，无 CLI 依赖。 |
+| Viewer 本体完成 | G2 + G3；产品及独立使用方评审 | 5.1/5.2 开始前必须通过，不依赖 CLI。 |
+| G4：CLI 集成，主线最后门槛 | 5.1-5.2、新分析与保存结果流程 | 已完成的 Viewer（G2 + G3）、D5 与外部宿主批准。 |
+| P2 排期 | 6.1-6.2 | G2 架构及负责人单独批准，不依赖 G3。 |
 
-共享契约建立后，解析器与几何工作可以独立于源文件适配器推进。图片渲染复用 PDF 任务引入的源文件接口。演示存在后，打包与宿主契约评审可以并行。任务是否就绪由下方的依赖图决定，而不是由表格顺序决定。
+门槛也已按新顺序统一：G3 验收 Viewer P1，G4 验收最后的 CLI 集成。Viewer 开发不依赖 CLI 可用性；打包评审可与其他本体工作并行，但 CLI 契约评审不再与未完成的 Viewer 交付并行。
+
+```mermaid
+flowchart LR
+    G0["G0：输入依据"] --> G1["G1：Viewer 联动闭环"]
+    G1 --> G2["G2：独立 Viewer P0"]
+    G2 --> G3["G3：丰富视图与 Viewer P1"]
+    G3 --> ViewerReady["Viewer P0/P1 本体验收"]
+    ViewerReady --> Handoff["5.1：CLI 交接"]
+    Handoff --> CLI["5.2 / G4：CLI 最后集成"]
+    G2 -.-> P2["6.1-6.2：单独批准 P2"]
+```
+
+下方结构化依赖保留既有技术前置，并为 CLI 工作增加已完成 Viewer 的前置要求；任务编号与执行阶段现已一致。
 
 ## 结构化任务清单
 
@@ -266,6 +299,15 @@ flowchart LR
   "status": "in_progress",
   "target_repository": "changjian-wang/cu-result-viewer",
   "design_doc": null,
+  "delivery_policy": {
+    "approved_on": "2026-10-12",
+    "mainline_phases": [1, 2, 3, 4, 5],
+    "viewer_completion_gates": ["G2", "G3"],
+    "cli_final_tasks": ["5.1", "5.2"],
+    "cli_blocks_viewer": false,
+    "next_viewer_functional_task": "4.2",
+    "separate_p2_tasks": ["6.1", "6.2"]
+  },
   "review_gates": [
     {
       "id": "ui-prototype-v1",
@@ -275,8 +317,15 @@ flowchart LR
       "interaction_baseline_approved": true,
       "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
-      "unit_cases": 409,
-      "browser_runs": 52,
+      "unit_cases": 424,
+      "browser_runs": 96,
+      "repository_browser_runs": 80,
+      "packed_consumer_browser_runs": 16,
+      "stress_browser_runs": 6,
+      "stress_rounds_per_browser": 300,
+      "visual_browser_runs": 18,
+      "visual_baseline_count": 30,
+      "visual_baseline": "tests\\e2e\\visual.spec.ts-snapshots",
       "fields_reference": "docs\\prototype\\interactive-fields.png",
       "reference": "docs\\prototype\\README.md",
       "state_preview": "docs\\prototype\\index.html",
@@ -398,6 +447,7 @@ flowchart LR
     {
       "id": "2.6", "phase": 2, "priority": "P0", "title": "关联字段、导航与源文件叠加层", "effort": "M",
       "status": "prototype-implemented",
+      "verification_evidence": "获批产品视觉基线与1 CSS像素主要区域检查覆盖现有PDF/PNG联动；正式关闭仍保留2.5及更广验收依赖。",
       "description": "组装查看器，提供通用字段/值/置信度展示、独立悬停/选择状态、跨页导航，以及使用共享变换的多边形。从公共入口导出组件。",
       "files": [
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "create"},
@@ -405,32 +455,37 @@ flowchart LR
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
         {"path": "src\\internal\\interaction.ts", "action": "create"},
         {"path": "src\\internal\\interaction.test.ts", "action": "create"},
+        {"path": "tests\\e2e\\visual.spec.ts", "action": "create"},
+        {"path": "playwright.config.ts", "action": "modify"},
         {"path": "src\\index.ts", "action": "modify"}
       ],
       "depends_on": ["2.2", "2.3", "2.4", "2.5"],
-      "acceptance_criteria": [{"id": "AC-2.6", "text": "悬停/选择真实 PDF/图片字段时，高亮已验证的主要区域并支持跨页导航；悬停结束后保留选择，没有来源定位信息的值仍可查看。"}],
+      "acceptance_criteria": [{"id": "AC-2.6", "text": "悬停/选择真实PDF/图片字段时，高亮主要区域、支持跨页、保留选择及无定位值，同时保持最新获批产品外观一致。"}],
       "tests": [
         {"id": "T-2.6a", "type": "unit", "framework": "vitest", "description": "测试临时/持久交互、跨页标识、缺失来源定位及快速切换字段。", "covers_criteria": ["AC-2.6"]},
-        {"id": "T-2.6b", "type": "e2e", "framework": "playwright", "description": "在集成测试宿主中关联真实 PDF/图片字段与叠加层；任务 3.2 完成后，在纳入仓库的演示中重复验证。", "covers_criteria": ["AC-2.6"]}
+        {"id": "T-2.6b", "type": "e2e", "framework": "playwright", "description": "在集成测试宿主中关联真实 PDF/图片字段与叠加层；任务 3.2 完成后，在纳入仓库的演示中重复验证。", "covers_criteria": ["AC-2.6"]},
+        {"id": "T-2.6visual", "type": "e2e", "framework": "playwright", "description": "使用不可自动更新的浏览器独立基线核对产品默认/悬停/固定/分组过滤/页码图片/加载空错误，并用真实漂移探针验证检测能力；保留几何与错误独立性。", "covers_criteria": ["AC-2.6", "AC-3.1", "AC-3.2"]}
       ]
     },
     {
       "id": "3.1", "phase": 3, "priority": "P0", "title": "完成控件、错误状态与生命周期", "effort": "M",
       "status": "partial-prototype",
+      "verification_evidence": "PDF/PNG DPR1每浏览器100轮页面变换、100次公共输入替换及100次挂起取消通过，核对当前产品视觉与资源配对。局部修复平移滚动条居中偏移且基线未变；更广格式/DPR/调用方验收保留。",
       "description": "增加缩放/平移/适应/旋转和 PDF 页码控件；处理加载/空数据/错误及以最后一次加载为准的源文件更换。释放自身持有的资源，保持源文件/叠加层变换同步。",
       "files": [
         {"path": "src\\components\\Toolbar.tsx", "action": "create"},
-        {"path": "src\\styles.css", "action": "create"},
+        {"path": "src\\styles.css", "action": "modify"},
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
         {"path": "src\\internal\\interaction.ts", "action": "modify"},
-        {"path": "src\\internal\\interaction.test.ts", "action": "modify"}
+        {"path": "src\\internal\\interaction.test.ts", "action": "modify"},
+        {"path": "tests\\e2e\\stress.spec.ts", "action": "create"}
       ],
       "depends_on": ["2.6"],
       "acceptance_criteria": [{"id": "AC-3.1", "text": "控件/页码边界/计数正确，各种变换后保持对齐；更换源文件或卸载时，不展示过期内容，也不保留自身持有的资源。"}],
       "tests": [
         {"id": "T-3.1a", "type": "unit", "framework": "vitest", "description": "测试状态转换、资源归属/释放、乱序完成的加载、挂载/卸载，以及 React StrictMode 清理。", "covers_criteria": ["AC-3.1"]},
-        {"id": "T-3.1b", "type": "e2e", "framework": "playwright", "description": "在任务 3.2 的演示中测试全部控件、平移/尺寸变化、页码边界，以及 100 次重复切换。", "covers_criteria": ["AC-3.1"]}
+        {"id": "T-3.1b", "type": "e2e", "framework": "playwright", "description": "检查控件、平移/尺寸与页码边界；每浏览器精确执行100轮PDF变换、源替换和挂起请求取消，核对几何/资源及压力当前上下文的原型截图。", "covers_criteria": ["AC-3.1", "AC-3.2"]}
       ]
     },
     {
@@ -457,6 +512,8 @@ flowchart LR
     },
     {
       "id": "3.3", "phase": 3, "priority": "P0", "title": "打包组件库、编写文档并建立验收门槛", "effort": "M",
+      "status": "in_progress",
+      "implementation_evidence": "真实隔离React18/19 Vite tgz宿主在开发/生产通过类型/CSS/本地资源/CSP及旧产品截图；Node插件获批。使用说明/核心CI已配置，远程CI、完整编解码格式及发布门槛保留。",
       "description": "打包公共类型、限定作用域的样式，以及本地 Worker/解码器资源。增加 CI 和隔离的安装包使用方测试；仅记录已验证的 API、命令、限制与分发策略。",
       "files": [
         {"path": "package.json", "action": "modify"},
@@ -464,47 +521,38 @@ flowchart LR
         {"path": "README.md", "action": "modify"},
         {"path": "docs\\usage.md", "action": "create"},
         {"path": ".github\\workflows\\ci.yml", "action": "create"},
-        {"path": "tests\\e2e\\package-host.spec.ts", "action": "create"}
+        {"path": "tests\\e2e\\package-host.spec.ts", "action": "create"},
+        {"path": "src\\vite.ts", "action": "create"},
+        {"path": "src\\vite.test.ts", "action": "create"},
+        {"path": "playwright.consumer.config.ts", "action": "create"},
+        {"path": "tools\\prepare-packed-consumers.mjs", "action": "create"},
+        {"path": "tools\\verify-packed-consumers.mjs", "action": "create"}
       ],
       "depends_on": ["3.2"],
       "acceptance_criteria": [{"id": "AC-3.3", "text": "隔离的使用方能够加载已打包组件库、类型、样式及本地资源；CI/文档命令通过，不要求 CU SDK 或运行时 CDN。"}],
       "tests": [{"id": "T-3.3", "type": "integration", "framework": "toolchain-and-playwright", "description": "构建/打包并安装到独立测试使用方，编译其公共 API，在约定 CSP 下渲染 PDF/图片，并检查网络请求与包内容。", "covers_criteria": ["AC-3.3"]}]
     },
     {
-      "id": "4.1", "phase": 4, "priority": "P0", "title": "就 cu-cli 交接契约达成共识", "effort": "S",
-      "description": "确认宿主仓库与负责人；记录原始 JSON 交接、浏览器可读取的源文件交付、已保存结果路径、回环地址/文件限制、资源及宿主生命周期。",
-      "files": [{"path": "docs\\cu-cli-integration.md", "action": "create"}],
-      "depends_on": ["1.1", "3.2"],
-      "acceptance_criteria": [{"id": "AC-4.1", "text": "查看器/CLI 负责人批准宿主交接、已保存结果复用、本地交付/安全边界、资源加载及生命周期职责。"}],
-      "tests": [{"id": "T-4.1", "type": "manual", "framework": "host-contract-review", "description": "依据实际 CLI 实现与终端原生提案评审契约；演示最小的源文件加原始 JSON 嵌入方式。", "covers_criteria": ["AC-4.1"]}]
-    },
-    {
-      "id": "4.2", "phase": 4, "priority": "P0", "title": "实现并验证外部 cu-cli 查看流程", "effort": "TBD",
-      "repository": null,
-      "execution_ready": false,
-      "blocked_by": "执行前确认 cu-cli 实现仓库/负责人，并用经过检查的实际路径替换空文件目标。",
-      "description": "在外部宿主实现约定的 --view 新分析流程，以及已批准的已保存结果查看路径；不把服务/服务器职责移入查看器。",
-      "files": [],
-      "depends_on": ["3.3", "4.1"],
-      "acceptance_criteria": [{"id": "AC-4.2", "text": "约定的 cu analyze --view 流程与已保存结果路径打开同一查看器；已保存结果查看不发起新 CU 调用，宿主生命周期/文件限制通过验证。"}],
-      "tests": [{"id": "T-4.2", "type": "integration", "framework": "host-native-and-browser", "description": "使用真实配对样本运行新分析与已保存结果查看；已保存结果查看时禁止 CU 网络访问；测试启动/关闭、含空格路径、缺失文件及未授权本地文件请求。", "covers_criteria": ["AC-4.2"]}]
-    },
-    {
-      "id": "5.1", "phase": 5, "priority": "P1", "title": "增加结构化字段与多区域查看", "effort": "M",
+      "id": "4.1", "phase": 4, "priority": "P1", "title": "增加结构化字段与多区域查看", "effort": "M",
+      "status": "done",
+      "implementation_evidence": "真实发票/收据数组使用稳定Item N标签，折叠时保留后代选择；真实同页多区域地址及明确标注的合成跨页数组组可访问全部自身/后代区域。组件和Chrome/Edge测试通过，默认获批视觉未变。",
       "description": "扩展通用字段以支持嵌套对象、数组/表格和区域选择，同时保持稳定字段标识及原有公共输入。",
       "files": [
         {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
         {"path": "src\\internal\\interaction.ts", "action": "modify"},
         {"path": "src\\components\\FieldsPane.test.tsx", "action": "create"},
-        {"path": "tests\\e2e\\viewer.spec.ts", "action": "modify"}
+        {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
+        {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
+        {"path": "src\\styles.css", "action": "modify"},
+        {"path": "tests\\e2e\\prototype.spec.ts", "action": "modify"}
       ],
       "depends_on": ["3.3"],
-      "acceptance_criteria": [{"id": "AC-5.1", "text": "嵌套/数组/表格关系仍可查看，每个可用源区域均可访问，且不丢失字段标识/选择状态。"}],
-      "tests": [{"id": "T-5.1", "type": "integration", "framework": "react-testing-library-and-playwright", "description": "使用真实结构化和多区域测试样本展开字段、选择数组/表格条目，并导航到全部关联区域/页面。", "covers_criteria": ["AC-5.1"]}]
+      "acceptance_criteria": [{"id": "AC-4.1", "text": "嵌套/数组/表格关系仍可查看，每个可用源区域均可访问，且不丢失字段标识/选择状态。"}],
+      "tests": [{"id": "T-4.1", "type": "integration", "framework": "react-testing-library-and-playwright", "description": "使用真实发票/收据结构化与多区域字段及明确标注的合成跨页组，展开表格式数组、保留隐藏选择并导航全部自身/后代区域/页面。", "covers_criteria": ["AC-4.1"]}]
     },
     {
-      "id": "5.2", "phase": 5, "priority": "P1", "title": "增加安全 Markdown 与交互式 JSON 面板", "effort": "M",
-      "description": "评估成熟 JSON 树与 Markdown 渲染器，然后增加 Fields/Markdown/JSON 标签页；评审许可证、不安全内容处理方式，并测量大结果行为。",
+      "id": "4.2", "phase": 4, "priority": "P1", "title": "增加安全 Markdown 与交互式 JSON 面板", "effort": "M",
+      "description": "下一Viewer功能目标：评估成熟Markdown/JSON组件，真正实现Fields/Markdown/JSON切换、许可证评审、安全内容及实测大小限制；保留文档页码/缩放/固定状态与获批Fields外观，无CLI依赖。",
       "files": [
         {"path": "src\\components\\MarkdownPane.tsx", "action": "create"},
         {"path": "src\\components\\JsonPane.tsx", "action": "create"},
@@ -512,12 +560,12 @@ flowchart LR
         {"path": "package.json", "action": "modify"},
         {"path": "tests\\e2e\\rich-results.spec.ts", "action": "create"}
       ],
-      "depends_on": ["3.3"],
-      "acceptance_criteria": [{"id": "AC-5.2", "text": "必需 Markdown 格式和 JSON 展开/折叠正常；不安全 HTML/URL 不能执行，实测结果大小限制写入文档。"}],
-      "tests": [{"id": "T-5.2", "type": "e2e", "framework": "playwright", "description": "验证标题/列表/表格/代码/格式、原始 JSON 对象/数组、缺失 Markdown、危险标记/链接，以及约定的大结果测试样本。", "covers_criteria": ["AC-5.2"]}]
+      "depends_on": ["3.3", "4.1"],
+      "acceptance_criteria": [{"id": "AC-4.2", "text": "Fields/Markdown/JSON切换到真实内容且保留源页码/缩放/选择与获批Fields外观；Markdown格式/JSON展开安全可用，记录实测大小限制。"}],
+      "tests": [{"id": "T-4.2", "type": "e2e", "framework": "playwright", "description": "无需CLI/服务，验证标签真实内容与源状态保留、标题列表表格代码格式、原始JSON对象数组、缺失Markdown、危险标记链接及约定大结果样本。", "covers_criteria": ["AC-4.2"]}]
     },
     {
-      "id": "5.3", "phase": 5, "priority": "P1", "title": "完成无障碍体验与已评审扩展", "effort": "M",
+      "id": "4.3", "phase": 4, "priority": "P1", "title": "完成无障碍体验与已评审扩展", "effort": "M",
       "description": "增加键盘/焦点/触摸/响应式行为，以及已评审的选择回调、自定义字段、查看器事件、工具栏/布局和初始视图选项。结果面板定制前解决 D6。",
       "files": [
         {"path": "src\\index.ts", "action": "modify"},
@@ -527,17 +575,42 @@ flowchart LR
         {"path": "src\\styles.css", "action": "modify"},
         {"path": "tests\\e2e\\host-extensions.spec.ts", "action": "create"}
       ],
-      "depends_on": ["5.1", "5.2"],
-      "acceptance_criteria": [{"id": "AC-5.3", "text": "键盘/焦点/触摸和窄布局可用；每个已批准的回调/渲染/布局/工具栏/初始视图选项均通过宿主测试，且不依赖内部 CU/PDF 类型。"}],
-      "tests": [{"id": "T-5.3", "type": "e2e", "framework": "playwright", "description": "测试纯键盘字段/标签页/控件导航、触摸、响应式尺寸、焦点保留、回调及自定义宿主渲染；人工评审无障碍语义。", "covers_criteria": ["AC-5.3"]}]
+      "depends_on": ["4.1", "4.2"],
+      "acceptance_criteria": [{"id": "AC-4.3", "text": "键盘/焦点/触摸和窄布局可用；每个已批准的回调/渲染/布局/工具栏/初始视图选项均通过宿主测试，且不依赖内部 CU/PDF 类型。"}],
+      "tests": [{"id": "T-4.3", "type": "e2e", "framework": "playwright", "description": "测试纯键盘字段/标签页/控件导航、触摸、响应式尺寸、焦点保留、回调及自定义宿主渲染；人工评审无障碍语义。", "covers_criteria": ["AC-4.3"]}]
     },
     {
-      "id": "5.4", "phase": 5, "priority": "P1", "title": "制定 MCP Apps 与聊天宿主嵌入方案", "effort": "S",
+      "id": "4.4", "phase": 4, "priority": "P1", "title": "制定 MCP Apps 与聊天宿主嵌入方案", "effort": "S",
       "description": "为 MCP Apps/MCP UI/聊天宿主定义宿主到查看器的原始数据交付、载荷限制、资源/CSP、生命周期、错误状态和信任边界；不向核心添加服务或 MCP 服务器。",
       "files": [{"path": "docs\\mcp-apps-integration.md", "action": "create"}],
       "depends_on": ["3.3"],
-      "acceptance_criteria": [{"id": "AC-5.4", "text": "经过评审的集成设计覆盖数据交付、载荷/资源/CSP、错误/生命周期及信任边界，并保持核心仅负责渲染。"}],
-      "tests": [{"id": "T-5.4", "type": "manual", "framework": "host-design-review", "description": "与代表性宿主负责人逐项评审 PDF/图片交付、已保存 JSON、大载荷、受限 iframe 资源、缺失数据及清理。", "covers_criteria": ["AC-5.4"]}]
+      "acceptance_criteria": [{"id": "AC-4.4", "text": "经过评审的集成设计覆盖数据交付、载荷/资源/CSP、错误/生命周期及信任边界，并保持核心仅负责渲染。"}],
+      "tests": [{"id": "T-4.4", "type": "manual", "framework": "host-design-review", "description": "与代表性宿主负责人逐项评审 PDF/图片交付、已保存 JSON、大载荷、受限 iframe 资源、缺失数据及清理。", "covers_criteria": ["AC-4.4"]}]
+    },
+    {
+      "id": "5.1", "phase": 5, "priority": "P0", "title": "就 cu-cli 交接契约达成共识", "effort": "S",
+      "status": "deferred",
+      "execution_ready": false,
+      "requires_gates": ["G2", "G3"],
+      "blocked_by": "仅在Viewer P0/P1独立完成后开始，CLI交接属于主线最后阶段。",
+      "description": "Viewer完成后再确认外部CLI仓库/负责人，以及原始JSON/源交付、保存查看、文件边界、资源和生命周期；此契约不是Viewer启动/开发前置。",
+      "files": [{"path": "docs\\cu-cli-integration.md", "action": "create"}],
+      "depends_on": ["3.3", "4.3", "4.4"],
+      "acceptance_criteria": [{"id": "AC-5.1", "text": "Viewer独立验收后，查看器/CLI负责人批准外部交接、保存查看、本地文件/资源边界与生命周期。"}],
+      "tests": [{"id": "T-5.1", "type": "manual", "framework": "host-contract-review", "description": "先确认G2/G3完成，再评审实际CLI实现，演示嵌入已完成Viewer且不改变其独立运行流程。", "covers_criteria": ["AC-5.1"]}]
+    },
+    {
+      "id": "5.2", "phase": 5, "priority": "P0", "title": "实现并验证外部 cu-cli 查看流程", "effort": "TBD",
+      "status": "blocked",
+      "repository": null,
+      "execution_ready": false,
+      "requires_gates": ["G2", "G3"],
+      "blocked_by": "完成Viewer P0/P1本体、批准5.1并确认CLI仓库/负责人及已检查文件目标，才执行最后阶段。",
+      "description": "主线最后任务：在外部宿主实现获批新分析/保存结果查看，复用已完成Viewer；服务/服务器职责不进入组件。",
+      "files": [],
+      "depends_on": ["3.3", "5.1"],
+      "acceptance_criteria": [{"id": "AC-5.2", "text": "约定cu analyze --view与保存结果路径打开同一已完成Viewer；保存查看不新增CU调用，宿主生命周期/文件限制通过。"}],
+      "tests": [{"id": "T-5.2", "type": "integration", "framework": "host-native-and-browser", "description": "G2/G3与交接批准后验证CLI新分析/保存查看、保存时零CU网络、启动关闭/路径错误文件边界，以及独立Viewer无回归。", "covers_criteria": ["AC-5.2"]}]
     },
     {
       "id": "6.1", "phase": 6, "priority": "P2", "title": "单独确定 TIFF 与多页 TIFF 范围", "effort": "S",
@@ -571,7 +644,7 @@ flowchart LR
 - **宿主原生集成测试**：使用已确认 CLI 仓库的现有运行器，不另建一套 CLI 框架。
 - **人工验证依据**：Studio 对比、依赖/许可证评估，以及负责人批准，仍明确属于人工工作，不计入自动化覆盖。
 
-`npm ci --ignore-scripts`、`npm run typecheck`、`npm run lint`、`npm run test:unit`、`npm run test:e2e`、`npm run build` 和 `npm run build:demo` 已实现。409 个单元案例及 Chrome/Edge 共 52 次运行通过：每个浏览器执行八个原型、十个公共输入及八个图片格式场景。原生 EXIF 在 DPR1/2 检查；HEIF 实际组件 CSP/取消仅用于本机开发。生产原生图片和生产 HEIF 拒绝状态已查看。完整真实格式/方向配对、解码器分发、HTTPS/跨源、100 次压力及隔离调用方仍开放。
+`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建和`npm run verify:consumer`已实现。424单元案例、80仓库浏览器和16真实React18/19 Vite包使用方运行通过，本地合计96次。已有600压力轮与30张不变产品图保留；核心CI已配置但未远程执行。完整格式/分发、跨源/其他宿主、更广压力和内存/延迟预算仍开放。
 
 常规回归测试使用已保存、已脱敏的真实结果，不实时调用 Analyze。访问真实服务只用于明确批准的测试样本获取，或验证外部 CLI 新分析路径。源文件 URL 测试可以使用本地测试服务器；测试禁止 CU 请求及对必需外部 CDN 资源的依赖。不在测试日志或浏览器产物中记录凭据、SAS URL、客户文档或未经处理的敏感结果。
 
@@ -590,11 +663,11 @@ flowchart LR
 | 源文件缺失、结果为空/无效、保存的 JSON 畸形、文件损坏 | 加载或交互 | 明确展示输入/渲染状态；仅源文件失败时不隐藏有效字段。 | AC-3.2 / T-3.2 |
 | 多页 PDF 位于首页/末页 | 上一页/下一页/跳页，包括无效输入 | 计数和边界正确；报告无效页码输入，不默默猜测。 | AC-3.1、AC-3.2 / T-3.1b、T-3.2 |
 | 隔离 React 宿主安装已打包产物 | 在约定资源/CSP 策略下编译和渲染 | 公共类型、样式和资源无需仓库别名或运行时 CDN 即可工作。 | AC-3.3 / T-3.3 |
-| 新 CLI 结果和先前保存的结果 | 打开已批准的查看路径 | 使用同一组件；已保存结果路径不调用 CU；本地文件边界有效。 | AC-4.1、AC-4.2 / T-4.1、T-4.2 |
-| 嵌套/数组/表格字段关联多个区域 | 展开并选择每个区域 | 关系、选择和导航保持正确。 | AC-5.1 / T-5.1 |
-| Markdown、原始 JSON 及恶意标记/链接 | 切换面板并展开节点 | 支持规定的格式/树行为；不执行不安全内容。 | AC-5.2 / T-5.2 |
-| 键盘/触摸用户，或窄视口中的定制宿主 | 导航并改变初始/选择状态 | 焦点/布局可用，公共扩展经过验证。 | AC-5.3 / T-5.3 |
-| 受限 MCP/聊天宿主 | 评审交付、加载/错误及清理场景 | 宿主设计明确，核心边界不变。 | AC-5.4 / T-5.4 |
+| 新 CLI 结果和先前保存的结果 | 打开已批准的查看路径 | 使用同一组件；已保存结果路径不调用 CU；本地文件边界有效。 | AC-5.1、AC-5.2 / T-5.1、T-5.2 |
+| 嵌套/数组/表格字段关联多个区域 | 展开并选择每个区域 | 关系、选择和导航保持正确。 | AC-4.1 / T-4.1 |
+| Markdown、原始 JSON 及恶意标记/链接 | 切换面板并展开节点 | 支持规定的格式/树行为；不执行不安全内容。 | AC-4.2 / T-4.2 |
+| 键盘/触摸用户，或窄视口中的定制宿主 | 导航并改变初始/选择状态 | 焦点/布局可用，公共扩展经过验证。 | AC-4.3 / T-4.3 |
+| 受限 MCP/聊天宿主 | 评审交付、加载/错误及清理场景 | 宿主设计明确，核心边界不变。 | AC-4.4 / T-4.4 |
 | TIFF 或 DI 候选范围 | 评审真实样本与拟议后续测试 | 单独批准 P2 计划；不扩大 P0/P1 范围。 | AC-6.1、AC-6.2 / T-6.1、T-6.2 |
 
 ### 测试数据与测量
@@ -607,6 +680,8 @@ flowchart LR
 
 至少重复 100 次页面/变换切换及快速源文件更换。断言选择/对齐稳定、无过期完成结果，以及自身持有资源的创建与释放配对。浏览器内存测量只是补充依据，不能替代资源释放断言。
 
+当前DPR1 PDF/PNG批次已在Chrome/Edge每浏览器通过三组百次计数：页面/变换、五种公共输入替换、挂起HTTP取消；逐轮核对状态/几何/资源，并保留原型截图。其他格式/DPR、峰值内存与批准后的性能预算仍需单独覆盖。
+
 基于已记录的代表性测试样本大小及硬件/浏览器版本，测量首次渲染、翻页、结果面板交互、包/解码器大小和峰值内存。在 G2 之前批准量化性能预算；不编造或声称达到未经测量的延迟目标。
 
 ## 风险与缓解措施
@@ -618,7 +693,7 @@ flowchart LR
 | 单位/方向/旋转不匹配导致叠加层漂移 | 高 | 中 | 共享变换、独立参考点和真实浏览器坐标断言。 |
 | PDF Worker/字体或解码器资源在本地/嵌入宿主中失效 | 高 | 中 | 打包本地资源；测试隔离使用方及约定 CSP/离线交付。 |
 | 页面/源文件变化时出现过期加载或资源泄漏 | 高 | 中 | 取消及资源归属管理、以最后一次加载为准、StrictMode/卸载和重复切换测试。 |
-| CLI 负责人/契约或终端原生定位存在冲突 | 高 | 中 | D5 和任务 4.1 批准；将外部任务 4.2 记为阻塞，不宣称集成完成。 |
+| CLI 负责人/契约或终端原生定位存在冲突 | 高 | 中 | D5/5.1/5.2延后到Viewer完成后的最后阶段；独立开发/验收不被阻塞，不宣称已有集成。 |
 | 样本访问、隐私或再分发限制妨碍覆盖 | 高 | 中 | 使用已批准的脱敏真实配对、来源清单并明确缺口；不以伪造成功输出代替。 |
 | 大型 JSON/Markdown 或图片解码阻塞界面 | 中 | 中 | 实测预算、经评估的树组件、有界/按需渲染及书面限制。 |
 | 依赖维护、许可证或 React 对等依赖冲突 | 中 | 中 | 版本/许可证评估、锁文件、不自动公开发布，以及安装包使用方测试。 |
@@ -629,9 +704,10 @@ flowchart LR
 
 1. **内部最小闭环**：仅使用已批准的真实测试样本，不发布。如果输入/几何依据与实现矛盾，应暂停，先修正共享契约，再扩展功能。
 2. **私有 P0 组件库/演示候选版本**：要求 G2 和安装包使用方测试通过。保留前一个已知正常的私有产物；拒绝存在格式、变换、生命周期或资源回归的候选版本。
-3. **cu-cli 宿主小范围试用**：要求 G3 和维护者显式批准。使用宿主现有的选择启用/回滚机制；失败时禁用新查看路径，或恢复先前宿主/产物版本，不改变分析或已保存结果的语义。
-4. **私有 P0 发布，然后推进 P1**：完整 P0 验收要求组件库和宿主验证依据齐备。G4 后独立发布 P1，同时重新执行 P0 回归。公开预览/GA 和许可证属于单独批准事项，不是自动进入的最后阶段。
-5. **P2**：只安排单独批准的 TIFF/DI 实现计划，不让它们延迟或削弱 P0/P1 门槛。
+3. **完成独立 Viewer 本体**：完成P1并要求G2 + G3、真实可用结果视图、原型一致性、独立使用方及适用的许可/格式/性能批准。运行或验收Viewer不要求CLI可用。
+4. **cu-cli最后集成**：本体完成后才开展5.1/5.2，取得维护者批准并验证G4；宿主查看路径可独立回滚，不改变Viewer或保存结果语义。
+
+公开预览/GA及任何分发仍需单独批准，排期调整不豁免HEIF义务。原始包含CLI的整体交付须最终取得G4依据，但Viewer独立验收不依赖G4。P2在本次主线之外单独批准且不阻塞。
 
 代码回滚时，仅撤销该任务已评审的变更，或固定到前一个包/宿主版本；保留无关工作及现有保存结果。本次文档变更本身没有运行时影响。
 
@@ -642,6 +718,7 @@ flowchart LR
 - **源文件关联**：在完整变换矩阵及重复切换测试中，已验证的字段/页面导航和几何信息保持在批准容差内。
 - **打包/可靠性**：隔离的安装包嵌入测试通过；规定测试中不存在必需 CDN 资源、过期源文件结果或未释放的自身持有资源。
 - **可追溯性**：每项任务验收标准均关联测试；完整 P0 验收前，全部自动化 P0 场景及必需人工批准均通过。
+- **交付顺序**：Viewer P0/P1本体无需cu-cli通过G2 + G3后，才开始5.1/5.2并验证G4；禁用结果占位不计作完成。
 - **P1/P2 范围纪律**：P1 丰富面板和已评审扩展通过对应场景；TIFF/DI 保持独立范围，不阻塞 P0/P1。
 
 ## 变更记录
@@ -663,3 +740,8 @@ flowchart LR
 | 2026-10-10 | 统一 Fields/原文置信度与实际来源页可用性；通过合成失配/恢复验证 375 个单元案例及 16 个浏览器运行，同步路线图/样本覆盖，并明确静态 v2 图片保留历史 UI，不作为最新 Fields 验收基线。 |
 | 2026-10-10 | 负责人批准交互实施基线；新增独立公共输入宿主及受控取消/资源校验，合并 36 次浏览器运行和 36 个相关单元案例通过；单元总数仍为 375，运行组件/演示代码未改，完整 P0/格式/调用方门槛保留。 |
 | 2026-10-10 | 实现通用图片适配器及负责人批准的仅本机 HEIF Worker；原生格式、合成 EXIF/DPR、同源无 eval/无 WASM CSP 与取消通过。验证 409 个单元案例和 52 次浏览器运行，两个分发构建均没有解码二进制，完整 P0/许可门槛保留。 |
+| 2026-10-12 | 负责人要求原型/最终UI一致；固化30张产品图片与每浏览器九个视觉场景，Chrome Fields精确匹配批准图并用真实漂移探针验证。合并70次运行及36次视觉重复比较通过，UI/样式未改；保留正式2.5/P0及100压力/调用方门槛。 |
+| 2026-10-12 | 六个压力运行验证600轮DPR1 PDF/PNG状态/输入/取消，合并76次浏览器和314相关单测通过。局部舞台裁剪修复平移滚动条居中偏移，30图哈希未变；更广压力/性能/调用方及正式P0门槛保留。 |
+| 2026-10-12 | 真实React18/19 tgz宿主通过获批Node端Vite资产及目录规范化；16次开发/生产CSP/资源/截图、76次仓库回归和416单元案例通过。新增使用说明/核心CI，产品基线未变，完整格式/远程CI/发布门槛保留。 |
+| 2026-10-12 | 负责人要求Viewer优先：将P1重编号为4.1-4.4/G3、CLI重编号为5.1-5.2/G4，并同步验收/测试编号、依赖、门槛与交付顺序。保留已有验证依据及独立P2；下一功能目标为4.2真实结果面板切换。 |
+| 2026-10-13 | 完成4.1已定范围：真实数组/表格式层级、隐藏后代选择及全部自身/后代来源区域，补充合成跨页覆盖。424单元、80仓库和16消费者运行通过，30张获批图片不变；专属Tables视图/真实跨页结构化配对仍开放，下一项4.2。 |

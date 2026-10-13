@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import type { ContentUnderstandingResultViewerProps } from "./index";
 import { FieldsPane } from "./components/FieldsPane";
 import { SourcePane } from "./components/SourcePane";
-import { fieldColor, flattenFields, initialInteraction, interaction, primaryRegion } from "./internal/interaction";
+import { fieldColor, fieldRegion, fieldRegions, flattenFields, initialInteraction, interaction } from "./internal/interaction";
 import { CuResultParseError, parseCuResult } from "./internal/parseCuResult";
 import type { LoadedSource } from "./internal/source";
 import { hasSourcePage, loadSource, unavailableSourcePageMessage } from "./internal/source";
@@ -54,7 +54,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     useEffect(() => dispatch({ type: "clear" }), [props.result]);
     const onRenderReady = useCallback((ready: boolean) => setRenderReady(ready), []);
     const isPageAvailable = (pageNumber: number | undefined): boolean => hasSourcePage(source?.pages, pageNumber);
-    const available = (field: CuField | null): boolean => isPageAvailable(primaryRegion(field)?.pageNumber);
+    const available = (field: CuField | null, regionIndex = 0): boolean =>
+        isPageAvailable(fieldRegion(field, regionIndex)?.pageNumber);
     const sourceIssues: CuParseIssue[] = source && content ? content.pages.flatMap((page, index) =>
         isPageAvailable(page.pageNumber) ? [] : [{
             code: "unavailable-source-page",
@@ -64,6 +65,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const selected = state.selected && fields.includes(state.selected) ? state.selected : null;
     const hovered = state.hovered && fields.includes(state.hovered) ? state.hovered : null;
     const active = hovered ?? selected;
+    const activeRegions = fieldRegions(active);
+    const activeRegionIndex = hovered ? 0 : state.selectedRegionIndex;
     const chooseContent = (index: number): void => {
         const next = parsed.model?.contents[index];
         if (!next) throw new Error("The chosen result content does not exist.");
@@ -77,8 +80,12 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             key={source?.name ?? "loading"}
             source={source} loading={!matchingSource} error={matchingSource?.error ?? null}
             content={content} pageNumber={state.pageNumber} active={active} preview={Boolean(hovered)}
+            regions={activeRegions} regionIndex={activeRegionIndex}
             color={active ? fieldColor(active, content?.fields ?? []) : "#0078d4"}
             onPage={pageNumber => dispatch({ type: "page", pageNumber })} onRenderReady={onRenderReady}
+            onRegion={index => {
+                if (selected) dispatch({ type: "region", fieldId: selected.id, index, pageAvailable: available(selected, index) });
+            }}
         />
         <FieldsPane
             key={content?.id ?? "empty"}

@@ -8,6 +8,8 @@ The supplied brief ends with the incomplete extensibility item `Result-pane`. It
 
 The acceptance checks below are proposed ways to verify the brief. API details, library choices, browser targets, and implementation plans remain subject to validation.
 
+**Scheduling update approved on 2026-10-12:** complete the independently runnable Viewer P0/P1 and its acceptance before the external cu-cli contract/integration. This changes execution order, not the original requirement priorities; CLI remains tracked but does not block Viewer development, startup or standalone acceptance. TIFF/DI remain separate P2. See the revised [development plan](dev-plan.md#milestones-and-sequencing).
+
 ## Objective and Reuse Scenarios
 
 Create a reusable React/TypeScript component that displays CU field extraction results together with the original document or image. Users should be able to inspect extracted values and visually associate them with their locations in the source, using Content Understanding Studio as the primary UX and behavioral reference.

@@ -5,9 +5,10 @@ import { getRasterSize } from "./geometry";
 export async function createPdfSource(bytes: ArrayBuffer, name: string, signal: AbortSignal): Promise<LoadedSource> {
     const pdfjs = await import("pdfjs-dist");
     abortIfNeeded(signal);
-    // Keep this a runtime directory URL; Vite's single-asset rewrite drops its trailing slash.
+    // Host bundlers may rewrite directory assets without the trailing slash.
     const assetDirectory = "./pdfjs/";
     const resources = new URL(assetDirectory, import.meta.url);
+    if (!resources.pathname.endsWith("/")) resources.pathname += "/";
     pdfjs.GlobalWorkerOptions.workerSrc = new URL("build/pdf.worker.mjs", resources).href;
     const task = pdfjs.getDocument({
         data: new Uint8Array(bytes),

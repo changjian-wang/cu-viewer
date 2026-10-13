@@ -3,8 +3,8 @@ import type { PageSize } from "../internal/geometry";
 import { createPageGeometry, getFitZoom, projectRegion } from "../internal/geometry";
 import type { LoadedSource } from "../internal/source";
 import { hasSourcePage, unavailableSourcePageMessage } from "../internal/source";
-import type { CuContent, CuField, CuPoint } from "../internal/types";
-import { displayValue, fieldLabel, formatConfidence, primaryRegion } from "../internal/interaction";
+import type { CuContent, CuField, CuPoint, CuRegion } from "../internal/types";
+import { displayValue, fieldLabel, formatConfidence } from "../internal/interaction";
 
 interface SourcePaneProps {
     source: LoadedSource | null;
@@ -14,8 +14,11 @@ interface SourcePaneProps {
     pageNumber: number;
     active: CuField | null;
     preview: boolean;
+    regions: CuRegion[];
+    regionIndex: number;
     color: string;
     onPage: (pageNumber: number) => void;
+    onRegion: (index: number) => void;
     onRenderReady: (ready: boolean) => void;
 }
 
@@ -86,7 +89,7 @@ export function SourcePane(props: SourcePaneProps) {
     }, [props.source, props.pageNumber, zoom, rotation, renderKey, dpr, page, props.onRenderReady]);
     const size = ready ? rendered?.size : undefined;
     let polygon: CuPoint[] = [];
-    const region = primaryRegion(props.active);
+    const region = props.regions[props.regionIndex];
     const regionPageAvailable = hasSourcePage(props.source?.pages, region?.pageNumber);
     let overlayError: string | null = props.source && region && !regionPageAvailable ?
         unavailableSourcePageMessage(region.pageNumber) : null;
@@ -160,6 +163,18 @@ export function SourcePane(props: SourcePaneProps) {
                     <strong>{fieldLabel(props.active)}</strong><span title={displayValue(props.active)}>{displayValue(props.active)}</span>
                     {props.active.confidence !== undefined && <span>{formatConfidence(props.active.confidence)}</span>}
                 </aside> :
+                props.active && !props.preview && props.regions.length > 1 ?
+                    <aside className="cu-preview cu-region-navigation" aria-label="Source region navigation">
+                        <strong>{fieldLabel(props.active)}</strong>
+                        <div className="cu-region-controls">
+                            <button type="button" aria-label="Previous source region" disabled={props.regionIndex === 0}
+                                onClick={() => props.onRegion(props.regionIndex - 1)}>‹</button>
+                            <span>Region {props.regionIndex + 1} of {props.regions.length}</span>
+                            <button type="button" aria-label="Next source region"
+                                disabled={props.regionIndex >= props.regions.length - 1}
+                                onClick={() => props.onRegion(props.regionIndex + 1)}>›</button>
+                        </div>
+                    </aside> :
                 <span className="cu-preview-hint">{props.active && !region ?
                     `${props.active.name}: no source region` : region && !regionPageAvailable ?
                         props.source ? `Source page ${region.pageNumber} is unavailable in this file.` : "Source is not available for navigation." :

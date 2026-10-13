@@ -1,4 +1,4 @@
-import type { BrowserContext, Page } from "@playwright/test";
+import type { BrowserContext, Page, Request } from "@playwright/test";
 
 interface SourceResources {
     workersCreated: number;
@@ -84,17 +84,23 @@ export async function alive(page: Page): Promise<{ workers: number; bitmaps: num
     });
 }
 
-export async function holdRequest(context: BrowserContext, pattern: string): Promise<{ started: Promise<void>; release: () => Promise<void> }> {
+export async function holdRequest(context: BrowserContext, pattern: string): Promise<{
+    started: Promise<void>;
+    requests: readonly Request[];
+    release: () => Promise<void>;
+}> {
     let start!: () => void;
     let finish!: () => void;
     const started = new Promise<void>(resolve => { start = resolve; });
     const gate = new Promise<void>(resolve => { finish = resolve; });
     const pending: Promise<void>[] = [];
+    const requests: Request[] = [];
     await context.route(pattern, route => {
+        requests.push(route.request());
         start();
         const request = gate.then(() => route.continue());
         pending.push(request);
         return request;
     });
-    return { started, release: async () => { finish(); await Promise.all(pending); } };
+    return { started, requests, release: async () => { finish(); await Promise.all(pending); } };
 }

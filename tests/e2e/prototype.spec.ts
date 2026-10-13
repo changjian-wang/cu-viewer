@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { checkPolygon, ready } from "./viewerAssertions";
+import { standardFontPdf } from "./pdfFixtures";
 
 const amountId = "/contents/0/fields/AmountDue/valueObject/Amount";
 const amountRow = `[data-field-id="${amountId}"]`;
@@ -136,28 +137,6 @@ test("real PNG and truthful empty/invalid/source-failure states", async ({ page 
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles({ name: "receipt.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(realReceipt)) });
     await expect(page.locator("[data-field-depth='0']")).toHaveCount(11);
 });
-
-function standardFontPdf(): Buffer {
-    const stream = "BT /F1 18 Tf 40 120 Td (Synthetic standard-font resource test) Tj ET";
-    const objects = [
-        "<< /Type /Catalog /Pages 2 0 R >>",
-        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
-    ];
-    let bytes = "%PDF-1.7\n";
-    const offsets = [0];
-    for (const [index, object] of objects.entries()) {
-        offsets.push(Buffer.byteLength(bytes));
-        bytes += `${index + 1} 0 obj\n${object}\nendobj\n`;
-    }
-    const xref = Buffer.byteLength(bytes);
-    bytes += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-    bytes += offsets.slice(1).map(offset => `${String(offset).padStart(10, "0")} 00000 n \n`).join("");
-    bytes += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-    return Buffer.from(bytes);
-}
 
 test("local standard font assets render without depending on a system font or CDN", async ({ page, context }) => {
     const fonts: string[] = [];
@@ -330,6 +309,117 @@ test("Fields matches Studio grouping, icons, badges and spacing without altering
         }));
         expect(tabs.contentWidth).toBeLessThanOrEqual(tabs.width);
     }
+});
+
+test("real table-like arrays and every multi-region source remain reachable without losing selection", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    const address = page.locator('[data-field-id="/contents/0/fields/BillingAddress"]');
+    await address.getByRole("button", { name: "BillingAddress", exact: true }).click();
+    await leave(page);
+    const navigation = page.getByRole("complementary", { name: "Source region navigation" });
+    await expect(navigation).toContainText("Region 1 of 2");
+    await checkPolygon(page, [
+        { x: 0.5801 / 8.5, y: 3.9488 / 11 }, { x: 1.2856 / 8.5, y: 3.9470 / 11 },
+        { x: 1.2860 / 8.5, y: 4.1130 / 11 }, { x: 0.5805 / 8.5, y: 4.1148 / 11 },
+    ], 0);
+    const first = await page.getByTestId("source-overlay").locator("polygon").getAttribute("points");
+    await navigation.getByRole("button", { name: "Next source region", exact: true }).click();
+    await expect(navigation).toContainText("Region 2 of 2");
+    await expect(navigation.getByRole("button", { name: "Next source region", exact: true })).toBeDisabled();
+    await checkPolygon(page, [
+        { x: 0.5728 / 8.5, y: 4.1489 / 11 }, { x: 2.0254 / 8.5, y: 4.1489 / 11 },
+        { x: 2.0254 / 8.5, y: 4.3167 / 11 }, { x: 0.5728 / 8.5, y: 4.3167 / 11 },
+    ], 0);
+    expect(await page.getByTestId("source-overlay").locator("polygon").getAttribute("points")).not.toBe(first);
+    await navigation.getByRole("button", { name: "Previous source region", exact: true }).click();
+    await expect(navigation).toContainText("Region 1 of 2");
+
+    const lineItems = page.locator('[data-field-id="/contents/0/fields/LineItems"]');
+    await lineItems.getByRole("button", { name: "Expand LineItems", exact: true }).click();
+    for (const item of [1, 2, 3]) {
+        await expect(page.getByRole("button", { name: `Item ${item}`, exact: true })).toBeVisible();
+    }
+    await page.getByRole("button", { name: "Expand Item 1", exact: true }).click();
+    const date = page.locator('[data-field-id="/contents/0/fields/LineItems/valueArray/0/valueObject/Date"]');
+    await date.getByRole("button", { name: "Date", exact: true }).click();
+    await leave(page);
+    await expect(date.locator(".cu-field-value")).toHaveText("2021-03-04");
+    await expect(date.getByRole("button", { name: "Date", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("region", { name: "Extraction results" }).getByRole("status"))
+        .toHaveText("Pinned: LineItems / Item 1 / Date");
+    await lineItems.getByRole("button", { name: "Collapse LineItems", exact: true }).click();
+    await leave(page);
+    await expect(date).toHaveCount(0);
+    await expect(lineItems).toHaveClass(/is-selected/);
+    await expect(page.getByTestId("source-overlay")).toBeVisible();
+    await lineItems.getByRole("button", { name: "Expand LineItems", exact: true }).click();
+    await expect(date).toBeVisible();
+    await expect(date.getByRole("button", { name: "Date", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("a structured group can navigate all grounded descendants across PDF pages", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    const result = {
+        apiVersion: "2025-11-01",
+        contents: [{
+            kind: "document", unit: "inch", startPageNumber: 1, endPageNumber: 4,
+            pages: [
+                { pageNumber: 1, width: 8.5, height: 11 },
+                { pageNumber: 4, width: 8.2639, height: 11.6806 },
+            ],
+            fields: {
+                Rows: { type: "array", valueArray: [
+                    { type: "object", valueObject: {
+                        Label: { type: "string", valueString: "First", source: "D(1,1,1,2,1,2,2,1,2)" },
+                    } },
+                    { type: "object", valueObject: {
+                        Label: { type: "string", valueString: "Second", source: "D(4,1,1,2,1,2,2,1,2)" },
+                    } },
+                ] },
+            },
+        }],
+    };
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
+        name: "synthetic-structured-cross-page.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify(result)),
+    });
+    const rows = page.locator('[data-field-id="/contents/0/fields/Rows"]');
+    await rows.getByRole("button", { name: "Rows", exact: true }).click();
+    await leave(page);
+    const navigation = page.getByRole("complementary", { name: "Source region navigation" });
+    await expect(navigation).toContainText("Region 1 of 2");
+    await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
+    await checkPolygon(page, [
+        { x: 1 / 8.5, y: 1 / 11 }, { x: 2 / 8.5, y: 1 / 11 },
+        { x: 2 / 8.5, y: 2 / 11 }, { x: 1 / 8.5, y: 2 / 11 },
+    ], 0);
+    await navigation.getByRole("button", { name: "Next source region", exact: true }).click();
+    await ready(page);
+    await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
+    await expect(navigation).toContainText("Region 2 of 2");
+    await checkPolygon(page, [
+        { x: 1 / 8.2639, y: 1 / 11.6806 }, { x: 2 / 8.2639, y: 1 / 11.6806 },
+        { x: 2 / 8.2639, y: 2 / 11.6806 }, { x: 1 / 8.2639, y: 2 / 11.6806 },
+    ], 0);
+    await page.getByRole("textbox", { name: "Page number" }).fill("2");
+    await page.getByRole("textbox", { name: "Page number" }).press("Enter");
+    await ready(page);
+    await expect(page.getByTestId("source-overlay")).toHaveCount(0);
+    await navigation.getByRole("button", { name: "Previous source region", exact: true }).click();
+    await ready(page);
+    await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
+
+    await rows.getByRole("button", { name: "Expand Rows", exact: true }).click();
+    await page.getByRole("button", { name: "Expand Item 2", exact: true }).click();
+    const second = page.locator('[data-field-id="/contents/0/fields/Rows/valueArray/1/valueObject/Label"]');
+    await second.getByRole("button", { name: "Label", exact: true }).click();
+    await leave(page);
+    await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
+    await expect(second.locator(".cu-field-value")).toHaveText("Second");
+    await expect(page.getByRole("region", { name: "Extraction results" }).getByRole("status"))
+        .toHaveText("Pinned: Rows / Item 2 / Label");
 });
 
 test("Hide missing fields changes only presentation and clears a filtered-out selection", async ({ page }) => {

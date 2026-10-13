@@ -4,7 +4,9 @@ A reusable React/TypeScript component for inspecting Azure Content Understanding
 
 ## Status
 
-**Interactive prototype available.** The private MIT package now exports a React viewer prototype and has a runnable local demo using real saved PDF/PNG results. Source rendering, field correlation and basic viewing controls have browser coverage. This is not a P0 release, published package, or cu-cli integration.
+**Viewer implementation available; rich result views are not yet complete.** The private MIT package exports the actual React component and a directly runnable demo with real PDF/PNG results. Source/Fields interaction, nested/table-like arrays, all available source-region navigation, controls and React 18/19 isolated Vite consumers are verified. Markdown/JSON and other disabled result tabs remain undeveloped; this is not a complete P0 release or published package.
+
+**Development order: Viewer first, cu-cli last.** Complete Viewer P0/P1 functionality and standalone acceptance before CLI contract or integration work. CLI is one external host option, not a prerequisite for starting or reviewing the Viewer. The next functional target is real Fields/Markdown/JSON switching (task 4.2); current technical/format/license gates remain tracked.
 
 The repository is private. The task owner approved the initial design, MIT for the main component, and LGPL decoder candidates subject to compliance before any distribution. The eventual goal is a Microsoft open-source project, not an already approved Microsoft publication. Copyright ownership, third-party distribution obligations, and release approval remain gated.
 
@@ -23,7 +25,7 @@ Implemented prototype input shape, not a stable published API:
 />
 ```
 
-Source input is `File | Blob | ArrayBuffer | string`, and result input is `unknown` containing parsed, serialized CU Analyze JSON. Strings are HTTP, HTTPS, or host-owned blob URLs, not filesystem paths or data URLs. The current prototype detects PDF/PNG/JPEG/BMP from content; HEIF/HEIC remains required P0 work, not implemented support.
+Source input is `File | Blob | ArrayBuffer | string`, and result input is `unknown` containing parsed, serialized CU Analyze JSON. Strings are HTTP, HTTPS, or host-owned blob URLs, not filesystem paths or data URLs. PDF/PNG/JPEG/BMP are identified from content; HEIF/HEIC is local-development only and remains an unresolved P0 distribution requirement.
 
 ## Component Boundary
 
@@ -48,7 +50,9 @@ A host can obtain results however it chooses, including reading a previously sav
 
 P0 image extensions from the supplied brief are `.jpg`, `.jpeg`, `.jpe`, `.png`, `.bmp`, `.heif`, and `.heic`. Browser decoding and fallback requirements must be validated; HEIF/HEIC must not be silently deferred to P2. TIFF and DI must not delay P0 or P1.
 
-## First Host: cu-cli
+Priority labels preserve the brief, not execution order. Viewer P0/P1 and independent acceptance precede the final CLI stage. TIFF/DI stay in a separate P2 backlog, not a newly introduced integration prerequisite.
+
+## cu-cli: Final Integration Option
 
 The target host workflow is:
 
@@ -59,13 +63,13 @@ cu analyze sample.pdf --view
     -> local browser application embedding the reusable viewer
 ```
 
-This is a target workflow, not a command implemented by this repository. The viewer must also work with saved results without a new CU service call.
+This is a target external-host workflow, not a command implemented by this repository. Its contract and implementation are deferred until the standalone Viewer is complete. The Viewer already runs directly and must work with saved results without a new CU service call or CLI service.
 
 Planned deliverables are:
 
-1. The reusable viewer component/library.
-2. A small client-side demo that supplies a source file and saved Analyze JSON.
-3. Integration guidance and a minimal cu-cli host integration, coordinated with the cu-cli repository.
+1. Complete the reusable Viewer P0/P1, including working rich result views and approved UX.
+2. Validate the direct demo and independent React consumers using original source/saved JSON, retaining prototype parity.
+3. Finally agree and implement a minimal cu-cli handoff with its maintainers, reusing the completed Viewer.
 
 The CLI owns browser launch, local file delivery, and any local hosting mechanism. Those responsibilities do not belong in the component.
 
@@ -106,7 +110,7 @@ If a result references a page absent from the loaded source, its page badge is d
 
 The file pickers belong to the demo host. They read local files and parsed JSON; the component receives original data and never calls CU. Source failure does not hide valid fields, invalid result data does not hide a valid source, and parser issues remain visible. Prototype field previews use a small dock below the document so that they cannot obscure source text.
 
-Known limits: HEIF/HEIC is enabled only for local development validation, not distribution builds. Rich P1 panes, React 18 consumer compatibility, complete intrinsic orientation/crop coverage, accessibility/touch behavior, isolated packed-package consumers, CLI integration and release/compliance gates remain incomplete. Markdown, Paragraphs, Tables, Code and the more-views control remain disabled prototype placeholders.
+Known limits: HEIF/HEIC remains local-development only, not a distribution feature. React 18/19 isolated Vite consumers now pass for the verified PDF/PNG scope. Rich P1 panes, full format/orientation/crop coverage, accessibility/touch, wider bundler/host environments, CLI and release/compliance gates remain incomplete. Extra result views remain disabled placeholders.
 
 ## Development Foundation
 
@@ -126,15 +130,81 @@ npm run build:demo
 
 Browser tests use the installed Chrome and Edge, through Playwright's `chrome` and `msedge` channels. `npm run test:e2e` starts the loopback demo if it is not already running. Production-host preview is available with `npm run preview:demo` after `npm run build:demo`, at <http://127.0.0.1:4173/>.
 
-The library build generates an ESM component entry, public TypeScript declarations, scoped CSS, and local PDF resources in `dist`. It exports `ContentUnderstandingResultViewer`, `ViewerSource`, and `ContentUnderstandingResultViewerProps`. Import the package CSS through `cu-result-viewer/styles.css` when using the built entry. The demo build is separate in `dist-demo`; rendering that build is not an isolated packed-package consumer test.
+The library build generates the ESM component, declarations, scoped CSS, local PDF assets and an optional Node-only Vite resource entry. React exports remain `ContentUnderstandingResultViewer`, `ViewerSource` and `ContentUnderstandingResultViewerProps`; import `cu-result-viewer/styles.css`. A Vite host explicitly adds `viewerAssets()` from `cu-result-viewer/vite` to serve/copy resources. See [packed usage and CSP](docs/usage.md). The separate `dist-demo` build is not itself an isolated package test.
 
 The [internal parser](src/internal/parseCuResult.ts) accepts the verified `2025-11-01` operation envelope or its inner Analyze result without caller normalization. It preserves missing/zero/false/null values and nested field identity, parses CU page/region information, and does not modify the original JSON. Structural failures throw `CuResultParseError`; invalid confidence/grounding produces explicit issues while preserving extracted values. Unverified field/content types are retained with warnings, not advertised as fully supported.
 
 [Parser tests](src/internal/parseCuResult.test.ts) and input tests account for 49 cases. Direct parsing of the PDF/PNG results yields 100/42 field nodes and 53/13 regions without warnings; these counts do not verify UI effects.
 
-The [geometry module](src/internal/geometry.ts) maps CU coordinates through actual rendered-page dimensions, zoom, pan and quarter-turn rotation, with inverse, fit and raster-size helpers. Shared region validation prevents parser and overlay disagreements. Core input/parser/geometry tests account for 339 cases; source, PDF/image lifecycle, interaction and display tests bring the current unit total to **409**.
+The [geometry module](src/internal/geometry.ts) maps CU coordinates through actual rendered-page dimensions, zoom, pan and quarter-turn rotation, with inverse, fit and raster-size helpers. Shared validation prevents parser/overlay disagreements. Core input/parser/geometry accounts for 339 cases; lifecycle, structured Fields, interaction, directory-URL and resource-plugin tests bring the current total to **424**.
 
-The initial geometry experiment passed 512 rendered-coordinate cases. The [prototype](tests/e2e/prototype.spec.ts), [public-source input](tests/e2e/source-inputs.spec.ts) and [image-format](tests/e2e/image-formats.spec.ts) suites now pass **52 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: eight prototype, ten public-input and eight image-format scenarios per browser. These include native formats, all eight synthetic JPEG EXIF orientations at DPR 1/2, and local HEIF decoding/CSP/cancellation. Development and built pages were visually checked. Development StrictMode's successfully retried sample-request cancellations are recorded separately from resource errors.
+The initial geometry experiment passed 512 rendered-coordinate cases. The [prototype](tests/e2e/prototype.spec.ts), [public-source input](tests/e2e/source-inputs.spec.ts), [image-format](tests/e2e/image-formats.spec.ts), [product visual](tests/e2e/visual.spec.ts) and [stress](tests/e2e/stress.spec.ts) suites now pass **80 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: ten prototype, ten public-input, eight image-format, nine visual and three stress scenarios per browser. Six stress runs execute 600 measured rounds, not 600 distinct tests. Normal cancelled/retried requests remain distinct from errors.
+
+The separate [packed-consumer matrix](tests/e2e/package-host.spec.ts) adds **16 runs**: React 18.3.1/19.3.0, production/development, Chrome/Edge and two scenarios each. These are actual tgz installations outside the repository, not shared dependencies or source aliases. Combined local browser evidence is **96 runs**. PDF/PNG, types/CSS, local Worker/fonts, CSP, CMap/WASM/ICC delivery and unchanged product screenshot references pass.
+
+```powershell name="Independent packed package verification"
+npm run verify:consumer
+```
+
+The [usage guide](docs/usage.md) explains explicit asset integration and rerunning generated hosts. Vite is an optional build-host peer, not a required browser API or new service dependency. The core CI workflow is configured, but no remote GitHub CI execution is claimed.
+
+### Structured Fields and Source Regions
+
+Task 4.1 is implemented for the current verified scope:
+
+- Objects and arrays retain stable JSON-pointer-derived identities; real Invoice LineItems render as **Item 1–3**, while duplicate child labels remain independently selectable.
+- Collapsing a structured parent keeps the hidden descendant pinned and the parent visibly selected; expanding restores the same selected child.
+- Selecting a field with multiple source regions exposes Previous/Next controls in the existing preview dock. Every region can be reached without changing the root color or replacing the field selection.
+- Groups without their own source collect grounded descendants in deterministic depth-first order. A synthetic, clearly labeled cross-page array verifies group region navigation across PDF pages and manual-page precedence.
+- Real BillingAddress supplies two same-page service regions; the current [running screenshot](docs/prototype/interactive-multi-region.png) shows its second region together with the expanded real LineItems array.
+
+Default/hover/pinned prototype screenshots did not change. This does not implement the dedicated **Tables** result tab, a generalized editable data grid, or prove real CU cross-page structured extraction; those remain separately scoped. The next functional task is **4.2**, actual Fields/Markdown/JSON switching.
+
+### Approved Product Appearance
+
+The owner confirmed that the final UI must preserve the latest approved interactive prototype, including Studio-aligned Fields, no Clear button, collapsed groups, missing filtering and the preview dock below the source. The input-test host is not the product UI. Historical static v2 pictures retain earlier designs and do not override subsequent approvals.
+
+The [visual suite](tests/e2e/visual.spec.ts) freezes **30 screenshot baselines**: 15 images for each Windows browser, covering default PDF, Fields reference, hover/pin, expanded/collapsed/missing states, page 4/ungrounded/relocation, PNG, loading, empty and independent source/result errors. Browse them in the [latest baseline gallery](docs/prototype/index.html#visual-baselines).
+
+- Full-product captures use `1600 x 1040`, DPR 1, light mode and Windows Segoe UI. The Fields reference uses a `1458 x 861` viewport and captures its approximately `489 x 697` CSS-pixel pane.
+- Chrome Fields pixels must also match the existing [approved reference](docs/prototype/interactive-fields.png) exactly. Edge has a separate baseline for its native scrollbar differences; no UI regions are masked.
+- Screenshot comparison uses color threshold `0` and `maxDiffPixels: 0`. Actual polygon vertices separately retain the `1 CSS px` geometry limit.
+- Normal tests never update or create missing baselines. A drift probe changes the dot size from 12 to 14 px in test-only DOM styling, verifies a screenshot mismatch, removes the probe, and verifies recovery.
+- The visual suite passed 36 repeated comparison runs without changing any baseline hash. Separate 100-round PDF/PNG stress scenarios now verify state/resource behavior and compare the stressed product context directly to these same images; all 30 baseline hashes remain unchanged.
+
+```powershell name="Immutable product visual regression"
+npm run test:e2e -- visual.spec.ts
+```
+
+Only after an intentional design change has been reviewed and approved, update the approved Fields reference if affected, then explicitly record and review the resulting image diffs:
+
+```powershell name="Explicitly record approved visual changes"
+node .\node_modules\@playwright\test\cli.js test visual.spec.ts --update-snapshots=all
+```
+
+Do not update screenshots merely to make a failing test pass. Current baselines target Windows and recorded Chrome/Edge versions; other platforms need reviewed references. Browser/font upgrades require review, not looser thresholds. Verified Vite React 18/19 consumers now match default/PDF-pin/PNG-pin images; wider host parity and full P0 acceptance remain open.
+
+### 100-Round State and Resource Verification
+
+The [stress suite](tests/e2e/stress.spec.ts) exercises the actual component at `1600 x 1040`, DPR 1, in Chrome and Edge. Each browser executes:
+
+| Scenario | Exact work and assertions |
+| --- | --- |
+| PDF pages and transformations | 100 rounds: page 1/4 navigation, ungrounded hover, pin restoration, quarter-turns, fit, zoom and 37/21 px dragging. Primary-region vertices stay within 1 CSS pixel and the loaded PDF worker count does not grow. |
+| Public-source replacement | 100 PDF/PNG replacements; each of File/Blob/ArrayBuffer/HTTP/blob URL occurs 20 times. Every completed source has only its expected live resources; 40 buffer/JSON/host-URL integrity checks pass per browser. Host release balances Worker, bitmap and URL creation/disposal. |
+| Pending HTTP cancellation | 100 controlled pending loads: 50 source replacements and 50 unmounts. Every held request is checked for actual `net::ERR_ABORTED`, not only a StrictMode side-effect cancellation; no late successful response or retained source resource is accepted. |
+
+The product-context PDF stress run finishes by comparing its pinned PDF and replacement PNG directly with the existing approved images. Resource accounting distinguishes a currently owned bitmap from a leak; it does not navigate to a fresh page and infer cleanup from reset counters.
+
+Stress exposed a genuine pan-layout bug: a 37 px horizontal drag could move the paper only 29.5 px because vertical overflow created a 15 px scrollbar and re-centered the paper. Clipping translated content inside the existing document stage fixes that root cause while the stage's explicit dimensions still support zoom scrolling. The drag remains 37/21 px, no compensating offsets or screenshot updates are used, and all approved images still match.
+
+```powershell name="PDF and image stress regression"
+npm run test:e2e -- stress.spec.ts
+```
+
+Stress cases have an explicit five-minute test-runner deadline, not an approved performance budget. Run a single Playwright runner, or give separate runners different output directories; their default trace/artifact folders are shared. This batch passed 314 related geometry/interaction unit cases, type/lint, both builds and the 76-run combined browser suite. The overall unit inventory remains 409.
+
+Stress coverage is limited to saved PDF/PNG, public representations and controlled HTTP cancellation at DPR 1. Broader HEIF/format/orientation/DPR stress, peak memory and latency budgets remain separate gates. Independent Vite package consumers are covered by their additional matrix, not inferred from these loops.
 
 ### Public Source Input Verification
 
@@ -154,7 +224,7 @@ The input suite compares actual canvas pixel hashes across representations and i
 npm run test:e2e -- source-inputs.spec.ts
 ```
 
-On this Windows checkout, with `npm run dev` running, the test host is at <http://127.0.0.1:5173/@fs/C:/github/cu-result-viewer/tests/e2e/source-inputs.html>. It now also has **Load HEIF**, using a licensed photograph and explicitly synthetic geometry, not a new CU result. This is not an isolated package consumer; HTTPS/cross-origin policies, full format/orientation coverage, 100-switch stress and production embedding remain separate gates.
+On this Windows checkout, with `npm run dev` running, the test host is at <http://127.0.0.1:5173/@fs/C:/github/cu-result-viewer/tests/e2e/source-inputs.html>. It also has **Load HEIF**, using a licensed photograph and explicitly synthetic geometry. PDF/PNG 100-round stress now passes; HTTPS/cross-origin policies, broader format/orientation stress and production embedding remain separate gates.
 
 ### Image Formats and Local HEIF Validation
 
@@ -171,7 +241,7 @@ npm run test:e2e -- image-formats.spec.ts
 
 **HEIF/HEIC is development-only, as approved by the owner.** [The local-resource plugin](tools/heifDevelopmentAssets.ts) reads `CU_HEIF_DEV_ASSET_DIR` from the demo's ignored local environment configuration. The directory must contain the unchanged evaluated `libheif-asm.js` 1.23.5 artifact with SHA-256 `804551ee35288509d5bde23c480e956f9d7b2a0dfc0b36a6a9a8a5b01234d276`; see [the evaluation and license gate](docs/rendering-evaluation.md#license-and-distribution-gate). This machine's existing isolated assets are configured; no codec dependency was installed or copied into the repository.
 
-Without local configuration, the HEIF browser scenarios are explicitly skipped with that reason; native format tests still run. The recorded 52 runs used configured local assets, with no HEIF skips.
+Without local configuration, the HEIF browser scenarios are explicitly skipped with that reason; native format tests still run. The recorded 76 combined runs used configured local assets, with no HEIF skips.
 
 The [owned Worker](src/internal/heif.worker.ts) decodes lazily off the UI thread with a 30-second development deadline. Production/library builds reject HEIF explicitly and include no LGPL decoder binary. Vite may emit the project's small Worker glue, but it is not an enabled decoder. Missing local resources and unsupported/corrupt files report visible errors; AVIF and image sequences are not advertised as supported.
 

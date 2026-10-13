@@ -23,16 +23,19 @@
       figure img { display: block; width: 100%; height: auto; }
       figcaption { padding: 10px 14px; font-size: 13px; color: #53647b; border-top: 1px solid #e4e9f0; }
       a { color: #0067b8; }
+      .baseline-links { width: 100%; border-collapse: collapse; font-size: 14px; }
+      .baseline-links th, .baseline-links td { padding: 8px 12px; border: 1px solid #d9e1eb; text-align: left; }
       footer { color: #617087; font-size: 13px; }
     </style>
   </head>
   <body>
     <header>
       <h1>CU Result Viewer · 原型 v2</h1>
-      <p>保留 Studio 风格，优化阅读空间并补齐状态。下方是静态设计稿，不是可运行查看器；图中的控件不可操作。</p>
+      <p>保留 Studio 风格。下方先展示最新产品截图基线，再保留历史静态稿；这不是可运行查看器，图中的控件不可操作。</p>
       <p>静态评审已通过。<a href="http://127.0.0.1:5173/" style="color:white">打开已启动的交互原型</a>，或查看 <a href="interactive-fields.png" style="color:white">Fields</a> / <a href="interactive-pdf.png" style="color:white">PDF</a> / <a href="interactive-png.png" style="color:white">PNG</a> / <a href="interactive-heif.png" style="color:white">HEIF 本机验证（合成定位）</a> 实际截图。</p>
     </header>
     <nav aria-label="原型状态导航">
+      <a href="#visual-baselines">最新产品基线</a>
       <a href="#main">主界面</a>
       <a href="#default">默认</a>
       <a href="#hover">悬停</a>
@@ -46,6 +49,33 @@
     </nav>
     <main>
       <p class="note">本页仅用锚点浏览静态状态，不加载新文件、不调用 CU。真实数值来自已有 GA 样本；加载、空结果及错误页面是明确标注的设计场景，不是实际服务运行结果。</p>
+      <section id="visual-baselines">
+        <h2>最新产品外观基线 · 2026-10-12</h2>
+        <p>最终界面以最后确认的交互原型为准：Fields 与截图对齐、不恢复 Clear，预览栏在文档下方。独立输入测试宿主的验证控件不属于产品。本轮没有修改产品布局；以下基线由真实产品演示页生成，在 Windows Chrome/Edge 逐图自动比较。</p>
+        <figure><img src="../../tests/e2e/visual.spec.ts-snapshots/default-pdf-chrome-win32.png" width="1600" height="1040" alt="最新产品默认界面：真实PDF、折叠Fields、隐藏缺失字段、没有Clear"><figcaption>完整界面固定 1600 x 1040、DPR 1；每浏览器 15 张基线，共 30 张。普通测试不会自动更新基线。</figcaption></figure>
+        <figure style="max-width:490px"><img loading="lazy" src="../../tests/e2e/visual.spec.ts-snapshots/fields-reference-chrome-win32.png" width="490" height="697" alt="Chrome Fields基线，与获批参考图片逐像素一致"><figcaption>Fields 的真实值与置信度未替换；Chrome 与已批准 PNG 逐像素一致。Edge 原生滚动条采用自己的基线。</figcaption></figure>
+        <table class="baseline-links">
+          <thead><tr><th>状态</th><th>Chrome</th><th>Edge</th></tr></thead>
+          <tbody>
+            <tr><td>默认 PDF</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/default-pdf-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/default-pdf-edge-win32.png">查看</a></td></tr>
+            <tr><td>Fields 参考</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/fields-reference-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/fields-reference-edge-win32.png">查看</a></td></tr>
+            <tr><td>悬停预览</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-hover-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-hover-edge-win32.png">查看</a></td></tr>
+            <tr><td>固定选择</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-pinned-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-pinned-edge-win32.png">查看</a></td></tr>
+            <tr><td>展开字段</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/fields-expanded-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/fields-expanded-edge-win32.png">查看</a></td></tr>
+            <tr><td>折叠但保留固定项</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/fields-collapsed-pin-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/fields-collapsed-pin-edge-win32.png">查看</a></td></tr>
+            <tr><td>查看缺失字段</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/fields-missing-visible-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/fields-missing-visible-edge-win32.png">查看</a></td></tr>
+            <tr><td>手动查看第 4 页</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-page-4-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-page-4-edge-win32.png">查看</a></td></tr>
+            <tr><td>无定位选择</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-no-source-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-no-source-edge-win32.png">查看</a></td></tr>
+            <tr><td>跨页定位</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-cross-page-pinned-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/pdf-cross-page-pinned-edge-win32.png">查看</a></td></tr>
+            <tr><td>真实 PNG</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/png-pinned-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/png-pinned-edge-win32.png">查看</a></td></tr>
+            <tr><td>源文件加载</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/source-loading-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/source-loading-edge-win32.png">查看</a></td></tr>
+            <tr><td>空结果</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/empty-result-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/empty-result-edge-win32.png">查看</a></td></tr>
+            <tr><td>源文件错误</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/source-error-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/source-error-edge-win32.png">查看</a></td></tr>
+            <tr><td>结果读取错误</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/result-error-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/result-error-edge-win32.png">查看</a></td></tr>
+          </tbody>
+        </table>
+        <p>九个视觉场景两浏览器共18次，重复比较36次保持30图哈希；14px圆点漂移能检测。PDF/PNG压力共600轮，修复平移滚动条偏移但没有重录基线。仓库回归76次，另React18/19真实安装包开发/生产CSP与原型匹配16次，本地合计92次。仍不等于完整格式、所有宿主、CI或P0验收。</p>
+      </section>
       <p class="note">以下图片保留为 v2 历史评审稿，不是最新 Fields 的像素验收基线。可运行版本已按后续反馈默认折叠组、隐藏未返回字段、移除 Clear 和旧固定状态栏、省略缺失置信度，并将原文预览放在文档下方；Fields 与预览置信度统一为两位小数。最新行为以<a href="README.md">原型说明</a>及运行截图为准。</p>
       <section id="main">
         <h2>01 · 主界面：固定选择</h2>

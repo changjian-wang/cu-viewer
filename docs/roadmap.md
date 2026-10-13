@@ -4,15 +4,17 @@
 
 The private repository and initial documentation are the starting point. G0 and the v2 static design are approved for initial development; tasks 2.1-2.3 and a runnable React PDF/PNG prototype are implemented. The prototype has been started and browser-tested, but all P0 formats, production embedding, cu-cli hosting and release gates are not complete.
 
-Deliver a reusable renderer first, a small demo as its host, and a minimal cu-cli integration. Do not inherit the OCR-Form-Tools application architecture or embed CU service logic in the viewer.
+**Owner-approved order, 2026-10-12: complete the standalone Viewer first, integrate cu-cli last.** Finish Viewer P0, rich result views and P1 UX, then independent acceptance; only afterward start the CLI contract and implementation. A demo or ordinary React host can run the Viewer without cu-cli. Preserve the rendering-only boundary.
 
 Track implementation work in Issues and P0/P1/P2 milestones once investigation has refined the tasks. The initial MIT/LGPL-candidate direction is approved; no delivery dates, completed distribution compliance, or release approval are assumed here.
 
 The [development plan](dev-plan.md) expands this roadmap into module boundaries, structured tasks, test scenarios, and explicit gates, and records actual progress. Host delivery and P0/P1 release gates remain open independently of the approved initial design.
 
+Task numbering now matches the revised phases: Viewer P1 is `4.1-4.4` / G3; CLI is `5.1-5.2` / G4 and runs last after Viewer G2 + G3. Requirement priorities are unchanged. Independently approved P2 remains outside this mainline.
+
 The owner's UI checkpoint now has approved [v2 static design](prototype/README.md) and an [interactive baseline](prototype/README.md#当前可操作范围) approved for task 2.4 hardening. It was run immediately when mountable and has real PDF/PNG coverage. The static state gallery remains design-only; implementation approval does not close production acceptance.
 
-Checked items record completed investigation or verified behavior, not production-release approval. Current 409 unit cases and 52 Chrome/Edge browser runs cover public inputs, native formats, synthetic EXIF directions at DPR 1/2 and local HEIF/CSP/cancellation. Full real paired formats/orientation, HEIF distribution, HTTPS/cross-origin, 100-switch stress, budgets, packed consumers and CLI remain open.
+Checked items record verified scope, not release approval. Current 424 unit cases, 80 repository browser runs and 16 isolated Vite consumer runs pass: 96 local browser runs. Structured arrays and all current source regions are verified while all30 product references remain unchanged. Full rich panes, formats, HEIF distribution, cross-origin, broader stress/budgets, other hosts, remote CI and final CLI remain open.
 
 ## 1. Validate the Input and UX Reference
 
@@ -44,41 +46,29 @@ Checked items record completed investigation or verified behavior, not productio
 - [x] Check fit/zoom/pan/quarter-turn polygon alignment and resize behavior in the prototype; full integrated DPR/viewport/zoom and intrinsic-orientation acceptance remains open.
 - [x] Verify the real PNG field/source interaction and quarter-turn overlays in Chrome/Edge.
 - [x] Preserve absent confidence/grounding and scalar values; use consistent two-decimal confidence, disable unavailable source-page badges and test synthetic mismatch/recovery without inventing navigation or regions.
+- [x] Freeze the latest approved product appearance and test default/hover/pin/group/filter/page/image/loading/empty/error snapshots, with browser-specific native scrollbars, exact approved Chrome Fields pixels and an intentional-drift detection probe.
 
 **Exit check:** a saved real result works without credentials, service access, or caller normalization. Focused parsing/geometry tests and a browser check verify the thin slice before expanding it.
 
 ## 4. Complete P0
 
 - [ ] Complete PDF and all required image support. **Partial:** native PNG/JPEG/BMP and local-only HEIF are implemented; decoded aliases/derivatives are not independent CU pairs, and production HEIF distribution remains blocked.
-- [ ] Complete production control/transform acceptance. **Partial:** named controls and PDF page bounds work; full format/orientation and repeated-switch coverage remain open.
+- [ ] Complete production control/transform acceptance. **Partial:** PDF page/transform/pan 100-round checks now pass with stable geometry and approved final appearance; full format/orientation/DPR matrices remain open.
 - [ ] Complete production field/source acceptance. **Partial:** real PDF/PNG public-input representations now render the same raster/grounding without modifying caller data; full formats, intrinsic orientation and host URL policies remain incomplete.
 - [x] Verify independent loading, empty, invalid-result and source-error states, unavailable-source-page diagnostics, empty/corrupt binary inputs and HTTP failure/recovery; full format/host acceptance stays open.
-- [ ] Complete lifecycle acceptance. **Partial:** controlled delayed HTTP/PDF-worker/image-decode replacement and unmount tests verify cancellation, stale-result suppression, Worker/bitmap release and host-owned URL preservation; 100-switch stress accounting remains open.
-- [x] Build local PDF worker/fonts/CMaps/WASM/ICC assets with their license; packed-consumer/CSP and resource-specific fixture validation remain open.
+- [ ] Complete lifecycle acceptance. **Partial:** 100 public-input replacements and 100 pending HTTP cancellations per browser verify PDF/PNG resource ownership and real aborts; broader HEIF/format/DPR stress, memory budgets and consumer acceptance remain open.
+- [x] Deliver local Worker/fonts/CMaps/WASM/ICC assets with their license; approved optional Node-only Vite integration now passes isolated package/CSP/font cases. Real CMap/ICC/WASM-specific decode fixtures remain open.
 - [x] Provide the saved-source/JSON demo without analysis or authentication.
 - [x] Run focused parser/geometry/source/interaction unit and browser regressions; production coverage gaps remain explicitly listed.
 - [x] Record tested browsers and representative fixture sizes; full format coverage and approved performance budgets remain open.
-- [x] Document existing public inputs, dependencies and verified setup/build/test commands; complete independent-host embedding guidance remains task 3.3.
+- [x] Document public inputs, optional Vite assets, CSS and isolated pack verification in the usage guide; wider host/CI and full P0 gates remain open.
 
-**Exit check:** meet the proposed P0 acceptance checks in the requirements document and demonstrate embedding without service dependencies. Run agreed automated gates before describing P0 as production-ready.
+**Exit check:** complete Viewer P0 scenarios and independent embedding without a CLI dependency. Retain format/license/CI/performance gates; overall CLI delivery is assessed separately at the final stage.
 
-## 5. Integrate with cu-cli
+## 5. Complete Viewer P1 and Standalone Acceptance
 
-This work crosses into a host repository and must be coordinated with its owner. The CLI remains responsible for analysis, browser launch, and local hosting.
-
-- [ ] Agree how the CLI supplies the original source and serialized Analyze JSON to the demo/viewer host.
-- [ ] Define a saved-result viewing path that does not perform a new CU call.
-- [ ] Implement the target `cu analyze sample.pdf --view` flow in the appropriate host, keeping host logic outside the component.
-- [ ] Use safe local file delivery; a filesystem path is not automatically a browser-readable URL.
-- [ ] For a local server, default to loopback-only exposure and constrain file access; do not expose credentials or arbitrary filesystem contents.
-- [ ] Verify local worker/resource loading and browser startup using a real source/result pair.
-- [ ] Document the minimal embedding code and ownership boundary.
-
-**Exit check:** both a newly produced result and a previously saved result can be inspected through the same component. Keep service/CLI dependencies out of the viewer package.
-
-## 6. Deliver P1
-
-- [ ] Improve nested fields, arrays/tables, and multiple source-region selection/navigation.
+- [x] Implement scoped structured fields and multiple-region navigation: stable nested/array identities, table-like real LineItems, collapsed-selection retention, all own/descendant source regions and synthetic cross-page group coverage. A dedicated Tables result pane is not implied.
+- [ ] Implement actual Fields/Markdown/JSON switching; preserve document page/zoom/pin state and approved Fields appearance rather than merely enabling empty tabs.
 - [ ] Add safe client-side Markdown with headings, lists, tables, code blocks, and formatting.
 - [ ] Evaluate and integrate a mature expandable JSON-tree component suitable for reasonably large results.
 - [ ] Complete accessibility, keyboard, touch, responsive layout, and refined automatic scrolling/centering.
@@ -86,16 +76,28 @@ This work crosses into a host repository and must be coordinated with its owner.
 - [ ] Specify MCP Apps / MCP UI and chat-host integration design, including host-to-viewer data delivery and asset packaging, without service logic in the core.
 - [ ] Test rich-pane security and representative host interactions.
 
-**Exit check:** P1 capabilities have focused tests and documented limitations. Clarify result-pane customization rather than guessing the missing source requirement.
+**Exit check:** Viewer G2 + G3 pass with independent startup, usable rich views, reviewed UX/extensions, package and product parity. Current Paragraphs/Tables/Code/more placeholders need explicit semantics/scope before they can count as features. Clarify result-pane customization without inventing the missing requirement. No CLI contract is required for this acceptance.
 
-## 7. Schedule P2 Separately
+## 6. Integrate with cu-cli Last
+
+**Deferred until the completed standalone Viewer passes G2 + G3.** This includes contract task 5.1, not only implementation 5.2. The CLI is one external host option; missing CLI approval cannot block Viewer development, running or review.
+
+- [ ] Agree how the completed packaged Viewer receives original source and JSON from the external host.
+- [ ] Define saved-result viewing without a new CU call.
+- [ ] Implement the agreed `cu analyze sample.pdf --view` flow in the confirmed CLI repository, not the component.
+- [ ] Constrain local file delivery and loopback hosting; do not expose arbitrary files or credentials.
+- [ ] Verify resources, browser/server lifecycle and fresh/saved flows without regressing standalone Viewer behavior.
+
+**Exit check:** external CLI workflows pass G4 after Viewer completion. Retain service/server responsibility outside the component and track the original CLI delivery requirement separately.
+
+## Separate P2 Backlog
 
 - [ ] Evaluate TIFF decoding, multi-page rendering, and page navigation.
 - [ ] Investigate DI JSON, field structures, and coordinate conventions independently of CU parsing.
 - [ ] Add DI/TIFF coverage only after separate scope and scheduling decisions.
 
-**Exit check:** P2 changes do not weaken the source-plus-result public boundary or block P0/P1 delivery.
+**Exit check:** P2 changes are separately approved and do not block Viewer P0/P1 or the final CLI stage.
 
 ## Immediate Next Step
 
-Obtain representative sanitized CU source/result pairs and confirm the API version and cu-cli output shape. Those facts determine the parser and the cheapest meaningful rendering/geometry prototype.
+The next Viewer functional target is **4.2: usable result-pane switching, safe Markdown and the original JSON tree**. Work from the verified source/JSON/package foundation while retaining existing technical prerequisites and closing remaining Viewer P0 validation. Do not start CLI contract/implementation before Viewer completion, count disabled placeholders as delivered, or waive HEIF compliance. This roadmap update does not implement the missing panes.
