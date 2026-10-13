@@ -2,7 +2,7 @@
 
 > **Plan task**: [1.1: Verify input, samples and Studio behavior](dev-plan.md#phase-1-evidence-and-decisions)
 > **Status**: v2 static design approved; runnable PDF/PNG prototype and first browser checks delivered; interactive user review and P0 coverage remain open
-> **Last updated**: 2026-10-10
+> **Last updated**: 2026-10-13
 > **Gate**: G0 and static wireframe direction approved. Tasks 2.1-2.3 are delivered; the React prototype is runnable, not a complete P0 or approved release.
 
 ## Approved Initial Baseline
@@ -18,13 +18,15 @@ The task owner approved the following baseline on 2026-10-09. This approval does
 | D3: Rendering | Use PDF.js/SVG, native common-image rendering and a pinned pure-Rust `heic-rs 0.1.4` WASM Worker. The earlier LGPL candidate is evaluation-only and absent from distribution. | Complete broader real image/transform/bit-depth coverage and source/decoder budgets. |
 | D4: Distribution | Main source is [MIT](../LICENSE); the packaged HEIF path is MIT OR Apache-2.0 with hashes, licenses, SBOM and reproducible wrapper inputs. Package remains private; no Microsoft publication/copyright-ownership approval is claimed. | Confirm ownership, HEVC patent/product and publication approval before public distribution. |
 | D5: Host | The current official CLI implementation is [Azure/content-understanding-toolkit](https://github.com/Azure/content-understanding-toolkit/tree/main/cu-cli), not the earlier prototype link. | Coordinate host ownership and the future browser-viewing contract before task 5.2. |
-| D6: Result-pane customization | The original item is still incomplete. | Clarify before finalizing the affected P1 extension. |
+| D6: Result-pane customization | Do not add result-pane customization or other new host-extension APIs in task 4.3. Keep the public React contract at `source` plus `result`; complete accessibility, touch and responsive behavior only. | Revisit only from a separate approved host requirement. Vite 8 is the sole formally supported bundler profile; other bundlers are unverified. |
 
 The owner explicitly authorized using cu-cli to call the real service for sample acquisition. Two small, public, MIT-licensed source documents were submitted to an already configured resource. No customer files, new resources, custom analyzers, or model/default configuration changes were involved.
 
 The owner approved the current initial design on 2026-10-09, then clarified the Microsoft open-source goal and preference for open-source dependencies. That preference does not establish a permissive-only rule, blanket LGPL approval, or an organizational release sign-off. Resolve this policy explicitly rather than relabeling a third-party codec under the main project's license.
 
 The subsequent explicit choice was **MIT for the main component plus allowed LGPL candidates with compliance before distribution**. That historical approval enabled investigation but did not require shipping the candidate. RC-3 selected permissive `heic-rs` instead; no LGPL decoder is distributed. The current copyright notice refers to project contributors rather than asserting unverified Microsoft ownership, and permissive software licensing does not replace HEVC patent/product or publication review.
+
+On 2026-10-13 the owner resolved D6 by choosing **no result-pane customization** and **Vite 8 only as the initially supported bundler profile**. Task 4.3 therefore adds no callbacks, custom renderers, view registry, toolbar/layout slots or initial-view public options. The exported component remains `source` plus `result`; other bundlers are described as unverified rather than implicitly supported. Accessibility, keyboard, touch and responsive fixes remain in scope and do not require a new extension API.
 
 ## Task 2.1 Foundation
 
@@ -159,7 +161,7 @@ The stress batch exposed pan-dependent scrollbar re-centering: moving 37/21 px c
 
 1. **Viewer-first checkpoint**: complete remaining Viewer functionality and independent acceptance; task 4.2 rich result views are verified and the next ordered target is 4.3 accessibility/extensions. Continue outstanding P0 coverage without treating verified rendering/package tests as complete Viewer sign-off.
 2. **D3/D4 delivery**: packaged permissive decoder assets, source lock, notices, SBOM, reproducible hashes and production consumers pass. HEVC patent/product and public publication approval remain external release gates. Owner: viewer maintainer with project release/approval owners.
-3. **Coverage gaps**: PDF/PNG pressure, scoped structured/multi-region navigation, isolated React18/19 Vite consumers, HTTP cross-origin behavior and remote core/browser/performance/consumer/stress jobs pass. Real CU cross-page structured fields, dedicated Tables view, broader real format/HEIF pairs, real crop/bounding-box cases, HTTPS/credentialed hosts, source/decoder memory budgets and other bundlers remain open.
+3. **Coverage gaps**: PDF/PNG pressure, scoped structured/multi-region navigation, isolated React18/19 Vite consumers, HTTP cross-origin behavior and remote core/browser/performance/consumer/stress jobs pass. Real CU cross-page structured fields, dedicated Tables view, broader real format/HEIF pairs, real crop/bounding-box cases, HTTPS/credentialed hosts and source/decoder memory budgets remain open. Non-Vite bundlers are explicitly unverified and non-gating under D6.
 4. **D5, final stage only**: after standalone Viewer P0/P1 completion (G2 + G3), coordinate and implement `5.1/5.2` with the toolkit maintainers. The handoff is one external host option, not a blocker for direct Viewer running or development.
 5. **Separate acceptance**: G2 + G3 accept the standalone Viewer; subsequent G4 accepts CLI integration. Existing verified scope does not imply either gate, complete distribution compliance or Microsoft release approval.
 

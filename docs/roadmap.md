@@ -72,11 +72,11 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Add safe client-side Markdown with headings, lists, GFM, sanitized CU HTML tables, code blocks and formatting; omit active content, dangerous URLs and remote images.
 - [x] Evaluate and integrate a mature MIT expandable JSON-tree component for the original input, with measured 500,000-character/20,000-value limits and lazy result-view chunks.
 - [ ] Complete accessibility, keyboard, touch, responsive layout, and refined automatic scrolling/centering.
-- [ ] Add grounded extension points for selection callbacks, custom fields, viewer events, toolbar/layout customization, initial page, and initial zoom/fit mode.
+- [x] Resolve D6 without inventing an API: task 4.3 adds no selection callbacks, custom renderers, viewer events, toolbar/layout customization, result-view registry or initial-view options. Reopen only for a separate approved host need.
 - [ ] Specify MCP Apps / MCP UI and chat-host integration design, including host-to-viewer data delivery and asset packaging, without service logic in the core.
 - [x] Test real PDF/PNG rich panes, security, missing/invalid/oversized states, keyboard tab switching and React 18/19 package-host behavior in Chrome/Edge.
 
-**Exit check:** Viewer G2 + G3 pass with independent startup, usable rich views, reviewed UX/extensions, package and product parity. Current Paragraphs/Tables/Code/more placeholders need explicit semantics/scope before they can count as features. Clarify result-pane customization without inventing the missing requirement. No CLI contract is required for this acceptance.
+**Exit check:** Viewer G2 + G3 pass with independent startup, usable rich views, reviewed accessible/responsive UX, the D6 no-extension decision, package and product parity. Current Paragraphs/Tables/Code/more placeholders need explicit semantics/scope before they can count as features. No CLI contract is required for this acceptance.
 
 ## 6. Integrate with cu-cli Last
 
@@ -100,4 +100,4 @@ Checked items record verified scope, not release approval. Current 429 unit case
 
 ## Immediate Next Step
 
-The next ordered Viewer task is **4.3: accessible UX and reviewed extensions**. Start from the verified Fields/Markdown/JSON state while retaining existing technical prerequisites and closing remaining Viewer P0 validation. Do not start CLI contract/implementation before Viewer completion, count Paragraphs/Tables/Code placeholders as delivered, or waive HEIF compliance. Result-pane customization remains gated by the unresolved extension-scope decision.
+The next ordered Viewer task is **4.3: accessible and responsive UX**. Start from the verified Fields/Markdown/JSON state while retaining existing technical prerequisites and closing remaining Viewer P0 validation. D6 is resolved: do not add result-pane customization or any other new public extension API. Do not start CLI contract/implementation before Viewer completion, count Paragraphs/Tables/Code placeholders as delivered, or waive HEIF compliance.

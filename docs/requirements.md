@@ -4,7 +4,7 @@
 
 This document organizes the supplied task brief, "Reusable React Component for Content Understanding Field Extraction Result Viewer", while preserving its goals, component boundary, and priorities. Headings and repeated diagrams have been condensed. This is a requirements baseline, not a statement of implemented functionality.
 
-The supplied brief ends with the incomplete extensibility item `Result-pane`. Its missing content is not inferred here.
+The supplied brief ends with the incomplete extensibility item `Result-pane`. Its missing content is not inferred here. On 2026-10-13 the task owner resolved current-delivery scope: do not add result-pane customization or other new host-extension APIs in task 4.3; retain only the `source`/`result` public contract and complete accessibility, touch and responsive behavior. A future extension API requires a separate approved host need.
 
 The acceptance checks below are proposed ways to verify the brief. API details, library choices, browser targets, and implementation plans remain subject to validation.
 
@@ -191,10 +191,10 @@ Add or improve:
 - Touch interaction.
 - Responsive layout.
 - Automatic scrolling/centering.
-- Host customization and extensibility.
+- Host customization and extensibility named in the original brief; deferred outside the current delivery by D6 rather than inferred from the truncated text.
 - MCP App / MCP UI integration design and documentation, including use in chat hosts.
 
-Extension points named in the brief:
+Extension points named in the brief, but explicitly **not approved for task 4.3** under D6:
 
 - Field selection callbacks.
 - Custom field rendering.
@@ -203,7 +203,9 @@ Extension points named in the brief:
 - Layout customization.
 - Initial page.
 - Initial zoom/fit mode.
-- `Result-pane`: incomplete in the provided source; clarification required.
+- `Result-pane`: incomplete in the provided source; no API will be invented for the current delivery.
+
+The current supported build-host profile is Vite 8 with `viewerAssets()`. Other bundlers are unverified and are not part of current acceptance.
 
 ## P2: TIFF and DI
 
@@ -237,4 +239,4 @@ Keep P2 separate so it does not delay P0 or P1.
 - Exact source input semantics, particularly string inputs and untyped binary inputs.
 - Package distribution, licensing, and public-release policy.
 - cu-cli repository ownership and local hosting/browser-launch mechanism.
-- The missing end of the original `Result-pane` extensibility item.
+- Any future concrete host requirement that would justify reopening the deferred extension API scope.

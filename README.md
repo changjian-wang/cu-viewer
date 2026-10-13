@@ -6,7 +6,7 @@ A reusable React/TypeScript component for inspecting Azure Content Understanding
 
 **Viewer implementation available; broader P1 UX is not yet complete.** The private MIT package exports the actual React component and a directly runnable demo with real PDF/PNG results. Source/Fields interaction, nested/table-like arrays, all available source-region navigation, safe Markdown, the original interactive JSON tree, controls and React 18/19 isolated Vite consumers are verified. Paragraphs/Tables/Code remain explicitly disabled rather than presenting fabricated views; this is not a complete P0 release or published package.
 
-**Development order: Viewer first, cu-cli last.** Complete Viewer P0/P1 functionality and standalone acceptance before CLI contract or integration work. CLI is one external host option, not a prerequisite for starting or reviewing the Viewer. Fields/Markdown/JSON switching (task 4.2) is implemented; the next ordered task is accessible UX and reviewed extensions (task 4.3). Current technical/format/license gates remain tracked.
+**Development order: Viewer first, cu-cli last.** Complete Viewer P0/P1 functionality and standalone acceptance before CLI contract or integration work. CLI is one external host option, not a prerequisite for starting or reviewing the Viewer. Fields/Markdown/JSON switching (task 4.2) is implemented; the next ordered task is accessible and responsive UX (task 4.3). D6 keeps the public API at `source` plus `result` and adds no result-pane/custom-renderer/toolbar/layout extension surface. Current technical/format/license gates remain tracked.
 
 The repository is private. The task owner approved the initial design and open-source dependency direction. The evaluated LGPL decoder is not distributed: production HEIF/HEIC now uses pinned `heic-rs 0.1.4` WASM under MIT OR Apache-2.0 with checked-in licenses, SBOM and reproducible build inputs. The eventual goal is a Microsoft open-source project, not an already approved Microsoft publication. Copyright ownership, HEVC patent/product review and release approval remain gated.
 
@@ -45,7 +45,7 @@ A host can obtain results however it chooses, including reading a previously sav
 | Priority | Intended scope |
 | --- | --- |
 | P0 | PDF and required image formats; direct CU JSON input; field/value/confidence presentation; field-to-source highlighting; zoom, pan, rotation, fit modes, and PDF page navigation; reusable architecture; cu-cli embedding; demo and automated tests. |
-| P1 | Rich nested fields, arrays and tables, multiple source regions, safe Markdown, interactive JSON tree, accessibility, touch, responsive layout, host extensibility, and MCP Apps integration design and documentation. |
+| P1 | Rich nested fields, arrays and tables, multiple source regions, safe Markdown, interactive JSON tree, accessibility, touch, responsive layout, and MCP Apps integration design/documentation. Host extensibility named in the original brief is deferred by D6. |
 | P2 | TIFF, multi-page TIFF, and all Document Intelligence (DI) compatibility, field structures, and geometry handling. |
 
 P0 image extensions from the supplied brief are `.jpg`, `.jpeg`, `.jpe`, `.png`, `.bmp`, `.heif`, and `.heic`. Browser decoding and fallback requirements must be validated; HEIF/HEIC must not be silently deferred to P2. TIFF and DI must not delay P0 or P1.
@@ -114,7 +114,7 @@ Use **Markdown** to render the selected content item's `content.markdown`. Real 
 
 The Studio-style **…** control is the **JSON** tab and displays its label after selection. It renders the original caller-provided operation envelope or inner result, not the internal parsed field model. The root starts expanded and nested objects/arrays are keyboard-expandable. Results over 500,000 serialized characters or 20,000 values, circular values and other non-JSON input receive explicit states. Switching Fields/Markdown/JSON preserves source page, zoom, rotation and pinned field/region state.
 
-Known limits: packaged HEIF covers reviewed still-image fixtures but not all HEVC tools, alpha, nonzero transforms, image sequences or AVIF. React 18/19 isolated Vite consumers pass PDF/PNG/HEIF and rich results. Paragraphs/Tables/Code, full real format/orientation/crop coverage, accessibility/touch, wider bundler/host environments, CLI and product/publication gates remain incomplete.
+Known limits: packaged HEIF covers reviewed still-image fixtures but not all HEVC tools, alpha, nonzero transforms, image sequences or AVIF. React 18/19 isolated Vite consumers pass PDF/PNG/HEIF and rich results. Paragraphs/Tables/Code, full real format/orientation/crop coverage, accessibility/touch/responsive behavior, wider host environments, CLI and product/publication gates remain incomplete. Non-Vite bundlers are unverified and outside current acceptance rather than an implied release gate.
 
 ## Development Foundation
 
@@ -171,6 +171,8 @@ Task 4.2 is implemented with exact MIT-licensed dependencies: React Markdown 10.
 Markdown and JSON are separate lazy chunks. The default library entry is 47.29 kB minified / 14.19 kB gzip, compared with 479.97 kB / 127.76 kB before splitting; the demo main chunk is 261.31 kB / 82.28 kB and no longer triggers Vite's 500 kB advisory. The production budget verifies no rich chunk is requested on Fields, cold view activation within 1,000 ms, near-limit warm activation within 350 ms, no task over 100 ms and no more than 64 MiB heap growth on the recorded Chrome/Edge environment.
 
 Real PDF/PNG Markdown, all nine invoice tables, absent Markdown, unsafe HTML/URLs/images, original envelope keys, nested object/array expansion, parser-rejected but still inspectable raw JSON, measured size/value limits and tab/source-state retention pass in Chrome/Edge. Four new rich-pane references were added; the prior 30 approved product references still compare at zero differing pixels. Dedicated Paragraphs/Tables/Code tabs remain out of scope until their semantics are agreed. The next ordered functional task is **4.3**.
+
+D6 is resolved for 4.3: no result-pane customization, view registry, custom renderer, callback, toolbar/layout slot or initial-view public option will be added. The public component remains `source` plus `result`; accessibility, touch and responsive behavior proceed without widening that contract. Vite 8 is the only formally supported bundler profile for the current package/resource workflow; other bundlers remain unverified.
 
 ```powershell name="Production rich-result budget"
 npm run verify:performance

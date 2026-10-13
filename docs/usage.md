@@ -71,7 +71,9 @@ export default defineConfig({
 
 `viewerAssets()` serves allowlisted PDF Worker/font/CMap/WASM/ICC files plus the packaged HEIF Worker/JS/WASM/notices during development, then copies the same resources and licenses into the host build. PDF assets default to `build.assetsDir/pdfjs`; HEIF assets use the sibling `build.assetsDir/heif`. The same resources remain in the package distribution.
 
-For an explicit output layout, `viewerAssets("assets/pdfjs")` is supported. The target must be a non-root subdirectory of the host build output and must match the directory resolved beside the bundled viewer entry. Root/parent/outside paths are rejected. Custom bundler/chunk layouts need separate verification.
+Vite 8 is the sole formally supported bundler profile for the current private Viewer. Other bundlers and custom chunk/resource layouts are unverified; the package does not claim compatibility with them.
+
+For an explicit output layout, `viewerAssets("assets/pdfjs")` is supported. The target must be a non-root subdirectory of the host build output and must match the directory resolved beside the bundled viewer entry. Root/parent/outside paths are rejected.
 
 This plugin:
 
