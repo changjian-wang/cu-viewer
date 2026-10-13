@@ -110,7 +110,7 @@ If a result references a page absent from the loaded source, its page badge is d
 
 The file pickers belong to the demo host. They read local files and parsed JSON; the component receives original data and never calls CU. Source failure does not hide valid fields, invalid result data does not hide a valid source, and parser issues remain visible. Prototype field previews use a small dock below the document so that they cannot obscure source text.
 
-Use **Markdown** to render the selected content item's `content.markdown`. Real CU HTML tables are parsed and then sanitized; scripts, frames, event handlers, dangerous links and remote images are not rendered. HTTP/HTTPS/mail links open with `noopener noreferrer`. Markdown over 100,000 characters stops at an explicit limit state rather than freezing the pane.
+Use **Markdown** to render the selected content item's `content.markdown`. Real CU HTML tables are parsed and then sanitized; scripts, frames, event handlers, dangerous links and remote images are not rendered. HTTP/HTTPS/mail links open with `noopener noreferrer`. Markdown over 50,000 characters stops at an explicit limit state rather than freezing the pane.
 
 The Studio-style **…** control is the **JSON** tab and displays its label after selection. It renders the original caller-provided operation envelope or inner result, not the internal parsed field model. The root starts expanded and nested objects/arrays are keyboard-expandable. Results over 500,000 serialized characters or 20,000 values, circular values and other non-JSON input receive explicit states. Switching Fields/Markdown/JSON preserves source page, zoom, rotation and pinned field/region state.
 

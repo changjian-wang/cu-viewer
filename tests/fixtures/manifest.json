@@ -222,7 +222,7 @@
     "decoderArtifacts": {
       "worker": {"bytes": 2025, "sha256": "a9a7f604205223a433163e38ad4108f4bf6b0290d66245e26bb7454cf89a1dae"},
       "javascript": {"bytes": 8273, "sha256": "37e9954f836e53cf877418a4ad419fa82f6187ade49e047543b10fe80340fbec"},
-      "wasm": {"bytes": 263155, "sha256": "354ab3f20c1d11ff26f83f8c427ba32c2233f183151b579ea416b8b2fef39c52"},
+      "wasm": {"bytes": 262403, "sha256": "ea8b4707cdcf65c256e14639ab339664fc14b5c231063e80660c287684b129e8"},
       "maxPixels": 40000000,
       "sbom": "..\\..\\assets\\heif\\SBOM.json",
       "build": "..\\..\\tools\\build-heic-codec.ps1"
@@ -299,7 +299,7 @@
     "realMarkdownCoverage": "The real invoice Markdown has 5,125 characters and nine sanitized raw-HTML tables; the real receipt has 202 characters. Headings, lists, GFM, inline/fenced code and table-local horizontal scrolling are browser-tested.",
     "markdownSecurity": "Raw HTML is parsed then sanitized. Scripts, iframes, event attributes and javascript URLs are removed; remote images render as omitted text and issue no request. Safe HTTP/HTTPS/mail/fragment links are retained.",
     "jsonCoverage": "The unchanged caller input is rendered, including operation-envelope id/status/result/usage keys that are absent from the internal parsed model. Root-only initial expansion and nested object/array mouse/keyboard expansion are verified.",
-    "limits": {"markdownCharacters": 100000, "jsonSerializedCharacters": 500000, "jsonValues": 20000},
+    "limits": {"markdownCharacters": 50000, "jsonSerializedCharacters": 500000, "jsonValues": 20000},
     "performanceBudget": {
       "command": "npm run verify:performance",
       "coldViewMilliseconds": 1000,

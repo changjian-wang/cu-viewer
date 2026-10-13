@@ -148,5 +148,13 @@ jobs:
         run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
       - name: Reproduce packaged HEIF decoder
         run: .\tools\build-heic-codec.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reproduced-heif-codec
+          path: |
+            assets/heif/heic_decoder.js
+            assets/heif/heic_decoder_bg.wasm
+          if-no-files-found: error
       - name: Verify generated decoder is unchanged
         run: git diff --exit-code -- assets/heif

@@ -6,7 +6,7 @@
   "artifacts": {
     "heif.worker.js": "a9a7f604205223a433163e38ad4108f4bf6b0290d66245e26bb7454cf89a1dae",
     "heic_decoder.js": "37e9954f836e53cf877418a4ad419fa82f6187ade49e047543b10fe80340fbec",
-    "heic_decoder_bg.wasm": "354ab3f20c1d11ff26f83f8c427ba32c2233f183151b579ea416b8b2fef39c52"
+    "heic_decoder_bg.wasm": "ea8b4707cdcf65c256e14639ab339664fc14b5c231063e80660c287684b129e8"
   },
   "packages": [
     {
