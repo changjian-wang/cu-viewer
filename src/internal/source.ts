@@ -7,12 +7,25 @@ export interface SourcePage extends PageSize {
     pageNumber: number;
 }
 
+export interface SourceCrop extends PageSize {
+    x: number;
+    y: number;
+}
+
 export interface LoadedSource {
     kind: "pdf" | "image";
     name: string;
     pages: SourcePage[];
-    render(pageNumber: number, canvas: HTMLCanvasElement, zoom: number, rotation: number, signal: AbortSignal): Promise<PageSize>;
+    render(pageNumber: number, canvas: HTMLCanvasElement, zoom: number, rotation: number, signal: AbortSignal, crop?: SourceCrop): Promise<PageSize>;
     dispose(): Promise<void>;
+}
+
+export function validateSourceCrop(crop: SourceCrop, page: SourcePage, rotation: number): void {
+    if (rotation !== 0 || !Object.values(crop).every(Number.isFinite) ||
+        crop.x < 0 || crop.y < 0 || crop.width <= 0 || crop.height <= 0 ||
+        crop.x + crop.width > page.width + 1e-6 || crop.y + crop.height > page.height + 1e-6) {
+        throw new Error("Source crop must be a positive in-page rectangle in the unrotated source frame.");
+    }
 }
 
 export function hasSourcePage(pages: readonly SourcePage[] | undefined, pageNumber: number | undefined): boolean {

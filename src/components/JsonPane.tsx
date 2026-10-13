@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
+import { MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "../internal/resultLimits";
 
-export const MAX_JSON_CHARACTERS = 500_000;
-export const MAX_JSON_VALUES = 20_000;
+export { MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "../internal/resultLimits";
 
 const jsonStyles = {
     ...defaultStyles,

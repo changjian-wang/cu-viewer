@@ -46,7 +46,17 @@ Keep the package CSS and provide a bounded host height. Fonts, browser/viewport 
 
 The known tab order is Fields, Markdown, Paragraphs, Tables, Figures, Signatures, Metadata, Result, Code. Tabs without applicable data are omitted, not disabled. Metadata/Signatures require mapped Preview properties; Code requires API version and analyzer ID context, preferring the selected content's analyzer ID. The content selector is available in every view. When switching content, an available active view is retained; otherwise the first available view is selected.
 
-Batch one implements version/container guards, availability and switching only. Dedicated Paragraphs/Tables/Figures/Signatures/Metadata renderers and Code SDK samples are not yet implemented; selecting those tabs shows an explicit pending-renderer state rather than fabricated content. Invalid detail containers produce visible path-specific warnings while valid fields and the unchanged Result remain inspectable.
+The dedicated result views are implemented:
+
+- **Paragraphs** preserves CU order, optional role and page metadata; mouse/keyboard selection locates its supplied source regions.
+- **Tables** renders the original native grid with headers and row/column spans, not Fields arrays or Markdown HTML. Cells are read-only and source-linked. Invalid or overlapping cells produce explicit errors; layouts above the existing 20,000-value ceiling are reported as a 20,000-position limit rather than truncated.
+- **Figures/Signatures** show available returned metadata and source-region canvas crops. Rendering uses the loaded source, never an invented image or remote figure URL. Crops do not change the main page/zoom/rotation/pan, and pending work is aborted on tab/source change or unmount. No signed/unsigned state is inferred.
+- **Metadata** preserves returned string key/value order and supports individual value copy.
+- **Code** offers Python/C#/JavaScript samples, syntax highlighting and copy. Analyzer ID/API version come from the result; endpoint/key/file URL remain placeholders. SDK calls are never executed or installed as Viewer dependencies.
+
+Copy uses the host Clipboard API; unavailable/denied access is a visible error, not silent success. Syntax highlighting renders text/spans without HTML injection, JavaScript eval or extra CSP permissions. The new lazy Code dependencies and their [bundled notices](../THIRD-PARTY-NOTICES.txt) ship with the package. Official sample API references are the [Python](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/contentunderstanding/azure-ai-contentunderstanding), [C#](https://github.com/Azure/azure-sdk-for-net/tree/main/sdk/contentunderstanding/Azure.AI.ContentUnderstanding) and [JavaScript](https://github.com/Azure/azure-sdk-for-js/tree/main/sdk/contentunderstanding/ai-content-understanding) SDKs.
+
+Invalid detail containers produce visible path-specific warnings while valid fields and the unchanged Result remain inspectable. All detail regions on the selected source page are highlighted; the existing previous/next-region controls navigate the remaining regions/pages. Automatic viewport centering remains task4.3a, not part of this batch.
 
 Switching views does not replace or reinitialize the source pane, so page, zoom, rotation, pan, pinned field and selected source-region index remain intact. Selecting another result content is a separate operation and retains its existing page/selection behavior.
 

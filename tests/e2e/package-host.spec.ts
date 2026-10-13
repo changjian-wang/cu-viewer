@@ -122,6 +122,17 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(pane.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();
+    await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
+    await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).press("Enter");
+    await expect(page.getByTestId("source-overlay")).toBeVisible();
+    await pane.getByRole("tab", { name: "Tables", exact: true }).click();
+    await expect(pane.getByRole("table")).toHaveCount(9);
+    await pane.getByRole("tab", { name: "Code", exact: true }).click();
+    await expect(pane.getByLabel("Python SDK sample")).toContainText("prebuilt-invoice");
+    await pane.getByRole("button", { name: "C#", exact: true }).click();
+    await expect(pane.getByLabel("C# SDK sample")).toContainText("V2025_11_01");
+    await pane.getByRole("button", { name: "JavaScript", exact: true }).click();
+    await expect(pane.getByLabel("JavaScript SDK sample")).toContainText("client.analyze(");
 });
 
 test("isolated packed consumer loads local standard fonts rather than relying on repository middleware or a CDN", async ({ page }) => {

@@ -88,7 +88,7 @@ export function SourcePane(props: SourcePaneProps) {
         return () => controller.abort();
     }, [props.source, props.pageNumber, zoom, rotation, renderKey, dpr, page, props.onRenderReady]);
     const size = ready ? rendered?.size : undefined;
-    let polygon: CuPoint[] = [];
+    let polygons: CuPoint[][] = [];
     const region = props.regions[props.regionIndex];
     const regionPageAvailable = hasSourcePage(props.source?.pages, region?.pageNumber);
     let overlayError: string | null = props.source && region && !regionPageAvailable ?
@@ -97,7 +97,10 @@ export function SourcePane(props: SourcePaneProps) {
         const cuPage = props.content?.pages.find(value => value.pageNumber === props.pageNumber);
         if (cuPage) {
             try {
-                polygon = projectRegion(region, createPageGeometry(cuPage, page, { zoom, rotation, pan: { x: 0, y: 0 } })).polygon;
+                const geometry = createPageGeometry(cuPage, page, { zoom, rotation, pan: { x: 0, y: 0 } });
+                const visibleRegions = props.active?.detailView ?
+                    props.regions.filter(value => value.pageNumber === props.pageNumber) : [region];
+                polygons = visibleRegions.map(value => projectRegion(value, geometry).polygon);
             } catch (error) {
                 overlayError = error instanceof Error ? error.message : String(error);
             }
@@ -146,9 +149,10 @@ export function SourcePane(props: SourcePaneProps) {
                     transform: `translate(${pan.x}px, ${pan.y}px)`,
                 }}>
                     <canvas ref={canvas} aria-label="Rendered source page" data-testid="source-canvas" />
-                    {polygon.length > 0 && <svg className="cu-overlay" data-testid="source-overlay" width={size?.width} height={size?.height}>
-                        <polygon points={polygon.map(point => `${point.x},${point.y}`).join(" ")} fill={props.color} fillOpacity={props.preview ? 0.08 : 0.15}
-                            stroke={props.color} strokeWidth={2} strokeDasharray={props.preview ? "4 3" : undefined} />
+                    {polygons.length > 0 && <svg className="cu-overlay" data-testid="source-overlay" width={size?.width} height={size?.height}>
+                        {polygons.map((polygon, index) => <polygon key={index}
+                            points={polygon.map(point => `${point.x},${point.y}`).join(" ")} fill={props.color} fillOpacity={props.preview ? 0.08 : 0.15}
+                            stroke={props.color} strokeWidth={2} strokeDasharray={props.preview ? "4 3" : undefined} />)}
                     </svg>}
                 </div>
             </div>
@@ -158,7 +162,7 @@ export function SourcePane(props: SourcePaneProps) {
             </div>}
         </div>
         <div className="cu-preview-dock">
-            {props.preview && props.active && ready && polygon.length > 0 ?
+            {props.preview && props.active && ready && polygons.length > 0 ?
                 <aside className="cu-preview" aria-label="Field preview">
                     <strong>{fieldLabel(props.active)}</strong><span title={displayValue(props.active)}>{displayValue(props.active)}</span>
                     {props.active.confidence !== undefined && <span>{formatConfidence(props.active.confidence)}</span>}

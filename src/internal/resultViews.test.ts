@@ -56,7 +56,10 @@ describe("Studio result tab availability", () => {
     });
 
     it("requires mapped preview properties for Signatures and Metadata", () => {
-        const value = content({ signatures: [{ id: "signature" }], metadata: { Author: "Contoso" } });
+        const value = parseCuResult({
+            apiVersion: "2026-06-01-preview",
+            contents: [{ kind: "document", signatures: [{ id: "signature" }], metadata: { Author: "Contoso" } }],
+        }).contents[0];
         expect(availableResultTabs(value, {}, "2025-11-01").map(tab => tab.id)).toEqual(["result"]);
         expect(availableResultTabs(value, {}, "2026-06-01-preview").map(tab => tab.id))
             .toEqual(["signatures", "metadata", "result"]);

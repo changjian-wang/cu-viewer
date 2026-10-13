@@ -98,6 +98,7 @@ test("Markdown stays lazy and within the production interaction budget", async (
     const initialResources = await page.evaluate(() => performance.getEntriesByType("resource").map(entry => entry.name));
     expect(initialResources.some(url => url.includes("MarkdownPane-"))).toBe(false);
     expect(initialResources.some(url => url.includes("JsonPane-"))).toBe(false);
+    expect(initialResources.some(url => /(?:ParagraphsPane|TablesPane|FiguresPane|SignaturesPane|MetadataPane|CodePane)-/.test(url))).toBe(false);
 
     const cold = await measure(
         page,
@@ -126,6 +127,7 @@ test("JSON stays lazy and within the production interaction budget", async ({ pa
     const initialResources = await page.evaluate(() => performance.getEntriesByType("resource").map(entry => entry.name));
     expect(initialResources.some(url => url.includes("MarkdownPane-"))).toBe(false);
     expect(initialResources.some(url => url.includes("JsonPane-"))).toBe(false);
+    expect(initialResources.some(url => /(?:ParagraphsPane|TablesPane|FiguresPane|SignaturesPane|MetadataPane|CodePane)-/.test(url))).toBe(false);
 
     const cold = await measure(
         page,

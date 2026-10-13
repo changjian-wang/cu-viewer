@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import type { ContentUnderstandingResultViewerProps } from "./index";
 import { FieldsPane } from "./components/FieldsPane";
 import { SourcePane } from "./components/SourcePane";
-import { fieldColor, fieldRegion, fieldRegions, flattenFields, initialInteraction, interaction } from "./internal/interaction";
+import { fieldColor, fieldRegion, fieldRegions, initialInteraction, interaction, selectableFields } from "./internal/interaction";
 import { CuResultParseError, parseCuResult } from "./internal/parseCuResult";
 import type { LoadedSource } from "./internal/source";
 import { hasSourcePage, loadSource, unavailableSourcePageMessage } from "./internal/source";
@@ -21,7 +21,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const [contentChoice, setContentChoice] = useState<{ result: unknown; index: number }>({ result: props.result, index: 0 });
     const contentIndex = contentChoice.result === props.result ? contentChoice.index : 0;
     const content = parsed.model?.contents[contentIndex];
-    const fields = useMemo(() => flattenFields(content?.fields ?? []), [content]);
+    const fields = useMemo(() => selectableFields(content), [content]);
     const [sourceState, setSourceState] = useState<{
         input: ContentUnderstandingResultViewerProps["source"]; source: LoadedSource | null; error: string | null;
     } | null>(null);
@@ -81,7 +81,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             source={source} loading={!matchingSource} error={matchingSource?.error ?? null}
             content={content} pageNumber={state.pageNumber} active={active} preview={Boolean(hovered)}
             regions={activeRegions} regionIndex={activeRegionIndex}
-            color={active ? fieldColor(active, content?.fields ?? []) : "#0078d4"}
+            color={active && !active.detailView ? fieldColor(active, content?.fields ?? []) : "#0078d4"}
             onPage={pageNumber => dispatch({ type: "page", pageNumber })} onRenderReady={onRenderReady}
             onRegion={index => {
                 if (selected) dispatch({ type: "region", fieldId: selected.id, index, pageAvailable: available(selected, index) });
@@ -89,6 +89,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         />
         <FieldsPane
             result={props.result}
+            source={source}
             apiVersion={parsed.model?.apiVersion} analyzerId={parsed.model?.analyzerId}
             content={content} issues={[...(parsed.model?.issues ?? []), ...sourceIssues]} error={parsed.error}
             contents={parsed.model?.contents ?? []} contentIndex={contentIndex} onContentChange={chooseContent}

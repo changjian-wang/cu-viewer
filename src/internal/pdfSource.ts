@@ -1,5 +1,5 @@
 import type { LoadedSource, SourcePage } from "./source";
-import { abortIfNeeded } from "./source";
+import { abortIfNeeded, validateSourceCrop } from "./source";
 import { getRasterSize } from "./geometry";
 
 export async function createPdfSource(bytes: ArrayBuffer, name: string, signal: AbortSignal): Promise<LoadedSource> {
@@ -48,21 +48,25 @@ export async function createPdfSource(bytes: ArrayBuffer, name: string, signal: 
         }
         return {
             kind: "pdf", name, pages,
-            async render(pageNumber, canvas, zoom, rotation, renderSignal) {
+            async render(pageNumber, canvas, zoom, rotation, renderSignal, crop) {
                 abortIfNeeded(renderSignal);
                 if (disposed) throw new Error("The PDF source has been disposed.");
-                if (!pages.some(page => page.pageNumber === pageNumber)) throw new Error("The requested PDF page does not exist.");
+                const sourcePage = pages.find(page => page.pageNumber === pageNumber);
+                if (!sourcePage) throw new Error("The requested PDF page does not exist.");
+                if (crop) validateSourceCrop(crop, sourcePage, rotation);
                 const page = await document.getPage(pageNumber);
                 abortIfNeeded(renderSignal);
                 const viewport = page.getViewport({ scale: 96 / 72 * zoom, rotation: (page.rotate + rotation) % 360 });
-                const size = { width: viewport.width, height: viewport.height };
+                const size = crop ? { width: crop.width * zoom, height: crop.height * zoom } :
+                    { width: viewport.width, height: viewport.height };
                 const raster = getRasterSize(size, window.devicePixelRatio);
                 canvas.width = raster.width;
                 canvas.height = raster.height;
                 const dpr = window.devicePixelRatio;
                 const render = page.render({
                     canvas, viewport,
-                    ...(dpr === 1 ? {} : { transform: [dpr, 0, 0, dpr, 0, 0] }),
+                    ...(crop ? { transform: [dpr, 0, 0, dpr, -crop.x * zoom * dpr, -crop.y * zoom * dpr] } :
+                        dpr === 1 ? {} : { transform: [dpr, 0, 0, dpr, 0, 0] }),
                 });
                 const cancel = (): void => render.cancel();
                 renderSignal.addEventListener("abort", cancel, { once: true });

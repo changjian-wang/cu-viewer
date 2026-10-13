@@ -1,5 +1,6 @@
-import type { CuContent, CuDetailRecord, CuField, CuPage, CuParseIssue, CuRegion, CuResultModel } from "./types";
+import type { CuContent, CuDetailItem, CuDetailRecord, CuDetailView, CuField, CuFigure, CuPage, CuParagraph, CuParseIssue, CuRegion, CuResultModel, CuSignature, CuTable, CuTableCell } from "./types";
 import { GeometryError, validateRegion } from "./geometry";
+import { MAX_JSON_VALUES } from "./resultLimits";
 
 const valueKeys = new Map([
     ["string", "valueString"],
@@ -209,11 +210,27 @@ interface FieldFrame {
     exit?: object;
 }
 
+function parseSource(
+    raw: unknown, content: CuContent, path: string, issues: CuParseIssue[],
+): { source?: string; regions: CuRegion[] } {
+    const regions: CuRegion[] = [];
+    if (raw === undefined || raw === null) return { regions };
+    if (typeof raw !== "string") {
+        warn(issues, "invalid-source", path, "Source must be a CU encoded string.");
+        return { regions };
+    }
+    const pages = new Map(content.pages.map(page => [page.pageNumber, page]));
+    for (const text of raw.split(";")) {
+        const region = parseRegion(text, content, pages, path, issues);
+        if (region) regions.push(region);
+    }
+    return { source: raw, regions };
+}
+
 function parseFields(raw: unknown, content: CuContent, rootPath: string, issues: CuParseIssue[]): CuField[] {
     if (raw === undefined) return [];
     if (!isRecord(raw)) fail("invalid-fields", `${rootPath}/fields`, "Fields must be an object.");
     const fields: CuField[] = [];
-    const pages = new Map(content.pages.map(page => [page.pageNumber, page]));
     const active = new WeakSet<object>();
     const stack: FieldFrame[] = [];
     const pushFields = (entries: [string, unknown][], id: string, path: string, destination: CuField[]): void => {
@@ -264,16 +281,7 @@ function parseFields(raw: unknown, content: CuContent, rootPath: string, issues:
                 field.confidence >= 0 && field.confidence <= 1) node.confidence = field.confidence;
             else warn(issues, "invalid-confidence", `${frame.path}/confidence`, "Confidence must be a finite number from 0 to 1.");
         }
-        if (field.source !== undefined && field.source !== null) {
-            if (typeof field.source !== "string") warn(issues, "invalid-source", `${frame.path}/source`, "Source must be a CU encoded string.");
-            else {
-                node.source = field.source;
-                for (const regionText of field.source.split(";")) {
-                    const region = parseRegion(regionText, content, pages, `${frame.path}/source`, issues);
-                    if (region) node.regions.push(region);
-                }
-            }
-        }
+        Object.assign(node, parseSource(field.source, content, `${frame.path}/source`, issues));
         if (type === "object" && isRecord(value)) {
             pushFields(Object.entries(value), `${frame.id}/valueObject`, `${frame.path}/valueObject`, node.children);
         } else if (type === "array" && isArray(value)) {
@@ -284,16 +292,169 @@ function parseFields(raw: unknown, content: CuContent, rootPath: string, issues:
     return fields;
 }
 
-function parseDetails(raw: unknown, path: string, issues: CuParseIssue[]): CuDetailRecord[] | undefined {
+function parseDetails(raw: unknown, path: string, issues: CuParseIssue[]): { raw: CuDetailRecord; index: number }[] | undefined {
     if (raw === undefined || raw === null) return undefined;
     if (!isArray(raw)) {
         warn(issues, "invalid-content-detail", path, "Result details must be an array of objects.");
         return undefined;
     }
-    return raw.filter((entry: unknown, index): entry is CuDetailRecord => {
-        if (isRecord(entry)) return true;
+    return raw.flatMap((entry: unknown, index) => {
+        if (isRecord(entry)) return [{ raw: entry, index }];
         warn(issues, "invalid-content-detail", `${path}/${index}`, "Each result detail must be an object.");
-        return false;
+        return [];
+    });
+}
+
+function detailString(raw: CuDetailRecord, key: string, path: string, issues: CuParseIssue[], required = false): string | undefined {
+    const value = raw[key];
+    if (typeof value === "string") return value;
+    if (required || (value !== undefined && value !== null)) {
+        warn(issues, "invalid-content-detail", `${path}/${key}`, `${key} must be a string.`);
+    }
+    return undefined;
+}
+
+function detailItem(
+    raw: CuDetailRecord, content: CuContent, suffix: string, path: string, name: string,
+    value: string, view: CuDetailView, issues: CuParseIssue[],
+): CuDetailItem {
+    const id = `${content.id}/${suffix}`;
+    const field: CuField = {
+        id, path, name, type: "string", hasValue: true, value, children: [],
+        detailView: view, ...parseSource(raw.source, content, `${path}/source`, issues),
+    };
+    const item: CuDetailItem = { id, raw, field };
+    const role = detailString(raw, "role", path, issues);
+    if (role !== undefined) item.role = role;
+    return item;
+}
+
+function captionText(raw: unknown, path: string, issues: CuParseIssue[]): string | undefined {
+    if (raw === undefined || raw === null) return undefined;
+    if (isRecord(raw) && typeof raw.content === "string") return raw.content;
+    warn(issues, "invalid-content-detail", path, "Caption or footnote must have string content.");
+    return undefined;
+}
+
+function footnoteTexts(raw: unknown, path: string, issues: CuParseIssue[]): string[] {
+    if (raw === undefined || raw === null) return [];
+    if (!isArray(raw)) {
+        warn(issues, "invalid-content-detail", path, "Footnotes must be an array.");
+        return [];
+    }
+    return raw.flatMap((entry, index) => {
+        const text = captionText(entry, `${path}/${index}`, issues);
+        return text === undefined ? [] : [text];
+    });
+}
+
+function parseParagraphs(raw: unknown, content: CuContent, path: string, issues: CuParseIssue[]): CuParagraph[] | undefined {
+    return parseDetails(raw, path, issues)?.flatMap(({ raw: entry, index }) => {
+        const itemPath = `${path}/${index}`;
+        const text = detailString(entry, "content", itemPath, issues, true);
+        if (text === undefined) return [];
+        return [{ ...detailItem(entry, content, `paragraphs/${index}`, itemPath, `Paragraph ${index + 1}`, text, "paragraphs", issues), content: text }];
+    });
+}
+
+function parseFigures(raw: unknown, content: CuContent, path: string, issues: CuParseIssue[]): CuFigure[] | undefined {
+    return parseDetails(raw, path, issues)?.flatMap(({ raw: entry, index }) => {
+        const itemPath = `${path}/${index}`;
+        const figureId = detailString(entry, "id", itemPath, issues, true);
+        if (figureId === undefined) return [];
+        const kind = detailString(entry, "kind", itemPath, issues) ?? "unknown";
+        const caption = captionText(entry.caption, `${itemPath}/caption`, issues);
+        const description = detailString(entry, "description", itemPath, issues);
+        const item: CuFigure = {
+            ...detailItem(entry, content, `figures/${index}`, itemPath, `Figure ${index + 1}`,
+                description ?? caption ?? figureId, "figures", issues),
+            figureId, kind, footnotes: footnoteTexts(entry.footnotes, `${itemPath}/footnotes`, issues),
+        };
+        if (caption !== undefined) item.caption = caption;
+        if (description !== undefined) item.description = description;
+        return [item];
+    });
+}
+
+function parseSignatures(raw: unknown, content: CuContent, path: string, issues: CuParseIssue[]): CuSignature[] | undefined {
+    return parseDetails(raw, path, issues)?.flatMap(({ raw: entry, index }) => {
+        const itemPath = `${path}/${index}`;
+        const signatureId = detailString(entry, "id", itemPath, issues, true);
+        if (signatureId === undefined) return [];
+        return [{
+            ...detailItem(entry, content, `signatures/${index}`, itemPath, `Signature ${index + 1}`,
+                signatureId, "signatures", issues),
+            signatureId,
+        }];
+    });
+}
+
+function parseTables(raw: unknown, content: CuContent, path: string, issues: CuParseIssue[]): CuTable[] | undefined {
+    return parseDetails(raw, path, issues)?.flatMap(({ raw: entry, index }) => {
+        const tablePath = `${path}/${index}`;
+        if (!isPageNumber(entry.rowCount) || !isPageNumber(entry.columnCount) || !isArray(entry.cells)) {
+            warn(issues, "invalid-content-detail", tablePath, "Tables require positive rowCount/columnCount and a cells array.");
+            return [];
+        }
+        const table: CuTable = {
+            id: `${content.id}/tables/${index}`, raw: entry,
+            rowCount: entry.rowCount, columnCount: entry.columnCount, cells: [], rows: [],
+            footnotes: footnoteTexts(entry.footnotes, `${tablePath}/footnotes`, issues),
+        };
+        const caption = captionText(entry.caption, `${tablePath}/caption`, issues);
+        if (caption !== undefined) table.caption = caption;
+        for (const [cellIndex, rawCell] of entry.cells.entries()) {
+            const cellPath = `${tablePath}/cells/${cellIndex}`;
+            if (!isRecord(rawCell)) {
+                warn(issues, "invalid-content-detail", cellPath, "A table cell must be an object.");
+                table.layoutError = "The table contains invalid cells. Inspect the original data in Result.";
+                continue;
+            }
+            const { rowIndex, columnIndex } = rawCell;
+            const rowSpan = rawCell.rowSpan === undefined ? 1 : rawCell.rowSpan;
+            const columnSpan = rawCell.columnSpan === undefined ? 1 : rawCell.columnSpan;
+            const text = detailString(rawCell, "content", cellPath, issues, true);
+            if (typeof rowIndex !== "number" || !Number.isSafeInteger(rowIndex) || rowIndex < 0 ||
+                typeof columnIndex !== "number" || !Number.isSafeInteger(columnIndex) || columnIndex < 0 ||
+                !isPageNumber(rowSpan) || !isPageNumber(columnSpan) ||
+                rowIndex + rowSpan > table.rowCount || columnIndex + columnSpan > table.columnCount || text === undefined) {
+                warn(issues, "invalid-content-detail", cellPath, "Table cell coordinates/spans must fit the declared grid and have string content.");
+                table.layoutError = "The table contains invalid cells. Inspect the original data in Result.";
+                continue;
+            }
+            const cell: CuTableCell = {
+                ...detailItem(rawCell, content, `tables/${index}/cells/${cellIndex}`, cellPath,
+                    `Table ${index + 1}, row ${rowIndex + 1}, column ${columnIndex + 1}`, text, "tables", issues),
+                content: text, kind: detailString(rawCell, "kind", cellPath, issues) ?? "content",
+                rowIndex, columnIndex, rowSpan, columnSpan,
+            };
+            table.cells.push(cell);
+        }
+        if (table.rowCount * table.columnCount > MAX_JSON_VALUES) {
+            table.layoutError = `Table exceeds the ${MAX_JSON_VALUES.toLocaleString("en-US")}-position result rendering limit.`;
+        }
+        if (!table.layoutError) {
+            table.rows = Array.from({ length: table.rowCount }, () =>
+                Array<CuTableCell | null | undefined>(table.columnCount).fill(null));
+            for (const cell of table.cells) {
+                for (let row = cell.rowIndex; row < cell.rowIndex + cell.rowSpan; row++) {
+                    const positions = table.rows[row];
+                    if (!positions) throw new Error("Parsed table row is unavailable.");
+                    for (let column = cell.columnIndex; column < cell.columnIndex + cell.columnSpan; column++) {
+                        if (positions[column] !== null) {
+                            table.layoutError = "Table cell spans overlap. Inspect the original data in Result.";
+                            warn(issues, "invalid-content-detail", cell.field.path, table.layoutError);
+                        }
+                        positions[column] = undefined;
+                    }
+                }
+                const positions = table.rows[cell.rowIndex];
+                if (!positions) throw new Error("Parsed table row is unavailable.");
+                positions[cell.columnIndex] = cell;
+            }
+            if (table.layoutError) table.rows = [];
+        }
+        return [table];
     });
 }
 
@@ -346,18 +507,19 @@ export function parseCuResult(input: unknown): CuResultModel {
         if (markdown !== undefined) content.markdown = markdown;
         const contentAnalyzerId = optionalString(entry, "analyzerId", path);
         if (contentAnalyzerId !== undefined) content.analyzerId = contentAnalyzerId;
-        for (const key of ["paragraphs", "tables", "figures", "signatures"] as const) {
-            if (key === "signatures" && model.apiVersion !== "2026-06-01-preview") {
-                if (entry[key] !== undefined && entry[key] !== null) {
-                    warn(model.issues, "unverified-content-property", `${path}/${key}`,
-                        "Signatures are only mapped for 2026-06-01-preview; inspect the original data in Result.");
-                }
-                continue;
-            }
-            const details = parseDetails(entry[key], `${path}/${key}`, model.issues);
-            if (details !== undefined) content[key] = details;
+        const paragraphs = parseParagraphs(entry.paragraphs, content, `${path}/paragraphs`, model.issues);
+        const tables = parseTables(entry.tables, content, `${path}/tables`, model.issues);
+        const figures = parseFigures(entry.figures, content, `${path}/figures`, model.issues);
+        if (paragraphs !== undefined) content.paragraphs = paragraphs;
+        if (tables !== undefined) content.tables = tables;
+        if (figures !== undefined) content.figures = figures;
+        if (model.apiVersion !== "2026-06-01-preview" && entry.signatures !== undefined && entry.signatures !== null) {
+            warn(model.issues, "unverified-content-property", `${path}/signatures`,
+                "Signatures are only mapped for 2026-06-01-preview; inspect the original data in Result.");
         }
         if (model.apiVersion === "2026-06-01-preview") {
+            const signatures = parseSignatures(entry.signatures, content, `${path}/signatures`, model.issues);
+            if (signatures !== undefined) content.signatures = signatures;
             const metadata = parseMetadata(entry.metadata, `${path}/metadata`, model.issues);
             if (metadata !== undefined) content.metadata = metadata;
         } else if (entry.metadata !== undefined && entry.metadata !== null) {

@@ -31,7 +31,7 @@ for (const path of [
     "dist/heif/heif.worker.js", "dist/heif/heic_decoder.js", "dist/heif/heic_decoder_bg.wasm",
     "dist/heif/LICENSE-heic-rs-MIT", "dist/heif/LICENSE-heic-rs-APACHE",
     "dist/heif/LICENSE-wasm-bindgen-MIT", "dist/heif/LICENSE-wasm-bindgen-APACHE",
-    "dist/heif/SBOM.json", "dist/heif/THIRD-PARTY-NOTICES.txt", "LICENSE", "docs/usage.md",
+    "dist/heif/SBOM.json", "dist/heif/THIRD-PARTY-NOTICES.txt", "LICENSE", "THIRD-PARTY-NOTICES.txt", "docs/usage.md",
 ]) {
     assert.ok(pack.files.some(entry => entry.path === path), `The packed artifact is missing ${path}.`);
 }

@@ -45,7 +45,7 @@ Task 2.2 now provides a private [parser](../src/internal/parseCuResult.ts) and [
 
 Real-fixture runs yield 100 PDF and 42 PNG field nodes, including 12/11 absent values and 53/13 source regions, with zero parser issues. The [45 parser tests](../src/internal/parseCuResult.test.ts) also cover scalar boundaries, stable/escaped identities, multiple contents, rectangles, malformed input, immutable/deep relationships and cycles. Together with the four input-contract cases, 49 tests pass.
 
-Structural errors use `CuResultParseError` with a code/path. Nonfatal confidence/grounding issues remain explicit in the internal model. Task4.2a batch one also recognizes `2026-06-01-preview` and guards detail containers for dynamic tabs; malformed details produce visible warnings while original data remains in Result. Dedicated detail rendering is still pending, and synthetic Preview fixtures do not establish full real-service compatibility.
+Structural errors use `CuResultParseError` with a code/path. Task4.2a now derives typed detail objects with stable original-index identities and shared source-region validation; unknown properties remain in original Result. Native grid spans are validated instead of guessed, and source cropping uses the existing loaded adapter without reinitializing the viewport. Dedicated detail panes and SDK sample copy/highlighting are implemented; synthetic Preview fixtures still do not establish full real-service compatibility.
 
 The owner requested a **run-first visual checkpoint**: when a source pane or viewer harness first becomes runnable, start it, load real saved pairs, and inspect browser effects before adding more features. Parser output is not accepted as a substitute for this UI check.
 

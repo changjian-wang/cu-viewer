@@ -1,5 +1,5 @@
 import type { LoadedSource } from "./source";
-import { abortIfNeeded } from "./source";
+import { abortIfNeeded, validateSourceCrop } from "./source";
 import { getRasterSize } from "./geometry";
 import { decodeHeif } from "./heifSource";
 
@@ -38,18 +38,21 @@ export async function createImageSource(bytes: ArrayBuffer, name: string, signal
     const page = { pageNumber: 1, width: image.width, height: image.height };
     return {
         kind: "image", name, pages: [page],
-        render(pageNumber, canvas, zoom, rotation, renderSignal) {
+        render(pageNumber, canvas, zoom, rotation, renderSignal, crop) {
             abortIfNeeded(renderSignal);
             if (disposed) throw new Error("The image source has been disposed.");
             if (pageNumber !== 1) throw new Error("The image has only one page.");
+            if (crop) validateSourceCrop(crop, page, rotation);
             const swapped = rotation % 180 !== 0;
-            const size = { width: (swapped ? image.height : image.width) * zoom, height: (swapped ? image.width : image.height) * zoom };
+            const size = crop ? { width: crop.width * zoom, height: crop.height * zoom } :
+                { width: (swapped ? image.height : image.width) * zoom, height: (swapped ? image.width : image.height) * zoom };
             const raster = getRasterSize(size, window.devicePixelRatio);
             canvas.width = raster.width;
             canvas.height = raster.height;
             const context = canvas.getContext("2d");
             if (!context) throw new Error("Canvas rendering is unavailable.");
             context.scale(window.devicePixelRatio * zoom, window.devicePixelRatio * zoom);
+            if (crop) context.translate(-crop.x, -crop.y);
             if (rotation === 90) context.translate(image.height, 0);
             if (rotation === 180) context.translate(image.width, image.height);
             if (rotation === 270) context.translate(0, image.width);

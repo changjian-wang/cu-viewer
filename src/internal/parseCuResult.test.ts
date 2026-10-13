@@ -145,7 +145,7 @@ describe("verified CU result parsing", () => {
 
     it.each(["2025-11-01", "2026-06-01-preview"])("retains %s detail values and unknown properties without mutation", apiVersion => {
         const paragraphs = [{ content: "Saved paragraph", source: "D(1,10,20,30,40)" }];
-        const tables = [{ rowCount: 1, columnCount: 1, cells: [{ content: "Saved cell" }] }];
+        const tables = [{ rowCount: 1, columnCount: 1, cells: [{ rowIndex: 0, columnIndex: 0, content: "Saved cell" }] }];
         const figures = [{ id: "figure-1", description: "Saved figure" }];
         const signatures = [{ id: "signature-1", source: "D(1,10,20,30,40)" }];
         const metadata = { Author: "Contoso", Title: "Saved document" };
@@ -155,6 +155,7 @@ describe("verified CU result parsing", () => {
             unknownProperty: { retained: false },
             contents: [{
                 kind: "document",
+                unit: "pixel", pages: [{ pageNumber: 1, width: 100, height: 200 }],
                 analyzerId: "content-analyzer",
                 fields: { Zero: { type: "integer", valueInteger: 0 } },
                 paragraphs, tables, figures,
@@ -171,10 +172,10 @@ describe("verified CU result parsing", () => {
             expect(model.original).toBe(value);
             expect(model.analyzerId).toBe("root-analyzer");
             expect(content.analyzerId).toBe("content-analyzer");
-            expect(content.paragraphs?.[0]).toBe(paragraphs[0]);
-            expect(content.tables?.[0]).toBe(tables[0]);
-            expect(content.figures?.[0]).toBe(figures[0]);
-            expect(content.signatures).toEqual(apiVersion === "2026-06-01-preview" ? signatures : undefined);
+            expect(content.paragraphs?.[0]?.raw).toBe(paragraphs[0]);
+            expect(content.tables?.[0]?.raw).toBe(tables[0]);
+            expect(content.figures?.[0]?.raw).toBe(figures[0]);
+            expect(content.signatures?.map(item => item.raw)).toEqual(apiVersion === "2026-06-01-preview" ? signatures : undefined);
             expect(content.metadata).toEqual(apiVersion === "2026-06-01-preview" ? metadata : undefined);
             expect(model.issues).toEqual([]);
         }
@@ -328,7 +329,8 @@ describe("explicit errors and nonfatal grounding diagnostics", () => {
         const content = first(model.contents);
         expect(model.original).toBe(input);
         expect(content.fields[0]?.value).toBe("retained");
-        expect(content.paragraphs).toEqual([{ content: "retained paragraph" }]);
+        expect(content.paragraphs?.map(item => item.raw)).toEqual([{ content: "retained paragraph" }]);
+        expect(content.paragraphs?.[0]?.id).toBe("/contents/0/paragraphs/1");
         expect(content.tables).toBeUndefined();
         expect(content.figures).toEqual([]);
         expect(content.signatures).toBeUndefined();

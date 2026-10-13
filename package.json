@@ -8,6 +8,7 @@
   "files": [
     "dist",
     "LICENSE",
+    "THIRD-PARTY-NOTICES.txt",
     "README.md",
     "docs/usage.md"
   ],
@@ -56,6 +57,8 @@
     }
   },
   "dependencies": {
+    "highlight.js": "11.11.1",
+    "lowlight": "3.3.0",
     "pdfjs-dist": "6.3.289",
     "react-json-view-lite": "2.5.0",
     "react-markdown": "10.1.0",

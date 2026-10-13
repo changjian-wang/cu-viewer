@@ -9,6 +9,9 @@ export default defineConfig({
         pdfAssets("assets/pdfjs"),
         heifAssets("assets/heif"),
     ],
+    optimizeDeps: {
+        include: ["lowlight", "highlight.js/lib/languages/python", "highlight.js/lib/languages/csharp", "highlight.js/lib/languages/javascript"],
+    },
     server: {
         host: "127.0.0.1",
         port: 5173,

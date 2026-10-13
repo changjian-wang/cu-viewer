@@ -367,6 +367,35 @@
     "remaining": "Paragraphs/Tables/Figures/Signatures/Metadata dedicated rendering, source-linked detail navigation/thumbnails, metadata copy and Code SDK samples remain batch two.",
     "additionalAnalyzeCalls": 0
   },
+  "dedicatedResultPaneBatchVerification": {
+    "task": "4.2a",
+    "batch": 2,
+    "verifiedOn": "2026-10-13",
+    "status": "dedicated-panes-functional-verified-visual-review-pending",
+    "implementedViews": ["Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Code"],
+    "unitCasesPassed": 461,
+    "focusedRepositoryBrowserRuns": 42,
+    "performanceBrowserRuns": 4,
+    "functionalPackedConsumerRuns": 24,
+    "realDetailEvidence": "174 real invoice paragraphs and nine native tables; mouse/keyboard source selection preserves zoom/rotation and returns to original page regions.",
+    "previewEvidence": "Synthetic schema-shaped Figures/Signatures/Metadata plus licensed orientation-marker pixels and the real PDF; no new Analyze operation.",
+    "pixelEvidence": "DPR2 crop canvases are 96x64 pixels for 48x32 source regions; figure center RGBA [209,52,56,255], signature center [255,170,68,255]. PDF page4 source crop contains real nonblank pixels.",
+    "sourceRegions": "All detail regions on the selected page highlight together; existing region controls reach other pages without automatic centering.",
+    "tableErrors": "Invalid/out-of-grid/overlapping spans produce explicit errors; the existing 20000-value ceiling bounds grid positions rather than truncating data.",
+    "lifecycle": "Crop work uses the current loaded source; cancellation/unmount abort pending work, canvas storage is cleared and source ownership is not transferred.",
+    "clipboard": "Returned metadata values and complete SDK samples copy through the Clipboard API; denial/unavailable access is an explicit error. Windows CRLF conversion is accounted for in browser validation.",
+    "sdkEvidence": "JavaScript methods match official SDK documentation and module syntax is checked; Python GA/Preview syntax is parsed without execution; C# GA1.1.0 and Preview1.2.0-beta.3 samples compile with current Azure.Identity1.21.0 and zero warnings/errors.",
+    "codeHighlighting": [
+      {"package": "lowlight", "version": "3.3.0", "license": "MIT"},
+      {"package": "highlight.js", "version": "11.11.1", "license": "BSD-3-Clause"}
+    ],
+    "codeChunkBytes": {"library": 52717, "demo": 40296},
+    "entryBytes": {"library": 54478, "demo": 271375},
+    "distributionNotice": "../../THIRD-PARTY-NOTICES.txt",
+    "visualStatus": "Original34 screenshot files remain unchanged; reviewed references for new views/tab header/footer are still pending. Native Chrome Tables/Code inspection succeeds; integrated browser sharing became unavailable.",
+    "additionalAnalyzeCalls": 0,
+    "task43aStarted": false
+  },
   "requirementsScopeDecision": {
     "task": "requirements-reconciliation",
     "decidedOn": "2026-10-13",
@@ -693,7 +722,7 @@
     {"id": "geometry-variants", "owner": "Viewer maintainer", "gate": "G1", "status": "partial-viewer-and-stress-pass", "description": "512 coordinate probes, actual PDF/PNG primary cases and all current same-page service regions pass within 1 CSS pixel. DPR1 stress covers 100 PDF transforms, 100 input replacements and 100 cancellations per browser; the real PDF additionally passes DPR2 fit/zoom/four rotations and first/last navigation. Synthetic cross-page groups and CropBox/MediaBox/intrinsic page rotation pass; real later-page structured grounding, real crop/orientation pairs, full viewport stress and broader HEIF stress remain open."},
     {"id": "additional-input-shapes", "owner": "Viewer maintainer", "gate": "G2", "status": "structured-public-input-and-anonymous-cors-pass", "description": "Parser tests cover GA wrappers/value/identity boundaries; real invoice/receipt arrays and real multi-region addresses pass component/browser behavior. Controlled cross-origin testing verifies CORS success/failure, anonymous requests and viewer-origin assets. Approved policy supports HTTP/HTTPS same-origin and anonymous CORS; credentialed cross-origin is out of scope. Task4.2a adds guarded 2026-06-01-preview display mappings."},
     {"id": "result-pane-customization", "owner": "Task owner", "gate": "G3", "status": "named-confirmed-tail-deferred", "description": "Field selection callbacks, custom field rendering, viewer events, toolbar/layout customization, initial page and initial zoom/fit are approved task4.3b requirements. Only the truncated Result-pane tail remains unknown and deferred. Vite8 is the current supported bundler profile; other bundlers are unverified."},
-    {"id": "additional-result-views", "owner": "Task owner", "gate": "G3", "status": "batch1-tabs-verified-renderers-pending", "description": "GA/Preview parsing, non-empty Studio-ordered tab derivation, Result and content-view retention/fallback are implemented and tested. Dedicated Paragraphs/Tables/Figures/Signatures/Metadata renderers, source-linked detail navigation/thumbnails and Code SDK samples remain batch two; unavailable renderers show an explicit pending state."},
+    {"id": "additional-result-views", "owner": "Task owner", "gate": "G3", "status": "batch2-dedicated-panes-verified-visual-review-pending", "description": "All applicable Studio tabs render. Paragraphs/Tables/Figures/Signatures have source-linked selection and same-page multi-region overlays; native spans, bounded crops, metadata copy and safe SDK Code examples are tested. Unit461/browser42/performance4/strict-CSP consumer24 pass. Reviewed visual-reference updates remain pending; no Source auto-centering or task4.3a work is added."},
     {"id": "cli-host-contract", "owner": "Task owner and toolkit maintainers", "gate": "G4", "status": "deferred", "description": "Per Viewer-first scheduling, CLI contract/integration starts only after G2+G3. Actual data acquisition is verified; --view and saved-result browser hosting are not implemented or approved and do not block Viewer work."},
     {"id": "heif-shipping-decision", "owner": "Project owner and viewer maintainer", "gate": "G2", "status": "permissive-packaging-verified-release-approval-pending", "description": "RC-3 selected MIT/Apache heic-rs0.1.4 WASM; the historical LGPL candidate is not distributed. Hashes, wrapper source/lock, licenses, notices, SBOM, production packaging, CSP, lifecycle, RGBA corpus and consumer tests pass. HEVC product/patent and Microsoft/public publication approval remain external."},
     {"id": "pdf-assets-completeness", "owner": "Viewer maintainer", "gate": "G2", "status": "representative-assets-and-explicit-errors-approved", "description": "React18/19 isolated Vite hosts pass development/production Worker and real standard-font fixtures; CMap/WASM/ICC delivery, MIME and remote CI are verified. The owner requires representative multi-page/font/rotation/CropBox coverage and explicit unsupported-PDF errors, not an exhaustive per-codec fixture matrix. Non-Vite bundlers remain unverified and non-gating."}

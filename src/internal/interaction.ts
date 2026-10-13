@@ -1,4 +1,4 @@
-import type { CuField, CuRegion } from "./types";
+import type { CuContent, CuField, CuRegion } from "./types";
 
 const fieldColors = ["#d13438", "#ffaa44", "#8cbd18", "#005b70", "#0078d4", "#8378de", "#e3008c", "#a4262c"];
 
@@ -121,4 +121,15 @@ export function flattenFields(fields: CuField[]): CuField[] {
         stack.push(...field.children.slice().reverse());
     }
     return result;
+}
+
+export function selectableFields(content: CuContent | undefined): CuField[] {
+    if (!content) return [];
+    return [
+        ...flattenFields(content.fields),
+        ...(content.paragraphs ?? []).map(item => item.field),
+        ...(content.tables ?? []).flatMap(table => table.cells.map(cell => cell.field)),
+        ...(content.figures ?? []).map(item => item.field),
+        ...(content.signatures ?? []).map(item => item.field),
+    ];
 }

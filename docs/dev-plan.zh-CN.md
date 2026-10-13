@@ -584,7 +584,7 @@ flowchart LR
     {
       "id": "4.2a", "phase": 4, "priority": "P1", "title": "增加动态Studio结果视图", "effort": "L",
       "status": "in_progress",
-      "implementation_evidence": "第一批实现GA/Preview版本及明细容器守卫、Studio顺序非空标签、Result替代省略号/JSON、content视图保持/回退及可见警告，不修改输入或重新挂载SourcePane。专用明细渲染、缩略图、metadata复制和Code示例留到第二批。443单元、36相关浏览器、4性能及24功能使用方通过；未更新既有截图文件。",
+      "implementation_evidence": "第一/二批实现GA/Preview动态标签及类型化原文关联Paragraphs/Tables、有界source裁剪Figures/Signatures、Metadata值复制和安全高亮Python/C#/JavaScript SDK示例。同页明细区域同时高亮，区域控件可达其他页；保持源状态/输入身份并支持取消，畸形网格和复制拒绝明确失败。461单元、42相关浏览器、4性能及24功能使用方通过；GA/Preview C#示例以真实SDK编译，Python检查语法且无Analyze调用。剩余：评审后的视觉基线更新；34张既有文件未改。",
       "description": "从原始JSON读取API version，并根据当前content实际非空值生成Studio已知顺序标签。在现有Fields/Markdown基础上增加Paragraphs、Tables、Figures、Signatures、Metadata、Result和Code，不保留禁用占位，也不执行服务逻辑。",
       "files": [
         {"path": "src\\components\\ParagraphsPane.tsx", "action": "create"},
@@ -813,3 +813,4 @@ flowchart LR
 | 2026-10-13 | 需求对齐批准4.2a动态Studio标签：Fields、Markdown、Paragraphs、Tables、Figures、Signatures、Metadata、Result、Code根据GA/Preview返回值生成，无值隐藏。无障碍补充Chrome/Edge自动化与Windows Narrator走查；不推断单独移动端应用。 |
 | 2026-10-13 | 负责人逐项复评RC-Gate：远程CI成功时required-check强制能力非阻塞；不要求逐编码Analyze配对或硬源文件内存/延迟预算；HEVC审批仅阻塞公开发布。门槛通过Viewer开发/私有验收，已批准任务4.2a可启动。 |
 | 2026-10-13 | 任务4.2a第一批交付GA/Preview解析守卫及动态Studio标签显示/切换，包含Result、content回退和可见畸形明细警告。443单元、36相关功能浏览器、4性能及24功能使用方通过。专用渲染器仍待第二批；标签栏发生批准范围内变化，34张既有视觉参考保持未改、等待评审更新，不宣称本批像素匹配。 |
+| 2026-10-13 | 任务4.2a第二批实现六个专用面板、明细原文选择、同页多区域高亮、原生合并表格、真实source裁剪像素、剪贴板错误处理及安全高亮SDK示例。461单元、42相关功能浏览器、4生产预算及24 React18/19严格CSP使用方通过；C# GA/Preview示例编译、Python语法检查通过且不执行服务。包内附lowlight/highlight.js通知；视觉参考保持未改等待负责人评审，未启动4.3a。 |

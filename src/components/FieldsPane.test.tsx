@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { FieldsPane } from "./FieldsPane";
+import { parseCuResult } from "../internal/parseCuResult";
 import type { CuApiVersion, CuContent, CuField, CuRegion } from "../internal/types";
 
 function region(pageNumber: number): CuRegion {
@@ -127,12 +128,19 @@ describe("structured Fields presentation", () => {
 
     it("renders only available Studio tabs and uses keyboard order without disabled placeholders", async () => {
         const { content } = structuredContent();
+        const details = parseCuResult({
+            apiVersion: "2026-06-01-preview",
+            contents: [{
+                kind: "document", paragraphs: [{ content: "Saved paragraph" }],
+                tables: [{ rowCount: 1, columnCount: 1, cells: [] }],
+                figures: [{ id: "figure-1" }], signatures: [{ id: "signature-1" }],
+            }],
+        }).contents[0];
+        if (!details) throw new Error("Detail fixture is unavailable.");
         Object.assign(content, {
             markdown: "# Saved",
-            paragraphs: [{ content: "Saved paragraph" }],
-            tables: [{ rowCount: 1, columnCount: 1 }],
-            figures: [{ id: "figure-1" }],
-            signatures: [{ id: "signature-1" }],
+            paragraphs: details.paragraphs, tables: details.tables,
+            figures: details.figures, signatures: details.signatures,
             metadata: { Author: "Contoso" },
         });
         const { container } = renderPane(content, null, () => true, { rawOnly: "preserved" },
@@ -143,12 +151,12 @@ describe("structured Fields presentation", () => {
         fireEvent.keyDown(screen.getByRole("tab", { name: "Fields" }), { key: "End" });
         expect(screen.getByRole("tab", { name: "Code" }).getAttribute("aria-selected")).toBe("true");
         expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Code" }));
-        expect(screen.getByRole("heading", { name: "Code view is not implemented yet" })).toBeTruthy();
+        expect(await screen.findByRole("heading", { name: "Analyze SDK example" }, { timeout: 5000 })).toBeTruthy();
         fireEvent.keyDown(screen.getByRole("tab", { name: "Code" }), { key: "ArrowLeft" });
         expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" })).toBeTruthy();
         expect(screen.getByText(/rawOnly/)).toBeTruthy();
         fireEvent.keyDown(screen.getByRole("tab", { name: "Result" }), { key: "ArrowLeft" });
-        expect(screen.getByRole("heading", { name: "Metadata view is not implemented yet" })).toBeTruthy();
+        expect(await screen.findByRole("table", { name: "Returned metadata" })).toBeTruthy();
     });
 
     it("retains an applicable view on content changes and selects a stable fallback when its data disappears", async () => {

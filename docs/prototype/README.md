@@ -12,7 +12,7 @@
 
 可运行版本：在仓库根目录执行 `npm run dev`，打开 <http://127.0.0.1:5173/>。当前页面使用真实保存的 PDF/PNG 配对，不调用服务。实际效果见 [Fields 对照截图](interactive-fields.png)、[PDF 运行截图](interactive-pdf.png)、[PNG 运行截图](interactive-png.png)和[多区域/数组截图](interactive-multi-region.png)。
 
-当前 Fields、Markdown 和 Result 可用，Result替代原“…”/JSON入口并保留原始输入JSON树。任务4.2a第一批已接入GA/Preview解析与动态Studio标签：Fields、Markdown、Paragraphs、Tables、Figures、Signatures、Metadata、Result、Code按实际非空数据出现，无值隐藏且没有禁用标签。新增专用面板仍待第二批，当前点击会明确提示尚未实现，不冒充完整交付。切换标签保持源状态；content切换重新计算标签并保留适用视图。既有34张截图未重录，新标签栏需要后续视觉评审。
+当前全部适用Studio结果视图已实现：Fields、Markdown、Paragraphs、Tables、Figures、Signatures、Metadata、Result、Code根据GA/Preview实际非空数据出现。Paragraphs/Tables关联原文；Figures/Signatures从source区域裁剪缩略图；Metadata复制原始值；Code提供只读高亮Python/C#/JavaScript示例并可复制，不执行SDK。切换标签保持源状态；同页明细区域一起高亮，其他页通过已有区域控件到达。461单元、42相关浏览器、4性能及24严格CSP包使用方通过。既有34张截图未重录，新增视图/标签栏/页脚等待后续视觉评审。
 
 ### 最终产品外观基线
 

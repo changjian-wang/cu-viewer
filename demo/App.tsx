@@ -93,6 +93,6 @@ export function App() {
             {input ? <ContentUnderstandingResultViewer source={input.source} result={input.result} /> :
                 <div className="prototype-loading" role="status">{hostError ? "Sample loading failed." : "Loading saved source and result..."}</div>}
         </div>
-        <footer className="prototype-footer">Local source + original Analyze JSON. No upload, authentication or CU service call. <span>HEIF/HEIC supported · Paragraphs/Tables/Code not implemented.</span></footer>
+        <footer className="prototype-footer">Local source + original Analyze JSON. No upload, authentication or CU service call. <span>HEIF/HEIC supported · Result tabs follow returned data.</span></footer>
     </main>;
 }

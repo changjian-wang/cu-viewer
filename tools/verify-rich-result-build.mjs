@@ -41,6 +41,11 @@ const libraryJson = requireSingle(library, /^JsonPane-.*\.js$/, "library JSON ch
 const demoEntry = requireSingle(demo, /^index-.*\.js$/, "demo entry");
 const demoMarkdown = requireSingle(demo, /^MarkdownPane-.*\.js$/, "demo Markdown chunk");
 const demoJson = requireSingle(demo, /^JsonPane-.*\.js$/, "demo JSON chunk");
+const detailPanes = ["ParagraphsPane", "TablesPane", "FiguresPane", "SignaturesPane", "MetadataPane", "CodePane"];
+const detailChunks = Object.fromEntries(detailPanes.map(name => [name, {
+    libraryBytes: requireSingle(library, new RegExp(`^${name}-.*\\.js$`), `library ${name} chunk`).bytes,
+    demoBytes: requireSingle(demo, new RegExp(`^${name}-.*\\.js$`), `demo ${name} chunk`).bytes,
+}]));
 
 verifyEntry(libraryEntry, "Library entry");
 verifyEntry(demoEntry, "Demo entry");
@@ -64,6 +69,7 @@ console.log(JSON.stringify({
         markdownChunkBytes: demoMarkdown.bytes,
         jsonChunkBytes: demoJson.bytes,
     },
+    detailChunks,
     heif: {
         decoderJavaScriptBytes: requireSingle(libraryHeif, /^heic_decoder\.js$/, "library HEIF JavaScript").bytes,
         decoderWasmBytes: requireSingle(libraryHeif, /^heic_decoder_bg\.wasm$/, "library HEIF WASM").bytes,

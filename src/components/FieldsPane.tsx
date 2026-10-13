@@ -4,12 +4,20 @@ import { displayValue, fieldColor, fieldDisplayName, fieldLabel, formatConfidenc
 import { availableResultTabs } from "../internal/resultViews";
 import type { ResultView } from "../internal/resultViews";
 import { unavailableSourcePageMessage } from "../internal/source";
+import type { LoadedSource } from "../internal/source";
 
 const MarkdownPane = lazy(() => import("./MarkdownPane").then(module => ({ default: module.MarkdownPane })));
 const JsonPane = lazy(() => import("./JsonPane").then(module => ({ default: module.JsonPane })));
+const ParagraphsPane = lazy(() => import("./ParagraphsPane").then(module => ({ default: module.ParagraphsPane })));
+const TablesPane = lazy(() => import("./TablesPane").then(module => ({ default: module.TablesPane })));
+const FiguresPane = lazy(() => import("./FiguresPane").then(module => ({ default: module.FiguresPane })));
+const SignaturesPane = lazy(() => import("./SignaturesPane").then(module => ({ default: module.SignaturesPane })));
+const MetadataPane = lazy(() => import("./MetadataPane").then(module => ({ default: module.MetadataPane })));
+const CodePane = lazy(() => import("./CodePane").then(module => ({ default: module.CodePane })));
 
 interface FieldsPaneProps {
     result: unknown;
+    source?: LoadedSource | null | undefined;
     apiVersion?: CuApiVersion | undefined;
     analyzerId?: string | undefined;
     content: CuContent | undefined;
@@ -38,6 +46,7 @@ export function FieldsPane(props: FieldsPaneProps) {
     const tabs = availableResultTabs(props.content, props.result, props.apiVersion, props.analyzerId);
     const activeTab = tabs.find(tab => tab.id === requestedView) ?? tabs[0];
     const view = activeTab?.id;
+    const analyzerId = props.content?.analyzerId ?? props.analyzerId;
     useEffect(() => {
         if (view === requestedView) return;
         setView(view);
@@ -184,17 +193,28 @@ export function FieldsPane(props: FieldsPaneProps) {
             {view === "result" && <Suspense fallback={<div className="cu-state" role="status">Loading Result view…</div>}>
                 <JsonPane value={props.result} />
             </Suspense>}
-            {view && view !== "fields" && view !== "markdown" && view !== "result" && <div className="cu-state" role="status">
-                <h2>{activeTab?.label} view is not implemented yet</h2>
-                <p>{view === "code" ? "SDK sample rendering is scheduled for the next batch." :
-                    "The returned data is available in Result. Detailed rendering is scheduled for the next batch."}</p>
-            </div>}
+            {view && view !== "fields" && view !== "markdown" && view !== "result" && <Suspense
+                fallback={<div className="cu-state" role="status">Loading {activeTab?.label} view…</div>}>
+                {view === "paragraphs" && <ParagraphsPane paragraphs={props.content?.paragraphs ?? []}
+                    selected={props.selected} onSelect={props.onSelect} />}
+                {view === "tables" && <TablesPane tables={props.content?.tables ?? []}
+                    selected={props.selected} onSelect={props.onSelect} />}
+                {view === "figures" && props.content && <FiguresPane figures={props.content.figures ?? []}
+                    content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
+                {view === "signatures" && props.content && <SignaturesPane signatures={props.content.signatures ?? []}
+                    content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
+                {view === "metadata" && <MetadataPane metadata={props.content?.metadata ?? {}} />}
+                {view === "code" && props.apiVersion && analyzerId && <CodePane apiVersion={props.apiVersion} analyzerId={analyzerId} />}
+            </Suspense>}
         </div>
         <footer className="cu-results-footer">
             {view === "fields" && "Field colors link to source regions. Confidence is supplied by CU, not an accuracy judgment."}
             {view === "markdown" && "Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered."}
             {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
-            {view && view !== "fields" && view !== "markdown" && view !== "result" && "Tab availability is implemented; this view's renderer is not yet implemented."}
+            {["paragraphs", "tables", "figures", "signatures"].includes(view ?? "") &&
+                "Select a returned item to locate its source. All regions on the active source page are highlighted; region controls reach other pages."}
+            {view === "metadata" && "Returned string metadata. Values and property order are preserved."}
+            {view === "code" && "Read-only SDK examples. No code, authentication or Analyze request is executed by the Viewer."}
         </footer>
     </section>;
 }

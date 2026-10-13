@@ -218,7 +218,7 @@ test("GA and Preview derive Studio tabs from selected content without changing t
                 fields: { False: { type: "boolean", valueBoolean: false } },
                 markdown: "# Synthetic Preview tabs",
                 paragraphs: [{ content: "Synthetic paragraph" }],
-                tables: [{ rowCount: 1, columnCount: 1, cells: [{ content: "Synthetic cell" }] }],
+                tables: [{ rowCount: 1, columnCount: 1, cells: [{ rowIndex: 0, columnIndex: 0, content: "Synthetic cell" }] }],
                 figures: [{ id: "synthetic-figure" }],
                 signatures: [{ id: "synthetic-signature" }],
                 metadata: { Author: "Synthetic metadata" },
@@ -234,14 +234,14 @@ test("GA and Preview derive Studio tabs from selected content without changing t
     ]);
     await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
     await expect(pane.getByRole("tab", { name: "Code", exact: true })).toBeFocused();
-    await expect(pane.getByRole("heading", { name: "Code view is not implemented yet" })).toBeVisible();
+    await expect(pane.getByRole("heading", { name: "Analyze SDK example" })).toBeVisible();
     await pane.getByRole("tab", { name: "Code", exact: true }).press("ArrowLeft");
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(pane.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();
     await pane.locator(".cu-json-label", { hasText: "result:" }).click();
     await expect(pane.locator(".cu-json-label", { hasText: "futureProperty:" })).toBeVisible();
     await pane.getByRole("tab", { name: "Result", exact: true }).press("ArrowLeft");
-    await expect(pane.getByRole("heading", { name: "Metadata view is not implemented yet" })).toBeVisible();
+    await expect(pane.getByRole("table", { name: "Returned metadata" })).toBeVisible();
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
     const afterSwitch = await page.getByTestId("rendered-page").boundingBox();
     expect(afterSwitch?.width).toBeCloseTo(bounds.width, 1);
