@@ -1,0 +1,3 @@
+assets/heif/heic_decoder.js binary
+assets/heif/heic_decoder_bg.wasm binary
+tests/fixtures/images/**/*.heic binary
