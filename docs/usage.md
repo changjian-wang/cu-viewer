@@ -36,6 +36,16 @@ The React API is unchanged:
 
 Keep the package CSS and provide a bounded host height. Fonts, browser/viewport and host CSS affect visual matching; do not override Fields spacing, palette or icons without reviewing the approved prototype.
 
+## Result Views and Content Limits
+
+- **Fields** renders the verified parsed field model and source interactions.
+- **Markdown** renders the selected content item's original `markdown`. GFM and CU HTML tables are supported. Raw HTML is parsed only so `rehype-sanitize` can apply its allowlist; scripts, frames, event attributes and dangerous protocols are removed. Remote images are represented as omitted text and never requested.
+- The Studio-style **…** control selects **JSON** and displays that label while active. It renders the original `result` input rather than an internal normalized object. The root starts expanded; nested objects and arrays start collapsed and support keyboard expansion.
+
+Switching views does not replace or reinitialize the source pane, so page, zoom, rotation, pan, pinned field and selected source-region index remain intact. Selecting another result content is a separate operation and retains its existing page/selection behavior.
+
+To bound synchronous client rendering, Markdown is limited to 1,000,000 characters. JSON is limited to 2,000,000 serialized characters and 20,000 values. Inputs beyond a limit receive an explicit state and remain caller-owned; the component does not truncate or mutate them. Circular, non-finite and other non-JSON values are also reported explicitly. Hosts that need to inspect larger results should provide a separate download or specialized large-document workflow rather than raising these internal limits without measuring the target devices.
+
 ## Vite Resource Delivery
 
 The optional Node-only entry explicitly wires local PDF resources into the host:
@@ -94,7 +104,7 @@ npm run verify:consumer
 | React 18 | React/React DOM 18.3.1 | `@types/react` 18.3.31 / `@types/react-dom` 18.3.7 |
 | React 19 | React/React DOM 19.3.0 | Both declaration packages 19.3.0 |
 
-It compiles the public API and builds both hosts, then runs [package tests](../tests/e2e/package-host.spec.ts) in production and development with Chrome/Edge: **16 browser runs**. Actual PDF/PNG, real page navigation/pinning, local standard fonts and CMap/WASM/ICC resource delivery are checked under CSP. Product default/PDF-pin/PNG-pin screenshots compare directly to the existing approved baselines, at the original zero-difference settings.
+It compiles the public API and builds both hosts, then runs [package tests](../tests/e2e/package-host.spec.ts) in production and development with Chrome/Edge: **16 browser runs**. Actual PDF/PNG, real page navigation/pinning, real Markdown tables, original JSON expansion, local standard fonts and CMap/WASM/ICC resource delivery are checked under CSP. Product default/PDF-pin/PNG-pin screenshots compare directly to the existing approved baselines, at the original zero-difference settings.
 
 The verifier uses canonical Windows long paths rather than DOS 8.3 aliases, retaining Vite's strict file-serving boundary. Local projects, locks, artifact inventory and verification result remain in its generated temporary workspace for inspection; its servers are started/stopped by the test runner. Nothing is published or pushed.
 

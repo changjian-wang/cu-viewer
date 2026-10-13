@@ -100,6 +100,16 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     if (process.platform === "win32") await expect(page).toHaveScreenshot("png-pinned.png", { fullPage: true });
     await expect.poll(() => alive(page)).toEqual({ workers: 0, bitmaps: 1, urls: 0 });
     await expect(page.getByRole("button", { name: "Clear", exact: true })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "PDF", exact: true }).click();
+    await ready(page);
+    const pane = page.getByRole("region", { name: "Extraction results" });
+    await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
+    await expect(pane.getByRole("heading", { name: "INVOICE", exact: true })).toBeVisible();
+    await expect(pane.getByRole("table")).toHaveCount(9);
+    await pane.getByRole("tab", { name: "JSON", exact: true }).click();
+    await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
+    await expect(pane.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();
 });
 
 test("isolated packed consumer loads local standard fonts rather than relying on repository middleware or a CDN", async ({ page }) => {

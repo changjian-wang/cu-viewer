@@ -89,6 +89,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         />
         <FieldsPane
             key={content?.id ?? "empty"}
+            result={props.result}
             content={content} issues={[...(parsed.model?.issues ?? []), ...sourceIssues]} error={parsed.error}
             contents={parsed.model?.contents ?? []} contentIndex={contentIndex} onContentChange={chooseContent}
             selected={selected} hovered={hovered} sourceReady={Boolean(source && renderReady)} isPageAvailable={isPageAvailable}

@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { CuContent, CuField, CuParseIssue } from "../internal/types";
 import { displayValue, fieldColor, fieldDisplayName, fieldLabel, formatConfidence, primaryRegion } from "../internal/interaction";
 import { unavailableSourcePageMessage } from "../internal/source";
+import { JsonPane } from "./JsonPane";
+import { MarkdownPane } from "./MarkdownPane";
+
+type ResultView = "fields" | "markdown" | "json";
 
 interface FieldsPaneProps {
+    result: unknown;
     content: CuContent | undefined;
     issues: CuParseIssue[];
     error: string | null;
@@ -23,7 +28,27 @@ interface FieldsPaneProps {
 export function FieldsPane(props: FieldsPaneProps) {
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [hideMissing, setHideMissing] = useState(true);
+    const [view, setView] = useState<ResultView>("fields");
+    const tabRefs = useRef<Partial<Record<ResultView, HTMLButtonElement | null>>>({});
+    const tabBaseId = useId();
     const visibleFields = (props.content?.fields ?? []).filter(field => !hideMissing || field.hasValue);
+    const selectView = (next: ResultView): void => {
+        setView(next);
+        tabRefs.current[next]?.focus();
+    };
+    const onTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, current: ResultView): void => {
+        const views: ResultView[] = ["fields", "markdown", "json"];
+        const currentIndex = views.indexOf(current);
+        let nextIndex: number | undefined;
+        if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % views.length;
+        else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + views.length) % views.length;
+        else if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = views.length - 1;
+        if (nextIndex === undefined) return;
+        event.preventDefault();
+        const next = views[nextIndex];
+        if (next) selectView(next);
+    };
     const renderField = (field: CuField, depth: number) => {
         if (hideMissing && !field.hasValue) return null;
         const group = field.children.length > 0;
@@ -80,47 +105,97 @@ export function FieldsPane(props: FieldsPaneProps) {
                 <div className="cu-hidden-child-note">No returned values. Turn off Hide missing fields to inspect missing entries.</div>)}
         </div>;
     };
+    const panelId = `${tabBaseId}-panel`;
+    const contentSelector = props.contents.length > 1 && <label className="cu-content-selector">Content
+        <select aria-label="Result content" value={props.contentIndex} onChange={event => props.onContentChange(Number(event.target.value))}>
+            {props.contents.map((content, index) => <option key={content.id} value={index}>
+                {index + 1}: {content.kind}{content.startPageNumber ? ` · p. ${content.startPageNumber}` : ""}
+            </option>)}
+        </select>
+    </label>;
+    const tab = (name: ResultView, label: string) => <button
+        key={name}
+        ref={element => { tabRefs.current[name] = element; }}
+        id={`${tabBaseId}-${name}`}
+        type="button"
+        role="tab"
+        aria-controls={panelId}
+        aria-selected={view === name}
+        tabIndex={view === name ? 0 : -1}
+        className={view === name ? "is-active" : undefined}
+        onClick={() => selectView(name)}
+        onKeyDown={event => onTabKeyDown(event, name)}
+    >{label}</button>;
     return <section className="cu-fields-pane" aria-label="Extraction results">
         <header className="cu-result-tabs" role="tablist" aria-label="Result views">
-            <button type="button" role="tab" aria-selected="true" className="is-active">Fields</button>
-            {["Markdown", "Paragraphs", "Tables", "Code"].map(name => <button
+            {tab("fields", "Fields")}
+            {tab("markdown", "Markdown")}
+            {["Paragraphs", "Tables", "Code"].map(name => <button
                 key={name} type="button" role="tab" aria-selected="false" disabled
                 title={`${name} is a prototype placeholder, not an implemented result view.`}
             >{name}</button>)}
-            <button type="button" className="cu-more-views" disabled aria-label="More result views (prototype placeholder)">
-                <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <button
+                ref={element => { tabRefs.current.json = element; }}
+                id={`${tabBaseId}-json`}
+                type="button"
+                role="tab"
+                aria-controls={panelId}
+                aria-selected={view === "json"}
+                aria-label="JSON"
+                title="Original Analyze result JSON"
+                tabIndex={view === "json" ? 0 : -1}
+                className={`cu-more-views${view === "json" ? " is-active" : ""}`}
+                onClick={() => selectView("json")}
+                onKeyDown={event => onTabKeyDown(event, "json")}
+            >
+                {view === "json" ? "JSON" : <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
                     <circle cx="3" cy="8" r="1" /><circle cx="8" cy="8" r="1" /><circle cx="13" cy="8" r="1" />
-                </svg>
+                </svg>}
             </button>
         </header>
-        <div className="cu-fields-options">
-            <span>Hide missing fields</span>
-            <button type="button" role="switch" aria-label="Hide missing fields" aria-checked={hideMissing}
-                className="cu-hide-missing-switch" disabled={!props.content || Boolean(props.error)}
-                onClick={() => {
-                    const next = !hideMissing;
-                    setHideMissing(next);
-                    if (next && ((props.selected && !props.selected.hasValue) || (props.hovered && !props.hovered.hasValue))) props.onClear();
-                }}
-            ><span /></button>
-        </div>
         <span className="cu-visually-hidden" role="status">{props.selected ? `Pinned: ${fieldLabel(props.selected)}` : "No field selected"}</span>
-        {props.contents.length > 1 && <label className="cu-content-selector">Content
-            <select aria-label="Result content" value={props.contentIndex} onChange={event => props.onContentChange(Number(event.target.value))}>
-                {props.contents.map((content, index) => <option key={content.id} value={index}>
-                    {index + 1}: {content.kind}{content.startPageNumber ? ` · p. ${content.startPageNumber}` : ""}
-                </option>)}
-            </select>
-        </label>}
-        {props.error ? <div className="cu-state cu-error" role="alert"><h2>Result could not be read</h2><p>{props.error}</p></div> :
-            !props.content?.fields.length ? <div className="cu-state"><h2>No extracted fields</h2><p>The source can still be inspected.</p></div> :
-                <>
-                    {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} result warnings</summary>
-                        <ul>{props.issues.map((issue, index) => <li key={index}><strong>{issue.code}</strong>: {issue.message} <code>{issue.path}</code></li>)}</ul>
-                    </details>}
-                    {visibleFields.length ? <div className="cu-fields-scroll">{visibleFields.map(field => renderField(field, 0))}</div> :
-                        <div className="cu-state"><h2>No returned fields</h2><p>Turn off Hide missing fields to inspect missing values.</p></div>}
-                </>}
-        <footer className="cu-results-footer">Field colors link to source regions. Confidence is supplied by CU, not an accuracy judgment.</footer>
+        <div
+            id={panelId}
+            role="tabpanel"
+            aria-labelledby={`${tabBaseId}-${view}`}
+            tabIndex={0}
+            className="cu-result-panel"
+        >
+            {view === "fields" && <>
+                <div className="cu-fields-options">
+                    <span>Hide missing fields</span>
+                    <button type="button" role="switch" aria-label="Hide missing fields" aria-checked={hideMissing}
+                        className="cu-hide-missing-switch" disabled={!props.content || Boolean(props.error)}
+                        onClick={() => {
+                            const next = !hideMissing;
+                            setHideMissing(next);
+                            if (next && ((props.selected && !props.selected.hasValue) || (props.hovered && !props.hovered.hasValue))) props.onClear();
+                        }}
+                    ><span /></button>
+                </div>
+                {contentSelector}
+                {props.error ? <div className="cu-state cu-error" role="alert"><h2>Result could not be read</h2><p>{props.error}</p></div> :
+                    !props.content?.fields.length ? <div className="cu-state"><h2>No extracted fields</h2><p>The source can still be inspected.</p></div> :
+                        <>
+                            {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} result warnings</summary>
+                                <ul>{props.issues.map((issue, index) => <li key={index}><strong>{issue.code}</strong>: {issue.message} <code>{issue.path}</code></li>)}</ul>
+                            </details>}
+                            {visibleFields.length ? <div className="cu-fields-scroll">{visibleFields.map(field => renderField(field, 0))}</div> :
+                                <div className="cu-state"><h2>No returned fields</h2><p>Turn off Hide missing fields to inspect missing values.</p></div>}
+                        </>}
+            </>}
+            {view === "markdown" && <>
+                {contentSelector}
+                {props.error
+                    ? <div className="cu-state cu-error" role="alert"><h2>Result could not be read</h2><p>{props.error}</p></div>
+                    : <MarkdownPane markdown={props.content?.markdown} />}
+            </>}
+            {view === "json" && <JsonPane value={props.result} />}
+        </div>
+        <footer className="cu-results-footer">
+            {view === "fields" && "Field colors link to source regions. Confidence is supplied by CU, not an accuracy judgment."}
+            {view === "markdown" && "Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered."}
+            {view === "json" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
+        </footer>
     </section>;
 }

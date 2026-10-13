@@ -44,7 +44,7 @@
 - **先完成 Viewer，再集成**：完成仅渲染的 P0 组件库/演示、丰富结果视图及 P1 独立交互，再验证实际组件无需 cu-cli 即可工作；随后才做 CLI 交接与集成。
 - **保持优先级与职责边界独立**：原有 P0/P1 需求标记不变；CLI 属于外部交付阶段，不是 Viewer 开发、启动或独立验收的前置条件。TIFF/DI 继续独立 P2。
 
-**2026-10-12 负责人批准的排期调整**：主线按阶段 **1 → 2 → 3 → 4 → 5** 执行，CLI 最后。任务、验收、测试和门槛全部按顺序重编号：Viewer P1 为 `4.1-4.4` / G3，CLI 为 `5.1-5.2` / G4；阶段 6 仅为独立 P2 后续，不是主线前置。下一项 Viewer 功能目标为 **4.2**，真正实现 Fields/Markdown/JSON 切换；既有技术前置以及未完成的 P0 格式/许可/CI 门槛不被默默豁免。
+**2026-10-12 负责人批准的排期调整**：主线按阶段 **1 → 2 → 3 → 4 → 5** 执行，CLI 最后。任务、验收、测试和门槛全部按顺序重编号：Viewer P1 为 `4.1-4.4` / G3，CLI 为 `5.1-5.2` / G4；阶段 6 仅为独立 P2 后续，不是主线前置。任务 **4.2** 的 Fields/Markdown/JSON 切换现已验证；下一项按序 Viewer 任务为 **4.3** 无障碍体验与已评审扩展。既有技术前置以及未完成的 P0 格式/许可/CI 门槛不被默默豁免。
 
 ## 规划依据
 
@@ -174,7 +174,9 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 **2026-10-12 安装包进展**：用户批准的可选Node端Vite资源交付已在真实React18.3.1/19.3.0 tgz使用方通过，覆盖开发/生产、Chrome/Edge、类型/CSS/Worker/字体和实际宿主CSP。16次包验证加76次仓库回归，本地共92次浏览器与416单元案例；同一产品图无需修改。使用说明/核心CI已配置，不称远程CI或完整P0/发布批准。
 
-**2026-10-13 任务4.1进展**：真实发票/收据数组、稳定的一开始Item标签、隐藏后代选择及当前全部字段/组来源区域已实现。真实BillingAddress区域切换和合成跨页结构化组在Chrome/Edge通过。当前424单元、80仓库浏览器及16包使用方，本地共96次；30张产品基线未改。不宣称专属Tables视图或真实跨页结构化CU配对完成，下一项为4.2。
+**2026-10-13 任务4.1进展**：真实发票/收据数组、稳定的 `Item N` 标签、隐藏后代选择及当前全部字段/组来源区域已实现。真实BillingAddress区域切换和合成跨页结构化组在Chrome/Edge通过。该检查点有424单元、80仓库浏览器及16包使用方运行通过，30张产品基线未改。不宣称专属Tables视图或真实跨页结构化CU配对完成。
+
+**2026-10-13 任务4.2进展**：Fields、安全清洗的Markdown与调用方原始可展开JSON现可切换，且不重置源页码/缩放/旋转/平移/固定字段/区域状态。真实PDF/PNG Markdown、9个CU HTML发票表格、缺失内容、主动攻击内容/URL/图片、原始envelope键、解析器拒绝但仍可查看的原始JSON，以及明确上限（Markdown 1,000,000字符；JSON 2,000,000字符或20,000个值）均在Chrome/Edge及隔离React18/19 Vite使用方通过。当前429单元、86仓库与16包使用方运行，本地共102次。原有30张产品图不变，新增4张任务4.2面板图；Paragraphs/Tables/Code待定范围并保持禁用。下一任务为4.3。
 
 使用当前 Studio 查看有代表性的 PDF 和图片结果。记录布局、字段名/值/置信度展示、悬停与选择的区别、跨页导航、适应/缩放/平移/旋转，以及缺失源文件或来源定位信息时的行为。如果无法访问 Studio，应记录限制，并保持行为评审门槛未通过。
 
@@ -232,7 +234,7 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 任务 4.3 必须在 D6 解决后才能最终确定 `Result-pane` 定制。Markdown/JSON 及其他已经明确的 P1 行为可以独立推进。本阶段要求 MCP 集成设计/文档，不要求实现未被请求的 MCP 服务器。
 
-**下一功能目标：4.2。** 真正实现 Fields/Markdown/JSON 切换、安全 Markdown 与原始 JSON 树；切换结果表示时保留文档页码/缩放/固定选择。当前 Markdown/Paragraphs/Tables/Code/更多控件只是禁用占位，不是已实现视图。Paragraphs/Tables/Code/更多专属语义必须先明确范围再承诺交付；既有 4.1 覆盖结构化字段，不等于自动批准所有 Studio 标签。
+**下一功能目标：4.3。** 完成键盘/焦点/触摸/响应式行为，并只实现D6解决后批准的扩展点。Fields/Markdown/JSON已实现；Paragraphs/Tables/Code仍是禁用占位，其专属语义必须先明确范围再承诺交付。保持已确认Fields布局及任务4.2的源状态保持保证。
 
 **G3 通过条件**：P1 验收/测试以及经过评审的宿主扩展契约完成，并记录限制。
 
@@ -305,7 +307,7 @@ flowchart LR
     "viewer_completion_gates": ["G2", "G3"],
     "cli_final_tasks": ["5.1", "5.2"],
     "cli_blocks_viewer": false,
-    "next_viewer_functional_task": "4.2",
+    "next_viewer_functional_task": "4.3",
     "separate_p2_tasks": ["6.1", "6.2"]
   },
   "review_gates": [
@@ -317,14 +319,14 @@ flowchart LR
       "interaction_baseline_approved": true,
       "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
-      "unit_cases": 424,
-      "browser_runs": 96,
-      "repository_browser_runs": 80,
+      "unit_cases": 429,
+      "browser_runs": 102,
+      "repository_browser_runs": 86,
       "packed_consumer_browser_runs": 16,
       "stress_browser_runs": 6,
       "stress_rounds_per_browser": 300,
       "visual_browser_runs": 18,
-      "visual_baseline_count": 30,
+      "visual_baseline_count": 34,
       "visual_baseline": "tests\\e2e\\visual.spec.ts-snapshots",
       "fields_reference": "docs\\prototype\\interactive-fields.png",
       "reference": "docs\\prototype\\README.md",
@@ -552,12 +554,17 @@ flowchart LR
     },
     {
       "id": "4.2", "phase": 4, "priority": "P1", "title": "增加安全 Markdown 与交互式 JSON 面板", "effort": "M",
-      "description": "下一Viewer功能目标：评估成熟Markdown/JSON组件，真正实现Fields/Markdown/JSON切换、许可证评审、安全内容及实测大小限制；保留文档页码/缩放/固定状态与获批Fields外观，无CLI依赖。",
+      "status": "done",
+      "implementation_evidence": "固定版本且MIT、兼容React18/19的Markdown/GFM/原始HTML清洗和JSON树依赖渲染真实PDF/PNG结果。Chrome/Edge安全、缺失/无效/超限状态、原始envelope展开、源状态保持、4张新增面板图和隔离安装包使用方均通过；原有30张产品图继续作为逐图比较目标。",
+      "description": "评估成熟Markdown/JSON组件，真正实现Fields/Markdown/JSON切换、许可证评审、安全内容及实测大小限制；保留文档页码/缩放/固定状态与获批Fields外观，无CLI依赖。",
       "files": [
         {"path": "src\\components\\MarkdownPane.tsx", "action": "create"},
         {"path": "src\\components\\JsonPane.tsx", "action": "create"},
+        {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
+        {"path": "src\\styles.css", "action": "modify"},
         {"path": "package.json", "action": "modify"},
+        {"path": "package-lock.json", "action": "modify"},
         {"path": "tests\\e2e\\rich-results.spec.ts", "action": "create"}
       ],
       "depends_on": ["3.3", "4.1"],
@@ -644,7 +651,7 @@ flowchart LR
 - **宿主原生集成测试**：使用已确认 CLI 仓库的现有运行器，不另建一套 CLI 框架。
 - **人工验证依据**：Studio 对比、依赖/许可证评估，以及负责人批准，仍明确属于人工工作，不计入自动化覆盖。
 
-`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建和`npm run verify:consumer`已实现。424单元案例、80仓库浏览器和16真实React18/19 Vite包使用方运行通过，本地合计96次。已有600压力轮与30张不变产品图保留；核心CI已配置但未远程执行。完整格式/分发、跨源/其他宿主、更广压力和内存/延迟预算仍开放。
+`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建和`npm run verify:consumer`已实现。429单元案例、86仓库浏览器和16真实React18/19 Vite包使用方运行通过，本地合计102次。已有600压力轮与30张不变产品图保留，并新增4张任务4.2面板图；核心CI已配置但未远程执行。完整格式/分发、跨源/其他宿主、更广压力和内存/延迟预算仍开放。
 
 常规回归测试使用已保存、已脱敏的真实结果，不实时调用 Analyze。访问真实服务只用于明确批准的测试样本获取，或验证外部 CLI 新分析路径。源文件 URL 测试可以使用本地测试服务器；测试禁止 CU 请求及对必需外部 CDN 资源的依赖。不在测试日志或浏览器产物中记录凭据、SAS URL、客户文档或未经处理的敏感结果。
 
@@ -745,3 +752,4 @@ flowchart LR
 | 2026-10-12 | 真实React18/19 tgz宿主通过获批Node端Vite资产及目录规范化；16次开发/生产CSP/资源/截图、76次仓库回归和416单元案例通过。新增使用说明/核心CI，产品基线未变，完整格式/远程CI/发布门槛保留。 |
 | 2026-10-12 | 负责人要求Viewer优先：将P1重编号为4.1-4.4/G3、CLI重编号为5.1-5.2/G4，并同步验收/测试编号、依赖、门槛与交付顺序。保留已有验证依据及独立P2；下一功能目标为4.2真实结果面板切换。 |
 | 2026-10-13 | 完成4.1已定范围：真实数组/表格式层级、隐藏后代选择及全部自身/后代来源区域，补充合成跨页覆盖。424单元、80仓库和16消费者运行通过，30张获批图片不变；专属Tables视图/真实跨页结构化配对仍开放，下一项4.2。 |
+| 2026-10-13 | 完成任务4.2：真实安全Markdown（含9个CU HTML表格）、原始交互JSON、标签/源状态保持、攻击/缺失/超限状态及React18/19安装包宿主覆盖。429单元、86仓库及16消费者运行通过；保留原有30张产品图并新增4张富结果面板图。Paragraphs/Tables/Code继续不在范围，下一项4.3。 |

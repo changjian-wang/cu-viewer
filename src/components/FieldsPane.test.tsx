@@ -47,9 +47,11 @@ function structuredContent(): { content: CuContent; rows: CuField; first: CuFiel
 }
 
 function renderPane(content: CuContent, selected: CuField | null = null,
-    isPageAvailable: (pageNumber: number) => boolean = () => true) {
+    isPageAvailable: (pageNumber: number) => boolean = () => true,
+    result: unknown = { apiVersion: "2025-11-01", rawOnly: "preserved" }) {
     const onSelect = vi.fn();
     const view = render(<FieldsPane
+        result={result}
         content={content} contents={[content]} contentIndex={0} issues={[]} error={null}
         selected={selected} hovered={null} sourceReady={true} isPageAvailable={isPageAvailable}
         onContentChange={vi.fn()} onHover={vi.fn()} onLeave={vi.fn()}
@@ -98,5 +100,27 @@ describe("structured Fields presentation", () => {
         const unavailable = screen.getByRole<HTMLButtonElement>("button", { name: "Locate Rows on page 1" });
         expect(unavailable.disabled).toBe(true);
         expect(unavailable.getAttribute("title")).toContain("Page 1 is not present");
+    });
+
+    it("switches real result views with tab semantics without losing Fields expansion state", () => {
+        const fixture = structuredContent();
+        fixture.content.markdown = "# Extracted title";
+        renderPane(fixture.content);
+
+        fireEvent.click(screen.getByRole("button", { name: "Expand Rows" }));
+        fireEvent.click(screen.getByRole("tab", { name: "Markdown" }));
+        expect(screen.getByRole("heading", { name: "Extracted title" })).toBeTruthy();
+        expect(screen.getByRole("tab", { name: "Markdown" }).getAttribute("aria-selected")).toBe("true");
+
+        fireEvent.keyDown(screen.getByRole("tab", { name: "Markdown" }), { key: "ArrowRight" });
+        expect(screen.getByRole("tree", { name: "Original Analyze result JSON" })).toBeTruthy();
+        expect(screen.getByText(/rawOnly/)).toBeTruthy();
+
+        fireEvent.keyDown(screen.getByRole("tab", { name: "JSON" }), { key: "Home" });
+        expect(screen.getByRole("button", { name: "Collapse Rows" })).toBeTruthy();
+        expect(screen.getByRole("tab", { name: "Fields" }).getAttribute("aria-selected")).toBe("true");
+        expect(screen.getByRole("tab", { name: "Paragraphs" }).hasAttribute("disabled")).toBe(true);
+        expect(screen.getByRole("tab", { name: "Tables" }).hasAttribute("disabled")).toBe(true);
+        expect(screen.getByRole("tab", { name: "Code" }).hasAttribute("disabled")).toBe(true);
     });
 });

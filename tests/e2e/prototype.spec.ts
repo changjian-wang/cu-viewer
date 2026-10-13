@@ -245,7 +245,11 @@ test("Fields matches Studio grouping, icons, badges and spacing without altering
     await expect(country.locator(".cu-field-value")).toHaveText("USA");
     await expect(address.locator(".cu-confidence")).toHaveText("31.70%");
     await expect(pane.getByRole("tab").filter({ hasText: /Markdown|Paragraphs|Tables|Code/ })).toHaveCount(4);
-    await expect(pane.getByRole("tab", { name: "Markdown", exact: true })).toBeDisabled();
+    await expect(pane.getByRole("tab", { name: "Markdown", exact: true })).toBeEnabled();
+    await expect(pane.getByRole("tab", { name: "JSON", exact: true })).toBeEnabled();
+    for (const placeholder of ["Paragraphs", "Tables", "Code"]) {
+        await expect(pane.getByRole("tab", { name: placeholder, exact: true })).toBeDisabled();
+    }
 
     const appearance = await group.evaluate(element => {
         const dot = element.querySelector(".cu-dot");

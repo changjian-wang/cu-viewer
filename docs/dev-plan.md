@@ -43,7 +43,7 @@ Build a rendering-only React/TypeScript library that accepts an original PDF/ima
 - **Finish the Viewer, then integrate**: complete the rendering-only P0 library/demo, rich result views and standalone P1 UX, then validate the actual component without cu-cli. Only afterward perform the CLI handoff and integration.
 - **Keep priorities and ownership separate**: existing P0/P1 requirement labels remain unchanged; CLI work is an external delivery stage, not a prerequisite for Viewer development, startup or standalone acceptance. TIFF/DI remain independently scoped P2.
 
-**Owner-approved scheduling change, 2026-10-12**: mainline execution is phases **1 -> 2 -> 3 -> 4 -> 5**, with CLI last. Tasks, acceptance criteria, tests and gates are renumbered to match that order: Viewer P1 is `4.1-4.4` / G3, and CLI is `5.1-5.2` / G4. Phase 6 is an independent P2 follow-up, not a mainline prerequisite. The next Viewer functional target is **4.2**, real Fields/Markdown/JSON switching; existing technical prerequisites and outstanding P0 format/licensing/CI gates are not silently waived.
+**Owner-approved scheduling change, 2026-10-12**: mainline execution is phases **1 -> 2 -> 3 -> 4 -> 5**, with CLI last. Tasks, acceptance criteria, tests and gates are renumbered to match that order: Viewer P1 is `4.1-4.4` / G3, and CLI is `5.1-5.2` / G4. Phase 6 is an independent P2 follow-up, not a mainline prerequisite. Task **4.2** Fields/Markdown/JSON switching is now verified; the next ordered Viewer task is **4.3**, accessible UX and reviewed extensions. Existing technical prerequisites and outstanding P0 format/licensing/CI gates are not silently waived.
 
 ## Planning Basis
 
@@ -173,7 +173,9 @@ Phase, task, acceptance and test number prefixes below now use the same revised 
 
 **2026-10-12 package progress**: user-approved optional Node-only Vite resource delivery now passes real React18.3.1/19.3.0 tgz consumers, development/production, Chrome/Edge, types/CSS/Worker/fonts and actual host CSP. Sixteen consumer runs add to76 repository runs:92 local browser checks and416 unit cases. The same product images match without changes. Usage/core CI are configured, not remotely executed or full P0/release approval.
 
-**2026-10-13 task 4.1 progress**: real invoice/receipt arrays, stable one-based item labels, hidden-descendant selection and all current field/group source regions are implemented. Real BillingAddress region switching and a synthetic cross-page structured group pass in Chrome/Edge. Current totals are424 unit cases,80 repository browser runs and16 packed-consumer runs:96 local browser runs; all30 existing product references remain unchanged. Dedicated Tables view and real cross-page structured CU pairs are not claimed. Task4.2 is next.
+**2026-10-13 task 4.1 progress**: real invoice/receipt arrays, stable one-based item labels, hidden-descendant selection and all current field/group source regions are implemented. Real BillingAddress region switching and a synthetic cross-page structured group pass in Chrome/Edge. At that checkpoint 424 unit cases, 80 repository browser runs and 16 packed-consumer runs passed; all 30 existing product references remained unchanged. Dedicated Tables view and real cross-page structured CU pairs are not claimed.
+
+**2026-10-13 task 4.2 progress**: Fields, sanitized Markdown and the original expandable JSON input now switch without resetting source page/zoom/rotation/pan/pin/region state. Real PDF/PNG Markdown, nine CU HTML invoice tables, missing content, adversarial active content/URLs/images, original envelope keys, parser-rejected raw JSON and explicit limits (1,000,000 Markdown characters; 2,000,000 JSON characters or 20,000 values) pass in Chrome/Edge and isolated React 18/19 Vite consumers. Current totals are 429 unit cases, 86 repository runs and 16 packed-consumer runs: 102 local browser runs. The original 30 product references are unchanged; four task 4.2 pane references were added. Paragraphs/Tables/Code remain disabled pending scope. Task 4.3 is next.
 
 Use the current Studio with representative PDF and image results. Record layout, field/value/confidence presentation, hover versus selection, cross-page navigation, fit/zoom/pan/rotation, and missing-source/grounding behavior. If Studio is inaccessible, record that limitation and leave the behavioral review gate open.
 
@@ -225,13 +227,13 @@ Publish the tested format/browser matrix and measured sample sizes. Missing HEIF
 | Task | Work and acceptance | Effort |
 | --- | --- | --- |
 | `4.1` | Add structured nested/array/table fields and multiple-region navigation. **AC-4.1**: original relationships remain inspectable and every available region can be reached without losing field identity or selection. | M |
-| `4.2` | Add Fields/Markdown/JSON tabs using safe Markdown and a evaluated mature JSON tree. **AC-4.2**: formatting and expand/collapse work; unsafe HTML/URL content cannot execute; large-result limits are measured and documented. | M |
+| `4.2` | Add Fields/Markdown/JSON tabs using safe Markdown and an evaluated mature JSON tree. **AC-4.2**: formatting and expand/collapse work; unsafe HTML/URL content cannot execute; large-result limits are measured and documented. | M |
 | `4.3` | Add accessible keyboard/touch/responsive behavior and reviewed extension points. **AC-4.3**: focus and selection work without a mouse, narrow layouts remain usable, and callbacks/custom renderers/toolbar/layout/initial-view options pass host tests. | M |
 | `4.4` | Document MCP Apps/MCP UI and chat-host integration design. **AC-4.4**: data delivery, payload constraints, assets/CSP, loading/errors, lifecycle, and trust boundaries are specified without adding service logic to the core. | S |
 
 Task 4.3 must not finalize `Result-pane` customization until D6 is resolved. Markdown/JSON and other clearly stated P1 behavior can proceed independently. This phase requires MCP integration design/documentation, not an unrequested MCP server implementation.
 
-**Next functional target: 4.2.** Implement actual Fields/Markdown/JSON switching, safe Markdown and the original JSON tree; preserve document page/zoom/selection when changing result representation. Current Markdown/Paragraphs/Tables/Code/more controls are disabled placeholders, not implemented views. Dedicated Paragraphs/Tables/Code/more semantics must be explicitly scoped before they are advertised; existing task 4.1 covers structured fields, not automatic approval of every Studio tab.
+**Next functional target: 4.3.** Complete keyboard/focus/touch/responsive behavior and only the extension points approved after D6 is resolved. Fields/Markdown/JSON are implemented; Paragraphs/Tables/Code remain disabled placeholders whose semantics must be explicitly scoped before they are advertised. Preserve the approved Fields layout and task 4.2 source-state guarantees.
 
 **Exit G3**: P1 acceptance/tests and reviewed host extension contracts are complete, with limitations documented.
 
@@ -304,7 +306,7 @@ Paths are relative to the target repository and use Windows separators. `create`
     "viewer_completion_gates": ["G2", "G3"],
     "cli_final_tasks": ["5.1", "5.2"],
     "cli_blocks_viewer": false,
-    "next_viewer_functional_task": "4.2",
+    "next_viewer_functional_task": "4.3",
     "separate_p2_tasks": ["6.1", "6.2"]
   },
   "review_gates": [
@@ -316,14 +318,14 @@ Paths are relative to the target repository and use Windows separators. `create`
       "interaction_baseline_approved": true,
       "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
-      "unit_cases": 424,
-      "browser_runs": 96,
-      "repository_browser_runs": 80,
+      "unit_cases": 429,
+      "browser_runs": 102,
+      "repository_browser_runs": 86,
       "packed_consumer_browser_runs": 16,
       "stress_browser_runs": 6,
       "stress_rounds_per_browser": 300,
       "visual_browser_runs": 18,
-      "visual_baseline_count": 30,
+      "visual_baseline_count": 34,
       "visual_baseline": "tests\\e2e\\visual.spec.ts-snapshots",
       "fields_reference": "docs\\prototype\\interactive-fields.png",
       "reference": "docs\\prototype\\README.md",
@@ -551,12 +553,17 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "4.2", "phase": 4, "priority": "P1", "title": "Add safe Markdown and interactive JSON panes", "effort": "M",
-      "description": "Next Viewer functional target: evaluate mature Markdown/JSON components and implement real Fields/Markdown/JSON switching with reviewed licenses, safe content and measured size limits; retain document page/zoom/pin state and approved Fields appearance. No CLI dependency.",
+      "status": "done",
+      "implementation_evidence": "Exact MIT React18/19-compatible Markdown/GFM/raw-HTML-sanitize and JSON-tree dependencies render real PDF/PNG output. Chrome/Edge security, missing/invalid/oversized states, original-envelope expansion, source-state retention, four new pane references and isolated packed consumers pass; the previous 30 product images remain byte-for-byte comparison targets.",
+      "description": "Evaluate mature Markdown/JSON components and implement real Fields/Markdown/JSON switching with reviewed licenses, safe content and measured size limits; retain document page/zoom/pin state and approved Fields appearance. No CLI dependency.",
       "files": [
         {"path": "src\\components\\MarkdownPane.tsx", "action": "create"},
         {"path": "src\\components\\JsonPane.tsx", "action": "create"},
+        {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
+        {"path": "src\\styles.css", "action": "modify"},
         {"path": "package.json", "action": "modify"},
+        {"path": "package-lock.json", "action": "modify"},
         {"path": "tests\\e2e\\rich-results.spec.ts", "action": "create"}
       ],
       "depends_on": ["3.3", "4.1"],
@@ -643,7 +650,7 @@ Task 2.1 establishes the unit/lint/type/build foundation; browser, component, an
 - **Host-native integration tests**: use the confirmed CLI repository's existing runner rather than creating a competing CLI framework.
 - **Manual evidence**: Studio comparisons, dependency/license evaluation, and owner approval remain explicitly manual. They are not reported as automated coverage.
 
-`npm ci --ignore-scripts`, type/lint/unit/E2E/build commands and `npm run verify:consumer` are implemented. Current424 unit cases,80 repository browser runs and16 actual React18/19 Vite consumer runs pass:96 local browser executions. Existing600 stress rounds and30 unchanged product images remain covered. Core CI is configured, not remotely executed. Full formats/distribution, cross-origin/other hosts, broader stress and memory/latency budgets remain open.
+`npm ci --ignore-scripts`, type/lint/unit/E2E/build commands and `npm run verify:consumer` are implemented. Current 429 unit cases, 86 repository browser runs and 16 actual React18/19 Vite consumer runs pass: 102 local browser executions. Existing 600 stress rounds and 30 unchanged product images remain covered, with four new task 4.2 pane references. Core CI is configured, not remotely executed. Full formats/distribution, cross-origin/other hosts, broader stress and memory/latency budgets remain open.
 
 Normal regression tests use saved, sanitized real results, not live Analyze calls. Live service access is only an explicitly approved way to acquire fixtures or verify the external fresh-analysis CLI path. Source URL tests may use the local test server; tests deny CU requests and required external CDN assets. Do not record credentials, SAS URLs, customer documents, or raw sensitive results in test logs or browser artifacts.
 
@@ -744,3 +751,4 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-12 | Verified real React18/19 tgz consumers with approved optional Node-only Vite assets and directory normalization;16 dev/prod CSP/resource/screenshot runs plus76 repository runs and416 unit cases pass. Usage/core CI added, unchanged product references retained, full format/remote-CI/release gates left open. |
 | 2026-10-12 | Owner required Viewer-first delivery: renumber P1 as 4.1-4.4/G3 and CLI as 5.1-5.2/G4, then synchronize acceptance/test IDs, dependencies, gates and rollout. Preserve verified completion evidence and separate P2; next Viewer functional target is real rich-pane switching in 4.2. |
 | 2026-10-13 | Completed scoped task4.1: stable real array/table-like hierarchy, hidden descendant selection and every own/descendant source region, with synthetic cross-page coverage. Verified424 unit,80 repository and16 consumer runs;30 approved images unchanged. Dedicated Tables pane and real cross-page structured pair remain open;4.2 is next. |
+| 2026-10-13 | Completed task 4.2: real sanitized Markdown (including nine CU HTML tables), original interactive JSON, tab/source-state retention, adversarial/missing/oversized states and React18/19 package-host coverage. Verified 429 unit, 86 repository and 16 consumer runs; retained all 30 existing product images and added four rich-pane references. Paragraphs/Tables/Code remain scoped out; 4.3 is next. |

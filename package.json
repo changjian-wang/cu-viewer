@@ -52,7 +52,12 @@
     }
   },
   "dependencies": {
-    "pdfjs-dist": "6.3.289"
+    "pdfjs-dist": "6.3.289",
+    "react-json-view-lite": "2.5.0",
+    "react-markdown": "10.1.0",
+    "rehype-raw": "7.0.0",
+    "rehype-sanitize": "6.0.0",
+    "remark-gfm": "4.0.1"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

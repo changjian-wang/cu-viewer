@@ -50,6 +50,8 @@
 .cu-result-tabs button:disabled { color: #004578; }
 .cu-result-tabs .is-active { background: #fff; color: #201f1e; font-weight: 600; }
 .cu-result-tabs .cu-more-views { display: flex; align-items: center; justify-content: center; background: transparent; padding: 8px; fill: #323130; }
+.cu-result-tabs .cu-more-views.is-active { background: #fff; padding-inline: 12px; }
+.cu-result-panel { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .cu-fields-options { display: flex; flex: none; align-items: center; justify-content: flex-end; gap: 12px; min-height: 48px; margin: 0 26px 0 10px; padding: 20px 4px 8px; border-bottom: 1px solid #e0e0e0; color: #004578; }
 .cu-hide-missing-switch { position: relative; flex: none; width: 40px; height: 20px; border: 1px solid #605e5c; border-radius: 12px; padding: 0; background: white; }
 .cu-hide-missing-switch[aria-checked="true"] { background: #0f6cbd; border-color: #0f6cbd; }
@@ -83,6 +85,42 @@
 .cu-results-footer { flex: none; font-size: 14px; line-height: 20px; padding: 8px 26px; border-top: 1px solid #e0e0e0; color: #004578; }
 .cu-issues { margin: 0 12px 8px; padding: 8px; background: #fff7e6; color: #7b4b00; font-size: 12px; }
 .cu-issues li { margin: 5px 0; overflow-wrap: anywhere; }
+.cu-rich-result-scroll { flex: 1; min-height: 0; overflow: auto; padding: 18px 22px 24px; }
+.cu-markdown { color: #201f1e; line-height: 1.55; overflow-wrap: anywhere; }
+.cu-markdown > :first-child { margin-top: 0; }
+.cu-markdown > :last-child { margin-bottom: 0; }
+.cu-markdown h1, .cu-markdown h2, .cu-markdown h3, .cu-markdown h4, .cu-markdown h5, .cu-markdown h6 { color: #201f1e; line-height: 1.25; margin: 22px 0 10px; }
+.cu-markdown h1 { font-size: 24px; }
+.cu-markdown h2 { font-size: 20px; }
+.cu-markdown h3 { font-size: 17px; }
+.cu-markdown p { margin: 10px 0; }
+.cu-markdown ul, .cu-markdown ol { padding-left: 24px; }
+.cu-markdown blockquote { margin: 12px 0; padding: 2px 14px; border-left: 3px solid #a9c7e8; color: #4b5c70; }
+.cu-markdown-table-scroll { width: 100%; margin: 14px 0; overflow-x: auto; }
+.cu-markdown table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 12px; }
+.cu-markdown th, .cu-markdown td { min-width: 80px; border: 1px solid #d9e1eb; padding: 7px 9px; text-align: left; vertical-align: top; }
+.cu-markdown th { background: #f3f6fa; color: #243145; font-weight: 600; }
+.cu-markdown pre { max-width: 100%; overflow: auto; border: 1px solid #d9e1eb; border-radius: 4px; padding: 12px; background: #f6f8fa; }
+.cu-markdown code, .cu-json-scalar, .cu-json-tree { font-family: Consolas, "Courier New", monospace; }
+.cu-markdown :not(pre) > code { border-radius: 3px; padding: 1px 4px; background: #f0f2f4; }
+.cu-markdown a { color: #004578; text-decoration: underline; }
+.cu-markdown-image-omitted { display: inline-block; border: 1px solid #d1d9e3; border-radius: 3px; padding: 2px 6px; color: #617087; font-size: 12px; }
+.cu-result-limit p { color: #7b4b00; }
+.cu-json-tree { min-width: max-content; margin: 0; color: #201f1e; font-size: 12px; line-height: 1.65; white-space: pre-wrap; word-wrap: break-word; }
+.cu-json-children { margin: 0; padding: 0 0 0 18px; list-style: none; }
+.cu-json-node { margin: 0; padding: 0; }
+.cu-json-expander { display: inline-flex; width: 18px; justify-content: center; margin-right: 2px; cursor: pointer; user-select: none; }
+.cu-json-expand::after { content: "\25B8"; }
+.cu-json-collapse::after { content: "\25BE"; }
+.cu-json-collapsed { margin-right: 3px; cursor: pointer; }
+.cu-json-collapsed::after { content: "..."; }
+.cu-json-label { margin-right: 5px; color: #004578; font-weight: 600; }
+.cu-json-clickable-label { cursor: pointer; }
+.cu-json-string { color: #0b6a0b; }
+.cu-json-number, .cu-json-boolean { color: #004e8c; }
+.cu-json-null, .cu-json-undefined { color: #a4262c; }
+.cu-json-other, .cu-json-punctuation { color: #201f1e; }
+.cu-json-scalar { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 @container cu-fields (max-width: 420px) {
     .cu-result-tabs { gap: 2px; }
     .cu-result-tabs button { padding-left: 8px; padding-right: 8px; font-size: 13px; }

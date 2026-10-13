@@ -14,7 +14,7 @@ Task numbering now matches the revised phases: Viewer P1 is `4.1-4.4` / G3; CLI 
 
 The owner's UI checkpoint now has approved [v2 static design](prototype/README.md) and an [interactive baseline](prototype/README.md#当前可操作范围) approved for task 2.4 hardening. It was run immediately when mountable and has real PDF/PNG coverage. The static state gallery remains design-only; implementation approval does not close production acceptance.
 
-Checked items record verified scope, not release approval. Current 424 unit cases, 80 repository browser runs and 16 isolated Vite consumer runs pass: 96 local browser runs. Structured arrays and all current source regions are verified while all30 product references remain unchanged. Full rich panes, formats, HEIF distribution, cross-origin, broader stress/budgets, other hosts, remote CI and final CLI remain open.
+Checked items record verified scope, not release approval. Current 429 unit cases, 86 repository browser runs and 16 isolated Vite consumer runs pass: 102 local browser runs. Structured arrays, all current source regions, safe Markdown and the original JSON tree are verified. The prior 30 product references remain unchanged and four task 4.2 pane references were added. Remaining rich UX, formats, HEIF distribution, cross-origin, broader stress/budgets, other hosts, remote CI and final CLI remain open.
 
 ## 1. Validate the Input and UX Reference
 
@@ -68,13 +68,13 @@ Checked items record verified scope, not release approval. Current 424 unit case
 ## 5. Complete Viewer P1 and Standalone Acceptance
 
 - [x] Implement scoped structured fields and multiple-region navigation: stable nested/array identities, table-like real LineItems, collapsed-selection retention, all own/descendant source regions and synthetic cross-page group coverage. A dedicated Tables result pane is not implied.
-- [ ] Implement actual Fields/Markdown/JSON switching; preserve document page/zoom/pin state and approved Fields appearance rather than merely enabling empty tabs.
-- [ ] Add safe client-side Markdown with headings, lists, tables, code blocks, and formatting.
-- [ ] Evaluate and integrate a mature expandable JSON-tree component suitable for reasonably large results.
+- [x] Implement actual Fields/Markdown/JSON switching; preserve document page/zoom/rotation/pan/pin/region state and approved Fields appearance rather than merely enabling empty tabs.
+- [x] Add safe client-side Markdown with headings, lists, GFM, sanitized CU HTML tables, code blocks and formatting; omit active content, dangerous URLs and remote images.
+- [x] Evaluate and integrate a mature MIT expandable JSON-tree component for the original input, with explicit 2,000,000-character/20,000-value limits.
 - [ ] Complete accessibility, keyboard, touch, responsive layout, and refined automatic scrolling/centering.
 - [ ] Add grounded extension points for selection callbacks, custom fields, viewer events, toolbar/layout customization, initial page, and initial zoom/fit mode.
 - [ ] Specify MCP Apps / MCP UI and chat-host integration design, including host-to-viewer data delivery and asset packaging, without service logic in the core.
-- [ ] Test rich-pane security and representative host interactions.
+- [x] Test real PDF/PNG rich panes, security, missing/invalid/oversized states, keyboard tab switching and React 18/19 package-host behavior in Chrome/Edge.
 
 **Exit check:** Viewer G2 + G3 pass with independent startup, usable rich views, reviewed UX/extensions, package and product parity. Current Paragraphs/Tables/Code/more placeholders need explicit semantics/scope before they can count as features. Clarify result-pane customization without inventing the missing requirement. No CLI contract is required for this acceptance.
 
@@ -100,4 +100,4 @@ Checked items record verified scope, not release approval. Current 424 unit case
 
 ## Immediate Next Step
 
-The next Viewer functional target is **4.2: usable result-pane switching, safe Markdown and the original JSON tree**. Work from the verified source/JSON/package foundation while retaining existing technical prerequisites and closing remaining Viewer P0 validation. Do not start CLI contract/implementation before Viewer completion, count disabled placeholders as delivered, or waive HEIF compliance. This roadmap update does not implement the missing panes.
+The next ordered Viewer task is **4.3: accessible UX and reviewed extensions**. Start from the verified Fields/Markdown/JSON state while retaining existing technical prerequisites and closing remaining Viewer P0 validation. Do not start CLI contract/implementation before Viewer completion, count Paragraphs/Tables/Code placeholders as delivered, or waive HEIF compliance. Result-pane customization remains gated by the unresolved extension-scope decision.

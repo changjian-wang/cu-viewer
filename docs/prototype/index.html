@@ -50,9 +50,9 @@
     <main>
       <p class="note">本页仅用锚点浏览静态状态，不加载新文件、不调用 CU。真实数值来自已有 GA 样本；加载、空结果及错误页面是明确标注的设计场景，不是实际服务运行结果。</p>
       <section id="visual-baselines">
-        <h2>最新产品外观基线 · 2026-10-12</h2>
-        <p>最终界面以最后确认的交互原型为准：Fields 与截图对齐、不恢复 Clear，预览栏在文档下方。独立输入测试宿主的验证控件不属于产品。本轮没有修改产品布局；以下基线由真实产品演示页生成，在 Windows Chrome/Edge 逐图自动比较。</p>
-        <figure><img src="../../tests/e2e/visual.spec.ts-snapshots/default-pdf-chrome-win32.png" width="1600" height="1040" alt="最新产品默认界面：真实PDF、折叠Fields、隐藏缺失字段、没有Clear"><figcaption>完整界面固定 1600 x 1040、DPR 1；每浏览器 15 张基线，共 30 张。普通测试不会自动更新基线。</figcaption></figure>
+        <h2>最新产品外观基线 · 2026-10-13</h2>
+        <p>最终界面以最后确认的交互原型为准：Fields 与截图对齐、不恢复 Clear，预览栏在文档下方。独立输入测试宿主的验证控件不属于产品。原有30张产品图未重录；任务4.2从真实页面新增Markdown/JSON面板图，并在 Windows Chrome/Edge 逐图自动比较。</p>
+        <figure><img src="../../tests/e2e/visual.spec.ts-snapshots/default-pdf-chrome-win32.png" width="1600" height="1040" alt="最新产品默认界面：真实PDF、折叠Fields、隐藏缺失字段、没有Clear"><figcaption>完整产品图固定 1600 x 1040、DPR 1；加上每浏览器两张富结果面板图，当前共34张基线。普通测试不会自动更新基线。</figcaption></figure>
         <figure style="max-width:490px"><img loading="lazy" src="../../tests/e2e/visual.spec.ts-snapshots/fields-reference-chrome-win32.png" width="490" height="697" alt="Chrome Fields基线，与获批参考图片逐像素一致"><figcaption>Fields 的真实值与置信度未替换；Chrome 与已批准 PNG 逐像素一致。Edge 原生滚动条采用自己的基线。</figcaption></figure>
         <table class="baseline-links">
           <thead><tr><th>状态</th><th>Chrome</th><th>Edge</th></tr></thead>
@@ -72,9 +72,11 @@
             <tr><td>空结果</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/empty-result-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/empty-result-edge-win32.png">查看</a></td></tr>
             <tr><td>源文件错误</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/source-error-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/source-error-edge-win32.png">查看</a></td></tr>
             <tr><td>结果读取错误</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/result-error-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/result-error-edge-win32.png">查看</a></td></tr>
+            <tr><td>真实 Markdown</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-markdown-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-markdown-edge-win32.png">查看</a></td></tr>
+            <tr><td>原始 JSON 树</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-json-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-json-edge-win32.png">查看</a></td></tr>
           </tbody>
         </table>
-        <p>九个视觉场景两浏览器共18次，重复比较36次保持30图哈希；14px圆点漂移能检测。PDF/PNG压力共600轮，修复平移滚动条偏移但没有重录基线。仓库回归76次，另React18/19真实安装包开发/生产CSP与原型匹配16次，本地合计92次。仍不等于完整格式、所有宿主、CI或P0验收。</p>
+        <p>原九个视觉场景两浏览器共18次，重复比较36次保持30图哈希；14px圆点漂移能检测。富结果测试新增每浏览器两图，普通运行匹配全部34张。PDF/PNG压力共600轮，修复平移滚动条偏移但没有重录旧基线。仓库回归86次，另React18/19真实安装包开发/生产CSP与原型匹配16次，本地合计102次。仍不等于完整格式、所有宿主、CI或P0验收。</p>
       </section>
       <p class="note">以下图片保留为 v2 历史评审稿，不是最新 Fields 的像素验收基线。可运行版本已按后续反馈默认折叠组、隐藏未返回字段、移除 Clear 和旧固定状态栏、省略缺失置信度，并将原文预览放在文档下方；Fields 与预览置信度统一为两位小数。最新行为以<a href="README.md">原型说明</a>及运行截图为准。</p>
       <section id="main">
