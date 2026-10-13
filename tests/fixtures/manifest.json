@@ -34,8 +34,8 @@
     "interactiveViewerImplemented": true,
     "productionReleaseApproved": false,
     "unitTests": 429,
-    "browserRuns": 118,
-    "repositoryBrowserRuns": 94,
+    "browserRuns": 128,
+    "repositoryBrowserRuns": 104,
     "fieldsReferenceScreenshot": "..\\..\\docs\\prototype\\interactive-fields.png",
     "fieldsPresentation": "Studio screenshot-aligned dots, badges, chevrons and spacing; groups initially collapsed; missing values initially hidden; Fields/source confidence consistently to two decimals; unavailable source page badges disabled with explicit warnings; original root colors inherited by descendants; raw inputs unchanged.",
     "liveHostCommand": "npm run dev",
@@ -46,7 +46,7 @@
     ],
     "developmentAndBuiltDemoChecked": true,
     "previewLayoutAdjustment": "Field preview is below the document, not covering source text.",
-    "remaining": "Structured fields/multi-region navigation, safe lazy Markdown/original JSON, production interaction budget, remote CI and packaged permissive HEIF are verified. Paragraphs/Tables/Code, accessible/touch/extensible UX, broader real codec/orientation/crop, cross-origin/other bundlers, HEVC product/patent and publication gates remain open.",
+    "remaining": "Structured fields/multi-region navigation, safe lazy Markdown/original JSON, production interaction budget, remote CI, packaged permissive HEIF, controlled HTTP CORS and DPR1/2 page-box/format checks are verified. Paragraphs/Tables/Code, accessible/touch/extensible UX, broader real codec/orientation/crop pairs, HTTPS/credentialed hosts, other bundlers, HEVC product/patent and publication gates remain open.",
     "additionalAnalyzeCalls": 0
   },
   "prototypeVisualVerification": {
@@ -66,7 +66,7 @@
     "imagesPerBrowser": 17,
     "scenariosPerBrowser": 10,
     "browserRuns": 20,
-    "combinedBrowserRuns": 118,
+    "combinedBrowserRuns": 128,
     "repeatedComparisonRuns": 36,
     "repeatedComparisonBaselineHashesUnchangedBeforeRc3": true,
     "snapshotThreshold": 0,
@@ -100,7 +100,7 @@
     "suite": "..\\e2e\\stress.spec.ts",
     "scope": "Saved real PDF/PNG, public input representations and controlled same-origin HTTP cancellation; actual component and current product-context snapshots.",
     "browserRuns": 6,
-    "combinedBrowserRuns": 118,
+    "combinedBrowserRuns": 128,
     "deviceScaleFactor": 1,
     "viewport": {"width": 1600, "height": 1040},
     "scenariosPerBrowser": 3,
@@ -141,8 +141,8 @@
     "browsers": ["chrome", "edge"],
     "scenariosPerCombination": 3,
     "browserRuns": 24,
-    "repositoryBrowserRuns": 94,
-    "combinedBrowserRuns": 118,
+    "repositoryBrowserRuns": 104,
+    "combinedBrowserRuns": 128,
     "sourceAliasUsed": false,
     "sharedNodeModulesUsed": false,
     "packageInstallationSymlink": false,
@@ -167,39 +167,40 @@
       "visualPolicy": "Hosted runners skip only version-sensitive screenshot comparisons; fixed-version local Chrome/Edge retains zero-difference 34-image enforcement."
     },
     "additionalAnalyzeCalls": 0,
-    "remaining": "Broader real format/cross-origin/other-host matrices, HEIF alpha/nonzero transforms/10-bit samples, source/decoder peak-memory budgets, HEVC product/patent and publication approval remain open."
+    "remaining": "Broader real format/HTTPS/credentialed/other-host matrices, HEIF alpha/nonzero transforms/10-bit samples, source/decoder peak-memory budgets, HEVC product/patent and publication approval remain open."
   },
   "publicSourceInputVerification": {
     "task": "2.4",
-    "verifiedOn": "2026-10-10",
-    "status": "pdf-png-browser-input-and-cancellation-verified",
+    "verifiedOn": "2026-10-13",
+    "status": "pdf-png-browser-input-cancellation-and-http-cors-verified",
     "host": "..\\e2e\\source-inputs.tsx",
     "suite": "..\\e2e\\source-inputs.spec.ts",
     "fixtures": ["ga-mixed-financial-docs-invoice", "ga-receipt-png"],
-    "representations": ["File", "untyped Blob", "ArrayBuffer", "same-origin HTTP URL", "host-owned blob URL"],
-    "browserRuns": 20,
-    "combinedBrowserRuns": 118,
+    "representations": ["File", "untyped Blob", "ArrayBuffer", "same-origin HTTP URL", "anonymous cross-origin HTTP URL", "host-owned blob URL"],
+    "browserRuns": 22,
+    "combinedBrowserRuns": 128,
     "verification": [
       "Actual canvas raster hashes match across input representations; real primary polygons stay within 1 CSS pixel.",
       "Caller ArrayBuffer byte length/hash and original JSON are preserved after unmount; the same buffer can be remounted.",
       "Host-owned blob URLs remain readable after viewer unmount and are revoked only when the host releases its input.",
       "Synthetic empty/truncated binary sources and HTTP 404/network/empty-response failures retain valid fields and recover.",
-      "Delayed HTTP loads, PDF worker initialization and native bitmap decoding are cancelled on replacement and unmount; Worker/bitmap/object-URL ownership counters balance."
+      "Delayed HTTP loads, PDF worker initialization and native bitmap decoding are cancelled on replacement and unmount; Worker/bitmap/object-URL ownership counters balance.",
+      "A second loopback origin proves CORS success for PDF/PNG/HEIF, missing-CORS failure and recovery, no cookie or Authorization forwarding, and viewer-origin PDF/HEIF resources."
     ],
-    "runtimeComponentChanged": false,
+    "runtimeComponentChanged": true,
     "additionalAnalyzeCalls": 0,
-    "remaining": "HTTPS/cross-origin delivery, other source formats, intrinsic orientation/crop, full integrated DPR/zoom/viewport matrix, 100-switch stress, performance budgets and isolated package consumers are not verified by this suite."
+    "remaining": "HTTPS/TLS, credentialed cross-origin delivery, other hosts, full integrated viewport stress and source/decoder performance budgets are not verified by this suite."
   },
   "imageSourceVerification": {
     "task": "2.5",
     "verifiedOn": "2026-10-13",
     "status": "native-and-packaged-permissive-heif-verified",
     "suite": "..\\e2e\\image-formats.spec.ts",
-    "browserRuns": 20,
-    "combinedBrowserRuns": 118,
+    "browserRuns": 22,
+    "combinedBrowserRuns": 128,
     "nativeFormats": ["png", "jpg", "jpeg", "jpe", "bmp"],
     "jpegExtensionAliases": true,
-    "nativeOrientationCases": "All eight synthetic EXIF orientations, DPR 1/2, four viewer quarter-turns; independent corner colors and 1 CSS pixel polygon threshold.",
+    "nativeOrientationCases": "PNG and full-size derived JPEG/BMP pass DPR1/2, four viewer quarter-turns and one-live-bitmap replacement/release assertions. All eight synthetic EXIF orientations also pass DPR1/2 with independent corner colors and a 1 CSS pixel polygon threshold.",
     "heifScopeApproval": "RC-3 selects pinned permissive heic-rs WASM instead of distributing the historical LGPL candidate. HEVC product/patent and publication approval remain separate.",
     "heifDecoder": "heic-rs 0.1.4, MIT OR Apache-2.0, Rust/WASM with no libheif/libde265/FFmpeg dependency; wasm-bindgen 0.2.129.",
     "heifFormats": ["heic", "heif"],
@@ -268,7 +269,7 @@
     "status": "implemented-and-verified",
     "unitTestsAdded": 8,
     "repositoryBrowserRunsAdded": 4,
-    "combinedBrowserRuns": 118,
+    "combinedBrowserRuns": 128,
     "realFixtures": ["ga-mixed-financial-docs-invoice", "ga-receipt-png"],
     "realStructuredCoverage": "Invoice LineItems has three array objects; Receipt LineItems has two. Array items display one-based labels while retaining numeric paths and stable duplicate child identities.",
     "realMultiRegionCoverage": "BillingAddress and other real semicolon-encoded address fields expose all own source regions; BillingAddress region 1/2 and 2/2 are browser-verified.",
@@ -288,7 +289,7 @@
     "riskClosureAssertionsAdded": 1,
     "repositoryBrowserRunsAdded": 6,
     "performanceBrowserRunsAdded": 4,
-    "combinedBrowserRuns": 118,
+    "combinedBrowserRuns": 128,
     "dependencies": [
       {"name": "react-markdown", "version": "10.1.0", "license": "MIT"},
       {"name": "remark-gfm", "version": "4.0.1", "license": "MIT"},
@@ -317,6 +318,27 @@
     "packedConsumerCoverage": "Real Markdown tables and original JSON load under the existing strict CSP in React 18.3.1 and 19.3.0 Vite development/production consumers.",
     "additionalAnalyzeCalls": 0,
     "remaining": "Paragraphs/Tables/Code semantics, full accessibility/touch/responsive behavior and approved result-pane extension points remain task4.3/open scope. Source decoding, page rendering and decoder peak-memory budgets remain separate G2 work."
+  },
+  "riskClosureFormatVerification": {
+    "task": "RC-4",
+    "verifiedOn": "2026-10-13",
+    "status": "local-matrix-pass-external-pairs-and-remote-ci-pending",
+    "repositoryBrowserRunsAdded": 10,
+    "combinedBrowserRuns": 128,
+    "browsers": ["chrome", "edge"],
+    "crossOrigin": {
+      "viewerOrigin": "http://127.0.0.1:5173",
+      "sourceOrigin": "http://127.0.0.1:4175",
+      "positiveFormats": ["pdf", "png", "heic"],
+      "negativeCase": "A 200 PNG response without Access-Control-Allow-Origin fails explicitly and then recovers.",
+      "credentials": "Fetch explicitly uses same-origin credentials; the primed cross-origin cookie and Authorization header are absent.",
+      "assetOrigin": "PDF Worker and HEIF Worker/JS/WASM requests remain on the viewer origin."
+    },
+    "pdfMatrix": "The real four-page CU pair passes DPR2 fit/zoom and all four viewer rotations on first/last pages. A clearly synthetic two-page PDF verifies MediaBox/CropBox dimensions and intrinsic rotation at DPR1/2.",
+    "nativeMatrix": "Real PNG plus full-frame derived JPEG aliases/BMP pass DPR1/2, four viewer rotations and bitmap replacement/release accounting.",
+    "visualImpact": "No product component layout or approved screenshot baseline changed.",
+    "additionalAnalyzeCalls": 0,
+    "remaining": "Independent real CU JPEG/BMP/HEIF pairs, real crop/orientation pairs, HTTPS/TLS and credentialed hosts, CMap/ICC/codec-specific PDF decode fixtures, full viewport/HEIF stress, source/decoder peak-memory budgets and post-change remote CI remain open."
   },
   "parserImplementation": {
     "task": "2.2",
@@ -582,19 +604,19 @@
         ]
       },
       "limitations": [
-        "Chrome/Edge prototype tests render this PNG and check MerchantName polygon alignment, fit width and 90/180/270-degree rotations; this does not establish other image-format or decoder-fallback coverage.",
-        "EXIF/intrinsic orientation, the full integrated DPR/viewport/zoom matrix and repeated-switch resource accounting remain unverified."
+        "Chrome/Edge prototype tests render this real PNG and its full-frame JPEG/BMP derivatives at DPR1/2, check MerchantName polygon alignment and four viewer rotations, and account for bitmap replacement/release. The derivatives are not independent CU service pairs.",
+        "Synthetic EXIF1-8 and PDF CropBox/MediaBox/intrinsic-rotation boundaries pass, but real CU orientation/crop pairs, full viewport stress and source/decoder peak-memory budgets remain unverified."
       ]
     }
   ],
   "openGaps": [
     {"id": "studio-interactions", "owner": "Task owner and viewer maintainer", "gate": "G2", "status": "partial-manual-pass", "description": "Owner accepted the single-page Studio controls as the initial design reference. The implemented viewer now tests hover/pin persistence, missing grounding, manual cross-page interaction and PNG behavior. Extended Studio cross-page/image walkthroughs and exact Studio semantics remain unverified; viewer tests are not Studio automation."},
     {"id": "rendering-decision", "owner": "Viewer maintainer", "gate": "G0", "status": "implemented-permissive-decoder-release-gated", "description": "PDF.js/private-adapter/SVG/native-image/owned-HEIF-worker direction is implemented. RC-3 selected packaged MIT/Apache heic-rs WASM instead of the historical LGPL candidate. Technical distribution evidence passes; HEVC product/patent and publication approval remain external."},
-    {"id": "required-image-formats", "owner": "Viewer maintainer", "gate": "G2", "status": "native-and-packaged-heif-pass", "description": "Actual viewer PNG/JPEG/BMP, eight synthetic EXIF orientations and packaged permissive HEIF pass development/production, CSP, lifecycle, nine-fixture RGBA and isolated-consumer tests. JPEG/HEIF aliases and licensed derivatives are not independent CU pairs; broader real CU pairs, HEIF alpha/nonzero transforms/10-bit and source memory budgets remain open."},
-    {"id": "geometry-variants", "owner": "Viewer maintainer", "gate": "G1", "status": "partial-viewer-and-stress-pass", "description": "512 coordinate probes, actual PDF/PNG primary cases and all current same-page service regions pass within 1 CSS pixel. DPR1 stress covers 100 PDF transforms, 100 input replacements and 100 cancellations per browser. Synthetic cross-page groups pass; real later-page structured grounding, bounding-box/crop, full DPR/viewport/zoom and broader HEIF stress remain open."},
-    {"id": "additional-input-shapes", "owner": "Viewer maintainer", "gate": "G2", "status": "structured-and-public-input-pass", "description": "Parser tests cover GA wrappers/value/identity boundaries; real invoice/receipt arrays and real multi-region addresses now pass component/browser behavior. Synthetic cases cover multiple contents, scalar/error and cross-page group regions. HTTPS/cross-origin, full formats and real cross-page structured pairs remain open. Only verified 2025-11-01 is supported."},
+    {"id": "required-image-formats", "owner": "Viewer maintainer", "gate": "G2", "status": "native-and-packaged-heif-pass", "description": "Actual viewer PNG plus full-frame derived JPEG/BMP pass DPR1/2 rotations and bitmap lifecycle; eight synthetic EXIF orientations and packaged permissive HEIF pass development/production, CSP, lifecycle, nine-fixture RGBA and isolated-consumer tests. JPEG/HEIF aliases and licensed derivatives are not independent CU pairs; broader real CU pairs, HEIF alpha/nonzero transforms/10-bit and source memory budgets remain open."},
+    {"id": "geometry-variants", "owner": "Viewer maintainer", "gate": "G1", "status": "partial-viewer-and-stress-pass", "description": "512 coordinate probes, actual PDF/PNG primary cases and all current same-page service regions pass within 1 CSS pixel. DPR1 stress covers 100 PDF transforms, 100 input replacements and 100 cancellations per browser; the real PDF additionally passes DPR2 fit/zoom/four rotations and first/last navigation. Synthetic cross-page groups and CropBox/MediaBox/intrinsic page rotation pass; real later-page structured grounding, real crop/orientation pairs, full viewport stress and broader HEIF stress remain open."},
+    {"id": "additional-input-shapes", "owner": "Viewer maintainer", "gate": "G2", "status": "structured-public-input-and-http-cors-pass", "description": "Parser tests cover GA wrappers/value/identity boundaries; real invoice/receipt arrays and real multi-region addresses pass component/browser behavior. Synthetic cases cover multiple contents, scalar/error and cross-page group regions. A controlled second HTTP origin verifies CORS success/failure, anonymous requests and viewer-origin assets. HTTPS/TLS, credentialed cross-origin hosts, full real-format pairs and real cross-page structured pairs remain open. Only verified 2025-11-01 is supported."},
     {"id": "cli-host-contract", "owner": "Task owner and toolkit maintainers", "gate": "G4", "status": "deferred", "description": "Per Viewer-first scheduling, CLI contract/integration starts only after G2+G3. Actual data acquisition is verified; --view and saved-result browser hosting are not implemented or approved and do not block Viewer work."},
     {"id": "heif-shipping-decision", "owner": "Project owner and viewer maintainer", "gate": "G2", "status": "permissive-packaging-verified-release-approval-pending", "description": "RC-3 selected MIT/Apache heic-rs0.1.4 WASM; the historical LGPL candidate is not distributed. Hashes, wrapper source/lock, licenses, notices, SBOM, production packaging, CSP, lifecycle, RGBA corpus and consumer tests pass. HEVC product/patent and Microsoft/public publication approval remain external."},
-    {"id": "pdf-assets-completeness", "owner": "Viewer maintainer", "gate": "G2", "status": "partial-packed-consumer-pass", "description": "React18/19 actual isolated Vite tgz hosts pass development/production Worker and real standard-font fixture under self-only page/worker CSP; CMap/WASM/ICC delivery, WASM MIME and remote CI are verified. All codec-specific decode fixtures and other bundlers/CSP/cross-origin environments remain open."}
+    {"id": "pdf-assets-completeness", "owner": "Viewer maintainer", "gate": "G2", "status": "partial-packed-consumer-pass", "description": "React18/19 actual isolated Vite tgz hosts pass development/production Worker and real standard-font fixture under self-only page/worker CSP; CMap/WASM/ICC delivery, WASM MIME and remote CI are verified. A cross-origin PDF source keeps Worker assets on the viewer origin. All codec-specific decode fixtures, other bundlers/CSP environments and cross-origin asset hosting remain open."}
   ]
 }

@@ -51,7 +51,7 @@ export async function readSource(source: ViewerSource, signal: AbortSignal): Pro
         if (!["http:", "https:", "blob:"].includes(url.protocol)) {
             throw new Error("Source strings must be HTTP, HTTPS or host-owned blob URLs, not filesystem or data URLs.");
         }
-        const response = await fetch(url, { signal });
+        const response = await fetch(url, { signal, credentials: "same-origin" });
         if (!response.ok) throw new Error(`Source request failed (${response.status}).`);
         bytes = await response.arrayBuffer();
     } else if (source instanceof Blob) {

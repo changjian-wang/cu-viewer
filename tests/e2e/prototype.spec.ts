@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { checkPolygon, ready } from "./viewerAssertions";
-import { standardFontPdf } from "./pdfFixtures";
+import { croppedRotatedPdf, standardFontPdf } from "./pdfFixtures";
 
 const amountId = "/contents/0/fields/AmountDue/valueObject/Amount";
 const amountRow = `[data-field-id="${amountId}"]`;
@@ -156,6 +156,83 @@ test("local standard font assets render without depending on a system font or CD
     await ready(page);
     await expect(page.locator(".cu-source-heading")).toContainText("synthetic-font.pdf");
     expect(fonts.some(url => url.startsWith("http://127.0.0.1:5173/"))).toBe(true);
+});
+
+for (const dpr of [1, 2]) {
+    test.describe(`PDF page boxes at DPR ${dpr}`, () => {
+        test.use({ deviceScaleFactor: dpr });
+        test("uses CropBox dimensions, intrinsic page rotation and first/last navigation", async ({ page }) => {
+            await page.goto("/");
+            await ready(page);
+            await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
+                name: "empty-synthetic-result.json",
+                mimeType: "application/json",
+                buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [] })),
+            });
+            await page.getByLabel("Choose source file").setInputFiles({
+                name: "synthetic-page-boxes.pdf",
+                mimeType: "application/pdf",
+                buffer: croppedRotatedPdf(),
+            });
+            await ready(page);
+            await expect(page.locator(".cu-source-heading")).toContainText("PDF · 2 pages");
+            const first = await page.getByTestId("rendered-page").boundingBox();
+            if (!first) throw new Error("The cropped first page is not laid out.");
+            expect(first.width / first.height).toBeCloseTo(1.5, 2);
+            const firstRasterRatio = await page.getByTestId("source-canvas").evaluate(canvas => {
+                if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Expected the PDF canvas.");
+                return canvas.width / canvas.getBoundingClientRect().width;
+            });
+            expect(firstRasterRatio).toBeCloseTo(dpr, 1);
+
+            await page.getByRole("button", { name: "Next page" }).click();
+            await ready(page);
+            await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("2");
+            const rotated = await page.getByTestId("rendered-page").boundingBox();
+            if (!rotated) throw new Error("The intrinsically rotated last page is not laid out.");
+            expect(rotated.width / rotated.height).toBeCloseTo(2 / 3, 2);
+
+            await page.getByRole("button", { name: "Rotate 90°" }).click();
+            await ready(page);
+            const viewerRotated = await page.getByTestId("rendered-page").boundingBox();
+            if (!viewerRotated) throw new Error("The viewer-rotated last page is not laid out.");
+            expect(viewerRotated.width / viewerRotated.height).toBeCloseTo(1.5, 2);
+            await page.getByRole("button", { name: "Previous page" }).click();
+            await ready(page);
+            await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
+        });
+    });
+}
+
+test.describe("real PDF at DPR 2", () => {
+    test.use({ deviceScaleFactor: 2 });
+    test("keeps first/last-page geometry through fit, zoom and four viewer rotations", async ({ page }) => {
+        await page.goto("/");
+        await ready(page);
+        await page.getByRole("button", { name: "Expand AmountDue", exact: true }).click();
+        await page.locator(amountRow).getByRole("button", { name: "Amount", exact: true }).click();
+        await leave(page);
+        const points = ([[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.3628, 8.2124]] as const)
+            .map(([x, y]) => ({ x: x / 8.5, y: y / 11 }));
+        for (let rotation = 0; rotation < 360; rotation += 90) {
+            await page.getByRole("button", { name: rotation % 180 === 0 ? "Fit page" : "Fit width", exact: true }).click();
+            await ready(page);
+            await checkPolygon(page, points, rotation);
+            await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+            await ready(page);
+            await checkPolygon(page, points, rotation);
+            await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+            await ready(page);
+        }
+        await page.getByRole("textbox", { name: "Page number" }).fill("4");
+        await page.getByRole("textbox", { name: "Page number" }).press("Enter");
+        await ready(page);
+        await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
+        await page.getByRole("textbox", { name: "Page number" }).fill("1");
+        await page.getByRole("textbox", { name: "Page number" }).press("Enter");
+        await ready(page);
+        await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
+    });
 });
 
 test("multiple contents and synthetic scalar values remain truthful and inspectable", async ({ page }) => {

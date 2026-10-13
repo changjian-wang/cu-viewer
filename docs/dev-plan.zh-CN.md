@@ -176,7 +176,7 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 **2026-10-13 任务4.1进展**：真实发票/收据数组、稳定的 `Item N` 标签、隐藏后代选择及当前全部字段/组来源区域已实现。真实BillingAddress区域切换和合成跨页结构化组在Chrome/Edge通过。该检查点有424单元、80仓库浏览器及16包使用方运行通过，30张产品基线未改。不宣称专属Tables视图或真实跨页结构化CU配对完成。
 
-**2026-10-13 风险收敛进展**：Fields/Markdown/JSON、按需chunk及生产交互预算通过且不重置源状态。RC-3另以固定MIT/Apache `heic-rs 0.1.4` WASM替换历史LGPL HEIF候选：9个已评审RGBA样本、开发/生产CSP、失败/生命周期及真实React18/19 tgz使用方通过。当前429单元、94仓库与24包使用方运行，本地共118次。现有34张参考；RC-3仅为真实HEIF页脚状态刷新22张全页图，面板/布局/Fields参考不变。更广真实CU图片配对和发布批准仍开放，4.3继续等待剩余风险门槛。
+**2026-10-13 风险收敛进展**：Fields/Markdown/JSON、按需chunk及生产交互预算通过且不重置源状态。RC-3以固定MIT/Apache `heic-rs 0.1.4` WASM替换历史LGPL HEIF候选：9个已评审RGBA样本、开发/生产CSP、失败/生命周期及真实React18/19 tgz使用方通过。RC-4补充受控第二HTTP源站的CORS成功/失败、匿名跨源源文件请求、Viewer源站PDF/HEIF资源、真实PDF DPR2变换、派生原生格式DPR1/2及合成PDF页框/内置旋转边界。当前429单元、104仓库与24包使用方运行，本地共128次。现有34张参考；RC-3仅为真实HEIF页脚状态刷新22张全页图，面板/布局/Fields参考不变。真实CU JPEG/BMP/HEIF配对、HTTPS/带凭据宿主、专用CMap/ICC解码样本、源文件/解码器预算及发布批准仍开放，4.3继续等待剩余风险门槛。
 
 使用当前 Studio 查看有代表性的 PDF 和图片结果。记录布局、字段名/值/置信度展示、悬停与选择的区别、跨页导航、适应/缩放/平移/旋转，以及缺失源文件或来源定位信息时的行为。如果无法访问 Studio，应记录限制，并保持行为评审门槛未通过。
 
@@ -320,8 +320,8 @@ flowchart LR
       "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
       "unit_cases": 429,
-      "browser_runs": 118,
-      "repository_browser_runs": 94,
+      "browser_runs": 128,
+      "repository_browser_runs": 104,
       "packed_consumer_browser_runs": 24,
       "stress_browser_runs": 6,
       "stress_rounds_per_browser": 300,
@@ -654,7 +654,7 @@ flowchart LR
 - **宿主原生集成测试**：使用已确认 CLI 仓库的现有运行器，不另建一套 CLI 框架。
 - **人工验证依据**：Studio 对比、依赖/许可证评估，以及负责人批准，仍明确属于人工工作，不计入自动化覆盖。
 
-`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建、`npm run verify:performance`和`npm run verify:consumer`已实现。429单元案例、94仓库浏览器和24真实React18/19 Vite包使用方运行通过，本地合计118次。已有600压力轮及34张评审参考通过；RC-3仅为HEIF状态页脚刷新22张全页图。远程[push CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633)及[完整手动CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406)通过。更广真实格式配对、跨源/其他宿主和源文件/解码器预算仍开放。
+`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建、`npm run verify:performance`和`npm run verify:consumer`已实现。429单元案例、104仓库浏览器和24真实React18/19 Vite包使用方运行通过，本地合计128次。已有600压力轮及34张评审参考通过；RC-3仅为HEIF状态页脚刷新22张全页图。远程[push CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633)及[完整手动CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406)在前一检查点通过。更广真实格式配对、HTTPS/带凭据宿主、其他bundler和源文件/解码器预算仍开放。
 
 常规回归测试使用已保存、已脱敏的真实结果，不实时调用 Analyze。访问真实服务只用于明确批准的测试样本获取，或验证外部 CLI 新分析路径。源文件 URL 测试可以使用本地测试服务器；测试禁止 CU 请求及对必需外部 CDN 资源的依赖。不在测试日志或浏览器产物中记录凭据、SAS URL、客户文档或未经处理的敏感结果。
 
@@ -759,3 +759,4 @@ flowchart LR
 | 2026-10-13 | RC-1实测并关闭富结果包体/UI阻塞风险：按需chunk将library入口从479.97降至47.29 kB、demo主入口从603.46降至261.31 kB；最终实测50k/500k上限及Chrome/Edge生产预算在hosted并行负载下通过。该检查点为429单元、90仓库及16消费者运行；4.3继续等待后续风险收敛。 |
 | 2026-10-13 | RC-2建立真实远程CI：push运行38347604633通过core/browser/performance/packed-consumer；手动运行38348199406另通过6测试/600轮stress。hosted runner仅跳过版本敏感像素比较；固定版本本地零差异视觉门槛继续强制。 |
 | 2026-10-13 | RC-3以固定MIT/Apache heic-rs0.1.4 WASM替换已评估但未分发的LGPL decoder。可重现哈希、许可证/SBOM、9样本跨浏览器RGBA、CSP/失败/生命周期及24次React18/19 tgz使用方运行通过。更广真实CU配对及HEVC产品/公开发布批准仍为外部门槛。 |
+| 2026-10-13 | RC-4本地矩阵新增10次仓库运行：第二HTTP源站CORS正/负路径且不转发cookie/Authorization、PDF/HEIF资源保持Viewer同源、真实PDF DPR2首末页变换、派生PNG/JPEG/BMP DPR1/2生命周期，以及合成CropBox/MediaBox/内置旋转边界。真实CU JPEG/BMP/HEIF配对、HTTPS、专用CMap/ICC解码样本、峰值内存及变更后远程运行仍开放。 |

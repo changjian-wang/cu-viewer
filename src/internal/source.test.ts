@@ -61,6 +61,7 @@ describe("prototype source boundary", () => {
         try {
             await expect(readSource("https://example.invalid/sample.pdf", new AbortController().signal)).rejects.toThrow("404");
             expect(fetchMock).toHaveBeenCalledTimes(1);
+            expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ credentials: "same-origin" });
         } finally {
             fetchMock.mockRestore();
         }

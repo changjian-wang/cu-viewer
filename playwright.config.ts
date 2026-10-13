@@ -27,9 +27,16 @@ export default defineConfig({
         { name: "chrome", use: { channel: "chrome" } },
         { name: "edge", use: { channel: "msedge" } },
     ],
-    webServer: {
-        command: "npm run dev",
-        url: "http://127.0.0.1:5173",
-        reuseExistingServer: true,
-    },
+    webServer: [
+        {
+            command: "npm run dev",
+            url: "http://127.0.0.1:5173",
+            reuseExistingServer: true,
+        },
+        {
+            command: "node tests/e2e/cross-origin-server.mjs",
+            url: "http://127.0.0.1:4175/health",
+            reuseExistingServer: true,
+        },
+    ],
 });

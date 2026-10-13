@@ -142,9 +142,9 @@ The [internal parser](src/internal/parseCuResult.ts) accepts the verified `2025-
 
 The [geometry module](src/internal/geometry.ts) maps CU coordinates through actual rendered-page dimensions, zoom, pan and quarter-turn rotation, with inverse, fit and raster-size helpers. Shared validation prevents parser/overlay disagreements. Core input/parser/geometry accounts for 339 cases; lifecycle, structured Fields, rich results, interaction, directory-URL and resource-plugin tests bring the current total to **429**.
 
-The initial geometry experiment passed 512 rendered-coordinate cases. The [prototype](tests/e2e/prototype.spec.ts), [public-source input](tests/e2e/source-inputs.spec.ts), [image-format](tests/e2e/image-formats.spec.ts), [product visual](tests/e2e/visual.spec.ts), [rich-result](tests/e2e/rich-results.spec.ts), [production performance](tests/e2e/performance.spec.ts) and [stress](tests/e2e/stress.spec.ts) suites now pass **94 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: ten prototype, ten public-input, ten image-format, nine visual, three rich-result, two performance and three stress scenarios per browser. Six stress runs execute 600 measured rounds, not 600 distinct tests. Normal cancelled/retried requests remain distinct from errors.
+The initial geometry experiment passed 512 rendered-coordinate cases. The [prototype](tests/e2e/prototype.spec.ts), [public-source input](tests/e2e/source-inputs.spec.ts), [image-format](tests/e2e/image-formats.spec.ts), [product visual](tests/e2e/visual.spec.ts), [rich-result](tests/e2e/rich-results.spec.ts), [production performance](tests/e2e/performance.spec.ts) and [stress](tests/e2e/stress.spec.ts) suites now pass **104 runs** across Chrome `154.0.8037.98` and Edge `155.0.4283.45`: thirteen prototype, eleven public-input, eleven image-format, nine visual, three rich-result, two performance and three stress scenarios per browser. Six stress runs execute 600 measured rounds, not 600 distinct tests. Normal cancelled/retried requests remain distinct from errors.
 
-The separate [packed-consumer matrix](tests/e2e/package-host.spec.ts) adds **24 runs**: React 18.3.1/19.3.0, production/development, Chrome/Edge and three scenarios each. These are actual tgz installations outside the repository, not shared dependencies or source aliases. Combined local browser evidence is **118 runs**. PDF/PNG/HEIF, Markdown/JSON lazy chunks, types/CSS, local Worker/fonts, CSP, PDF resources, packaged HEIF resources and reviewed product screenshot references pass.
+The separate [packed-consumer matrix](tests/e2e/package-host.spec.ts) adds **24 runs**: React 18.3.1/19.3.0, production/development, Chrome/Edge and three scenarios each. These are actual tgz installations outside the repository, not shared dependencies or source aliases. Combined local browser evidence is **128 runs**. PDF/PNG/HEIF, Markdown/JSON lazy chunks, types/CSS, local Worker/fonts, CSP, PDF resources, packaged HEIF resources and reviewed product screenshot references pass.
 
 ```powershell name="Independent packed package verification"
 npm run verify:consumer
@@ -232,6 +232,7 @@ The [test-only React host](tests/e2e/source-inputs.tsx) mounts the public compon
 | Untyped Blob | Content detection without a MIME type; identical raster and grounding. |
 | ArrayBuffer | Identical rendering; caller byte length/hash remain intact after unmount, and the same buffer can be remounted. |
 | Same-origin HTTP URL | Correct rendering, explicit 404/network/empty-response errors, recovery, and cancellation during replacement/unmount. |
+| Cross-origin HTTP URL | A second loopback origin verifies explicit CORS success for PDF/PNG/HEIF, missing-CORS failure, no cookie or Authorization forwarding, and viewer-origin PDF/HEIF assets. |
 | Host-owned blob URL | Correct rendering; the URL remains readable after viewer unmount and is revoked by the test host when it releases its input. |
 
 The input suite compares actual canvas pixel hashes across representations and independently checks polygon vertices within 1 CSS pixel. Empty/truncated binary inputs are explicit synthetic failure cases: valid fields stay visible, dependent controls are disabled, and valid replacement files recover. Delayed HTTP loads, PDF worker initialization and native-image decoding are cancelled on both replacement and unmount; browser instrumentation checks Worker termination, ImageBitmap closing and object-URL ownership without substituting the rendered output.
@@ -240,13 +241,13 @@ The input suite compares actual canvas pixel hashes across representations and i
 npm run test:e2e -- source-inputs.spec.ts
 ```
 
-On this Windows checkout, with `npm run dev` running, the test host is at <http://127.0.0.1:5173/@fs/C:/github/cu-result-viewer/tests/e2e/source-inputs.html>. It also has **Load HEIF**, using a licensed photograph and explicitly synthetic geometry. PDF/PNG 100-round stress now passes; HTTPS/cross-origin policies, broader format/orientation stress and production embedding remain separate gates.
+On this Windows checkout, with `npm run dev` running, the test host is at <http://127.0.0.1:5173/@fs/C:/github/cu-result-viewer/tests/e2e/source-inputs.html>. It also has **Load HEIF**, using a licensed photograph and explicitly synthetic geometry. PDF/PNG 100-round stress and controlled HTTP cross-origin behavior pass; HTTPS/TLS, broader real format pairs and production embedding remain separate gates.
 
 ### Image Formats and Packaged HEIF
 
 The [common image adapter](src/internal/imageSource.ts) recognizes content signatures rather than filenames/MIME hints. Native PNG/JPEG/BMP decoding explicitly uses EXIF-normalized image orientation, then shares rendering, view rotation and bitmap disposal. JPEG `.jpg`/`.jpeg`/`.jpe` are extension aliases, not different codecs.
 
-- The original receipt PNG and full-size JPEG/BMP derivatives retain their canvas dimensions; the derivatives flatten transparency onto white and reuse saved grounding as an explicitly derived test, not another Analyze call.
+- The original receipt PNG and full-size JPEG/BMP derivatives retain their canvas dimensions at DPR 1/2 and all four viewer rotations. Replacement keeps one live native bitmap and switching back to PDF releases it. The derivatives flatten transparency onto white and reuse saved grounding as an explicitly derived test, not another Analyze call.
 - Eight small synthetic EXIF JPEGs verify mirrored/rotated pixels, normalized dimensions and quarter-turn overlays at DPR 1/2. Their synthetic grounding is in the normalized image frame; this is not evidence of real CU extraction on every EXIF variant.
 - The licensed HEVC-in-HEIF example verifies primary-image selection, five public input representations, caller-buffer preservation, quarter-turn overlays, failure/recovery, and Worker termination on replacement/unmount.
 - HEIF tests apply actual CSP to both page and worker responses: same-origin scripts/workers, `wasm-unsafe-eval` without general JavaScript `unsafe-eval`, and no Blob Worker.

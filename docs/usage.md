@@ -34,6 +34,8 @@ The React API is unchanged:
 - `result`: the original saved CU Analyze JSON parsed as a JavaScript value, not a string or a new normalized viewer schema. Only the verified `2025-11-01` API shapes are advertised.
 - The component performs rendering, not Analyze, authentication, uploads, analyzer management or LRO polling.
 
+For URL sources, the viewer accepts only HTTP, HTTPS and host-owned blob URLs. Fetch uses `credentials: "same-origin"`: cross-origin requests do not opt into cookies or HTTP authentication and the component does not add an Authorization header. A cross-origin server must return an appropriate CORS response. The checked HTTP loopback matrix covers CORS success for PDF/PNG/HEIF, a missing-CORS failure and recovery; HTTPS/TLS and credentialed cross-origin delivery remain unverified. PDF Worker/font resources and HEIF decoder assets continue to load from the viewer host rather than from the source-file origin.
+
 Keep the package CSS and provide a bounded host height. Fonts, browser/viewport and host CSS affect visual matching; do not override Fields spacing, palette or icons without reviewing the approved prototype.
 
 ## Result Views and Content Limits
@@ -104,7 +106,7 @@ HEIF performs WebAssembly compilation inside its owned Worker. Hosts that enable
 script-src 'self' 'wasm-unsafe-eval'
 ```
 
-This is a verified fixture policy, not a guarantee for every PDF or embedding environment. Real CMap/ICC/codec-specific PDFs, cross-origin sources and other host restrictions remain additional acceptance work.
+This is a verified fixture policy, not a guarantee for every PDF or embedding environment. Real CMap/ICC/codec-specific PDFs, HTTPS/credentialed cross-origin sources and other host restrictions remain additional acceptance work.
 
 ## Independent Package Verification
 
@@ -138,6 +140,6 @@ Default repository E2E runs deliberately exclude package tests; the consumer con
 ## Remaining Gates
 
 - HEIF production decoding is enabled with a pinned MIT/Apache WASM decoder; no LGPL decoder or private local configuration is present. HEVC patent/product and public-release approval remain separate.
-- Broader real PDF/CMap/ICC cases, real CU image pairs, HEIF alpha/nonzero transforms/10-bit production fixtures, source/decoder peak-memory budgets and wider host policies are not all established by this package matrix. Rich-result activation has its separate production budget above.
+- Broader real PDF/CMap/ICC cases, real CU image pairs, HEIF alpha/nonzero transforms/10-bit production fixtures, source/decoder peak-memory budgets, HTTPS/credentialed cross-origin delivery and wider host policies are not all established by this package matrix. Rich-result activation has its separate production budget above.
 - The [CI workflow](../.github/workflows/ci.yml) has successful [push](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633) and [full manual](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406) runs. Core, Chrome/Edge functionality, production performance, isolated React 18/19 consumers and 600 stress rounds pass remotely. Hosted-runner browser/font versions do not replace the fixed-version pixel references; remote jobs skip only those screenshot comparisons while retaining behavior, geometry, CSP, Worker and resource assertions.
 - CLI integration, public distribution, final third-party notices/source review and release approval remain separate.

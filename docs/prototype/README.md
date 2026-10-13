@@ -155,7 +155,7 @@ PDF 状态使用[真实源文件](../../tests/fixtures/mixed-financial-docs.pdf)
 
 ## 验证与后续评审
 
-静态稿已完成数据、素材和布局检查。现有 **429 个单元案例**、类型/lint及两种构建通过；仓库原型/输入/图片/视觉/富结果/性能/压力 **94 次**回归，另有隔离安装包 **24 次**，本地合计 **118 次浏览器验证**。压力仍为600轮；当前34张基线普通运行通过，RC-3仅刷新22张页脚状态文字，面板/布局/Fields参考不变。
+静态稿已完成数据、素材和布局检查。现有 **429 个单元案例**、类型/lint及两种构建通过；仓库原型/输入/图片/视觉/富结果/性能/压力 **104 次**回归，另有隔离安装包 **24 次**，本地合计 **128 次浏览器验证**。压力仍为600轮；当前34张基线普通运行通过，RC-3仅刷新22张页脚状态文字，面板/布局/Fields参考不变。
 
 任务3.3已验证真实tgz在仓库外React18.3.1/19.3.0使用方中的类型、CSS、开发/生产及严格页面/Worker CSP。默认、PDF固定、PNG固定直接匹配旧产品图；包内HEIF另在`wasm-unsafe-eval`且无通用`unsafe-eval`的Worker策略下通过。用户批准可选Node端`viewerAssets()`资产插件，React输入仍仅source/result；资源404和宿主丢目录斜线根因已修复。CMaps/WASM/ICC已核对文件交付，不等同所有对应PDF编解码已测。详见[使用说明](../usage.md)。
 
@@ -165,7 +165,7 @@ PDF 状态使用[真实源文件](../../tests/fixtures/mixed-financial-docs.pdf)
 
 压力发现拖拽溢出新增滚动条，导致 37px 水平拖动只有 29.5px 位移。仅对既有文档舞台增加局部裁剪，避免拖拽改变居中布局；缩放滚动仍由舞台尺寸决定。修复不改 Fields 或已批准静态外观、不添加偏移补丁、不重录基线；本机可见 Chrome 已核对 37px/21px 位移和高亮。
 
-用户于 2026-10-10 同意从当前原型进入任务 2.4 加固。[独立输入验证宿主](../../tests/e2e/source-inputs.tsx)直接挂载公共组件，新增十个场景在两个浏览器执行，覆盖真实 PDF/PNG 的 File、无 MIME 类型 Blob、ArrayBuffer、同源 HTTP URL 和宿主自有 blob URL；相同源文件的栅格哈希一致，字段多边形误差不超过 1 CSS 像素。测试还验证空/损坏输入、URL 失败恢复、加载/解码中替换与卸载、Worker/位图/对象 URL 清理，以及调用方 buffer/JSON/URL 保留。本轮未修改组件行为或产品演示页，已另用本机 Chrome 查看输入宿主的 PDF/PNG 实际效果。
+用户于 2026-10-10 同意从当前原型进入任务 2.4 加固。[独立输入验证宿主](../../tests/e2e/source-inputs.tsx)直接挂载公共组件，现有十一个场景在两个浏览器执行，覆盖真实 PDF/PNG 的 File、无 MIME 类型 Blob、ArrayBuffer、同源 HTTP URL、宿主自有 blob URL，以及第二 loopback 源站的 PDF/PNG/HEIF CORS。相同源文件的栅格哈希一致，字段多边形误差不超过 1 CSS 像素；跨源请求不发送 cookie/Authorization，缺少 CORS 时明确失败并可恢复，PDF/HEIF 资源仍来自 Viewer 源站。测试还验证空/损坏输入、URL 失败恢复、加载/解码中替换与卸载、Worker/位图/对象 URL 清理，以及调用方 buffer/JSON/URL 保留。HTTPS/带凭据跨源仍未验证。
 
 后续完整验收仍需核对：
 
@@ -176,4 +176,4 @@ PDF 状态使用[真实源文件](../../tests/fixtures/mixed-financial-docs.pdf)
 
 原型已复用现有解析器/几何模块并新增私有源文件/PDF 适配器，PDF.js 资源本地提供。首次页面能启动时已先运行，修复了 Worker 路径和布局问题，再补测试；原始样本及 Azure 配置未改，没有新服务调用。
 
-当前批准不关闭完整P0门槛。DPR1 PDF/PNG压力、富结果生产交互预算、包内HEIF和React18/19隔离Vite包使用方已验证；HTTPS/跨源、更广HEIF alpha/非零变换/10-bit、真实CU方向配对、完整裁剪/编码器、源文件/解码器峰值内存预算、其他宿主、无障碍/触摸、MCP/CLI及HEVC产品/发布批准仍保留。
+当前批准不关闭完整P0门槛。DPR1 PDF/PNG压力、DPR1/2格式与合成页框边界、受控HTTP跨源、富结果生产交互预算、包内HEIF和React18/19隔离Vite包使用方已验证；HTTPS/带凭据跨源、更广HEIF alpha/非零变换/10-bit、真实CU方向/裁剪配对、专用CMap/ICC解码样本、源文件/解码器峰值内存预算、其他宿主、无障碍/触摸、MCP/CLI及HEVC产品/发布批准仍保留。

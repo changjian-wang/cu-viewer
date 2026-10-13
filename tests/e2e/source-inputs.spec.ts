@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
@@ -8,6 +8,8 @@ import { alive, holdRequest, trackSourceResources } from "./sourceResources";
 
 const hostUrl = `/@fs/${resolve("tests", "e2e", "source-inputs.html").replaceAll("\\", "/")}`;
 const pdfUrl = `/@fs/${resolve("tests", "fixtures", "mixed-financial-docs.pdf").replaceAll("\\", "/")}`;
+const viewerOrigin = "http://127.0.0.1:5173";
+const crossOriginSource = "http://127.0.0.1:4175";
 const fixtures = {
     PDF: { filename: "mixed-financial-docs.pdf", count: 28, aspect: 8.5 / 11,
         points: ([[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.3628, 8.2124]] as const)
@@ -31,7 +33,8 @@ test.beforeEach(async ({ page, context }) => {
     });
     await context.route("**/*", route => {
         const url = route.request().url();
-        if (url.startsWith("http://127.0.0.1:5173/") || url.startsWith("blob:") || url.startsWith("data:")) return route.continue();
+        if (url.startsWith(`${viewerOrigin}/`) || url.startsWith(`${crossOriginSource}/`) ||
+            url.startsWith("blob:") || url.startsWith("data:")) return route.continue();
         observed.external.push(url);
         return route.abort();
     });
@@ -159,6 +162,7 @@ test("HTTP errors, empty responses and rejected source URL schemes surface error
         if (path.endsWith("/empty")) return route.fulfill({ status: 200, body: "" });
         return route.fulfill({ status: 404, body: "Synthetic missing source" });
     });
+
     await page.getByRole("combobox", { name: "Source input", exact: true }).selectOption("HTTP URL");
     const failures = [
         { url: "/source-input-failure/missing", text: "Source request failed (404)" },
@@ -179,6 +183,72 @@ test("HTTP errors, empty responses and rejected source URL schemes surface error
         await selectGrounded(page, "PDF");
         await releaseInput(page);
     }
+});
+
+test("cross-origin sources require CORS, omit credentials and keep PDF/HEIF assets on the viewer origin", async ({ page, context, request }) => {
+    const assetRequests: string[] = [];
+    context.on("request", current => {
+        const url = current.url();
+        if (url.includes("/pdfjs/") || url.includes("/heif/")) assetRequests.push(url);
+    });
+    await context.addCookies([{
+        name: "cu-cross-origin-probe",
+        value: "must-not-be-sent",
+        url: `${crossOriginSource}/`,
+    }]);
+    await page.getByRole("combobox", { name: "Source input", exact: true }).selectOption("HTTP URL");
+
+    const observation = async (requestId: string): Promise<unknown> => {
+        const response = await request.get(`${crossOriginSource}/requests/${encodeURIComponent(requestId)}`);
+        expect(response.ok()).toBe(true);
+        const payload: unknown = await response.json();
+        return payload;
+    };
+    const expectAnonymousCrossOriginRequest = async (requestId: string): Promise<void> => {
+        await expect.poll(async () => observation(requestId)).toMatchObject({
+            origin: viewerOrigin,
+            cookie: null,
+            authorization: null,
+            secFetchSite: "same-site",
+        });
+    };
+
+    const pdfRequestId = randomUUID();
+    await page.getByRole("textbox", { name: "URL override" })
+        .fill(`${crossOriginSource}/cors/mixed-financial-docs.pdf?requestId=${pdfRequestId}`);
+    await page.getByRole("button", { name: "Load PDF", exact: true }).click();
+    await ready(page);
+    await selectGrounded(page, "PDF");
+    await expectAnonymousCrossOriginRequest(pdfRequestId);
+    expect(assetRequests.some(url => url.includes("/pdfjs/build/pdf.worker.mjs"))).toBe(true);
+
+    const heifRequestId = randomUUID();
+    await page.getByRole("textbox", { name: "URL override" })
+        .fill(`${crossOriginSource}/cors/example.heic?requestId=${heifRequestId}`);
+    await page.getByRole("button", { name: "Load HEIF", exact: true }).click();
+    await ready(page);
+    await expect(page.locator(".cu-source-heading")).toContainText("1280 × 854 px");
+    await expectAnonymousCrossOriginRequest(heifRequestId);
+    expect(assetRequests.some(url => url.includes("/heif/"))).toBe(true);
+    expect(assetRequests.every(url => new URL(url).origin === viewerOrigin)).toBe(true);
+
+    const blockedRequestId = randomUUID();
+    await page.getByRole("textbox", { name: "URL override" })
+        .fill(`${crossOriginSource}/no-cors/receipt.png?requestId=${blockedRequestId}`);
+    await page.getByRole("button", { name: "Load PNG", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Source could not be displayed" })).toBeVisible();
+    await expect(page.getByRole("alert")).toContainText(/fetch|network/i);
+    await expect(page.locator("[data-field-depth='0']")).toHaveCount(fixtures.PNG.count);
+    await expectAnonymousCrossOriginRequest(blockedRequestId);
+
+    const pngRequestId = randomUUID();
+    await page.getByRole("textbox", { name: "URL override" })
+        .fill(`${crossOriginSource}/cors/receipt.png?requestId=${pngRequestId}`);
+    await page.getByRole("button", { name: "Load PNG", exact: true }).click();
+    await ready(page);
+    await selectGrounded(page, "PNG");
+    await expectAnonymousCrossOriginRequest(pngRequestId);
+    await releaseInput(page);
 });
 
 for (const action of ["replace", "unmount"] as const) {

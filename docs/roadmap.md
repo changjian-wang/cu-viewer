@@ -14,14 +14,14 @@ Task numbering now matches the revised phases: Viewer P1 is `4.1-4.4` / G3; CLI 
 
 The owner's UI checkpoint now has approved [v2 static design](prototype/README.md) and an [interactive baseline](prototype/README.md#当前可操作范围) approved for task 2.4 hardening. It was run immediately when mountable and has real PDF/PNG coverage. The static state gallery remains design-only; implementation approval does not close production acceptance.
 
-Checked items record verified scope, not release approval. Current 429 unit cases, 94 repository browser runs and 24 isolated Vite consumer runs pass: 118 local browser runs. Remote core/browser/performance/consumer jobs and the full 600-round stress matrix also pass. Structured arrays, all current source regions, rich results and packaged permissive HEIF are verified. There are 34 reviewed references; RC-3 refreshed 22 full-page images only for the truthful HEIF footer, while pane/layout/Fields references remained unchanged. Remaining rich UX, real format pairs, cross-origin, source/decoder budgets, other hosts, HEVC product/publication approval and final CLI remain open.
+Checked items record verified scope, not release approval. Current 429 unit cases, 104 repository browser runs and 24 isolated Vite consumer runs pass: 128 local browser runs. Remote core/browser/performance/consumer jobs and the full 600-round stress matrix also pass. Structured arrays, all current source regions, rich results, packaged permissive HEIF, controlled HTTP CORS and DPR 1/2 format/page-box checks are verified. There are 34 reviewed references; RC-3 refreshed 22 full-page images only for the truthful HEIF footer, while pane/layout/Fields references remained unchanged. Remaining rich UX, real format pairs, HTTPS/credentialed hosts, source/decoder budgets, other hosts, HEVC product/publication approval and final CLI remain open.
 
 ## 1. Validate the Input and UX Reference
 
 - [x] Confirm the verified CU `2025-11-01` API and exact cu-cli saved JSON, including outer response wrappers; other API versions are not approved.
 - [ ] Collect the full real source/result matrix. **Partial:** licensed multi-page PDF and PNG pairs are saved; required image formats and intrinsic orientation/crop fixtures remain incomplete.
 - [x] Record approved public-pair provenance, licenses, hashes and remaining sharing/sample gaps without changing source geometry or raw results.
-- [ ] Confirm the full source geometry/orientation matrix. **Partial:** CU values/units/dimensions and synthetic native EXIF 1-8 are verified; real CU orientation pairs, intrinsic PDF crops and broader HEIF orientation remain open.
+- [ ] Confirm the full source geometry/orientation matrix. **Partial:** CU values/units/dimensions, real PDF DPR 1/2 transforms, synthetic CropBox/MediaBox/intrinsic rotation and native EXIF 1-8 are verified; real CU crop/orientation pairs and broader HEIF orientation remain open.
 - [ ] Complete Studio PDF/image walkthroughs. **Partial:** owner-reported single-page controls and screenshots are recorded; extended cross-page/image and exact reference semantics remain open.
 - [ ] Resolve the truncated `Result-pane` requirement with the task owner.
 

@@ -38,31 +38,40 @@ async function release(page: Page): Promise<void> {
     await expect.poll(() => alive(page)).toEqual({ workers: 0, bitmaps: 0, urls: 0 });
 }
 
-test("native PNG/JPG/JPEG/JPE/BMP render the full licensed receipt canvas and grounded fields", async ({ page }) => {
-    await page.goto("/");
-    await ready(page);
-    await page.getByRole("button", { name: "Receipt PNG", exact: true }).click();
-    await ready(page);
-    for (const extension of ["png", "jpg", "jpeg", "jpe", "bmp"]) {
-        const source = extension === "png" ? resolve("tests", "fixtures", "receipt.png") :
-            resolve(imageDirectory, extension === "bmp" ? "receipt-derived.bmp" : "receipt-derived.jpg");
-        await page.getByLabel("Choose source file").setInputFiles({
-            name: `receipt.${extension}`, mimeType: "application/octet-stream", buffer: readFileSync(source),
-        });
-        await expect(page.locator(".cu-source-heading")).toContainText(`receipt.${extension}`);
-        await ready(page);
-        await expect(page.locator(".cu-source-heading")).toContainText("1743 × 878 px");
-        await expect(page.locator("[data-field-depth='0']")).toHaveCount(11);
-        await page.getByRole("button", { name: "MerchantName", exact: true }).click();
-        await page.locator(".prototype-banner").hover();
-        for (let rotation = 0; rotation < 360; rotation += 90) {
-            await checkPolygon(page, receiptPoints, rotation);
-            await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+for (const dpr of [1, 2]) {
+    test.describe(`native receipt formats at DPR ${dpr}`, () => {
+        test.use({ deviceScaleFactor: dpr });
+        test("PNG/JPG/JPEG/JPE/BMP keep the full canvas, grounding and one live bitmap", async ({ page }) => {
+            await page.goto("/");
             await ready(page);
-        }
-        await expect(page.locator('[data-field-id="/contents/0/fields/MerchantName"] .cu-field-value')).toHaveText("Contoso");
-    }
-});
+            await page.getByRole("button", { name: "Receipt PNG", exact: true }).click();
+            await ready(page);
+            for (const extension of ["png", "jpg", "jpeg", "jpe", "bmp"]) {
+                const source = extension === "png" ? resolve("tests", "fixtures", "receipt.png") :
+                    resolve(imageDirectory, extension === "bmp" ? "receipt-derived.bmp" : "receipt-derived.jpg");
+                await page.getByLabel("Choose source file").setInputFiles({
+                    name: `receipt.${extension}`, mimeType: "application/octet-stream", buffer: readFileSync(source),
+                });
+                await expect(page.locator(".cu-source-heading")).toContainText(`receipt.${extension}`);
+                await ready(page);
+                await expect(page.locator(".cu-source-heading")).toContainText("1743 × 878 px");
+                await expect(page.locator("[data-field-depth='0']")).toHaveCount(11);
+                await expect.poll(async () => (await alive(page)).bitmaps).toBe(1);
+                await page.getByRole("button", { name: "MerchantName", exact: true }).click();
+                await page.locator(".prototype-banner").hover();
+                for (let rotation = 0; rotation < 360; rotation += 90) {
+                    await checkPolygon(page, receiptPoints, rotation);
+                    await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+                    await ready(page);
+                }
+                await expect(page.locator('[data-field-id="/contents/0/fields/MerchantName"] .cu-field-value')).toHaveText("Contoso");
+            }
+            await page.getByRole("button", { name: "PDF", exact: true }).click();
+            await ready(page);
+            await expect.poll(async () => (await alive(page)).bitmaps).toBe(0);
+        });
+    });
+}
 
 for (const dpr of [1, 2]) {
     test.describe(`native EXIF direction at DPR ${dpr}`, () => {
