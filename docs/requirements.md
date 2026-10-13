@@ -4,7 +4,9 @@
 
 This document organizes the supplied task brief, "Reusable React Component for Content Understanding Field Extraction Result Viewer", while preserving its goals, component boundary, and priorities. Headings and repeated diagrams have been condensed. This is a requirements baseline, not a statement of implemented functionality.
 
-The supplied brief ends with the incomplete extensibility item `Result-pane`. Its missing content is not inferred here. On 2026-10-13 the task owner resolved current-delivery scope: do not add result-pane customization or other new host-extension APIs in task 4.3; retain only the `source`/`result` public contract. The owner subsequently clarified that touch, mobile, narrow-layout responsiveness and automatic scrolling/centering were not requested; task 4.3 is desktop keyboard/focus accessibility only. A future extension or interaction scope requires a separate approved host need.
+The owner-provided requirement is the authoritative baseline. It explicitly includes P1 accessibility, keyboard interaction, touch interaction, responsive layout, automatic scrolling/centering, host customization/extensibility, and MCP Apps/MCP UI integration design/documentation. It does not state a separate mobile-app requirement. The supplied brief ends with the incomplete extensibility item `Result-pane`; its missing content is not inferred here.
+
+On 2026-10-13 the owner additionally confirmed conditional Paragraphs, Tables and Code result views, Windows Narrator acceptance, and Vite 8 as the current supported bundler profile. These supplements are labeled separately rather than presented as text from the original brief.
 
 The acceptance checks below are proposed ways to verify the brief. API details, library choices, browser targets, and implementation plans remain subject to validation.
 
@@ -114,7 +116,7 @@ If the field is on another page, interaction navigates to that page/location. Hi
 - Resize.
 - Page navigation.
 
-Use Studio as the reference for hover, selection, polygon presentation, and behavior when the source or grounding information is unavailable. Refined multiple-region and desktop keyboard/focus behavior belongs to P1. Touch, mobile/narrow-layout responsiveness and automatic scrolling/centering were planning additions without verified primary-requirement evidence and are excluded from the current scope.
+Use Studio as the reference for hover, selection, polygon presentation, and behavior when the source or grounding information is unavailable. Refined multiple-region, keyboard, touch, responsive-layout and automatic scrolling/centering behavior belongs to P1. The requirement does not separately specify a mobile application.
 
 ## P0: Viewer Controls
 
@@ -180,6 +182,16 @@ Render Markdown available in the CU Analyze result, including headings, lists, t
 
 Provide an interactive tree for the supplied Analyze JSON, supporting expand/collapse, objects, arrays, nested structures, and reasonably large results. Prefer a mature OSS JSON-tree component rather than building one from scratch. This view should be particularly useful in cu-cli.
 
+### Owner-Confirmed Additional Result Views
+
+These views supplement the original Fields/Markdown/JSON requirement:
+
+- **Paragraphs**: when the selected content has non-empty `paragraphs`, render them in CU return order with optional role and page information. Mouse and keyboard selection navigate to and highlight every supplied source region.
+- **Tables**: when the selected content has non-empty `tables`, render read-only native grids preserving header kinds, row/column positions and spans. Mouse and keyboard cell selection navigate to and highlight the cell source region.
+- **Code**: when the original result contains analyzer ID and API version values, provide read-only Python, C# and JavaScript Analyze SDK samples with copy. Populate analyzer ID/API version from the result and use safe placeholders for endpoint, key and file URL. Never execute the sample or call Analyze from the Viewer.
+
+Do not render disabled result-view placeholders. Hide Paragraphs or Tables when their corresponding data is empty, and hide Code when analyzer ID/API version is unavailable.
+
 ## P1: Advanced UX and Extensibility
 
 Add or improve:
@@ -188,10 +200,13 @@ Add or improve:
 - Arrays and tables.
 - Multiple source regions.
 - Accessibility and keyboard interaction.
-- Host customization and extensibility named in the original brief; deferred outside the current delivery by D6 rather than inferred from the truncated text.
+- Touch interaction.
+- Responsive layout.
+- Automatic scrolling/centering.
+- Host customization and extensibility.
 - MCP App / MCP UI integration design and documentation, including use in chat hosts.
 
-Extension points named in the brief, but explicitly **not approved for task 4.3** under D6:
+Extension points explicitly named in the brief:
 
 - Field selection callbacks.
 - Custom field rendering.
@@ -200,7 +215,7 @@ Extension points named in the brief, but explicitly **not approved for task 4.3*
 - Layout customization.
 - Initial page.
 - Initial zoom/fit mode.
-- `Result-pane`: incomplete in the provided source; no API will be invented for the current delivery.
+- `Result-pane`: incomplete in the provided source; clarification is still required and no missing API will be invented.
 
 The current supported build-host profile is Vite 8 with `viewerAssets()`. Other bundlers are unverified and are not part of current acceptance.
 
@@ -236,4 +251,4 @@ Keep P2 separate so it does not delay P0 or P1.
 - Exact source input semantics, particularly string inputs and untyped binary inputs.
 - Package distribution, licensing, and public-release policy.
 - cu-cli repository ownership and local hosting/browser-launch mechanism.
-- Any future concrete host requirement that would justify reopening the deferred extension API scope.
+- The missing end of the original `Result-pane` extensibility item.

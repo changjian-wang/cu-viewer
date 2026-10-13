@@ -43,7 +43,7 @@ Build a rendering-only React/TypeScript library that accepts an original PDF/ima
 - **Finish the Viewer, then integrate**: complete the rendering-only P0 library/demo, rich result views and standalone P1 UX, then validate the actual component without cu-cli. Only afterward perform the CLI handoff and integration.
 - **Keep priorities and ownership separate**: existing P0/P1 requirement labels remain unchanged; CLI work is an external delivery stage, not a prerequisite for Viewer development, startup or standalone acceptance. TIFF/DI remain independently scoped P2.
 
-**Owner-approved scheduling change, 2026-10-12**: mainline execution is phases **1 -> 2 -> 3 -> 4 -> 5**, with CLI last. Tasks, acceptance criteria, tests and gates are renumbered to match that order: Viewer P1 is `4.1-4.4` / G3, and CLI is `5.1-5.2` / G4. Phase 6 is an independent P2 follow-up, not a mainline prerequisite. Task **4.2** Fields/Markdown/JSON switching is now verified; the next ordered Viewer task is **4.3**, desktop keyboard/focus accessibility. Existing technical prerequisites and outstanding P0 format/licensing/CI gates are not silently waived.
+**Owner-approved scheduling change, 2026-10-12**: mainline execution is phases **1 -> 2 -> 3 -> 4 -> 5**, with CLI last. Tasks, acceptance criteria, tests and gates are renumbered to match that order: Viewer P1 is `4.1-4.4` / G3, and CLI is `5.1-5.2` / G4. Phase 6 is an independent P2 follow-up, not a mainline prerequisite. Task **4.2** Fields/Markdown/JSON switching is verified; owner-confirmed task **4.2a** completes Paragraphs/Tables/Code before the remaining P1 UX/extensions. Existing technical prerequisites and outstanding P0 format/licensing/CI gates are not silently waived.
 
 ## Planning Basis
 
@@ -74,8 +74,9 @@ The plan can be reviewed now, but implementation decisions must not be treated a
 | D3: Rendering and decoding | Compare PDF.js and both highlighter candidates; inspect OCR-Form-Tools patterns; record versions/licenses and local assets. Validate `.jpg`, `.jpeg`, `.jpe`, `.png`, `.bmp`, `.heif`, and `.heic`, including fallback costs. | G0 selects an approach; unresolved format coverage blocks P0 sign-off. |
 | D4: Distribution and budgets | Private distribution, licensing, peer dependencies, package assets, representative file/result sizes, and measured performance budgets. Public publication requires a separate decision. | Before G2; project owner. |
 | D5: CLI ownership | Preserve verified saved/CLI input evidence; confirm the external repository, maintainer and viewing handoff only in the final CLI phase. | G0 input evidence remains valid; G2 + G3 before task 5.1, approved handoff before 5.2. No Viewer startup/development blocker. |
-| D6: Incomplete extension requirement | Resolved 2026-10-13: do not add result-pane customization or any other new extension API in 4.3; keep `source`/`result`. | Reopen only for a separate approved host requirement. Vite 8 is the only supported bundler profile; others are unverified. |
-| D7: Desktop interaction scope | Task 4.3 covers keyboard navigation, focus and accessible semantics in desktop Chrome/Edge only. | Touch, mobile, narrow-layout responsiveness and automatic scrolling/centering require a separate explicit approval. |
+| D6: Incomplete extension requirement | Field callbacks, custom rendering, viewer events, toolbar/layout customization and initial page/zoom/fit are explicit P1 requirements. The original `Result-pane` item is truncated. | Implement the named extension points; clarify only the missing tail instead of inventing it. |
+| D7: P1 interaction scope | Accessibility, keyboard, touch, responsive layout and automatic scrolling/centering are explicit. Chrome/Edge automation and Windows Narrator review are approved supplements. | Do not infer a separate mobile-app requirement. |
+| D8: Additional result views | Paragraphs, Tables and Code are owner-confirmed supplements; empty data hides the tab. | Source-link Paragraphs/Tables; provide read-only Python/C#/JavaScript SDK samples under Code with safe placeholders and no service execution. |
 
 Minimum G0 data is a sanitized, real multi-page PDF/result pair and an image/result pair with verified grounding. Record remaining format/version/sample gaps explicitly. A gap may allow the thin slice to start, but cannot be counted as supported coverage or waived silently at release.
 
@@ -133,7 +134,7 @@ The CLI's analysis, credentials, browser launch, and local server stay outside t
 - **Interaction**: separate transient hover from persistent selection. A grounded field navigates to its verified page; an ungrounded field remains inspectable and does not trigger fabricated navigation. P0 uses a primary verified region while preserving additional regions for P1.
 - **Lifecycle and errors**: cancel obsolete loads/renders, ignore stale completions, and release owned object URLs, workers, canvases, and decoded buffers. Show explicit loading/empty/input/rendering errors; keep extracted values usable when only source rendering fails.
 - **Distribution**: expose the component, necessary public types, and documented styles/assets. React is a peer dependency. Bundle no CU SDK, credentials, analyzer management, telemetry, or required CDN assets.
-- **P1 API scope**: D6 retains only the existing `source`/`result` contract. Task 4.3 adds no selection callbacks, custom rendering, viewer events, toolbar/layout slots, result-view registry or initial page/zoom/fit options. Do not expose the internal normalized CU/PDF model.
+- **P1 extension scope**: add the explicitly required field selection callbacks, custom field rendering, viewer events, toolbar/layout customization, initial page and initial zoom/fit without exposing the internal normalized CU/PDF model. Do not infer the truncated `Result-pane` tail.
 
 ### Impact Analysis
 
@@ -176,9 +177,9 @@ Phase, task, acceptance and test number prefixes below now use the same revised 
 
 **2026-10-13 task 4.1 progress**: real invoice/receipt arrays, stable one-based item labels, hidden-descendant selection and all current field/group source regions are implemented. Real BillingAddress region switching and a synthetic cross-page structured group pass in Chrome/Edge. At that checkpoint 424 unit cases, 80 repository browser runs and 16 packed-consumer runs passed; all 30 existing product references remained unchanged. Dedicated Tables view and real cross-page structured CU pairs are not claimed.
 
-**2026-10-13 risk-closure progress**: Fields/Markdown/JSON, lazy chunking and the production interaction budget pass without resetting source state. RC-3 replaces the historical LGPL HEIF candidate with pinned MIT/Apache `heic-rs 0.1.4` WASM: nine reviewed RGBA fixtures, development/production CSP, failure/lifecycle behavior and actual React 18/19 tgz consumers pass. RC-4 adds controlled second-origin HTTP CORS success/failure, anonymous cross-origin source fetches, viewer-origin PDF/HEIF assets, real-PDF DPR 2 transforms, derived native formats at DPR 1/2 and synthetic PDF page-box/intrinsic-rotation boundaries. Current totals are 429 unit cases, 104 repository runs and 24 packed-consumer runs: 128 local browser runs. There are 34 references; RC-3 refreshed 22 full-page images only for the truthful HEIF footer while pane/layout/Fields references remained unchanged. Real CU JPEG/BMP/HEIF pairs, HTTPS/credentialed hosts, dedicated CMap/ICC decode fixtures, source/decoder budgets and release approval remain open; task 4.3 stays behind the remaining risk gate.
+**2026-10-13 risk-closure progress**: Fields/Markdown/JSON, lazy chunking and the production interaction budget pass without resetting source state. RC-3 replaces the historical LGPL HEIF candidate with pinned MIT/Apache `heic-rs 0.1.4` WASM: nine reviewed RGBA fixtures, development/production CSP, failure/lifecycle behavior and actual React 18/19 tgz consumers pass. RC-4 adds controlled second-origin HTTP CORS success/failure, anonymous cross-origin source fetches, viewer-origin PDF/HEIF assets, real-PDF DPR 2 transforms, derived native formats at DPR 1/2 and synthetic PDF page-box/intrinsic-rotation boundaries. Current totals are 429 unit cases, 104 repository runs and 24 packed-consumer runs: 128 local browser runs. There are 34 references; RC-3 refreshed 22 full-page images only for the truthful HEIF footer while pane/layout/Fields references remained unchanged. Real CU JPEG/BMP/HEIF pairs, HTTPS/credentialed hosts, dedicated CMap/ICC decode fixtures, source/decoder budgets and release approval remain open; remaining P1 work now follows the reconciled owner requirements.
 
-**RC-Gate evaluation, 2026-10-13: blocked; task 4.3 is not started.** The 4.2 baseline, bundle/performance work, local and remote CI, packaged permissive HEIF engineering, controlled format/CORS matrix, 34 visual references, React18/19 consumers and D6 scope decision pass. The gate remains blocked by four non-code or missing-evidence items: this private repository plan cannot enforce required branch checks (GitHub protection API returns 403), HEVC product/patent and Microsoft/publication approval is external, independent real CU JPEG/BMP/HEIF pairs are not available and will not be fabricated or acquired by Viewer service calls, and source/decoder peak-memory budgets are not yet measured and approved. CLI work remains unstarted.
+**RC-Gate evaluation, 2026-10-13: blocked; remaining P1 work is not started.** The 4.2 baseline, bundle/performance work, local and remote CI, packaged permissive HEIF engineering, controlled format/CORS matrix, 34 visual references and React18/19 consumers pass. The gate remains blocked by four non-code or missing-evidence items: this private repository plan cannot enforce required branch checks (GitHub protection API returns 403), HEVC product/patent and Microsoft/publication approval is external, independent real CU JPEG/BMP/HEIF pairs are not available and will not be fabricated or acquired by Viewer service calls, and source/decoder peak-memory budgets are not yet measured and approved. CLI work remains unstarted.
 
 Use the current Studio with representative PDF and image results. Record layout, field/value/confidence presentation, hover versus selection, cross-page navigation, fit/zoom/pan/rotation, and missing-source/grounding behavior. If Studio is inaccessible, record that limitation and leave the behavioral review gate open.
 
@@ -225,20 +226,21 @@ Publish the tested format/browser matrix and measured sample sizes. Missing HEIF
 
 ### Phase 4: Complete Viewer P1 and Standalone Acceptance
 
-**Goal**: finish the Viewer's result representations and desktop keyboard/focus accessibility before CLI integration, retaining the original-JSON entry point, minimal public API and approved appearance.
+**Goal**: finish the Viewer's result representations, P1 interaction UX and named extension points before CLI integration, retaining the original-JSON entry point and approved appearance.
 
 | Task | Work and acceptance | Effort |
 | --- | --- | --- |
 | `4.1` | Add structured nested/array/table fields and multiple-region navigation. **AC-4.1**: original relationships remain inspectable and every available region can be reached without losing field identity or selection. | M |
 | `4.2` | Add Fields/Markdown/JSON tabs using safe Markdown and an evaluated mature JSON tree. **AC-4.2**: formatting and expand/collapse work; unsafe HTML/URL content cannot execute; large-result limits are measured and documented. | M |
-| `4.3` | Complete desktop Chrome/Edge keyboard navigation, focus management and accessible semantics without expanding the public API. **AC-4.3**: fields, result tabs and source controls work without a mouse; focus is visible, ordered and retained across state changes. | M |
+| `4.2a` | Add conditional Paragraphs/Tables/Code views. **AC-4.2a**: Paragraphs preserve CU order/role/page and source navigation; Tables preserve native grid spans and source-linked cells; Code provides read-only Python/C#/JavaScript SDK samples using result analyzer/API values plus safe placeholders; empty views hide their tabs. | M |
+| `4.3` | Complete accessibility, keyboard, touch, responsive layout, automatic scrolling/centering and the explicitly named host extension points. **AC-4.3**: keyboard/touch interaction, responsive embedding, source navigation and extension contracts pass without exposing internal CU/PDF models; Chrome/Edge and Narrator evidence is recorded. | L |
 | `4.4` | Document MCP Apps/MCP UI and chat-host integration design. **AC-4.4**: data delivery, payload constraints, assets/CSP, loading/errors, lifecycle, and trust boundaries are specified without adding service logic to the core. | S |
 
-D6 is resolved: task 4.3 adds no `Result-pane` customization or other host-extension API. Markdown/JSON and the existing `source`/`result` contract remain unchanged. This phase requires MCP integration design/documentation, not an unrequested MCP server implementation.
+D6 remains limited to the truncated `Result-pane` tail. The other named extension points are explicit requirements. This phase requires MCP integration design/documentation, not an unrequested MCP server implementation.
 
-**Next functional target: 4.3.** Complete desktop keyboard navigation, focus management and accessible semantics without adding public props or extension registries. Touch, mobile, narrow-layout responsiveness and automatic scrolling/centering are excluded. Fields/Markdown/JSON are implemented; Paragraphs/Tables/Code remain disabled placeholders whose semantics must be explicitly scoped before they are advertised. Preserve the approved Fields layout and task 4.2 source-state guarantees.
+**Next functional target: 4.2a.** Implement the confirmed conditional Paragraphs/Tables/Code views and remove disabled placeholders. Then complete the original P1 accessibility/keyboard/touch/responsive/automatic-navigation and named extension requirements. Do not infer a separate mobile-app target or the missing `Result-pane` tail. Preserve the approved Fields layout and task 4.2 source-state guarantees.
 
-**Exit G3**: P1 rich-view and desktop keyboard/focus accessibility acceptance/tests pass; the D6/D7 scope decisions and limitations are documented.
+**Exit G3**: all confirmed result views, P1 interaction UX, named extension points and MCP integration design pass their acceptance/tests; the truncated `Result-pane` limitation is documented.
 
 **Standalone Viewer completion**: require **G2 + G3** and reviewed product/independent-consumer evidence. Viewer startup, direct saved-result inspection, rich-pane switching, geometry and lifecycle must work without cu-cli or a new Analyze call. Disabled placeholders cannot count as completed features; preserve approved Fields/layout, with intentional new-view changes reviewed before updating visual baselines.
 
@@ -309,8 +311,8 @@ Paths are relative to the target repository and use Windows separators. `create`
     "viewer_completion_gates": ["G2", "G3"],
     "cli_final_tasks": ["5.1", "5.2"],
     "cli_blocks_viewer": false,
-    "next_viewer_functional_task": "4.3",
-    "task_4_3_adds_public_extension_api": false,
+    "next_viewer_functional_task": "4.2a",
+    "task_4_3_adds_public_extension_api": true,
     "supported_bundler_profile": "Vite 8",
     "separate_p2_tasks": ["6.1", "6.2"]
   },
@@ -482,7 +484,6 @@ Paths are relative to the target repository and use Windows separators. `create`
       "verification_evidence": "PDF/PNG DPR1 stress passes 100 page/transform rounds, 100 public-input replacements and 100 pending cancellations per browser, with current-context visual parity and resource accounting. Pan scrollbar re-centering fixed without baseline updates; broader format/DPR/consumer acceptance remains open.",
       "description": "Add zoom/pan/fit/rotation and PDF page controls; handle loading/empty/errors and last-load-wins source changes. Dispose owned resources and keep source/overlay transforms synchronized.",
       "files": [
-        {"path": "src\\components\\Toolbar.tsx", "action": "create"},
         {"path": "src\\styles.css", "action": "modify"},
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
@@ -579,18 +580,38 @@ Paths are relative to the target repository and use Windows separators. `create`
       "tests": [{"id": "T-4.2", "type": "e2e", "framework": "playwright", "description": "Verify actual tab content and preserved source state, headings/lists/tables/code/formatting, original JSON objects/arrays, absent Markdown, unsafe markup/links and the agreed large-result fixture without CLI/service access.", "covers_criteria": ["AC-4.2"]}]
     },
     {
-      "id": "4.3", "phase": 4, "priority": "P1", "title": "Complete desktop keyboard and focus accessibility", "effort": "M",
-      "description": "Complete desktop Chrome/Edge keyboard navigation, focus management and accessible semantics without expanding the public source/result contract. D6 excludes new extension APIs; D7 excludes touch, mobile, narrow-layout responsiveness and automatic scrolling/centering.",
+      "id": "4.2a", "phase": 4, "priority": "P1", "title": "Add conditional Paragraphs, Tables and Code views", "effort": "M",
+      "description": "Implement the owner-confirmed prototype result views without disabled placeholders. Paragraphs and Tables use original CU detail data and source regions; Code provides read-only Analyze SDK samples and never executes service logic.",
       "files": [
+        {"path": "src\\components\\ParagraphsPane.tsx", "action": "create"},
+        {"path": "src\\components\\TablesPane.tsx", "action": "create"},
+        {"path": "src\\components\\CodePane.tsx", "action": "create"},
+        {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
+        {"path": "src\\internal\\parseCuResult.ts", "action": "modify"},
+        {"path": "src\\internal\\types.ts", "action": "modify"},
+        {"path": "src\\styles.css", "action": "modify"},
+        {"path": "tests\\e2e\\rich-results.spec.ts", "action": "modify"}
+      ],
+      "depends_on": ["4.1", "4.2"],
+      "acceptance_criteria": [{"id": "AC-4.2a", "text": "Paragraphs retain CU order, optional role/page and all source regions; Tables preserve native headers/row-column spans and source-linked cells; Code provides Python/C#/JavaScript samples populated with result analyzerId/API version and safe endpoint/key/file placeholders; inapplicable tabs are hidden."}],
+      "tests": [{"id": "T-4.2a", "type": "integration", "framework": "react-testing-library-and-playwright", "description": "Use real paragraphs/tables and synthetic missing-value boundaries to verify conditional tabs, keyboard/mouse source navigation, native grid spans, Code language switching/copy/placeholders and unchanged source state without any Analyze call.", "covers_criteria": ["AC-4.2a"]}]
+    },
+    {
+      "id": "4.3", "phase": 4, "priority": "P1", "title": "Complete advanced UX and named extension points", "effort": "L",
+      "description": "Complete accessibility, keyboard, touch, responsive layout and automatic scrolling/centering. Add the explicitly required field callbacks, custom field rendering, viewer events, toolbar/layout customization, initial page and initial zoom/fit without exposing internal CU/PDF models. Do not infer the truncated Result-pane tail or a separate mobile-app target.",
+      "files": [
+        {"path": "src\\index.ts", "action": "modify"},
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
         {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
+        {"path": "src\\components\\Toolbar.tsx", "action": "create"},
         {"path": "src\\styles.css", "action": "modify"},
-        {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"}
+        {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\host-extensions.spec.ts", "action": "create"}
       ],
-      "depends_on": ["4.1", "4.2"],
-      "acceptance_criteria": [{"id": "AC-4.3", "text": "Fields, result tabs and source controls are operable without a mouse; focus is visible, ordered and retained across state changes, accessible names/states are correct, and the public API remains source/result only."}],
-      "tests": [{"id": "T-4.3", "type": "e2e", "framework": "playwright", "description": "Test desktop keyboard-only field/tab/source-control navigation, focus order/visibility/retention and accessible roles/names/states in Chrome/Edge; manually review desktop accessibility and verify no new public extension API.", "covers_criteria": ["AC-4.3"]}]
+      "depends_on": ["4.1", "4.2", "4.2a"],
+      "acceptance_criteria": [{"id": "AC-4.3", "text": "Keyboard and touch interaction, responsive embedding, automatic source scrolling/centering, accessible names/states and each explicitly named extension point work in supported hosts; Chrome/Edge automation and a Windows Narrator walkthrough pass."}],
+      "tests": [{"id": "T-4.3", "type": "e2e", "framework": "playwright-and-manual-narrator", "description": "Test keyboard/focus/ARIA, touch input, responsive container sizes, automatic source navigation, callbacks, custom field rendering, viewer events, toolbar/layout customization and initial page/zoom/fit; perform a Windows Narrator walkthrough.", "covers_criteria": ["AC-4.3"]}]
     },
     {
       "id": "4.4", "phase": 4, "priority": "P1", "title": "Specify MCP Apps and chat-host embedding", "effort": "S",
@@ -608,7 +629,7 @@ Paths are relative to the target repository and use Windows separators. `create`
       "blocked_by": "Start only after Viewer P0/P1 standalone completion; CLI handoff is the final mainline stage.",
       "description": "After completing the Viewer, confirm the external CLI repository/owners and original-JSON/source handoff, saved viewing, file boundaries, assets and lifecycle; this contract is not a Viewer startup/development prerequisite.",
       "files": [{"path": "docs\\cu-cli-integration.md", "action": "create"}],
-      "depends_on": ["3.3", "4.3", "4.4"],
+      "depends_on": ["3.3", "4.2a", "4.3", "4.4"],
       "acceptance_criteria": [{"id": "AC-5.1", "text": "After standalone Viewer acceptance, Viewer/CLI owners approve the external handoff, saved viewing, local file/assets boundaries and lifecycle."}],
       "tests": [{"id": "T-5.1", "type": "manual", "framework": "host-contract-review", "description": "Confirm G2/G3 completion first, then review the actual CLI implementation and demonstrate embedding the completed Viewer without changing its independent workflow.", "covers_criteria": ["AC-5.1"]}]
     },
@@ -679,7 +700,8 @@ Prototype source/field/transform/error coverage now exists in [unit tests](../sr
 | Fresh CLI result and previously saved result | Open the approved viewing paths | Same component; saved path makes zero CU calls; local file boundaries hold. | AC-5.1, AC-5.2 / T-5.1, T-5.2 |
 | Nested/array/table fields with several regions | Expand and choose each region | Relationships, selection, and navigation remain correct. | AC-4.1 / T-4.1 |
 | Markdown, original JSON, and adversarial markup/links | Switch panes and expand nodes | Supported formatting/tree behavior; no executable unsafe content. | AC-4.2 / T-4.2 |
-| Desktop keyboard user | Navigate fields, tabs and source controls while changing selection | Visible ordered focus, correct accessible states, retained selection and no new public extension API. | AC-4.3 / T-4.3 |
+| Paragraphs, Tables or Code data is present/absent | Switch result views and select source-linked items | Applicable views render the confirmed data/SDK samples; empty views have no tab; source state remains intact. | AC-4.2a / T-4.2a |
+| Keyboard/touch user or resized embedded host | Navigate, select and trigger automatic source navigation | Accessible focus/semantics, touch operation, responsive layout and source scrolling/centering work; named extension points report the same state. | AC-4.3 / T-4.3 |
 | Restricted MCP/chat host | Review delivery, load/error and teardown scenarios | Explicit host design and unchanged core boundary. | AC-4.4 / T-4.4 |
 | TIFF or DI candidate scope | Review real samples and proposed follow-up tests | Separate approved P2 plans; no P0/P1 scope creep. | AC-6.1, AC-6.2 / T-6.1, T-6.2 |
 
@@ -710,7 +732,7 @@ Measure initial render, page change, result-pane interaction, bundle/decoder siz
 | Sample access, privacy, or redistribution prevents coverage | High | Medium | Approved sanitized real pairs, provenance manifest, explicit gaps; never substitute fake successful output. |
 | Large JSON/Markdown or image decoding blocks the UI | Medium | Medium | Measured budgets, evaluated tree component, bounded/lazy rendering and documented limits. |
 | Dependency maintenance, licensing, or React peer conflicts | Medium | Medium | Version/license evaluation, lockfile, no automatic public release, packed-consumer tests. |
-| Truncated extension requirement causes an invented API | Medium | High | D6 is resolved: add no extension API in 4.3; reopen only for a separate approved host requirement. |
+| Truncated extension requirement causes an invented API | Medium | High | Implement only the explicitly named extension points; keep the missing `Result-pane` tail blocked until clarified. |
 | Draft lacks an approved design/runtime matrix | High | Certain until G0 | Record approval and update this plan before describing tasks as execution-ready. |
 
 ## Rollout and Rollback
@@ -732,7 +754,7 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 - **Packaging/reliability**: isolated packed-package embedding passes; no required CDN assets, stale source results, or undisposed owned resources in the defined tests.
 - **Traceability**: every task criterion has a linked test; all automated P0 scenarios and required manual approvals pass before full P0 sign-off.
 - **Delivery order**: standalone Viewer P0/P1 passes G2 + G3 without cu-cli; only afterward start 5.1/5.2 and verify G4. Disabled result-view placeholders never count as complete.
-- **P1/P2 discipline**: P1 rich panes and desktop keyboard/focus accessibility pass their scenarios; D6 keeps new extension APIs out of scope and D7 excludes touch/mobile/responsive work. TIFF/DI remain separately scoped and do not gate P0/P1.
+- **P1/P2 discipline**: all confirmed result views, accessibility/keyboard/touch/responsive UX, automatic scrolling/centering and explicitly named extension points pass their scenarios; no separate mobile-app feature or truncated `Result-pane` API is inferred. TIFF/DI remain separately scoped and do not gate P0/P1.
 
 ## Change Log
 
@@ -758,11 +780,11 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-12 | Verified real React18/19 tgz consumers with approved optional Node-only Vite assets and directory normalization;16 dev/prod CSP/resource/screenshot runs plus76 repository runs and416 unit cases pass. Usage/core CI added, unchanged product references retained, full format/remote-CI/release gates left open. |
 | 2026-10-12 | Owner required Viewer-first delivery: renumber P1 as 4.1-4.4/G3 and CLI as 5.1-5.2/G4, then synchronize acceptance/test IDs, dependencies, gates and rollout. Preserve verified completion evidence and separate P2; next Viewer functional target is real rich-pane switching in 4.2. |
 | 2026-10-13 | Completed scoped task4.1: stable real array/table-like hierarchy, hidden descendant selection and every own/descendant source region, with synthetic cross-page coverage. Verified424 unit,80 repository and16 consumer runs;30 approved images unchanged. Dedicated Tables pane and real cross-page structured pair remain open;4.2 is next. |
-| 2026-10-13 | Completed task 4.2: real sanitized Markdown (including nine CU HTML tables), original interactive JSON, tab/source-state retention, adversarial/missing/oversized states and React18/19 package-host coverage. Verified 429 unit, 86 repository and 16 consumer runs; retained all 30 existing product images and added four rich-pane references. Paragraphs/Tables/Code remain scoped out; 4.3 is next. |
+| 2026-10-13 | Completed task 4.2: real sanitized Markdown (including nine CU HTML tables), original interactive JSON, tab/source-state retention, adversarial/missing/oversized states and React18/19 package-host coverage. Verified 429 unit, 86 repository and 16 consumer runs; retained all 30 existing product images and added four rich-pane references. |
 | 2026-10-13 | RC-1 measured and closed the rich-result bundle/UI-blocking risk: lazy chunks reduce the library entry from 479.97 to 47.29 kB and demo main from 603.46 to 261.31 kB; final measured 50k/500k limits and production Chrome/Edge budgets pass, including hosted parallel load. Current evidence at that checkpoint was 429 unit, 90 repository and 16 consumer runs; 4.3 remained gated. |
 | 2026-10-13 | RC-2 established real remote CI: push run 38347604633 passes core/browser/performance/packed-consumer jobs; manual run 38348199406 also passes the six-test/600-round stress job. Hosted runners skip version-sensitive pixels only; fixed-version local zero-diff visual gates remain mandatory. |
 | 2026-10-13 | RC-3 replaces the evaluated-but-undistributed LGPL decoder with pinned MIT/Apache heic-rs0.1.4 WASM. Reproducible hashes, licenses/SBOM, nine-fixture cross-browser RGBA results, CSP/failure/lifecycle behavior and 24 React18/19 tgz consumer runs pass. Broader real CU pairs and HEVC product/publication approval remain external gates. |
 | 2026-10-13 | RC-4 adds ten repository runs: second-origin HTTP CORS positive/negative behavior with no cookie/Authorization forwarding, viewer-origin PDF/HEIF assets, real PDF DPR2 first/last-page transforms, derived PNG/JPEG/BMP DPR1/2 lifecycle checks and synthetic CropBox/MediaBox/intrinsic-rotation boundaries. Remote run 38370248168 passes core/browser/performance/packed-consumer. Real CU JPEG/BMP/HEIF pairs, HTTPS, dedicated CMap/ICC decode samples and peak memory remain open. |
-| 2026-10-13 | RC-5 resolves D6: task4.3 adds no result-pane customization or other new public extension API. The component remains source/result, Vite8 is the sole supported bundler profile and other bundlers are explicitly unverified. |
-| 2026-10-13 | The owner clarifies D7: no touch, mobile, narrow-layout responsiveness or automatic scrolling/centering was requested. Task4.3 is limited to desktop Chrome/Edge keyboard navigation, focus management and accessible semantics. |
+| 2026-10-13 | Initial RC-5 scope notes incorrectly removed explicit P1 touch/responsive/automatic-navigation and extension requirements. The owner-provided source requirement supersedes that reduction; only the truncated `Result-pane` tail remains unresolved. Vite8 remains the current supported bundler profile. |
+| 2026-10-13 | Requirements reconciliation adds owner-confirmed task4.2a: conditional source-linked Paragraphs, native Tables grids and Python/C#/JavaScript SDK samples under Code. Accessibility includes Chrome/Edge automation and a Windows Narrator walkthrough; no separate mobile-app requirement is inferred. |
 | 2026-10-13 | RC-Gate evaluated after remote run 38372037048 passed all push jobs. It remains blocked by unavailable required-check enforcement on the current private-repository plan, external HEVC/product/publication approval, missing independent real CU JPEG/BMP/HEIF pairs and unapproved source/decoder memory budgets. Task4.3 and all CLI work remain unstarted. |

@@ -44,7 +44,7 @@
 - **先完成 Viewer，再集成**：完成仅渲染的 P0 组件库/演示、丰富结果视图及 P1 独立交互，再验证实际组件无需 cu-cli 即可工作；随后才做 CLI 交接与集成。
 - **保持优先级与职责边界独立**：原有 P0/P1 需求标记不变；CLI 属于外部交付阶段，不是 Viewer 开发、启动或独立验收的前置条件。TIFF/DI 继续独立 P2。
 
-**2026-10-12 负责人批准的排期调整**：主线按阶段 **1 → 2 → 3 → 4 → 5** 执行，CLI 最后。任务、验收、测试和门槛全部按顺序重编号：Viewer P1 为 `4.1-4.4` / G3，CLI 为 `5.1-5.2` / G4；阶段 6 仅为独立 P2 后续，不是主线前置。任务 **4.2** 的 Fields/Markdown/JSON 切换现已验证；下一项按序 Viewer 任务为 **4.3** 桌面键盘/焦点无障碍。既有技术前置以及未完成的 P0 格式/许可/CI 门槛不被默默豁免。
+**2026-10-12 负责人批准的排期调整**：主线按阶段 **1 → 2 → 3 → 4 → 5** 执行，CLI 最后。任务、验收、测试和门槛全部按顺序重编号：Viewer P1 为 `4.1-4.4` / G3，CLI 为 `5.1-5.2` / G4；阶段 6 仅为独立 P2 后续，不是主线前置。任务 **4.2** 的 Fields/Markdown/JSON 切换已验证；负责人确认的任务 **4.2a** 先完成 Paragraphs/Tables/Code，再继续其余 P1 UX/扩展。既有技术前置以及未完成的 P0 格式/许可/CI 门槛不被默默豁免。
 
 ## 规划依据
 
@@ -75,8 +75,9 @@ cu-cli 提案将其定位为终端原生工具，并排除了 GUI/Studio 替代�
 | D3：渲染与解码 | 比较 PDF.js 和两个高亮库候选；参考 OCR-Form-Tools 的实现模式；记录版本、许可证及本地资源。验证 `.jpg`、`.jpeg`、`.jpe`、`.png`、`.bmp`、`.heif`、`.heic`，包括备用解码方案的成本。 | G0 确定方案；未解决的格式覆盖问题阻塞 P0 验收。 |
 | D4：分发与预算 | 私有分发、许可证、对等依赖、包内资源、代表性文件/结果大小，以及实测性能预算。公开发布需要单独决策。 | G2 之前；项目负责人。 |
 | D5：CLI 职责归属 | 保留已验证的保存/CLI 输入依据；仅在最后的 CLI 阶段确认外部仓库、维护者与查看交接方案。 | G0 输入依据仍有效；G2 + G3 后开展 5.1，交接获批后开展 5.2。不阻塞 Viewer 启动/开发。 |
-| D6：不完整的扩展需求 | 已于2026-10-13解决：4.3不增加结果面板定制或任何其他新扩展API，保持`source`/`result`。 | 仅在有单独批准的真实宿主需求时重开。Vite8是唯一正式支持的bundler配置，其他均未验证。 |
-| D7：桌面交互范围 | 任务4.3仅覆盖桌面Chrome/Edge的键盘导航、焦点及无障碍语义。 | 触摸、移动端、窄屏响应式及自动滚动/居中须另行明确批准。 |
+| D6：不完整的扩展需求 | 字段选择回调、自定义渲染、查看器事件、工具栏/布局定制及初始页码/缩放/适应模式是明确P1需求；原始`Result-pane`条目被截断。 | 实现已明确扩展点，只澄清缺失后半段，不自行编造。 |
+| D7：P1交互范围 | 无障碍、键盘、触摸、响应式布局及自动滚动/居中是明确需求；Chrome/Edge自动化和Windows Narrator走查是已批准补充。 | 不推断单独的移动端应用需求。 |
+| D8：新增结果视图 | Paragraphs、Tables、Code是负责人确认的补充；无值时隐藏标签。 | Paragraphs/Tables关联原文；Code提供只读Python/C#/JavaScript SDK示例、安全占位且不调用服务。 |
 
 G0 最少需要一组已脱敏的真实多页 PDF/结果配对，以及一组来源定位已验证的图片/结果配对。明确记录其余格式、版本和样本缺口。存在缺口时可以允许最小闭环开始，但不能将缺口计入已支持范围，也不能在发布时默默豁免。
 
@@ -134,7 +135,7 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 - **交互**：区分临时悬停与持久选择。具有来源定位信息的字段导航到已验证的页面；没有来源定位信息的字段仍可查看，不触发虚构的导航。P0 使用一个主要的已验证区域，同时保留其他区域供 P1 使用。
 - **生命周期与错误**：取消过时的加载/渲染，忽略过期完成结果，释放自身持有的对象 URL、Worker、画布及解码缓冲区。明确展示加载、空数据、输入错误和渲染错误；仅源文件渲染失败时，仍能查看提取值。
 - **分发**：导出组件、必要的公共类型，以及已说明的样式/资源。React 作为对等依赖。不打包 CU SDK、凭据、分析器管理、遥测或必须依赖 CDN 的资源。
-- **P1 API 范围**：D6决定只保留现有`source`/`result`契约。任务4.3不增加选择回调、自定义渲染、查看器事件、工具栏/布局slot、结果视图注册或初始页码/缩放/适应选项；不暴露内部标准化CU/PDF模型。
+- **P1 扩展范围**：增加明确要求的字段选择回调、自定义字段渲染、查看器事件、工具栏/布局定制、初始页码和初始缩放/适应模式，同时不暴露内部标准化CU/PDF模型；不推断被截断的`Result-pane`后半段。
 
 ### 影响分析
 
@@ -226,20 +227,21 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 ### 阶段 4：完成 Viewer P1 与独立验收
 
-**目标**：在CLI集成前完成Viewer结果表示及桌面键盘/焦点无障碍，保留原始JSON入口、最小公共API与获批外观。
+**目标**：在CLI集成前完成Viewer结果表示、P1交互UX和明确扩展点，保留原始JSON入口与获批外观。
 
 | 任务 | 工作内容与验收 | 工作量 |
 | --- | --- | --- |
 | `4.1` | 增加结构化嵌套/数组/表格字段，以及多区域导航。**AC-4.1**：原始关系仍可查看，所有可用区域均可访问，且不丢失字段标识或选择状态。 | M |
 | `4.2` | 使用安全 Markdown 和经过评估的成熟 JSON 树，增加 Fields/Markdown/JSON 标签页。**AC-4.2**：格式展示与展开/折叠正常；不安全的 HTML/URL 内容不能执行；大结果限制经过测量并写入文档。 | M |
-| `4.3` | 完成桌面Chrome/Edge键盘导航、焦点管理和无障碍语义，不扩展公共API。**AC-4.3**：不用鼠标即可操作字段、结果标签及源文件控件；焦点可见、有序，并在状态变化时保持。 | M |
+| `4.2a` | 增加条件显示的Paragraphs/Tables/Code视图。**AC-4.2a**：Paragraphs保留CU顺序/角色/页码及原文导航；Tables保留原生网格跨度及单元格原文联动；Code使用结果中的analyzer/API值和安全占位提供只读Python/C#/JavaScript SDK示例；无适用值时隐藏标签。 | M |
+| `4.3` | 完成无障碍、键盘、触摸、响应式布局、自动滚动/居中及明确宿主扩展点。**AC-4.3**：键盘/触摸交互、响应式嵌入、原文导航与扩展契约通过且不暴露内部CU/PDF模型；记录Chrome/Edge与Narrator依据。 | L |
 | `4.4` | 编写 MCP Apps/MCP UI 与聊天宿主的集成设计。**AC-4.4**：明确数据交付、载荷限制、资源/CSP、加载/错误、生命周期和信任边界，不向核心添加服务逻辑。 | S |
 
-D6已解决：任务4.3不增加`Result-pane`定制或其他宿主扩展API。Markdown/JSON及现有`source`/`result`契约保持不变。本阶段要求MCP集成设计/文档，不要求实现未被请求的MCP服务器。
+D6只约束被截断的`Result-pane`后半段；其他具名扩展点是明确需求。本阶段要求MCP集成设计/文档，不要求实现未被请求的MCP服务器。
 
-**下一功能目标：4.3。** 完成桌面键盘导航、焦点管理及无障碍语义，不增加公共props或扩展注册机制。触摸、移动端、窄屏响应式及自动滚动/居中均排除在外。Fields/Markdown/JSON已实现；Paragraphs/Tables/Code仍是禁用占位，其专属语义必须先明确范围再承诺交付。保持已确认Fields布局及任务4.2的源状态保持保证。
+**下一功能目标：4.2a。** 实现已确认的条件Paragraphs/Tables/Code视图并移除禁用占位；随后完成原始P1明确的无障碍/键盘/触摸/响应式/自动导航和具名扩展需求。不推断单独移动端应用或缺失的`Result-pane`后半段。保持已确认Fields布局及任务4.2源状态保证。
 
-**G3 通过条件**：P1丰富视图及桌面键盘/焦点无障碍验收测试通过，并记录D6/D7范围决定与限制。
+**G3 通过条件**：全部已确认结果视图、P1交互UX、具名扩展点和MCP集成设计通过验收/测试，并记录被截断的`Result-pane`限制。
 
 **Viewer 本体完成条件**：要求 **G2 + G3** 及产品/独立使用方评审依据通过。Viewer 启动、直接查看保存结果、丰富面板切换、几何与生命周期应无需 cu-cli 或新的 Analyze 调用；禁用占位不能算功能完成。保持已确认的 Fields/布局，新增视图的有意变化须评审后再更新视觉基线。
 
@@ -310,8 +312,8 @@ flowchart LR
     "viewer_completion_gates": ["G2", "G3"],
     "cli_final_tasks": ["5.1", "5.2"],
     "cli_blocks_viewer": false,
-    "next_viewer_functional_task": "4.3",
-    "task_4_3_adds_public_extension_api": false,
+    "next_viewer_functional_task": "4.2a",
+    "task_4_3_adds_public_extension_api": true,
     "supported_bundler_profile": "Vite 8",
     "separate_p2_tasks": ["6.1", "6.2"]
   },
@@ -483,7 +485,6 @@ flowchart LR
       "verification_evidence": "PDF/PNG DPR1每浏览器100轮页面变换、100次公共输入替换及100次挂起取消通过，核对当前产品视觉与资源配对。局部修复平移滚动条居中偏移且基线未变；更广格式/DPR/调用方验收保留。",
       "description": "增加缩放/平移/适应/旋转和 PDF 页码控件；处理加载/空数据/错误及以最后一次加载为准的源文件更换。释放自身持有的资源，保持源文件/叠加层变换同步。",
       "files": [
-        {"path": "src\\components\\Toolbar.tsx", "action": "create"},
         {"path": "src\\styles.css", "action": "modify"},
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
@@ -580,18 +581,38 @@ flowchart LR
       "tests": [{"id": "T-4.2", "type": "e2e", "framework": "playwright", "description": "无需CLI/服务，验证标签真实内容与源状态保留、标题列表表格代码格式、原始JSON对象数组、缺失Markdown、危险标记链接及约定大结果样本。", "covers_criteria": ["AC-4.2"]}]
     },
     {
-      "id": "4.3", "phase": 4, "priority": "P1", "title": "完成桌面键盘与焦点无障碍", "effort": "M",
-      "description": "完成桌面Chrome/Edge键盘导航、焦点管理及无障碍语义，不扩展公共source/result契约。D6排除新扩展API；D7排除触摸、移动端、窄屏响应式及自动滚动/居中。",
+      "id": "4.2a", "phase": 4, "priority": "P1", "title": "增加条件Paragraphs、Tables与Code视图", "effort": "M",
+      "description": "实现负责人确认的原型结果视图，不保留禁用占位。Paragraphs与Tables使用原始CU明细及source区域；Code提供只读Analyze SDK示例且不执行服务逻辑。",
       "files": [
+        {"path": "src\\components\\ParagraphsPane.tsx", "action": "create"},
+        {"path": "src\\components\\TablesPane.tsx", "action": "create"},
+        {"path": "src\\components\\CodePane.tsx", "action": "create"},
+        {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
+        {"path": "src\\internal\\parseCuResult.ts", "action": "modify"},
+        {"path": "src\\internal\\types.ts", "action": "modify"},
+        {"path": "src\\styles.css", "action": "modify"},
+        {"path": "tests\\e2e\\rich-results.spec.ts", "action": "modify"}
+      ],
+      "depends_on": ["4.1", "4.2"],
+      "acceptance_criteria": [{"id": "AC-4.2a", "text": "Paragraphs保留CU顺序、可选role/页码及全部source区域；Tables保留原生表头/行列跨度及单元格原文联动；Code使用结果analyzerId/API version和安全endpoint/key/file占位提供Python/C#/JavaScript示例；不适用标签隐藏。"}],
+      "tests": [{"id": "T-4.2a", "type": "integration", "framework": "react-testing-library-and-playwright", "description": "使用真实paragraphs/tables及合成缺值边界验证条件标签、键盘/鼠标原文导航、原生网格跨度、Code语言切换/复制/占位，以及不调用Analyze且源状态不变。", "covers_criteria": ["AC-4.2a"]}]
+    },
+    {
+      "id": "4.3", "phase": 4, "priority": "P1", "title": "完成高级UX与具名扩展点", "effort": "L",
+      "description": "完成无障碍、键盘、触摸、响应式布局及自动滚动/居中。增加明确要求的字段选择回调、自定义字段渲染、查看器事件、工具栏/布局定制、初始页码及初始缩放/适应模式，不暴露内部CU/PDF模型；不推断被截断的Result-pane后半段或单独移动端应用。",
+      "files": [
+        {"path": "src\\index.ts", "action": "modify"},
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
         {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
+        {"path": "src\\components\\Toolbar.tsx", "action": "create"},
         {"path": "src\\styles.css", "action": "modify"},
-        {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"}
+        {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\host-extensions.spec.ts", "action": "create"}
       ],
-      "depends_on": ["4.1", "4.2"],
-      "acceptance_criteria": [{"id": "AC-4.3", "text": "不用鼠标即可操作字段、结果标签及源文件控件；焦点可见、有序并在状态变化时保持，无障碍名称/状态正确，公共API仍只有source/result。"}],
-      "tests": [{"id": "T-4.3", "type": "e2e", "framework": "playwright", "description": "在Chrome/Edge测试桌面纯键盘字段/标签页/源文件控件导航、焦点顺序/可见性/保持及无障碍role/name/state；人工评审桌面无障碍并确认未新增公共扩展API。", "covers_criteria": ["AC-4.3"]}]
+      "depends_on": ["4.1", "4.2", "4.2a"],
+      "acceptance_criteria": [{"id": "AC-4.3", "text": "键盘与触摸交互、响应式嵌入、自动原文滚动/居中、无障碍名称/状态及每个明确具名扩展点在支持宿主中工作；Chrome/Edge自动化与Windows Narrator走查通过。"}],
+      "tests": [{"id": "T-4.3", "type": "e2e", "framework": "playwright-and-manual-narrator", "description": "测试键盘/焦点/ARIA、触摸输入、响应式容器尺寸、自动原文导航、回调、自定义字段渲染、查看器事件、工具栏/布局定制及初始页码/缩放/适应；执行Windows Narrator走查。", "covers_criteria": ["AC-4.3"]}]
     },
     {
       "id": "4.4", "phase": 4, "priority": "P1", "title": "制定 MCP Apps 与聊天宿主嵌入方案", "effort": "S",
@@ -609,7 +630,7 @@ flowchart LR
       "blocked_by": "仅在Viewer P0/P1独立完成后开始，CLI交接属于主线最后阶段。",
       "description": "Viewer完成后再确认外部CLI仓库/负责人，以及原始JSON/源交付、保存查看、文件边界、资源和生命周期；此契约不是Viewer启动/开发前置。",
       "files": [{"path": "docs\\cu-cli-integration.md", "action": "create"}],
-      "depends_on": ["3.3", "4.3", "4.4"],
+      "depends_on": ["3.3", "4.2a", "4.3", "4.4"],
       "acceptance_criteria": [{"id": "AC-5.1", "text": "Viewer独立验收后，查看器/CLI负责人批准外部交接、保存查看、本地文件/资源边界与生命周期。"}],
       "tests": [{"id": "T-5.1", "type": "manual", "framework": "host-contract-review", "description": "先确认G2/G3完成，再评审实际CLI实现，演示嵌入已完成Viewer且不改变其独立运行流程。", "covers_criteria": ["AC-5.1"]}]
     },
@@ -680,7 +701,8 @@ flowchart LR
 | 新 CLI 结果和先前保存的结果 | 打开已批准的查看路径 | 使用同一组件；已保存结果路径不调用 CU；本地文件边界有效。 | AC-5.1、AC-5.2 / T-5.1、T-5.2 |
 | 嵌套/数组/表格字段关联多个区域 | 展开并选择每个区域 | 关系、选择和导航保持正确。 | AC-4.1 / T-4.1 |
 | Markdown、原始 JSON 及恶意标记/链接 | 切换面板并展开节点 | 支持规定的格式/树行为；不执行不安全内容。 | AC-4.2 / T-4.2 |
-| 桌面键盘用户 | 导航字段、标签页和源文件控件并改变选择 | 焦点可见且有序、无障碍状态正确、选择保持，且不新增公共扩展API。 | AC-4.3 / T-4.3 |
+| Paragraphs、Tables或Code数据存在/缺失 | 切换结果视图并选择原文关联项 | 适用视图渲染已确认数据/SDK示例；无值没有标签；源状态保持。 | AC-4.2a / T-4.2a |
+| 键盘/触摸用户或调整尺寸的嵌入宿主 | 导航、选择并触发自动原文导航 | 无障碍焦点/语义、触摸、响应式及原文滚动/居中工作；具名扩展点报告同一状态。 | AC-4.3 / T-4.3 |
 | 受限 MCP/聊天宿主 | 评审交付、加载/错误及清理场景 | 宿主设计明确，核心边界不变。 | AC-4.4 / T-4.4 |
 | TIFF 或 DI 候选范围 | 评审真实样本与拟议后续测试 | 单独批准 P2 计划；不扩大 P0/P1 范围。 | AC-6.1、AC-6.2 / T-6.1、T-6.2 |
 
@@ -711,7 +733,7 @@ flowchart LR
 | 样本访问、隐私或再分发限制妨碍覆盖 | 高 | 中 | 使用已批准的脱敏真实配对、来源清单并明确缺口；不以伪造成功输出代替。 |
 | 大型 JSON/Markdown 或图片解码阻塞界面 | 中 | 中 | 实测预算、经评估的树组件、有界/按需渲染及书面限制。 |
 | 依赖维护、许可证或 React 对等依赖冲突 | 中 | 中 | 版本/许可证评估、锁文件、不自动公开发布，以及安装包使用方测试。 |
-| 截断的扩展需求导致编造 API | 中 | 高 | D6已解决：4.3不增加扩展API；仅在有单独批准的真实宿主需求时重开。 |
+| 截断的扩展需求导致编造 API | 中 | 高 | 只实现明确具名扩展点；被截断的`Result-pane`后半段保持阻塞直至澄清。 |
 | 草稿缺少已批准设计/运行环境矩阵 | 高 | G0 前必然存在 | 记录批准并更新本计划，再将任务描述为可执行。 |
 
 ## 发布与回滚
@@ -733,7 +755,7 @@ flowchart LR
 - **打包/可靠性**：隔离的安装包嵌入测试通过；规定测试中不存在必需 CDN 资源、过期源文件结果或未释放的自身持有资源。
 - **可追溯性**：每项任务验收标准均关联测试；完整 P0 验收前，全部自动化 P0 场景及必需人工批准均通过。
 - **交付顺序**：Viewer P0/P1本体无需cu-cli通过G2 + G3后，才开始5.1/5.2并验证G4；禁用结果占位不计作完成。
-- **P1/P2 范围纪律**：P1丰富面板及桌面键盘/焦点无障碍通过对应场景；D6排除新扩展API，D7排除触摸/移动端/响应式工作。TIFF/DI保持独立范围，不阻塞P0/P1。
+- **P1/P2 范围纪律**：全部已确认结果视图、无障碍/键盘/触摸/响应式UX、自动滚动/居中和明确具名扩展点通过对应场景；不推断单独移动端应用或被截断的`Result-pane` API。TIFF/DI保持独立范围，不阻塞P0/P1。
 
 ## 变更记录
 
@@ -759,11 +781,11 @@ flowchart LR
 | 2026-10-12 | 真实React18/19 tgz宿主通过获批Node端Vite资产及目录规范化；16次开发/生产CSP/资源/截图、76次仓库回归和416单元案例通过。新增使用说明/核心CI，产品基线未变，完整格式/远程CI/发布门槛保留。 |
 | 2026-10-12 | 负责人要求Viewer优先：将P1重编号为4.1-4.4/G3、CLI重编号为5.1-5.2/G4，并同步验收/测试编号、依赖、门槛与交付顺序。保留已有验证依据及独立P2；下一功能目标为4.2真实结果面板切换。 |
 | 2026-10-13 | 完成4.1已定范围：真实数组/表格式层级、隐藏后代选择及全部自身/后代来源区域，补充合成跨页覆盖。424单元、80仓库和16消费者运行通过，30张获批图片不变；专属Tables视图/真实跨页结构化配对仍开放，下一项4.2。 |
-| 2026-10-13 | 完成任务4.2：真实安全Markdown（含9个CU HTML表格）、原始交互JSON、标签/源状态保持、攻击/缺失/超限状态及React18/19安装包宿主覆盖。429单元、86仓库及16消费者运行通过；保留原有30张产品图并新增4张富结果面板图。Paragraphs/Tables/Code继续不在范围，下一项4.3。 |
+| 2026-10-13 | 完成任务4.2：真实安全Markdown（含9个CU HTML表格）、原始交互JSON、标签/源状态保持、攻击/缺失/超限状态及React18/19安装包宿主覆盖。429单元、86仓库及16消费者运行通过；保留原有30张产品图并新增4张富结果面板图。 |
 | 2026-10-13 | RC-1实测并关闭富结果包体/UI阻塞风险：按需chunk将library入口从479.97降至47.29 kB、demo主入口从603.46降至261.31 kB；最终实测50k/500k上限及Chrome/Edge生产预算在hosted并行负载下通过。该检查点为429单元、90仓库及16消费者运行；4.3继续等待后续风险收敛。 |
 | 2026-10-13 | RC-2建立真实远程CI：push运行38347604633通过core/browser/performance/packed-consumer；手动运行38348199406另通过6测试/600轮stress。hosted runner仅跳过版本敏感像素比较；固定版本本地零差异视觉门槛继续强制。 |
 | 2026-10-13 | RC-3以固定MIT/Apache heic-rs0.1.4 WASM替换已评估但未分发的LGPL decoder。可重现哈希、许可证/SBOM、9样本跨浏览器RGBA、CSP/失败/生命周期及24次React18/19 tgz使用方运行通过。更广真实CU配对及HEVC产品/公开发布批准仍为外部门槛。 |
 | 2026-10-13 | RC-4新增10次仓库运行：第二HTTP源站CORS正/负路径且不转发cookie/Authorization、PDF/HEIF资源保持Viewer同源、真实PDF DPR2首末页变换、派生PNG/JPEG/BMP DPR1/2生命周期，以及合成CropBox/MediaBox/内置旋转边界。远程运行38370248168通过core/browser/performance/packed-consumer；真实CU JPEG/BMP/HEIF配对、HTTPS、专用CMap/ICC解码样本及峰值内存仍开放。 |
-| 2026-10-13 | RC-5解决D6：任务4.3不增加结果面板定制或其他新公共扩展API。组件保持source/result，Vite8是唯一正式支持的bundler配置，其他均明确为未验证。 |
-| 2026-10-13 | 负责人明确D7：未要求触摸、移动端、窄屏响应式或自动滚动/居中。任务4.3仅保留桌面Chrome/Edge键盘导航、焦点管理及无障碍语义。 |
+| 2026-10-13 | 初始RC-5范围记录错误移除了原始P1明确的触摸/响应式/自动导航及扩展需求。负责人提供的原始需求取代该缩减；只有被截断的`Result-pane`后半段仍待确认，Vite8继续作为当前支持bundler配置。 |
+| 2026-10-13 | 需求对齐新增负责人确认的4.2a：条件显示且关联原文的Paragraphs、原生Tables网格，以及Code中的Python/C#/JavaScript SDK示例。无障碍补充Chrome/Edge自动化与Windows Narrator走查；不推断单独移动端应用。 |
 | 2026-10-13 | 远程运行38372037048全部push job通过后评估RC-Gate。当前私有仓库套餐无法强制required checks、HEVC产品/发布外部批准、缺少独立真实CU JPEG/BMP/HEIF配对及未批准的源文件/解码器内存预算仍阻塞门槛；任务4.3和全部CLI工作均未启动。 |

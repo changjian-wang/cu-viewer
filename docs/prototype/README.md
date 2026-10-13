@@ -12,7 +12,7 @@
 
 可运行版本：在仓库根目录执行 `npm run dev`，打开 <http://127.0.0.1:5173/>。当前页面使用真实保存的 PDF/PNG 配对，不调用服务。实际效果见 [Fields 对照截图](interactive-fields.png)、[PDF 运行截图](interactive-pdf.png)、[PNG 运行截图](interactive-png.png)和[多区域/数组截图](interactive-multi-region.png)。
 
-当前 Fields、Markdown 和 JSON 结果视图可用：Markdown 真实渲染 CU 返回内容并清洗原始 HTML；原型中的“…”入口切换到原始输入 JSON 树，选中后显示 JSON 标签。Paragraphs/Tables/Code 继续禁用，不能按外观算作已交付。切换视图不重置源页码、缩放、旋转、平移或固定字段/区域；cu-cli 仍延后至 Viewer 本体完成之后。
+当前 Fields、Markdown 和 JSON 结果视图可用：Markdown 真实渲染 CU 返回内容并清洗原始 HTML；原型中的“…”入口切换到原始输入 JSON 树，选中后显示 JSON 标签。Paragraphs/Tables/Code 尚未实现，但负责人已确认其交付语义：Paragraphs 与 Tables 关联原文，Code 提供 Python/C#/JavaScript Analyze SDK 示例；无适用数据时隐藏标签，不保留禁用占位。切换视图不重置源页码、缩放、旋转、平移或固定字段/区域；cu-cli 仍延后至 Viewer 本体完成之后。
 
 ### 最终产品外观基线
 
@@ -54,11 +54,11 @@
 - 组字段优先使用自身定位；没有自身定位时使用第一个带真实定位的后代。父子共享根字段颜色，展开、折叠或过滤不会改变高亮颜色，也不会写回原始结果。
 - 来源页必须实际存在于当前源文件中。不存在时禁用相应根字段/组页码徽标并提供原因，在结果警告中列出页码；选择或悬停仍可查看原值，原文区明确提示文件与结果可能失配，不跳页、不画虚构高亮。
 - 按后续截图反馈移除额外的 **Clear** 按钮，悬停、选中和展开均不会显示它；保留切换输入/内容和过滤已选缺失字段时的自动清理，不新增其他取消选择交互。
-- Markdown 已启用；“…”是 JSON 入口并在选中后显示 JSON。Paragraphs、Tables、Code 仍禁用并提示未实现；不复制不可用的 token usage/pricing 功能。
+- Markdown 已启用；“…”是 JSON 入口并在选中后显示 JSON。Paragraphs、Tables、Code 当前仍未实现；后续实现完成前不冒充可用，完成后按数据条件显示，不复制不可用的 token usage/pricing 功能。
 
 [Fields 运行截图](interactive-fields.png)保留真实 `CountryRegion = USA` 与 `BillingAddress = 31.70%`，不替换为参考截图中的提取结果。本次更新可运行原型与运行截图；十份静态稿保留为 v2 评审依据，没有将静态控件当作已实现功能。
 
-运行检查发现悬浮提示容易占据原文区域，现以**原文下方的小型预览栏**表达临时字段，避免遮挡文档。这是已记录的加固基线，不代表完整桌面键盘/焦点无障碍验收。HEIF/HEIC 已通过包内 WASM decoder、生产 CSP 和安装包矩阵；Markdown/JSON 已集成，但桌面无障碍和其他专属结果标签仍未完成。
+运行检查发现悬浮提示容易占据原文区域，现以**原文下方的小型预览栏**表达临时字段，避免遮挡文档。这是已记录的加固基线，不代表完整P1无障碍/键盘/触摸/响应式验收。HEIF/HEIC 已通过包内 WASM decoder、生产 CSP 和安装包矩阵；Markdown/JSON 已集成，但其余确认结果视图和P1交互/扩展仍未完成。
 
 ### 图片格式与方向验证
 
@@ -110,7 +110,7 @@ PDF 状态使用[真实源文件](../../tests/fixtures/mixed-financial-docs.pdf)
 | 演示宿主 | 紧凑的源文件/保存结果选择与 PDF/PNG 样本入口。 | 负责文件交付、JSON 读取和重试；不上传、分析、认证或配置 Azure。 |
 | 左侧源文件区 | 文档独立滚动/平移；底部上一页、下一页、跳页、缩放、适应及旋转。 | 核心仅渲染源文件和对应有效来源区域。 |
 | 右侧 Fields | 真实层级、默认折叠/缺失过滤、只读值、可选置信度和来源页；固定行强调、独立滚动。 | 不要求调用方按分析器重写 JSON；不编辑服务结果。 |
-| 其他结果视图 | Markdown 显示清洗后的原始内容；“…”入口显示原始 JSON 树；Paragraphs/Tables/Code 保留截图外观。 | Markdown/JSON 已真实交付并有大小限制；其余标签仍为禁用占位，不据外观宣称已交付。 |
+| 其他结果视图 | Markdown 显示清洗后的原始内容；“…”入口显示原始 JSON 树；Paragraphs/Tables/Code 使用负责人确认的数据与交互。 | Paragraphs 按返回顺序并关联全部 source；Tables 保留网格跨度并关联单元格；Code 显示 Python/C#/JavaScript SDK 示例；无值隐藏标签。 |
 
 核心仍接收 `source` 和原始 `result`。Studio 的 Run analysis、自动运行、资源选择、分析器编辑不进入可复用组件。
 
@@ -159,7 +159,7 @@ PDF 状态使用[真实源文件](../../tests/fixtures/mixed-financial-docs.pdf)
 
 任务3.3已验证真实tgz在仓库外React18.3.1/19.3.0使用方中的类型、CSS、开发/生产及严格页面/Worker CSP。默认、PDF固定、PNG固定直接匹配旧产品图；包内HEIF另在`wasm-unsafe-eval`且无通用`unsafe-eval`的Worker策略下通过。用户批准可选Node端`viewerAssets()`资产插件，React输入仍仅source/result；资源404和宿主丢目录斜线根因已修复。CMaps/WASM/ICC已核对文件交付，不等同所有对应PDF编解码已测。详见[使用说明](../usage.md)。
 
-任务4.1已验证真实LineItems数组层级、重复子字段稳定身份和真实BillingAddress两个来源区域；合成跨页结构化数组只用于证明全部后代区域可达，不冒充服务输出。任务4.2已验证真实PDF/PNG Markdown、发票9个原始HTML表格、原始JSON envelope、缺失/危险/超限状态及切换状态保持。专属Paragraphs/Tables/Code仍是占位，下一任务为4.3。
+任务4.1已验证真实LineItems数组层级、重复子字段稳定身份和真实BillingAddress两个来源区域；合成跨页结构化数组只用于证明全部后代区域可达，不冒充服务输出。任务4.2已验证真实PDF/PNG Markdown、发票9个原始HTML表格、原始JSON envelope、缺失/危险/超限状态及切换状态保持。下一项结果视图工作是实现已确认的Paragraphs/Tables/Code条件标签，然后完成原始需求明确的无障碍、键盘、触摸、响应式、自动滚动/居中和扩展点。
 
 2026-10-12 的压力批次在每个浏览器完成 100 轮 PDF 翻页/变换、100 次五种公共输入源替换、100 次挂起 HTTP 取消（50 替换/50 卸载），逐轮核对选择、真实值、1 CSS px 几何和资源归属。压力后的当前产品 PDF/PNG 直接匹配已有截图，而不是重新打开页面后假称恢复；真正卸载/释放时 Worker、位图和对象 URL 配对归零。
 
@@ -176,4 +176,4 @@ PDF 状态使用[真实源文件](../../tests/fixtures/mixed-financial-docs.pdf)
 
 原型已复用现有解析器/几何模块并新增私有源文件/PDF 适配器，PDF.js 资源本地提供。首次页面能启动时已先运行，修复了 Worker 路径和布局问题，再补测试；原始样本及 Azure 配置未改，没有新服务调用。
 
-当前批准不关闭完整P0门槛。DPR1 PDF/PNG压力、DPR1/2格式与合成页框边界、受控HTTP跨源、富结果生产交互预算、包内HEIF和React18/19隔离Vite包使用方已验证；HTTPS/带凭据跨源、更广HEIF alpha/非零变换/10-bit、真实CU方向/裁剪配对、专用CMap/ICC解码样本、源文件/解码器峰值内存预算、其他宿主、桌面键盘/焦点无障碍、MCP/CLI及HEVC产品/发布批准仍保留。触摸、移动端和窄屏响应式不在当前范围。
+当前批准不关闭完整P0门槛。DPR1 PDF/PNG压力、DPR1/2格式与合成页框边界、受控HTTP跨源、富结果生产交互预算、包内HEIF和React18/19隔离Vite包使用方已验证；HTTPS/带凭据跨源、更广HEIF alpha/非零变换/10-bit、真实CU方向/裁剪配对、专用CMap/ICC解码样本、源文件/解码器峰值内存预算、其他宿主、无障碍/键盘/触摸/响应式、自动滚动/居中、扩展点、MCP/CLI及HEVC产品/发布批准仍保留。原始需求未单列移动端应用。

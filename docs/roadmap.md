@@ -23,7 +23,7 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Record approved public-pair provenance, licenses, hashes and remaining sharing/sample gaps without changing source geometry or raw results.
 - [ ] Confirm the full source geometry/orientation matrix. **Partial:** CU values/units/dimensions, real PDF DPR 1/2 transforms, synthetic CropBox/MediaBox/intrinsic rotation and native EXIF 1-8 are verified; real CU crop/orientation pairs and broader HEIF orientation remain open.
 - [ ] Complete Studio PDF/image walkthroughs. **Partial:** owner-reported single-page controls and screenshots are recorded; extended cross-page/image and exact reference semantics remain open.
-- [x] Resolve the truncated `Result-pane` requirement: D6 adds no new extension API; task 4.3 is desktop keyboard/focus accessibility only and Vite 8 is the supported bundler profile.
+- [ ] Clarify the truncated tail of the `Result-pane` extension requirement; implement the explicitly named callbacks/render/layout/toolbar/initial-view extension points without inventing the missing text.
 
 **Exit check:** verified sample inventory, input assumptions, and Studio observations are recorded. Do not invent CU structures from historical DI examples or label synthetic output as a successful service response.
 
@@ -67,16 +67,17 @@ Checked items record verified scope, not release approval. Current 429 unit case
 
 ## 5. Complete Viewer P1 and Standalone Acceptance
 
-- [x] Implement scoped structured fields and multiple-region navigation: stable nested/array identities, table-like real LineItems, collapsed-selection retention, all own/descendant source regions and synthetic cross-page group coverage. A dedicated Tables result pane is not implied.
+- [x] Implement scoped structured Fields and multiple-region navigation: stable nested/array identities, table-like real LineItems, collapsed-selection retention, all own/descendant source regions and synthetic cross-page group coverage. The separately confirmed native Tables result pane remains task 4.2a.
 - [x] Implement actual Fields/Markdown/JSON switching; preserve document page/zoom/rotation/pan/pin/region state and approved Fields appearance rather than merely enabling empty tabs.
 - [x] Add safe client-side Markdown with headings, lists, GFM, sanitized CU HTML tables, code blocks and formatting; omit active content, dangerous URLs and remote images.
 - [x] Evaluate and integrate a mature MIT expandable JSON-tree component for the original input, with measured 500,000-character/20,000-value limits and lazy result-view chunks.
-- [ ] Complete desktop keyboard navigation, visible/stable focus and accessible semantics in Chrome/Edge.
-- [x] Resolve D6 without inventing an API: task 4.3 adds no selection callbacks, custom renderers, viewer events, toolbar/layout customization, result-view registry or initial-view options. Reopen only for a separate approved host need.
+- [ ] Add conditional source-linked Paragraphs and Tables views plus Python/C#/JavaScript Analyze SDK samples under Code; hide tabs without applicable data.
+- [ ] Complete accessibility, keyboard, touch, responsive layout and automatic scrolling/centering; include Chrome/Edge automation and a Windows Narrator walkthrough without inferring a separate mobile-app target.
+- [ ] Add the explicitly named field callbacks, custom field rendering, viewer events, toolbar/layout customization, initial page and initial zoom/fit extension points.
 - [ ] Specify MCP Apps / MCP UI and chat-host integration design, including host-to-viewer data delivery and asset packaging, without service logic in the core.
 - [x] Test real PDF/PNG rich panes, security, missing/invalid/oversized states, keyboard tab switching and React 18/19 package-host behavior in Chrome/Edge.
 
-**Exit check:** Viewer G2 + G3 pass with independent startup, usable rich views, reviewed desktop keyboard/focus accessibility, the D6 no-extension decision, package and product parity. Current Paragraphs/Tables/Code/more placeholders need explicit semantics/scope before they can count as features. No CLI contract is required for this acceptance.
+**Exit check:** Viewer G2 + G3 pass with independent startup, all confirmed result views, reviewed accessibility/touch/responsive behavior and extension points, package and product parity. MCP integration remains design/documentation only; no MCP runtime belongs in the core.
 
 ## 6. Integrate with cu-cli Last
 
@@ -100,4 +101,4 @@ Checked items record verified scope, not release approval. Current 429 unit case
 
 ## Immediate Next Step
 
-The next ordered Viewer task is **4.3: desktop keyboard/focus accessibility**. Start from the verified Fields/Markdown/JSON state while retaining existing technical prerequisites and closing remaining Viewer P0 validation. Touch, mobile, narrow-layout responsiveness and automatic scrolling/centering are not current requirements. D6 is resolved: do not add result-pane customization or any other new public extension API. Do not start CLI contract/implementation before Viewer completion, count Paragraphs/Tables/Code placeholders as delivered, or waive HEIF compliance.
+The next ordered Viewer work is the confirmed Paragraphs/Tables/Code result views, followed by accessibility/keyboard/touch/responsive behavior, automatic scrolling/centering and the explicitly named host extension points. Do not infer a separate mobile-app requirement or the missing tail of `Result-pane`. Do not start CLI contract/implementation before Viewer completion or waive HEIF compliance.

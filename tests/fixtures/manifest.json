@@ -12,7 +12,7 @@
     "mainLicense": "MIT",
     "dependencyLicensePolicy": "MIT main component; packaged HEIF uses heic-rs0.1.4 under MIT OR Apache-2.0. Historical LGPL candidates are not distributed. HEVC product/patent and publication approval remain separate.",
     "licensingRouteApproved": true,
-    "publicApiScope": "D6 resolved 2026-10-13: source and result only; no result-pane customization or other new extension API in task4.3.",
+    "publicApiScope": "Core inputs remain source and result. P1 explicitly requires field selection callbacks, custom field rendering, viewer events, toolbar/layout customization, initial page and initial zoom/fit; only the truncated Result-pane tail remains unresolved.",
     "supportedBundlerProfile": "Vite 8 only; other bundlers are unverified.",
     "foundationTask": "2.1 completed; input types/tooling only, not viewer rendering"
   },
@@ -48,7 +48,7 @@
     ],
     "developmentAndBuiltDemoChecked": true,
     "previewLayoutAdjustment": "Field preview is below the document, not covering source text.",
-    "remaining": "Structured fields/multi-region navigation, safe lazy Markdown/original JSON, production interaction budget, remote CI, packaged permissive HEIF, controlled HTTP CORS, DPR1/2 page-box/format checks and the D6 no-extension/Vite8-only decision are verified. Paragraphs/Tables/Code, desktop keyboard/focus accessibility, broader real codec/orientation/crop pairs, HTTPS/credentialed hosts, other unverified bundlers, HEVC product/patent and publication gates remain open. Touch/mobile/narrow-layout behavior is outside current scope.",
+    "remaining": "Structured fields/multi-region navigation, safe lazy Markdown/original JSON, production interaction budget, remote CI, packaged permissive HEIF, controlled HTTP CORS and DPR1/2 page-box/format checks are verified. Confirmed Paragraphs/Tables/Code, accessibility/keyboard/touch/responsive behavior, automatic scrolling/centering, host extension points, broader real codec/orientation/crop pairs, HTTPS/credentialed hosts, other unverified bundlers, HEVC product/patent and publication gates remain open. No separate mobile-app requirement is inferred.",
     "additionalAnalyzeCalls": 0
   },
   "prototypeVisualVerification": {
@@ -319,7 +319,7 @@
     "visualImpact": "Task4.2 changed none of the prior 30 product references and added four rich panes. RC-3 later refreshed 22 footer-bearing full-page references only; rich panes and layout/Fields references remain unchanged. Normal zero-threshold comparison passes all 34.",
     "packedConsumerCoverage": "Real Markdown tables and original JSON load under the existing strict CSP in React 18.3.1 and 19.3.0 Vite development/production consumers.",
     "additionalAnalyzeCalls": 0,
-    "remaining": "Paragraphs/Tables/Code semantics and desktop keyboard/focus accessibility remain open. Touch/mobile/narrow-layout responsiveness and automatic scrolling/centering are excluded from task4.3. D6 excludes result-pane customization and other new extension APIs. Source decoding, page rendering and decoder peak-memory budgets remain separate G2 work."
+    "remaining": "Owner-confirmed Paragraphs/Tables/Code implementation, accessibility/keyboard/touch/responsive behavior, automatic scrolling/centering and the explicitly named host extension points remain open. Only the truncated Result-pane tail is unresolved. Source decoding, page rendering and decoder peak-memory budgets remain separate G2 work."
   },
   "riskClosureFormatVerification": {
     "task": "RC-4",
@@ -343,15 +343,19 @@
     "additionalAnalyzeCalls": 0,
     "remaining": "Independent real CU JPEG/BMP/HEIF pairs, real crop/orientation pairs, HTTPS/TLS and credentialed hosts, CMap/ICC/codec-specific PDF decode fixtures, full viewport/HEIF stress and source/decoder peak-memory budgets remain open."
   },
-  "riskClosureScopeDecision": {
-    "task": "RC-5",
+  "requirementsScopeDecision": {
+    "task": "requirements-reconciliation",
     "decidedOn": "2026-10-13",
     "status": "resolved",
-    "resultPaneCustomization": "none",
-    "newPublicExtensionApis": false,
+    "baseline": "Owner-provided Reusable React Component requirement plus explicitly confirmed supplements only.",
+    "resultPaneCustomization": "truncated-tail-unresolved",
+    "namedPublicExtensionPointsRequired": true,
     "publicProps": ["source", "result"],
-    "task43Scope": ["desktop-accessibility", "keyboard-navigation", "focus-management", "accessible-semantics"],
-    "task43ExcludedScope": ["touch", "mobile", "narrow-layout-responsive-acceptance", "automatic-scrolling-and-centering"],
+    "confirmedAdditionalViews": ["paragraphs", "tables", "code-sdk-samples"],
+    "emptyViewPolicy": "hide-tab",
+    "p1InteractionScope": ["accessibility", "keyboard", "touch", "responsive-layout", "automatic-scrolling-and-centering"],
+    "mobileAppScope": "not-specified",
+    "accessibilitySupplement": "Chrome/Edge automation plus Windows Narrator walkthrough.",
     "supportedBundlerProfile": "Vite 8",
     "otherBundlers": "unverified",
     "implementationChanged": false
@@ -368,7 +372,7 @@
       "Controlled HTTP CORS, DPR1/2, page-box, rotation and lifecycle matrix",
       "All 34 fixed-version product references",
       "React18/19 independent Vite consumers",
-      "D6 no-extension and Vite8-only scope decision"
+      "Owner-provided requirements baseline and Vite8 support decision"
     ],
     "blockedBy": [
       {"id": "required-check-enforcement", "type": "external", "reason": "GitHub branch protection API returns 403 for the current private-repository plan; successful workflows cannot currently be made required."},
@@ -654,7 +658,8 @@
     {"id": "required-image-formats", "owner": "Viewer maintainer", "gate": "G2", "status": "native-and-packaged-heif-pass", "description": "Actual viewer PNG plus full-frame derived JPEG/BMP pass DPR1/2 rotations and bitmap lifecycle; eight synthetic EXIF orientations and packaged permissive HEIF pass development/production, CSP, lifecycle, nine-fixture RGBA and isolated-consumer tests. JPEG/HEIF aliases and licensed derivatives are not independent CU pairs; broader real CU pairs, HEIF alpha/nonzero transforms/10-bit and source memory budgets remain open."},
     {"id": "geometry-variants", "owner": "Viewer maintainer", "gate": "G1", "status": "partial-viewer-and-stress-pass", "description": "512 coordinate probes, actual PDF/PNG primary cases and all current same-page service regions pass within 1 CSS pixel. DPR1 stress covers 100 PDF transforms, 100 input replacements and 100 cancellations per browser; the real PDF additionally passes DPR2 fit/zoom/four rotations and first/last navigation. Synthetic cross-page groups and CropBox/MediaBox/intrinsic page rotation pass; real later-page structured grounding, real crop/orientation pairs, full viewport stress and broader HEIF stress remain open."},
     {"id": "additional-input-shapes", "owner": "Viewer maintainer", "gate": "G2", "status": "structured-public-input-and-http-cors-pass", "description": "Parser tests cover GA wrappers/value/identity boundaries; real invoice/receipt arrays and real multi-region addresses pass component/browser behavior. Synthetic cases cover multiple contents, scalar/error and cross-page group regions. A controlled second HTTP origin verifies CORS success/failure, anonymous requests and viewer-origin assets. HTTPS/TLS, credentialed cross-origin hosts, full real-format pairs and real cross-page structured pairs remain open. Only verified 2025-11-01 is supported."},
-    {"id": "result-pane-customization", "owner": "Task owner", "gate": "G3", "status": "resolved-not-in-current-scope", "description": "D6 keeps the public API at source/result and excludes result-pane customization, callbacks, custom renderers, view registries, toolbar/layout slots and initial-view options from task4.3. Vite8 is the sole supported bundler profile; other bundlers are unverified."},
+    {"id": "result-pane-customization", "owner": "Task owner", "gate": "G3", "status": "partial-requirement-truncated", "description": "Field selection callbacks, custom field rendering, viewer events, toolbar/layout customization, initial page and initial zoom/fit are explicit P1 requirements. Only the truncated Result-pane tail remains unresolved. Vite8 is the current supported bundler profile; other bundlers are unverified."},
+    {"id": "additional-result-views", "owner": "Task owner", "gate": "G3", "status": "confirmed-not-implemented", "description": "Paragraphs render in CU order with role/page and source navigation; Tables preserve native grid spans with source-linked cells; Code provides read-only Python/C#/JavaScript Analyze SDK samples using result analyzerId/API version and safe endpoint/key/file placeholders. Empty views hide their tabs."},
     {"id": "cli-host-contract", "owner": "Task owner and toolkit maintainers", "gate": "G4", "status": "deferred", "description": "Per Viewer-first scheduling, CLI contract/integration starts only after G2+G3. Actual data acquisition is verified; --view and saved-result browser hosting are not implemented or approved and do not block Viewer work."},
     {"id": "heif-shipping-decision", "owner": "Project owner and viewer maintainer", "gate": "G2", "status": "permissive-packaging-verified-release-approval-pending", "description": "RC-3 selected MIT/Apache heic-rs0.1.4 WASM; the historical LGPL candidate is not distributed. Hashes, wrapper source/lock, licenses, notices, SBOM, production packaging, CSP, lifecycle, RGBA corpus and consumer tests pass. HEVC product/patent and Microsoft/public publication approval remain external."},
     {"id": "pdf-assets-completeness", "owner": "Viewer maintainer", "gate": "G2", "status": "partial-packed-consumer-pass", "description": "React18/19 actual isolated Vite tgz hosts pass development/production Worker and real standard-font fixture under self-only page/worker CSP; CMap/WASM/ICC delivery, WASM MIME and remote CI are verified. A cross-origin PDF source keeps Worker assets on the viewer origin. All codec-specific decode fixtures, wider CSP environments and cross-origin asset hosting remain open; non-Vite bundlers are unverified and non-gating under D6."}
