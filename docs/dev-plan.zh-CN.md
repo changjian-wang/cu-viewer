@@ -654,7 +654,7 @@ flowchart LR
 - **宿主原生集成测试**：使用已确认 CLI 仓库的现有运行器，不另建一套 CLI 框架。
 - **人工验证依据**：Studio 对比、依赖/许可证评估，以及负责人批准，仍明确属于人工工作，不计入自动化覆盖。
 
-`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建、`npm run verify:performance`和`npm run verify:consumer`已实现。429单元案例、104仓库浏览器和24真实React18/19 Vite包使用方运行通过，本地合计128次。已有600压力轮及34张评审参考通过；RC-3仅为HEIF状态页脚刷新22张全页图。远程[push CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38347604633)及[完整手动CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38348199406)在前一检查点通过。更广真实格式配对、HTTPS/带凭据宿主、其他bundler和源文件/解码器预算仍开放。
+`npm ci --ignore-scripts`、类型/lint/单元/E2E/构建、`npm run verify:performance`和`npm run verify:consumer`已实现。429单元案例、104仓库浏览器和24真实React18/19 Vite包使用方运行通过，本地合计128次。已有600压力轮及34张评审参考通过；RC-3仅为HEIF状态页脚刷新22张全页图。RC-4后的远程[push CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38370248168)及此前的[完整手动CI](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38365385502)通过。更广真实格式配对、HTTPS/带凭据宿主、其他bundler和源文件/解码器预算仍开放。
 
 常规回归测试使用已保存、已脱敏的真实结果，不实时调用 Analyze。访问真实服务只用于明确批准的测试样本获取，或验证外部 CLI 新分析路径。源文件 URL 测试可以使用本地测试服务器；测试禁止 CU 请求及对必需外部 CDN 资源的依赖。不在测试日志或浏览器产物中记录凭据、SAS URL、客户文档或未经处理的敏感结果。
 
@@ -759,4 +759,4 @@ flowchart LR
 | 2026-10-13 | RC-1实测并关闭富结果包体/UI阻塞风险：按需chunk将library入口从479.97降至47.29 kB、demo主入口从603.46降至261.31 kB；最终实测50k/500k上限及Chrome/Edge生产预算在hosted并行负载下通过。该检查点为429单元、90仓库及16消费者运行；4.3继续等待后续风险收敛。 |
 | 2026-10-13 | RC-2建立真实远程CI：push运行38347604633通过core/browser/performance/packed-consumer；手动运行38348199406另通过6测试/600轮stress。hosted runner仅跳过版本敏感像素比较；固定版本本地零差异视觉门槛继续强制。 |
 | 2026-10-13 | RC-3以固定MIT/Apache heic-rs0.1.4 WASM替换已评估但未分发的LGPL decoder。可重现哈希、许可证/SBOM、9样本跨浏览器RGBA、CSP/失败/生命周期及24次React18/19 tgz使用方运行通过。更广真实CU配对及HEVC产品/公开发布批准仍为外部门槛。 |
-| 2026-10-13 | RC-4本地矩阵新增10次仓库运行：第二HTTP源站CORS正/负路径且不转发cookie/Authorization、PDF/HEIF资源保持Viewer同源、真实PDF DPR2首末页变换、派生PNG/JPEG/BMP DPR1/2生命周期，以及合成CropBox/MediaBox/内置旋转边界。真实CU JPEG/BMP/HEIF配对、HTTPS、专用CMap/ICC解码样本、峰值内存及变更后远程运行仍开放。 |
+| 2026-10-13 | RC-4新增10次仓库运行：第二HTTP源站CORS正/负路径且不转发cookie/Authorization、PDF/HEIF资源保持Viewer同源、真实PDF DPR2首末页变换、派生PNG/JPEG/BMP DPR1/2生命周期，以及合成CropBox/MediaBox/内置旋转边界。远程运行38370248168通过core/browser/performance/packed-consumer；真实CU JPEG/BMP/HEIF配对、HTTPS、专用CMap/ICC解码样本及峰值内存仍开放。 |

@@ -322,7 +322,7 @@
   "riskClosureFormatVerification": {
     "task": "RC-4",
     "verifiedOn": "2026-10-13",
-    "status": "local-matrix-pass-external-pairs-and-remote-ci-pending",
+    "status": "local-and-remote-matrix-pass-external-pairs-open",
     "repositoryBrowserRunsAdded": 10,
     "combinedBrowserRuns": 128,
     "browsers": ["chrome", "edge"],
@@ -336,9 +336,10 @@
     },
     "pdfMatrix": "The real four-page CU pair passes DPR2 fit/zoom and all four viewer rotations on first/last pages. A clearly synthetic two-page PDF verifies MediaBox/CropBox dimensions and intrinsic rotation at DPR1/2.",
     "nativeMatrix": "Real PNG plus full-frame derived JPEG aliases/BMP pass DPR1/2, four viewer rotations and bitmap replacement/release accounting.",
+    "remoteCi": "https://github.com/changjian-wang/cu-result-viewer/actions/runs/38370248168",
     "visualImpact": "No product component layout or approved screenshot baseline changed.",
     "additionalAnalyzeCalls": 0,
-    "remaining": "Independent real CU JPEG/BMP/HEIF pairs, real crop/orientation pairs, HTTPS/TLS and credentialed hosts, CMap/ICC/codec-specific PDF decode fixtures, full viewport/HEIF stress, source/decoder peak-memory budgets and post-change remote CI remain open."
+    "remaining": "Independent real CU JPEG/BMP/HEIF pairs, real crop/orientation pairs, HTTPS/TLS and credentialed hosts, CMap/ICC/codec-specific PDF decode fixtures, full viewport/HEIF stress and source/decoder peak-memory budgets remain open."
   },
   "parserImplementation": {
     "task": "2.2",
