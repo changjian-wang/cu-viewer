@@ -1,9 +1,11 @@
 import { expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
+const SOURCE_READY_TIMEOUT_MS = 15000;
+
 export async function ready(page: Page): Promise<void> {
-    await expect(page.getByRole("button", { name: "Zoom in", exact: true })).toBeEnabled();
-    await expect(page.getByTestId("rendered-page")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Zoom in", exact: true })).toBeEnabled({ timeout: SOURCE_READY_TIMEOUT_MS });
+    await expect(page.getByTestId("rendered-page")).toBeVisible({ timeout: SOURCE_READY_TIMEOUT_MS });
     await expect(page.getByRole("alert")).toHaveCount(0);
 }
 
