@@ -23,7 +23,7 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Record approved public-pair provenance, licenses, hashes and remaining sharing/sample gaps without changing source geometry or raw results.
 - [ ] Confirm the full source geometry/orientation matrix. **Partial:** CU values/units/dimensions, real PDF DPR 1/2 transforms, synthetic CropBox/MediaBox/intrinsic rotation and native EXIF 1-8 are verified; real CU crop/orientation pairs and broader HEIF orientation remain open.
 - [ ] Complete Studio PDF/image walkthroughs. **Partial:** owner-reported single-page controls and screenshots are recorded; extended cross-page/image and exact reference semantics remain open.
-- [ ] Resolve the truncated `Result-pane` requirement with the task owner.
+- [x] Resolve the truncated `Result-pane` requirement: D6 keeps task 4.3 on accessibility/responsive UX and adds no new extension API; Vite 8 is the supported bundler profile.
 
 **Exit check:** verified sample inventory, input assumptions, and Studio observations are recorded. Do not invent CU structures from historical DI examples or label synthetic output as a successful service response.
 
