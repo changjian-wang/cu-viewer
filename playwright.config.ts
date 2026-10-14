@@ -1,5 +1,12 @@
-import { join } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { defineConfig } from "@playwright/test";
+
+const candidateRoot = process.env.CU_VISUAL_CANDIDATE_ROOT;
+const candidateRelative = candidateRoot ? relative(import.meta.dirname, resolve(candidateRoot)) : undefined;
+if (candidateRoot && (!isAbsolute(candidateRoot) || candidateRelative === "" ||
+    (candidateRelative !== ".." && !candidateRelative?.startsWith(`..${sep}`) && !isAbsolute(candidateRelative ?? "")))) {
+    throw new Error("Visual candidates must use an absolute directory outside the repository.");
+}
 
 export default defineConfig({
     testDir: "./tests/e2e",
@@ -15,7 +22,8 @@ export default defineConfig({
             scale: "css",
             threshold: 0,
             maxDiffPixels: 0,
-            pathTemplate: join("{testDir}", "visual.spec.ts-snapshots", "{arg}-{projectName}-{platform}{ext}"),
+            pathTemplate: candidateRoot ? join(candidateRoot, "{arg}-{projectName}-{platform}{ext}") :
+                join("{testDir}", "visual.spec.ts-snapshots", "{arg}-{projectName}-{platform}{ext}"),
         },
     },
     use: {

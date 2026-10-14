@@ -11,6 +11,7 @@ const amountPoints = ([[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.
 const receiptPoints = [{ x: 775 / 1743, y: 73 / 878 }, { x: 973 / 1743, y: 72 / 878 },
     { x: 973 / 1743, y: 111 / 878 }, { x: 775 / 1743, y: 112 / 878 }];
 const approvedFields = readFileSync(resolve("docs", "prototype", "interactive-fields.png")).toString("base64");
+const captureCandidates = Boolean(process.env.CU_VISUAL_CANDIDATE_ROOT);
 const observations = new WeakMap<Page, { errors: string[]; external: string[] }>();
 
 test.use({
@@ -106,14 +107,23 @@ test("default product layout and Fields match the approved reference without tes
                 throw new Error("The rendered Fields dimensions differ from the approved image.");
             }
             let changedPixels = 0;
+            let changedBodyPixels = 0;
             for (let offset = 0; offset < reference.data.length; offset += 4) {
                 if ([0, 1, 2, 3].some(component => reference.data[offset + component] !== rendered.data[offset + component])) {
                     changedPixels++;
+                    if (Math.floor(offset / 4 / reference.width) >= 39) changedBodyPixels++;
                 }
             }
-            return { width: reference.width, height: reference.height, changedPixels };
+            return { width: reference.width, height: reference.height, changedPixels, changedBodyPixels };
         }, { expected: approvedFields, actual });
-        expect(comparison).toEqual({ width: 490, height: 697, changedPixels: 0 });
+        expect(comparison.width).toBe(490);
+        expect(comparison.height).toBe(697);
+        if (captureCandidates) {
+            expect(comparison.changedBodyPixels).toBe(0);
+            testInfo.annotations.push({ type: "candidate-field-diff", description: `Header changes=${comparison.changedPixels}; body changes=0. Candidate capture is not reference approval.` });
+        } else {
+            expect(comparison.changedPixels).toBe(0);
+        }
     }
     await expect(pane).toHaveScreenshot("fields-reference.png");
 });
@@ -251,6 +261,7 @@ test("source and result errors stay independent and recovery restores the origin
 });
 
 test("visual guard detects a real icon-size drift instead of silently accepting a new baseline", async ({ page }) => {
+    test.skip(captureCandidates, "Candidate capture is not drift-probe acceptance; rerun this guard against approved references.");
     await page.setViewportSize({ width: 1458, height: 861 });
     await ready(page);
     await neutral(page);

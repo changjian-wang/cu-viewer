@@ -72,8 +72,8 @@ Checked items record verified scope, not release approval. Current 429 unit case
 - [x] Add safe client-side Markdown with headings, lists, GFM, sanitized CU HTML tables, code blocks and formatting; omit active content, dangerous URLs and remote images.
 - [x] Evaluate and integrate a mature MIT expandable JSON-tree component for the original input, with measured 500,000-character/20,000-value limits and lazy result-view chunks.
 - [x] Implement approved dynamic Studio result tabs: source-linked Paragraphs/Tables, source-thumbnail Figures/Signatures, key/value Metadata, original-JSON Result and Python/C#/JavaScript SDK Code; no service execution.
-- [ ] Review intentional tab-header/footer/new-pane visual changes and update references only after owner acceptance; old34 files remain unchanged.
-- [x] Complete task4.2a batches one/two: version/detail guards, dynamic tabs, all dedicated renderers, source crop/selection and explicit errors. Unit461, focused browser42, performance4 and functional consumer24 pass; visual-reference review remains pending.
+- [x] Owner approves task4.2a visual changes on2026-10-14: refresh34 and add16 references, total50; Source/Fields-body pixels remain unchanged and ordinary full-image comparison stays zero-difference.
+- [x] Complete task4.2a: version/detail guards, dynamic tabs, dedicated renderers, source crop/selection and visual acceptance. Unit461, full repository116 plus performance4 and screenshot-enabled consumer24 pass;50 reference hashes remain unchanged through full regression.
 - [ ] Complete approved task 4.3a: Chrome/Edge keyboard/focus/ARIA, Windows Narrator, desktop two-pane minimum-width/scroll behavior, and source centering only when a selected region is outside the visible viewport.
 - [ ] **Deferred:** touch interaction remains in the source P1 requirement but is outside the current desktop-only delivery.
 - [ ] Add the explicitly named field callbacks, custom field rendering, viewer events, toolbar/layout customization, initial page and initial zoom/fit extension points.
@@ -104,4 +104,4 @@ Checked items record verified scope, not release approval. Current 429 unit case
 
 ## Immediate Next Step
 
-The next ordered Viewer work is approved task 4.2a dynamic Studio views, followed by task 4.3a desktop interaction/accessibility and task 4.3b named extension points. Touch and the missing tail of `Result-pane` remain deferred. Do not start CLI contract/implementation before Viewer completion or waive public-release HEVC approval.
+Task4.2a dynamic Studio views and owner-approved50-reference visual acceptance are complete. The next ordered Viewer work is task4.3a desktop interaction/accessibility, followed by task4.3b named extension points. Touch and the missing tail of `Result-pane` remain deferred. Do not start CLI contract/implementation before Viewer completion or waive public-release HEVC approval.

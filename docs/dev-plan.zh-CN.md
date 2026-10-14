@@ -240,7 +240,7 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 D6只约束被截断的`Result-pane`后半段；其他具名扩展点是明确需求。本阶段要求MCP集成设计/文档，不要求实现未被请求的MCP服务器。
 
-**下一功能目标：4.2a。** 实现已批准的动态Studio结果标签并移除禁用占位；随后完成已批准的4.3a桌面交互/无障碍及4.3b具名扩展点，触摸保持延期。不推断单独移动端应用或缺失的`Result-pane`后半段。保持已确认Fields布局及任务4.2源状态保证。
+**下一功能目标：4.3a。** 任务4.2a动态结果视图及负责人视觉评审已完成。只继续已批准的桌面键盘/焦点/ARIA/Narrator、双栏布局及条件原文居中范围；4.3b随后，触摸与被截断的`Result-pane`后半段保持延期。保持已确认Fields布局和源状态保证。
 
 **G3 通过条件**：全部已确认结果视图、当前桌面交互/无障碍范围、具名扩展点和MCP集成设计通过验收/测试；触摸及被截断的`Result-pane`后半段明确延期。
 
@@ -313,7 +313,7 @@ flowchart LR
     "viewer_completion_gates": ["G2", "G3"],
     "cli_final_tasks": ["5.1", "5.2"],
     "cli_blocks_viewer": false,
-    "next_viewer_functional_task": "4.2a",
+    "next_viewer_functional_task": "4.3a",
     "task_4_3_adds_public_extension_api": true,
     "supported_bundler_profile": "Vite 8",
     "separate_p2_tasks": ["6.1", "6.2"]
@@ -327,14 +327,14 @@ flowchart LR
       "interaction_baseline_approved": true,
       "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
-      "unit_cases": 429,
-      "browser_runs": 128,
-      "repository_browser_runs": 104,
+      "unit_cases": 461,
+      "browser_runs": 144,
+      "repository_browser_runs": 120,
       "packed_consumer_browser_runs": 24,
       "stress_browser_runs": 6,
       "stress_rounds_per_browser": 300,
-      "visual_browser_runs": 18,
-      "visual_baseline_count": 34,
+      "visual_browser_runs": 26,
+      "visual_baseline_count": 50,
       "visual_baseline": "tests\\e2e\\visual.spec.ts-snapshots",
       "fields_reference": "docs\\prototype\\interactive-fields.png",
       "reference": "docs\\prototype\\README.md",
@@ -583,8 +583,8 @@ flowchart LR
     },
     {
       "id": "4.2a", "phase": 4, "priority": "P1", "title": "增加动态Studio结果视图", "effort": "L",
-      "status": "in_progress",
-      "implementation_evidence": "第一/二批实现GA/Preview动态标签及类型化原文关联Paragraphs/Tables、有界source裁剪Figures/Signatures、Metadata值复制和安全高亮Python/C#/JavaScript SDK示例。同页明细区域同时高亮，区域控件可达其他页；保持源状态/输入身份并支持取消，畸形网格和复制拒绝明确失败。461单元、42相关浏览器、4性能及24功能使用方通过；GA/Preview C#示例以真实SDK编译，Python检查语法且无Analyze调用。剩余：评审后的视觉基线更新；34张既有文件未改。",
+      "status": "done",
+      "implementation_evidence": "GA/Preview动态标签及全部原文关联/明细/复制/SDK面板通过；负责人于2026-10-14批准50张视觉参考。旧Source与Fields正文像素保持不变，Chrome Fields全裁图匹配同步后的批准PNG。461单元、116全仓库加4性能及24严格CSP且启用截图的使用方通过；普通完整回归保持50图哈希不变，两浏览器均检测14px圆点漂移。没有Analyze执行或4.3a改动。",
       "description": "从原始JSON读取API version，并根据当前content实际非空值生成Studio已知顺序标签。在现有Fields/Markdown基础上增加Paragraphs、Tables、Figures、Signatures、Metadata、Result和Code，不保留禁用占位，也不执行服务逻辑。",
       "files": [
         {"path": "src\\components\\ParagraphsPane.tsx", "action": "create"},
@@ -814,3 +814,4 @@ flowchart LR
 | 2026-10-13 | 负责人逐项复评RC-Gate：远程CI成功时required-check强制能力非阻塞；不要求逐编码Analyze配对或硬源文件内存/延迟预算；HEVC审批仅阻塞公开发布。门槛通过Viewer开发/私有验收，已批准任务4.2a可启动。 |
 | 2026-10-13 | 任务4.2a第一批交付GA/Preview解析守卫及动态Studio标签显示/切换，包含Result、content回退和可见畸形明细警告。443单元、36相关功能浏览器、4性能及24功能使用方通过。专用渲染器仍待第二批；标签栏发生批准范围内变化，34张既有视觉参考保持未改、等待评审更新，不宣称本批像素匹配。 |
 | 2026-10-13 | 任务4.2a第二批实现六个专用面板、明细原文选择、同页多区域高亮、原生合并表格、真实source裁剪像素、剪贴板错误处理及安全高亮SDK示例。461单元、42相关功能浏览器、4生产预算及24 React18/19严格CSP使用方通过；C# GA/Preview示例编译、Python语法检查通过且不执行服务。包内附lowlight/highlight.js通知；视觉参考保持未改等待负责人评审，未启动4.3a。 |
+| 2026-10-14 | 负责人批准视觉候选：34张更新标签/页脚/空错误状态，16张新增明细/语言参考，共50张。旧Source和Fields正文变化为0像素，Chrome Fields批准PNG同步。普通视觉/富结果34场景与完整仓库116场景通过，含600压力轮及两浏览器漂移探针，50图哈希保持不变；React18/19启用截图的24使用方通过。任务4.2a完成，下一项4.3a尚未启动。 |

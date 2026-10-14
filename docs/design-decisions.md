@@ -134,7 +134,7 @@ The current Studio version selector is set to preview, while the checked-in fixt
 
 ## Open Gates and Next Work
 
-The 429-unit/128-browser checkpoint below predates task4.2a batch one. The current batch passes 443 unit cases, 36 focused functional browser runs, four performance runs and 24 functional consumer runs. Its dynamic tab-header/empty/error appearance has not been rebaselined; the earlier 34-image zero-diff evidence is historical, not a post-batch-one claim.
+The 429-unit/128-browser checkpoint below predates task4.2a. Current acceptance includes461 unit cases,116 ordinary repository browser cases plus4 performance and24 strict-CSP screenshot-enabled consumers. The owner approved50 references on2026-10-14; old Source/Fields-body pixels are unchanged, ordinary full regression preserves all50 hashes and both browser drift probes detect the intentional14px dot change. Task4.2a is complete; desktop task4.3a is not started.
 
 The owner approved v2 static review and subsequently agreed to use the current interactive baseline for task 2.4 hardening on 2026-10-10. The [React component](../src/ContentUnderstandingResultViewer.tsx) and [demo host](../demo/App.tsx) render real source/results and preserve the source-plus-original-JSON boundary. The [static gallery](prototype/index.html) remains design-only; the live prototype is at <http://127.0.0.1:5173/> while `npm run dev` is running.
 

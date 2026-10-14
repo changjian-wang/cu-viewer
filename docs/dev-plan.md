@@ -239,7 +239,7 @@ Publish the tested format/browser matrix and measured sample sizes. Missing HEIF
 
 D6 remains limited to the truncated `Result-pane` tail. The other named extension points are explicit requirements. This phase requires MCP integration design/documentation, not an unrequested MCP server implementation.
 
-**Next functional target: 4.2a.** Implement the approved dynamic Studio result tabs and remove disabled placeholders. Then complete approved task 4.3a desktop interaction/accessibility and task 4.3b named extension points; touch remains deferred. Do not infer a separate mobile-app target or the missing `Result-pane` tail. Preserve the approved Fields layout and task 4.2 source-state guarantees.
+**Next functional target: 4.3a.** Task4.2a dynamic result views and owner-reviewed visual acceptance are complete. Continue only the approved desktop keyboard/focus/ARIA/Narrator, two-pane layout and conditional source-centering scope; task4.3b follows, while touch and the truncated `Result-pane` tail remain deferred. Preserve the approved Fields layout and source-state guarantees.
 
 **Exit G3**: all confirmed result views, current desktop interaction/accessibility scope, named extension points and MCP integration design pass their acceptance/tests; touch and the truncated `Result-pane` tail remain explicitly deferred.
 
@@ -312,7 +312,7 @@ Paths are relative to the target repository and use Windows separators. `create`
     "viewer_completion_gates": ["G2", "G3"],
     "cli_final_tasks": ["5.1", "5.2"],
     "cli_blocks_viewer": false,
-    "next_viewer_functional_task": "4.2a",
+    "next_viewer_functional_task": "4.3a",
     "task_4_3_adds_public_extension_api": true,
     "supported_bundler_profile": "Vite 8",
     "separate_p2_tasks": ["6.1", "6.2"]
@@ -326,14 +326,14 @@ Paths are relative to the target repository and use Windows separators. `create`
       "interaction_baseline_approved": true,
       "interaction_approval_date": "2026-10-10",
       "browser_checks_passed": true,
-      "unit_cases": 429,
-      "browser_runs": 128,
-      "repository_browser_runs": 104,
+      "unit_cases": 461,
+      "browser_runs": 144,
+      "repository_browser_runs": 120,
       "packed_consumer_browser_runs": 24,
       "stress_browser_runs": 6,
       "stress_rounds_per_browser": 300,
-      "visual_browser_runs": 18,
-      "visual_baseline_count": 34,
+      "visual_browser_runs": 26,
+      "visual_baseline_count": 50,
       "visual_baseline": "tests\\e2e\\visual.spec.ts-snapshots",
       "fields_reference": "docs\\prototype\\interactive-fields.png",
       "reference": "docs\\prototype\\README.md",
@@ -582,8 +582,8 @@ Paths are relative to the target repository and use Windows separators. `create`
     },
     {
       "id": "4.2a", "phase": 4, "priority": "P1", "title": "Add dynamic Studio result views", "effort": "L",
-      "status": "in_progress",
-      "implementation_evidence": "Batches one/two implement GA/Preview dynamic tabs plus typed source-linked Paragraphs/Tables, bounded source-crop Figures/Signatures, Metadata value copy and safe highlighted Python/C#/JavaScript SDK samples. Same-page detail regions highlight together and region controls reach other pages. Source state/input identity and cancellation are preserved; invalid grids/copy denial fail explicitly. Unit461, focused browser42, performance4 and functional consumer24 pass. GA/Preview C# samples compile against real SDKs and Python syntax is checked without Analyze calls. Remaining: reviewed visual-reference updates; existing34 files are unchanged.",
+      "status": "done",
+      "implementation_evidence": "GA/Preview dynamic tabs and all dedicated source-linked/detail/copy/SDK panes pass; owner approved50 visual references on2026-10-14. Old Source and Fields-body pixels are unchanged; current Chrome Fields full crop matches its synchronized approval PNG. Unit461, full repository116 plus performance4 and strict-CSP screenshot-enabled consumer24 pass. All50 snapshot hashes remain unchanged through ordinary full regression, and both browser drift probes detect14px dots. No Analyze execution or task4.3a changes are included.",
       "description": "Read API version from original JSON and derive the ordered known Studio tabs from actual non-empty selected-content values. Add Paragraphs, Tables, Figures, Signatures, Metadata, Result and Code around existing Fields/Markdown; never leave disabled placeholders or execute service logic.",
       "files": [
         {"path": "src\\components\\ParagraphsPane.tsx", "action": "create"},
@@ -813,3 +813,4 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-13 | RC-Gate reevaluated after owner review: required-check enforcement is nonblocking when remote CI succeeds; per-encoding Analyze pairs and hard source memory/latency budgets are not required; HEVC approval is public-release-only. The gate passes for Viewer development/private acceptance and approved task4.2a may start. |
 | 2026-10-13 | Task4.2a batch one delivers GA/Preview parsing guards and dynamic Studio tab availability/switching, including Result, content fallback and visible malformed-detail warnings. Verified443 unit,36 focused functional browser,4 performance and24 functional consumer runs. Dedicated renderers remain pending; the tab header intentionally changed and existing34 visual references are retained pending reviewed updates, not claimed to match this batch. |
 | 2026-10-13 | Task4.2a batch two implements all six dedicated panes, detail-source selection, same-page multi-region highlights, native merged tables, real source crop pixels, clipboard error handling and safe highlighted SDK samples. Verified461 unit,42 focused functional browser,4 production budget and24 React18/19 strict-CSP consumer runs; C# GA/Preview samples compile and Python syntax checks pass without service execution. lowlight/highlight.js notices are packed. Visual references remain unchanged pending owner review; task4.3a is not started. |
+| 2026-10-14 | Owner approves visual candidates: refresh34 references for tabs/footer/empty-error presentation and add16 detail/language references, total50. Old Source and Fields-body changes are0 pixels; Chrome Fields approval PNG is synchronized. Ordinary visual/rich34 tests and full repository116 tests pass, including600 stress rounds and both drift probes;50 reference hashes stay unchanged. React18/19 screenshot-enabled consumer24 also pass. Task4.2a is complete; task4.3a is next, not started. |

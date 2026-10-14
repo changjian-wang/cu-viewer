@@ -50,9 +50,9 @@
     <main>
       <p class="note">本页仅用锚点浏览静态状态，不加载新文件、不调用 CU。真实数值来自已有 GA 样本；加载、空结果及错误页面是明确标注的设计场景，不是实际服务运行结果。</p>
       <section id="visual-baselines">
-        <h2>最新产品外观基线 · 2026-10-13</h2>
-        <p>最终界面以最后确认的交互原型为准：Fields 与截图对齐、不恢复 Clear，预览栏在文档下方。独立输入测试宿主的验证控件不属于产品。原有30张产品图未重录；任务4.2从真实页面新增Markdown/JSON面板图，并在 Windows Chrome/Edge 逐图自动比较。</p>
-        <figure><img src="../../tests/e2e/visual.spec.ts-snapshots/default-pdf-chrome-win32.png" width="1600" height="1040" alt="最新产品默认界面：真实PDF、折叠Fields、隐藏缺失字段、没有Clear"><figcaption>完整产品图固定 1600 x 1040、DPR 1；加上每浏览器两张富结果面板图，当前共34张基线。普通测试不会自动更新基线。</figcaption></figure>
+        <h2>最新产品外观基线 · 2026-10-14</h2>
+        <p>负责人已批准动态结果标签和新增面板外观：原34张参考更新标签栏、页脚及空/错误状态，新增16张明细/代码语言参考，共50张。原 Source 区域与 Fields 正文相对旧参考均为零像素变化；独立输入测试宿主控件不属于产品。普通测试保持零差异且不自动更新参考。</p>
+        <figure><img src="../../tests/e2e/visual.spec.ts-snapshots/default-pdf-chrome-win32.png" width="1600" height="1040" alt="最新产品默认界面：真实PDF、折叠Fields、动态结果标签、隐藏缺失字段、没有Clear"><figcaption>完整产品图固定 1600 x 1040、DPR 1；Chrome/Edge 各25张，共50张基线。普通测试不会自动更新基线。</figcaption></figure>
         <figure style="max-width:490px"><img loading="lazy" src="../../tests/e2e/visual.spec.ts-snapshots/fields-reference-chrome-win32.png" width="490" height="697" alt="Chrome Fields基线，与获批参考图片逐像素一致"><figcaption>Fields 的真实值与置信度未替换；Chrome 与已批准 PNG 逐像素一致。Edge 原生滚动条采用自己的基线。</figcaption></figure>
         <table class="baseline-links">
           <thead><tr><th>状态</th><th>Chrome</th><th>Edge</th></tr></thead>
@@ -74,9 +74,17 @@
             <tr><td>结果读取错误</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/result-error-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/result-error-edge-win32.png">查看</a></td></tr>
             <tr><td>真实 Markdown</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-markdown-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-markdown-edge-win32.png">查看</a></td></tr>
             <tr><td>原始 JSON 树</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-json-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/rich-json-edge-win32.png">查看</a></td></tr>
+            <tr><td>真实段落定位</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-paragraphs-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-paragraphs-edge-win32.png">查看</a></td></tr>
+            <tr><td>原生表格定位</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-tables-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-tables-edge-win32.png">查看</a></td></tr>
+            <tr><td>Figures · 合成定位/真实像素裁剪</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-figures-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-figures-edge-win32.png">查看</a></td></tr>
+            <tr><td>Signatures · 合成定位/真实像素裁剪</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-signatures-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-signatures-edge-win32.png">查看</a></td></tr>
+            <tr><td>Metadata · 合成键值</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-metadata-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-metadata-edge-win32.png">查看</a></td></tr>
+            <tr><td>Python SDK 示例</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-code-python-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-code-python-edge-win32.png">查看</a></td></tr>
+            <tr><td>C# SDK 示例</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-code-csharp-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-code-csharp-edge-win32.png">查看</a></td></tr>
+            <tr><td>JavaScript SDK 示例</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-code-javascript-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-code-javascript-edge-win32.png">查看</a></td></tr>
           </tbody>
         </table>
-        <p>原九个视觉场景两浏览器共18次；富结果测试新增每浏览器两图。RC-3仅为真实HEIF支持状态刷新22张含页脚的全页图，8张面板产品图、4张富结果图、布局与Fields参考未改；普通运行匹配全部34张，14px圆点漂移仍能检测。另有4次生产性能预算、600轮PDF/PNG压力、94次仓库回归及24次React18/19安装包PDF/PNG/HEIF验证，本地合计118次。仍不等于完整格式、所有宿主或P0/发布验收。</p>
+        <p>2026-10-14 经负责人确认后提升50张候选为正式参考，并同步Chrome Fields对照图。普通视觉/富结果运行34场景全部通过，12px到14px圆点漂移在两浏览器均被检出。Figures/Signatures/Metadata使用明确标注的合成Preview数据，不是新的CU服务调用或真实签名检测依据。功能验收与公开发布审批仍分别记录。</p>
       </section>
       <p class="note">以下图片保留为 v2 历史评审稿，不是最新 Fields 的像素验收基线。可运行版本已按后续反馈默认折叠组、隐藏未返回字段、移除 Clear 和旧固定状态栏、省略缺失置信度，并将原文预览放在文档下方；Fields 与预览置信度统一为两位小数。最新行为以<a href="README.md">原型说明</a>及运行截图为准。</p>
       <section id="main">

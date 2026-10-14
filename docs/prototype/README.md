@@ -12,13 +12,13 @@
 
 可运行版本：在仓库根目录执行 `npm run dev`，打开 <http://127.0.0.1:5173/>。当前页面使用真实保存的 PDF/PNG 配对，不调用服务。实际效果见 [Fields 对照截图](interactive-fields.png)、[PDF 运行截图](interactive-pdf.png)、[PNG 运行截图](interactive-png.png)和[多区域/数组截图](interactive-multi-region.png)。
 
-当前全部适用Studio结果视图已实现：Fields、Markdown、Paragraphs、Tables、Figures、Signatures、Metadata、Result、Code根据GA/Preview实际非空数据出现。Paragraphs/Tables关联原文；Figures/Signatures从source区域裁剪缩略图；Metadata复制原始值；Code提供只读高亮Python/C#/JavaScript示例并可复制，不执行SDK。切换标签保持源状态；同页明细区域一起高亮，其他页通过已有区域控件到达。461单元、42相关浏览器、4性能及24严格CSP包使用方通过。既有34张截图未重录，新增视图/标签栏/页脚等待后续视觉评审。
+当前全部适用Studio结果视图已实现：Fields、Markdown、Paragraphs、Tables、Figures、Signatures、Metadata、Result、Code根据GA/Preview实际非空数据出现。负责人于2026-10-14批准新面板/标签/页脚/空错误状态外观，34张既有参考已更新并新增16张，共50张。旧Source区域和Fields正文相对新候选均为零像素变化；普通全图零差异测试及两浏览器漂移探针通过。Figures/Signatures/Metadata仍是明确标注的合成Preview展示依据，无新的服务调用。
 
 ### 最终产品外观基线
 
 用户于 2026-10-12 明确要求最终效果与原型一致，并批准先做视觉回归。本轮不改产品组件、样式或演示布局；基线使用最新获批交互实现，不恢复历史稿中的 Clear、固定状态横栏、缺失置信度占位等旧设计，也不把独立输入测试宿主的验证按钮带入最终产品。
 
-[产品视觉测试](../../tests/e2e/visual.spec.ts)固定 Windows、Segoe UI、DPR 1、浅色模式，完整界面为 `1600 x 1040`；Fields 对照采用 `1458 x 861` 视口。原有每浏览器 15 张产品图片保持不变；[富结果测试](../../tests/e2e/rich-results.spec.ts)每浏览器新增 Markdown/JSON 两张面板图，当前共 [34 张基线](../../tests/e2e/visual.spec.ts-snapshots)。
+[产品视觉测试](../../tests/e2e/visual.spec.ts)固定 Windows、Segoe UI、DPR 1、浅色模式，完整界面为 `1600 x 1040`；Fields 对照采用 `1458 x 861` 视口。[富结果测试](../../tests/e2e/rich-results.spec.ts)保留Markdown/Result面板图，[明细视觉测试](../../tests/e2e/detail-visual.spec.ts)新增每浏览器8张专用面板/代码语言图，当前共 [50张基线](../../tests/e2e/visual.spec.ts-snapshots)。
 
 - Chrome 的 Fields 与现有获批 PNG 逐像素一致；Edge 仅因原生滚动条不同而使用独立基线，不隐藏或遮罩 UI。
 - 正常比较为颜色阈值 `0`、容许差异像素 `0`；实际高亮另有不超过 `1 CSS px` 的顶点断言。
