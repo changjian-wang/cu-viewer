@@ -198,3 +198,22 @@ export function getRasterSize(display: PageSize, devicePixelRatio: number): Page
     }
     return { width, height };
 }
+
+export function getRevealOffset(points: readonly CuPoint[], viewport: PageSize): CuPoint {
+    const size = pageSize(viewport);
+    if (points.length === 0) throw new GeometryError("invalid-source", "A source region is required for viewport navigation.");
+    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+    for (const value of points) {
+        point(value);
+        left = Math.min(left, value.x);
+        right = Math.max(right, value.x);
+        top = Math.min(top, value.y);
+        bottom = Math.max(bottom, value.y);
+    }
+    const offset = {
+        x: left < 0 || right > size.width ? size.width / 2 - (left + right) / 2 : 0,
+        y: top < 0 || bottom > size.height ? size.height / 2 - (top + bottom) / 2 : 0,
+    };
+    point(offset);
+    return offset;
+}

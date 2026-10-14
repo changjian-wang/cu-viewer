@@ -9,7 +9,10 @@ export function CopyButton({ value, label }: { value: string; label: string }) {
         mounted.current = true;
         return () => { mounted.current = false; };
     }, []);
+    const active = state?.value === value ? state : null;
+    const copying = active?.status === "copying";
     const copy = async (): Promise<void> => {
+        if (copying) return;
         const copiedValue = value;
         setState({ value, status: "copying" });
         try {
@@ -22,10 +25,9 @@ export function CopyButton({ value, label }: { value: string; label: string }) {
             }
         }
     };
-    const active = state?.value === value ? state : null;
     return <span className="cu-copy-control">
         <button type="button" className="cu-copy-button" aria-label={label}
-            disabled={active?.status === "copying"} onClick={() => { void copy(); }}>Copy</button>
+            aria-disabled={copying} aria-busy={copying} onClick={() => { void copy(); }}>Copy</button>
         {active?.status === "copied" && <span role="status">Copied</span>}
         {active?.status === "error" && <span role="alert">Copy failed: {active.error}</span>}
     </span>;

@@ -56,7 +56,7 @@ The dedicated result views are implemented:
 
 Copy uses the host Clipboard API; unavailable/denied access is a visible error, not silent success. Syntax highlighting renders text/spans without HTML injection, JavaScript eval or extra CSP permissions. The new lazy Code dependencies and their [bundled notices](../THIRD-PARTY-NOTICES.txt) ship with the package. Official sample API references are the [Python](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/contentunderstanding/azure-ai-contentunderstanding), [C#](https://github.com/Azure/azure-sdk-for-net/tree/main/sdk/contentunderstanding/Azure.AI.ContentUnderstanding) and [JavaScript](https://github.com/Azure/azure-sdk-for-js/tree/main/sdk/contentunderstanding/ai-content-understanding) SDKs.
 
-Invalid detail containers produce visible path-specific warnings while valid fields and the unchanged Result remain inspectable. All detail regions on the selected source page are highlighted; the existing previous/next-region controls navigate the remaining regions/pages. Automatic viewport centering remains task4.3a, not part of this batch.
+Invalid detail containers produce visible path-specific warnings while valid fields and the unchanged Result remain inspectable. All detail regions on the selected source page are highlighted; the existing previous/next-region controls navigate the remaining regions/pages. Explicit selection or region navigation reveals an off-screen source region without changing zoom or rotation; an already visible target does not move.
 
 Switching views does not replace or reinitialize the source pane, so page, zoom, rotation, pan, pinned field and selected source-region index remain intact. Selecting another result content is a separate operation and retains its existing page/selection behavior.
 
@@ -69,6 +69,28 @@ npm run verify:performance
 ```
 
 The current gate allows at most 1,000 ms for first activation, 350 ms for a warm near-limit activation, 100 ms for any observed main-thread long task and 64 MiB heap growth. The warm budget includes the 272-276 ms JSON evidence from GitHub's hosted Windows runner; the stricter long-task budget remains unchanged. These are recorded Windows Chrome/Edge engineering limits for the current private Viewer, not a general guarantee for every host device.
+
+## Desktop Keyboard and Source Navigation
+
+The current interaction scope is desktop Chrome/Edge. Touch, mobile-app behavior, pinch gestures and vertically stacked panes remain deferred.
+
+- Result tabs have one Tab stop; Left/Right, Home and End change the active tab. Tab enters the active panel and its controls.
+- Field names, scalar values, disclosure buttons and available page badges support Enter/Space. Accessible descriptions include returned values/confidence; detail buttons include returned text, role, source pages and applicable figure descriptions.
+- Tab to **Source viewport** and use arrow keys to pan by 40 CSS pixels. Source zoom, fit, rotation and page controls remain keyboard-operable.
+- Rendering preserves control focus. At the last/first page or source region, focus moves to an enabled adjacent navigation control rather than disappearing onto the document body.
+- Enter commits the page number. Leaving an edited input also commits a valid page; render-induced blur or an unchanged value does not re-submit an old page and override hover/selection navigation. Invalid input has an associated visible error.
+- Copy remains focusable while a Clipboard API write is pending, reports its busy/disabled state and ignores duplicate activation. Completion does not steal focus from another control; denial remains an explicit error.
+- Explicit selection first navigates to its available source page, keeps zoom/rotation and pans only the axes on which the target is outside the viewport. Cross-page navigation changes an active fit mode to manual zoom when needed to preserve the prior scale. Mouse hover is not a new centering request; manual page navigation or pan takes precedence over stale requests.
+- Source and Result scroll independently. A narrow desktop host keeps side-by-side panes, with minimum Source/Result widths of 400/330 CSS pixels and horizontal scrolling inside the viewer. Keep the bounded host height; no mobile stacking is added.
+
+### Manual Windows Narrator Acceptance
+
+Actual Narrator output is **pending owner walkthrough**. Automated keyboard/focus/ARIA checks are not a substitute for screen-reader acceptance, and task4.3a remains open until this check passes.
+
+1. Enable Narrator with **Win+Ctrl+Enter**. In Chrome and then Edge, open the saved-data demo at <http://127.0.0.1:5173/>.
+2. Check Tab focus, result-tab selection, field expansion/selection and the spoken returned value/confidence. Check paragraph/table/figure descriptions against the displayed data. Use **Narrator+Space** to change scan mode when testing viewport arrow-key pan.
+3. Check page number/total, invalid-page error, page/region boundaries and stable focus after rendering. Verify source-linked selection keeps zoom/rotation and does not move an already visible target.
+4. Check Code language controls, copying success and an explicitly denied/unavailable clipboard error. Record the browser, action, spoken output and any unexpected focus change.
 
 ## Vite Resource Delivery
 
@@ -137,7 +159,7 @@ npm run verify:consumer
 | React 18 | React/React DOM 18.3.1 | `@types/react` 18.3.31 / `@types/react-dom` 18.3.7 |
 | React 19 | React/React DOM 19.3.0 | Both declaration packages 19.3.0 |
 
-It compiles the public API and builds both hosts, then runs [package tests](../tests/e2e/package-host.spec.ts) in production and development with Chrome/Edge: **24 browser runs**. Actual PDF/PNG/HEIF, real page navigation/pinning, rich results, local standard fonts, PDF resources and the packaged HEIF Worker/JS/WASM are checked under CSP. Product default/PDF-pin/PNG-pin screenshots compare directly to the existing approved baselines at zero difference.
+It compiles the public API and builds both hosts, then runs [package tests](../tests/e2e/package-host.spec.ts) in production and development with Chrome/Edge: **32 browser runs**. Actual PDF/PNG/HEIF, real page navigation/pinning, rich results, desktop keyboard/focus/conditional reveal, pending-copy focus, local standard fonts, PDF resources and the packaged HEIF Worker/JS/WASM are checked under CSP. Product default/PDF-pin/PNG-pin screenshots compare directly to the existing approved baselines at zero difference.
 
 The verifier uses canonical Windows long paths rather than DOS 8.3 aliases, retaining Vite's strict file-serving boundary. Local projects, locks, artifact inventory and verification result remain in its generated temporary workspace for inspection; its servers are started/stopped by the test runner. Nothing is published or pushed.
 

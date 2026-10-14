@@ -240,7 +240,7 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 D6只约束被截断的`Result-pane`后半段；其他具名扩展点是明确需求。本阶段要求MCP集成设计/文档，不要求实现未被请求的MCP服务器。
 
-**下一功能目标：4.3a。** 任务4.2a动态结果视图及负责人视觉评审已完成。只继续已批准的桌面键盘/焦点/ARIA/Narrator、双栏布局及条件原文居中范围；4.3b随后，触摸与被截断的`Result-pane`后半段保持延期。保持已确认Fields布局和源状态保证。
+**当前验收目标：4.3a。** 桌面键盘/焦点/ARIA、双栏最小宽度与滚动、条件原文定位已实现。负责人只批准更新两张跨页参考：保留62%缩放而非重新Fit到66%；其余48张保持不变。自动化回归已完成：472单元、136仓库浏览器、4性能和32安装包使用方场景通过。Windows Narrator实际走查仍待验收，通过后才能关闭4.3a。4.3b随后，触摸与被截断的`Result-pane`后半段保持延期。
 
 **G3 通过条件**：全部已确认结果视图、当前桌面交互/无障碍范围、具名扩展点和MCP集成设计通过验收/测试；触摸及被截断的`Result-pane`后半段明确延期。
 
@@ -608,12 +608,25 @@ flowchart LR
     },
     {
       "id": "4.3a", "phase": 4, "priority": "P1", "title": "完成桌面交互与无障碍", "effort": "M",
+      "status": "in_progress",
+      "implementation_evidence": "已实现桌面键盘/焦点/ARIA、标量值控件与描述、原文键盘平移、双栏滚动及显式视口外定位。页码/区域边界保留可用控件焦点；页码编辑失焦不会重提旧页覆盖导航；待完成剪贴板写入保持焦点并拒绝重复触发。负责人于2026-10-14只批准两张跨页缩放参考，其余48张哈希不变。472单元、136仓库浏览器（中断前完成125项加本次续跑11项，含600压力轮）、4性能和32启用截图的严格CSP安装包使用方通过。全部50张获批参考哈希在回归后保持不变。Windows Narrator实际走查明确待验收；本批尚未推送或远程验证。公开输入仍仅source/result，不加入触摸/移动端或4.3b API。",
       "description": "完成当前桌面Chrome/Edge键盘/焦点/ARIA及Windows Narrator评审。Source/Result保持带最小宽度与滚动的桌面双栏。保持缩放/旋转，仅在所选区域位于可见视口外时调整原文平移。负责人延期触摸/移动端。",
       "files": [
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
         {"path": "src\\components\\FieldsPane.tsx", "action": "modify"},
         {"path": "src\\components\\SourcePane.tsx", "action": "modify"},
+        {"path": "src\\components\\DetailSourceInfo.tsx", "action": "modify"},
+        {"path": "src\\components\\ParagraphsPane.tsx", "action": "modify"},
+        {"path": "src\\components\\TablesPane.tsx", "action": "modify"},
+        {"path": "src\\components\\FiguresPane.tsx", "action": "modify"},
+        {"path": "src\\components\\SignaturesPane.tsx", "action": "modify"},
+        {"path": "src\\components\\CopyButton.tsx", "action": "modify"},
+        {"path": "src\\internal\\geometry.ts", "action": "modify"},
+        {"path": "src\\internal\\viewportReveal.test.ts", "action": "create"},
+        {"path": "src\\components\\DetailPanes.test.tsx", "action": "modify"},
         {"path": "src\\styles.css", "action": "modify"},
+        {"path": "tests\\e2e\\package-host.spec.ts", "action": "modify"},
+        {"path": "tools\\verify-packed-consumers.mjs", "action": "modify"},
         {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"}
       ],
       "depends_on": ["4.1", "4.2", "4.2a"],
@@ -815,3 +828,4 @@ flowchart LR
 | 2026-10-13 | 任务4.2a第一批交付GA/Preview解析守卫及动态Studio标签显示/切换，包含Result、content回退和可见畸形明细警告。443单元、36相关功能浏览器、4性能及24功能使用方通过。专用渲染器仍待第二批；标签栏发生批准范围内变化，34张既有视觉参考保持未改、等待评审更新，不宣称本批像素匹配。 |
 | 2026-10-13 | 任务4.2a第二批实现六个专用面板、明细原文选择、同页多区域高亮、原生合并表格、真实source裁剪像素、剪贴板错误处理及安全高亮SDK示例。461单元、42相关功能浏览器、4生产预算及24 React18/19严格CSP使用方通过；C# GA/Preview示例编译、Python语法检查通过且不执行服务。包内附lowlight/highlight.js通知；视觉参考保持未改等待负责人评审，未启动4.3a。 |
 | 2026-10-14 | 负责人批准视觉候选：34张更新标签/页脚/空错误状态，16张新增明细/语言参考，共50张。旧Source和Fields正文变化为0像素，Chrome Fields批准PNG同步。普通视觉/富结果34场景与完整仓库116场景通过，含600压力轮及两浏览器漂移探针，50图哈希保持不变；React18/19启用截图的24使用方通过。任务4.2a完成，下一项4.3a尚未启动。 |
+| 2026-10-14 | 任务4.3a实现桌面键盘/焦点/ARIA、双栏独立滚动及仅对视口外目标定位，保持缩放/旋转。负责人只批准两张跨页参考；其余48张哈希及Fields像素不变。472单元、逐项核对的136仓库浏览器（先前125加续跑11）、4性能和32严格CSP且启用截图的使用方通过，含600压力轮。验证后全部50张获批哈希不变。Windows Narrator实际走查仍待人工验收，因此不关闭4.3a、不启动4.3b；本批仅有本地证据。 |

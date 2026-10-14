@@ -6,6 +6,13 @@ import { checkPolygon, ready } from "./viewerAssertions";
 import { alive, trackSourceResources } from "./sourceResources";
 import { standardFontPdf } from "./pdfFixtures";
 
+declare global {
+    interface Window {
+        cuPackedClipboardWrites?: string[];
+        cuPackedCopyComplete?: () => void;
+    }
+}
+
 const observations = new WeakMap<Page, {
     errors: string[]; external: string[]; failed: string[]; workers: string[]; fonts: string[]; heif: string[];
 }>();
@@ -133,6 +140,82 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await expect(pane.getByLabel("C# SDK sample")).toContainText("V2025_11_01");
     await pane.getByRole("button", { name: "JavaScript", exact: true }).click();
     await expect(pane.getByLabel("JavaScript SDK sample")).toContainText("client.analyze(");
+});
+
+test("isolated packed consumer preserves desktop keyboard focus and conditional source reveal under host CSP", async ({ page }) => {
+    const viewport = page.getByRole("group", { name: "Source viewport", exact: true });
+    const paper = page.getByTestId("rendered-page");
+    const original = await paper.boundingBox();
+    const zoom = await page.getByLabel("Zoom percentage").textContent();
+    if (!original || zoom === null) throw new Error("Packed source frame or zoom is unavailable.");
+    await viewport.focus();
+    for (let step = 0; step < 25; step++) await page.keyboard.press("ArrowLeft");
+    const field = page.getByRole("button", { name: "BillingAddress", exact: true });
+    await field.focus();
+    await expect(field).toHaveAccessibleDescription(/123 Bill St, Redmond WA, 98052.*Confidence 31\.70%/);
+    await page.keyboard.press("Enter");
+    await ready(page);
+    await expect(field).toBeFocused();
+    await expect.poll(async () => {
+        const region = await page.getByTestId("source-overlay").locator("polygon").boundingBox();
+        const bounds = await viewport.boundingBox();
+        if (!region || !bounds) throw new Error("Packed source navigation bounds are unavailable.");
+        return Math.abs(region.x + region.width / 2 - bounds.x - bounds.width / 2);
+    }).toBeLessThanOrEqual(1);
+    const revealed = await paper.boundingBox();
+    if (!revealed) throw new Error("Packed source frame bounds are unavailable.");
+    expect(revealed.width).toBeCloseTo(original.width, 1);
+    expect(revealed.height).toBeCloseTo(original.height, 1);
+    await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom);
+    const nextRegion = page.getByRole("button", { name: "Next source region", exact: true });
+    await nextRegion.focus();
+    await page.keyboard.press("Enter");
+    await expect(nextRegion).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Previous source region", exact: true })).toBeFocused();
+
+    const number = page.getByRole("textbox", { name: "Page number" });
+    await number.fill("3");
+    await number.press("Enter");
+    await ready(page);
+    await expect(number).toBeFocused();
+    const nextPage = page.getByRole("button", { name: "Next page", exact: true });
+    await nextPage.focus();
+    await page.keyboard.press("Enter");
+    await ready(page);
+    await expect(number).toHaveValue("4");
+    await expect(nextPage).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Previous page", exact: true })).toBeFocused();
+
+    const pane = page.getByRole("region", { name: "Extraction results" });
+    await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
+    await expect(pane.getByRole("tab", { name: "Code", exact: true })).toBeFocused();
+    const sample = await pane.getByLabel("Python SDK sample").textContent();
+    if (sample === null) throw new Error("Packed SDK sample text is unavailable.");
+    await page.evaluate(() => {
+        const writes: string[] = [];
+        window.cuPackedClipboardWrites = writes;
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+            writeText(value: string) {
+                writes.push(value);
+                return new Promise<void>(resolve => { window.cuPackedCopyComplete = resolve; });
+            },
+        } });
+    });
+    const copy = pane.getByRole("button", { name: "Copy SDK sample", exact: true });
+    await copy.focus();
+    await page.keyboard.press("Enter");
+    await expect(copy).toHaveAttribute("aria-disabled", "true");
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await expect(copy).toBeFocused();
+    await page.keyboard.press("Enter");
+    expect(await page.evaluate(() => window.cuPackedClipboardWrites)).toEqual([sample]);
+    await page.evaluate(() => {
+        if (!window.cuPackedCopyComplete) throw new Error("Packed clipboard write is not pending.");
+        window.cuPackedCopyComplete();
+    });
+    await expect(copy).toHaveAttribute("aria-disabled", "false");
+    await expect(copy).toBeFocused();
+    await expect(pane.getByRole("status").filter({ hasText: /^Copied$/ })).toBeVisible();
 });
 
 test("isolated packed consumer loads local standard fonts rather than relying on repository middleware or a CDN", async ({ page }) => {

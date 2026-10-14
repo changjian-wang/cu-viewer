@@ -1,7 +1,7 @@
 # CU 结果查看器：界面原型 v2
 
-> 状态：v2 静态与交互实施基线已批准；原有 30 张产品基线保持不变，任务 4.2 新增 4 张结果面板基线。生产 HEIF decoder 已打包验证，完整 P0 与 HEVC 产品/发布批准尚未验收。
-> 更新：2026-10-13，完成 Fields/Markdown/JSON 真实切换并保持已确认 Fields 外观。
+> 状态：v2 静态与交互实施基线已批准，当前共50张视觉参考；4.3a仅经批准更新两张跨页缩放图，其余48张不变。生产HEIF decoder已打包验证，Narrator实际走查与完整P0/公开发布批准仍待验收。
+> 更新：2026-10-14，动态Studio视图完成，桌面键盘/焦点/ARIA、双栏滚动与条件原文定位已实现。
 > 方向：保留 Studio 风格，优先桌面 P0；Fields 外观按用户提供的截图对齐，不复制服务配置或整个 Studio 应用。
 > 流程：线框确认 → 可运行原型与交互基线批准 → 2.4/2.5 加固中 → 完整 P0 验收。
 > 交付顺序：先完成 Viewer 本体 P0/P1（含真实结果视图）及独立验收，再做 cu-cli 契约/集成；CLI 不阻塞页面直接运行。
@@ -13,6 +13,8 @@
 可运行版本：在仓库根目录执行 `npm run dev`，打开 <http://127.0.0.1:5173/>。当前页面使用真实保存的 PDF/PNG 配对，不调用服务。实际效果见 [Fields 对照截图](interactive-fields.png)、[PDF 运行截图](interactive-pdf.png)、[PNG 运行截图](interactive-png.png)和[多区域/数组截图](interactive-multi-region.png)。
 
 当前全部适用Studio结果视图已实现：Fields、Markdown、Paragraphs、Tables、Figures、Signatures、Metadata、Result、Code根据GA/Preview实际非空数据出现。负责人于2026-10-14批准新面板/标签/页脚/空错误状态外观，34张既有参考已更新并新增16张，共50张。旧Source区域和Fields正文相对新候选均为零像素变化；普通全图零差异测试及两浏览器漂移探针通过。Figures/Signatures/Metadata仍是明确标注的合成Preview展示依据，无新的服务调用。
+
+同日4.3a增加桌面键盘、稳定焦点/ARIA、Source/Result双栏最小宽度与独立滚动，以及显式选择时仅对视口外目标定位。跨页选择保持缩放/旋转，因此负责人只批准更新Chrome/Edge两张`pdf-cross-page-pinned`参考：保留62%而非重新Fit到66%；Fields及Source之外的像素不变，其余48张哈希不变。Windows Narrator实际走查仍待人工验收，不以自动化ARIA测试代替；操作清单见[使用文档](../usage.md#manual-windows-narrator-acceptance)。
 
 ### 最终产品外观基线
 
@@ -54,11 +56,11 @@
 - 组字段优先使用自身定位；没有自身定位时使用第一个带真实定位的后代。父子共享根字段颜色，展开、折叠或过滤不会改变高亮颜色，也不会写回原始结果。
 - 来源页必须实际存在于当前源文件中。不存在时禁用相应根字段/组页码徽标并提供原因，在结果警告中列出页码；选择或悬停仍可查看原值，原文区明确提示文件与结果可能失配，不跳页、不画虚构高亮。
 - 按后续截图反馈移除额外的 **Clear** 按钮，悬停、选中和展开均不会显示它；保留切换输入/内容和过滤已选缺失字段时的自动清理，不新增其他取消选择交互。
-- Markdown 已启用；“…”是 JSON 入口并在选中后显示 JSON。Paragraphs、Tables、Code 当前仍未实现；后续实现完成前不冒充可用，完成后按数据条件显示，不复制不可用的 token usage/pricing 功能。
+- Markdown 已启用；原“…”入口现为完整原始JSON的Result。Paragraphs、Tables、Figures、Signatures、Metadata与Code已按返回数据条件实现，不复制token usage/pricing操作。
 
 [Fields 运行截图](interactive-fields.png)保留真实 `CountryRegion = USA` 与 `BillingAddress = 31.70%`，不替换为参考截图中的提取结果。本次更新可运行原型与运行截图；十份静态稿保留为 v2 评审依据，没有将静态控件当作已实现功能。
 
-运行检查发现悬浮提示容易占据原文区域，现以**原文下方的小型预览栏**表达临时字段，避免遮挡文档。这是已记录的加固基线，不代表完整P1无障碍/键盘/触摸/响应式验收。HEIF/HEIC 已通过包内 WASM decoder、生产 CSP 和安装包矩阵；Markdown/JSON 已集成，但其余确认结果视图和P1交互/扩展仍未完成。
+运行检查发现悬浮提示容易占据原文区域，现以**原文下方的小型预览栏**表达临时字段，避免遮挡文档。HEIF/HEIC及全部已确认结果视图已实现；4.3a自动化回归通过472单元、136仓库浏览器、4性能及32使用方场景，Narrator人工验收仍待完成，4.3b具名扩展点尚未开始。触摸/移动端延期，不将桌面窄容器滚动当作移动端交付。
 
 ### 图片格式与方向验证
 

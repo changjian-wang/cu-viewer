@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { parseCuResult } from "../internal/parseCuResult";
 import { ParagraphsPane } from "./ParagraphsPane";
 import { TablesPane } from "./TablesPane";
@@ -8,6 +8,7 @@ import { MetadataPane } from "./MetadataPane";
 import { CodePane } from "./CodePane";
 import { CopyButton } from "./CopyButton";
 import { SourceThumbnail } from "./SourceThumbnail";
+import { FiguresPane } from "./FiguresPane";
 import type { LoadedSource, SourceCrop } from "../internal/source";
 
 afterEach(() => {
@@ -54,6 +55,38 @@ describe("dedicated result panes", () => {
         expect(screen.queryByRole("table")).toBeNull();
     });
 
+    it("associates all returned figure descriptions with unique targets across viewers", () => {
+        const content = parseCuResult({
+            apiVersion: "2026-06-01-preview",
+            contents: [{ kind: "document", figures: [{ id: "figure with spaces", kind: "chart", role: "logo",
+                caption: { content: "Returned caption" }, description: "Returned description",
+                footnotes: [{ content: "First footnote" }, { content: "Second footnote" }] }] }],
+        }).contents[0];
+        if (!content?.figures) throw new Error("Expected figures.");
+        render(<>
+            <FiguresPane figures={content.figures} content={content} source={null} selected={null} onSelect={vi.fn()} />
+            <FiguresPane figures={content.figures} content={content} source={null} selected={null} onSelect={vi.fn()} />
+        </>);
+        const ids: string[] = [];
+        for (const button of screen.getAllByRole("button", { name: "Select Figure 1" })) {
+            const description = button.getAttribute("aria-describedby");
+            if (!description) throw new Error("Expected figure descriptions.");
+            const targets = description.split(" ");
+            ids.push(...targets);
+            const text = targets.map(id => {
+                const element = document.getElementById(id);
+                if (!element) throw new Error(`Missing description target: ${id}`);
+                return element.textContent;
+            }).join(" ");
+            expect(text).toContain("Returned caption");
+            expect(text).toContain("Returned description");
+            expect(text).toContain("First footnote");
+            expect(text).toContain("Second footnote");
+            expect(text).toContain("No source region");
+        }
+        expect(new Set(ids).size).toBe(ids.length);
+    });
+
     it("preserves metadata property order and copies only the requested value", async () => {
         const writeText = vi.fn().mockResolvedValue(undefined);
         Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
@@ -72,6 +105,26 @@ describe("dedicated result panes", () => {
         fireEvent.click(screen.getByRole("button", { name: "Copy test" }));
         expect((await screen.findByRole("alert")).textContent).toContain("Permission denied");
         expect(screen.queryByText("Copied")).toBeNull();
+    });
+
+    it("keeps copying focusable and guards duplicate activation while a write is pending", async () => {
+        let complete!: () => void;
+        const writeText = vi.fn().mockImplementation(() => new Promise<void>(resolve => { complete = resolve; }));
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+        render(<CopyButton value="returned" label="Copy test" />);
+        const button = screen.getByRole("button", { name: "Copy test" });
+        button.focus();
+        fireEvent.click(button);
+        expect(button.hasAttribute("disabled")).toBe(false);
+        expect(button.getAttribute("aria-disabled")).toBe("true");
+        expect(button.getAttribute("aria-busy")).toBe("true");
+        expect(document.activeElement).toBe(button);
+        fireEvent.click(button);
+        expect(writeText).toHaveBeenCalledTimes(1);
+        await act(async () => { complete(); await Promise.resolve(); });
+        expect(button.getAttribute("aria-disabled")).toBe("false");
+        expect(document.activeElement).toBe(button);
+        expect(screen.getByText("Copied")).toBeTruthy();
     });
 
     it("switches all code languages, highlights safely and copies the exact sample", async () => {

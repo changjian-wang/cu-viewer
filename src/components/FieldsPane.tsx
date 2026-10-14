@@ -80,6 +80,10 @@ export function FieldsPane(props: FieldsPaneProps) {
         const pageAvailable = region ? props.isPageAvailable(region.pageNumber) : false;
         const selected = props.selected?.id === field.id || (group && closed && props.selected?.id.startsWith(`${field.id}/`));
         const children = field.children.filter(child => !hideMissing || child.hasValue);
+        const valueId = `${tabBaseId}-value-${encodeURIComponent(field.id)}`;
+        const confidenceId = `${tabBaseId}-confidence-${encodeURIComponent(field.id)}`;
+        const childrenId = `${tabBaseId}-children-${encodeURIComponent(field.id)}`;
+        const description = [group ? undefined : valueId, field.confidence === undefined ? undefined : confidenceId].filter(Boolean).join(" ") || undefined;
         return <div className={depth === 0 ? "cu-field-block" : "cu-nested-field-block"} key={field.id}>
             <div
                 className={`cu-field${group ? " is-group" : ""}${depth > 0 ? " is-nested" : ""}${selected ? " is-selected" : ""}${props.hovered?.id === field.id ? " is-hovered" : ""}`}
@@ -94,6 +98,7 @@ export function FieldsPane(props: FieldsPaneProps) {
                     {depth === 0 && <span className="cu-dot" aria-hidden="true"
                         style={{ background: region ? color : "transparent", borderColor: region ? color : "#0078d4" }} />}
                     <button type="button" className="cu-field-name" aria-pressed={props.selected?.id === field.id}
+                        aria-describedby={description}
                         title={region ? fieldLabel(field) : `${fieldLabel(field)} · No source region`}
                         onClick={() => props.onSelect(field)}>{displayName}</button>
                     {depth === 0 && region && <button
@@ -107,9 +112,13 @@ export function FieldsPane(props: FieldsPaneProps) {
                     {field.confidence !== undefined && <span className="cu-confidence" title="Confidence supplied by the service">
                         {formatConfidence(field.confidence)}
                     </span>}
+                    {field.confidence !== undefined && <span id={confidenceId} className="cu-visually-hidden">
+                        Confidence {formatConfidence(field.confidence)}
+                    </span>}
                     {group && <button
                         type="button" className="cu-expand" aria-label={`${closed ? "Expand" : "Collapse"} ${displayName}`}
                         aria-expanded={!closed}
+                        aria-controls={closed ? undefined : childrenId}
                         onClick={() => setExpanded(current => {
                             const next = new Set(current);
                             if (closed) next.add(field.id);
@@ -120,10 +129,14 @@ export function FieldsPane(props: FieldsPaneProps) {
                         <path d={closed ? "M4 6 8 10 12 6" : "M4 10 8 6 12 10"} fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                     </svg></button>}
                 </div>
-                {!group && <div className={`cu-field-value${!field.hasValue ? " is-missing" : ""}`} onClick={() => props.onSelect(field)}>{displayValue(field)}</div>}
+                {!group && <button type="button" className={`cu-field-value${!field.hasValue ? " is-missing" : ""}`}
+                    aria-label={`Select value of ${fieldLabel(field)}`} aria-describedby={description}
+                    aria-pressed={props.selected?.id === field.id} onClick={() => props.onSelect(field)}>
+                    <span id={valueId}>{displayValue(field)}</span>
+                </button>}
             </div>
-            {group && !closed && (children.length ? children.map(child => renderField(child, depth + 1)) :
-                <div className="cu-hidden-child-note">No returned values. Turn off Hide missing fields to inspect missing entries.</div>)}
+            {group && !closed && <div id={childrenId}>{children.length ? children.map(child => renderField(child, depth + 1)) :
+                <div className="cu-hidden-child-note">No returned values. Turn off Hide missing fields to inspect missing entries.</div>}</div>}
         </div>;
     };
     const panelId = `${tabBaseId}-panel`;

@@ -59,7 +59,7 @@ writeFileSync(join(workspace, "verification.json"), JSON.stringify({
     profiles: inventory.profiles,
     modes: ["production", "development"],
     browsers: ["chrome", "edge"],
-    packageBrowserRuns: 24,
+    packageBrowserRuns: 32,
     aliasOrSharedNodeModules: false,
     decoderDistributed: true,
     decoder: "heic-rs 0.1.4 WASM",

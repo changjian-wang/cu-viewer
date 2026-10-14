@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ContentUnderstandingResultViewerProps } from "./index";
 import { FieldsPane } from "./components/FieldsPane";
 import { SourcePane } from "./components/SourcePane";
@@ -27,12 +27,15 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     } | null>(null);
     const [state, dispatch] = useReducer(interaction, initialInteraction);
     const [renderReady, setRenderReady] = useState(false);
+    const [revealRequest, setRevealRequest] = useState<number | null>(null);
+    const revealSequence = useRef(0);
     const matchingSource = sourceState?.input === props.source ? sourceState : null;
     const source = matchingSource?.source ?? null;
     useEffect(() => {
         const controller = new AbortController();
         let loaded: LoadedSource | null = null;
         setRenderReady(false);
+        setRevealRequest(null);
         dispatch({ type: "clear" });
         dispatch({ type: "page", pageNumber: 1 });
         void loadSource(props.source, controller.signal).then(value => {
@@ -51,7 +54,10 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             if (loaded) void loaded.dispose().catch((error: unknown) => console.error("Source disposal failed.", error));
         };
     }, [props.source]);
-    useEffect(() => dispatch({ type: "clear" }), [props.result]);
+    useEffect(() => {
+        dispatch({ type: "clear" });
+        setRevealRequest(null);
+    }, [props.result]);
     const onRenderReady = useCallback((ready: boolean) => setRenderReady(ready), []);
     const isPageAvailable = (pageNumber: number | undefined): boolean => hasSourcePage(source?.pages, pageNumber);
     const available = (field: CuField | null, regionIndex = 0): boolean =>
@@ -71,6 +77,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         const next = parsed.model?.contents[index];
         if (!next) throw new Error("The chosen result content does not exist.");
         setContentChoice({ result: props.result, index });
+        setRevealRequest(null);
         dispatch({ type: "clear" });
         const firstPage = next.pages.find(page => isPageAvailable(page.pageNumber));
         if (firstPage) dispatch({ type: "page", pageNumber: firstPage.pageNumber });
@@ -81,10 +88,17 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             source={source} loading={!matchingSource} error={matchingSource?.error ?? null}
             content={content} pageNumber={state.pageNumber} active={active} preview={Boolean(hovered)}
             regions={activeRegions} regionIndex={activeRegionIndex}
+            revealRequest={revealRequest}
             color={active && !active.detailView ? fieldColor(active, content?.fields ?? []) : "#0078d4"}
-            onPage={pageNumber => dispatch({ type: "page", pageNumber })} onRenderReady={onRenderReady}
+            onPage={pageNumber => {
+                setRevealRequest(null);
+                dispatch({ type: "page", pageNumber });
+            }} onRenderReady={onRenderReady}
             onRegion={index => {
-                if (selected) dispatch({ type: "region", fieldId: selected.id, index, pageAvailable: available(selected, index) });
+                if (selected) {
+                    dispatch({ type: "region", fieldId: selected.id, index, pageAvailable: available(selected, index) });
+                    setRevealRequest(++revealSequence.current);
+                }
             }}
         />
         <FieldsPane
@@ -96,8 +110,14 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             selected={selected} hovered={hovered} sourceReady={Boolean(source && renderReady)} isPageAvailable={isPageAvailable}
             onHover={field => dispatch({ type: "hover", field, pageAvailable: available(field) })}
             onLeave={field => dispatch({ type: "leave", fieldId: field.id, restorePageAvailable: available(selected) })}
-            onSelect={field => dispatch({ type: "select", field, pageAvailable: available(field) })}
-            onClear={() => dispatch({ type: "clear" })}
+            onSelect={field => {
+                dispatch({ type: "select", field, pageAvailable: available(field) });
+                setRevealRequest(++revealSequence.current);
+            }}
+            onClear={() => {
+                setRevealRequest(null);
+                dispatch({ type: "clear" });
+            }}
         />
     </div>;
 }
