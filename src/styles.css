@@ -20,6 +20,16 @@
 .cu-rendered-page { position: relative; flex: none; background: white; box-shadow: 0 0 0 1px #dbe2eb; }
 .cu-rendered-page canvas { display: block; width: 100%; height: 100%; }
 .cu-overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+.cu-overlay polygon { shape-rendering: crispEdges; }
+.cu-table-markers { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+.cu-viewer .cu-table-marker { position: absolute; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 0; padding: 6px; background: transparent; color: #605e5c; pointer-events: auto; }
+.cu-table-marker:hover { background: #eaf3fc; border-radius: 3px; }
+.cu-source-popover { position: absolute; z-index: 2; width: 330px; max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow: auto; padding: 10px 12px; border: 1px solid #d9e1eb; border-radius: 4px; background: #eaf3fc; color: #201f1e; box-shadow: 0 2px 10px #0002; cursor: default; font-size: 12px; line-height: 18px; }
+.cu-popover-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; overflow-wrap: anywhere; }
+.cu-source-popover dl { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+.cu-source-popover dt, .cu-source-popover dd { margin: 0; }
+.cu-source-popover dd { white-space: pre-wrap; overflow-wrap: anywhere; font-weight: 600; }
+.cu-source-popover.cu-table-popover { width: max-content; background: white; white-space: nowrap; padding: 8px 12px; }
 .cu-state { padding: 32px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex: 1; }
 .cu-state h2 { font-size: 19px; margin: 0 0 12px; }
 .cu-state p { margin: 0; color: #617087; overflow-wrap: anywhere; max-width: 600px; }
@@ -67,7 +77,7 @@
 .cu-field.is-group { padding-top: 12px; padding-right: 28px; padding-bottom: 12px; }
 .cu-field.is-nested { padding-top: 10px; padding-bottom: 12px; }
 .cu-field.is-selected { background: #f2f6fc; box-shadow: inset 2px 0 #0f6cbd; }
-.cu-field.is-hovered { background: #f5f5f5; }
+.cu-field.is-group.is-hovered, .cu-field.is-hovered .cu-field-value { background: #f5f5f5; }
 .cu-field-heading { display: flex; align-items: center; gap: 10px; min-height: 20px; }
 .cu-field-name { font-weight: 400; border: 0; padding: 0; background: transparent; color: #004578 !important; text-align: left; overflow-wrap: anywhere; line-height: 20px; }
 .cu-dot { width: 12px; height: 12px; border: 1px solid; border-radius: 50%; flex: none; }
@@ -124,10 +134,13 @@
 .cu-detail-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .cu-detail-select { display: block; width: 100%; text-align: left; border: 1px solid #d9e1eb; border-radius: 4px; padding: 12px; background: white; }
 .cu-detail-select[aria-pressed="true"], .cu-table-cell-select[aria-pressed="true"] { background: #f2f6fc; box-shadow: inset 2px 0 #0078d4; }
+.cu-detail-select.is-hovered { background: #f0f0f0; }
 .cu-detail-heading { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; color: #004578; }
 .cu-detail-heading > span, .cu-detail-source { color: #617087; font-size: 12px; }
 .cu-detail-source, .cu-detail-text { display: block; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 6px; }
 .cu-detail-table { margin-bottom: 24px; }
+.cu-table-navigation { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px; margin-bottom: 22px; border-bottom: 1px solid #d9e1eb; background: #f8f9fb; font-size: 12px; }
+.cu-table-navigation button { border: 1px solid #d1d9e3; border-radius: 4px; min-width: 28px; height: 28px; background: white; }
 .cu-detail-table h2, .cu-code-pane h2 { font-size: 18px; margin: 0 0 12px; }
 .cu-table-scroll { overflow: auto; max-width: 100%; }
 .cu-detail-table table { border-collapse: collapse; min-width: 100%; width: max-content; }
@@ -136,6 +149,16 @@
 .cu-detail-table caption { text-align: left; margin-bottom: 8px; }
 .cu-table-cell-select { display: block; width: 100%; min-height: 42px; border: 0; padding: 8px; background: transparent; text-align: left; }
 .cu-table-cell-select .cu-detail-text { margin-top: 0; }
+.cu-table-cell-value { display: block; padding: 10px 14px; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cu-table-dialog { position: fixed; width: 560px; max-width: calc(100vw - 48px); max-height: calc(100vh - 48px); border: 0; border-radius: 8px; padding: 0; background: white; color: #323130; box-shadow: 0 4px 24px #0004; }
+.cu-table-dialog::backdrop { background: #0006; }
+.cu-table-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 28px; background: #f2f7fd; }
+.cu-table-dialog-heading h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.cu-table-dialog-close { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 2px; border: 1px solid #605e5c; background: transparent; }
+.cu-table-dialog-body { margin: 0; padding: 18px 28px 22px; }
+.cu-table-dialog table { width: 100%; }
+.cu-table-dialog td, .cu-table-dialog th { border-color: #737373; }
+.cu-table-dialog-error { position: absolute; z-index: 3; top: 8px; left: 8px; }
 .cu-detail-notes { padding-left: 20px; color: #617087; }
 .cu-source-thumbnail { display: block; margin-top: 12px; }
 .cu-source-thumbnail canvas { max-width: 100%; height: auto !important; border: 1px solid #d9e1eb; background: #fff; }

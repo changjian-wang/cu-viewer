@@ -42,6 +42,7 @@ export type InteractionAction =
     | { type: "select"; field: CuField; pageAvailable: boolean }
     | { type: "region"; fieldId: string; index: number; pageAvailable: boolean }
     | { type: "page"; pageNumber: number }
+    | { type: "dismiss-preview" }
     | { type: "clear" };
 
 export const initialInteraction: InteractionState = { pageNumber: 1, hovered: null, selected: null, selectedRegionIndex: 0 };
@@ -76,6 +77,8 @@ export function interaction(state: InteractionState, action: InteractionAction):
         }
         case "page":
             return { ...state, pageNumber: action.pageNumber, hovered: null };
+        case "dismiss-preview":
+            return { ...state, hovered: null };
         case "clear":
             return { ...state, hovered: null, selected: null, selectedRegionIndex: 0 };
     }
@@ -128,7 +131,7 @@ export function selectableFields(content: CuContent | undefined): CuField[] {
     return [
         ...flattenFields(content.fields),
         ...(content.paragraphs ?? []).map(item => item.field),
-        ...(content.tables ?? []).flatMap(table => table.cells.map(cell => cell.field)),
+        ...(content.tables ?? []).flatMap(table => [table.field, ...table.cells.map(cell => cell.field)]),
         ...(content.figures ?? []).map(item => item.field),
         ...(content.signatures ?? []).map(item => item.field),
     ];

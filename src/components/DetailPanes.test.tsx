@@ -26,13 +26,22 @@ describe("dedicated result panes", () => {
         }).contents[0];
         if (!content?.paragraphs) throw new Error("Expected paragraphs.");
         const onSelect = vi.fn();
-        render(<ParagraphsPane paragraphs={content.paragraphs} selected={null} onSelect={onSelect} />);
+        const onHover = vi.fn(), onLeave = vi.fn();
+        render(<ParagraphsPane paragraphs={content.paragraphs} selected={null} hovered={null} previewId="paragraph-preview"
+            onHover={onHover} onLeave={onLeave} onSelect={onSelect} />);
         expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual([
             expect.stringContaining("First text"), expect.stringContaining("Second text"),
         ]);
         expect(screen.getByText("title")).toBeTruthy();
         expect(screen.getByText("Page 1")).toBeTruthy();
-        fireEvent.click(screen.getByRole("button", { name: "Select Paragraph 1" }));
+        const paragraph = screen.getByRole("button", { name: "Select Paragraph 1" });
+        fireEvent.mouseEnter(paragraph);
+        expect(onHover).toHaveBeenCalledWith(content.paragraphs[0]?.field);
+        fireEvent.mouseLeave(paragraph);
+        expect(onLeave).toHaveBeenCalledWith(content.paragraphs[0]?.field);
+        fireEvent.focus(paragraph);
+        expect(onHover).toHaveBeenCalledWith(content.paragraphs[0]?.field, false);
+        fireEvent.click(paragraph);
         expect(onSelect).toHaveBeenCalledWith(content.paragraphs[0]?.field);
         expect(screen.getByText("No source region")).toBeTruthy();
     });
@@ -45,12 +54,12 @@ describe("dedicated result panes", () => {
         }).contents[0];
         if (!content?.tables) throw new Error("Expected tables.");
         const onSelect = vi.fn();
-        const view = render(<TablesPane tables={content.tables} selected={null} onSelect={onSelect} />);
+        const view = render(<TablesPane tables={content.tables} index={0} onTableChange={vi.fn()} selected={null} onSelect={onSelect} />);
         expect(screen.getByRole("columnheader").getAttribute("colspan")).toBe("2");
         fireEvent.click(screen.getByRole("button", { name: "Select Table 1, row 1, column 1" }));
         expect(onSelect).toHaveBeenCalledWith(content.tables[0]?.cells[0]?.field);
         view.rerender(<TablesPane tables={content.tables.map(table => ({ ...table, rows: [], layoutError: "Invalid grid" }))}
-            selected={null} onSelect={onSelect} />);
+            index={0} onTableChange={vi.fn()} selected={null} onSelect={onSelect} />);
         expect(screen.getByRole("alert").textContent).toBe("Invalid grid");
         expect(screen.queryByRole("table")).toBeNull();
     });

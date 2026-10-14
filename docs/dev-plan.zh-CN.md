@@ -240,7 +240,7 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 D6只约束被截断的`Result-pane`后半段；其他具名扩展点是明确需求。本阶段要求MCP集成设计/文档，不要求实现未被请求的MCP服务器。
 
-**当前验收目标：4.3a。** 桌面键盘/焦点/ARIA、双栏最小宽度与滚动、条件原文定位已实现。负责人只批准更新两张跨页参考：保留62%缩放而非重新Fit到66%；其余48张保持不变。自动化回归已完成：472单元、136仓库浏览器、4性能和32安装包使用方场景通过。Windows Narrator实际走查仍待验收，通过后才能关闭4.3a。4.3b随后，触摸与被截断的`Result-pane`后半段保持延期。
+**当前验收目标：4.3a。** 桌面键盘/焦点/ARIA、双栏滚动、条件定位及负责人确认的Studio来源框/浮层/表格检查已实现。最终58张参考获批，12张面板裁图不变。类型检查/lint、494单元、164普通仓库浏览器、4性能和32安装包使用方场景通过，含600压力轮；58张获批哈希保持不变。Windows Narrator实际走查仍待验收，通过后才能关闭4.3a。4.3b随后，触摸与被截断的`Result-pane`后半段保持延期。
 
 **G3 通过条件**：全部已确认结果视图、当前桌面交互/无障碍范围、具名扩展点和MCP集成设计通过验收/测试；触摸及被截断的`Result-pane`后半段明确延期。
 
@@ -609,7 +609,7 @@ flowchart LR
     {
       "id": "4.3a", "phase": 4, "priority": "P1", "title": "完成桌面交互与无障碍", "effort": "M",
       "status": "in_progress",
-      "implementation_evidence": "已实现桌面键盘/焦点/ARIA、标量值控件与描述、原文键盘平移、双栏滚动及显式视口外定位。页码/区域边界保留可用控件焦点；页码编辑失焦不会重提旧页覆盖导航；待完成剪贴板写入保持焦点并拒绝重复触发。负责人于2026-10-14只批准两张跨页缩放参考，其余48张哈希不变。472单元、136仓库浏览器（中断前完成125项加本次续跑11项，含600压力轮）、4性能和32启用截图的严格CSP安装包使用方通过。全部50张获批参考哈希在回归后保持不变。Windows Narrator实际走查明确待验收；本批尚未推送或远程验证。公开输入仍仅source/result，不加入触摸/移动端或4.3b API。",
+      "implementation_evidence": "已实现桌面键盘/焦点/ARIA、双栏滚动/条件定位，以及负责人确认的Studio按Tab整页来源框、字段/段落浮层、当前表格切换和左图标Rows/Columns/Table模态检查。清晰框线按提交后的真实CSS文档尺寸投影；源已解码时徽标在重绘期间仍可点击。原生模态焦点/StrictMode及源生命周期通过。负责人批准最终58张参考（38更新、8新增、12裁图不变）。494单元、164普通仓库场景含600压力轮、4性能和32启用截图的严格CSP React18/19使用方通过，58张获批哈希保持不变。Narrator实际走查仍待验收，本批未推送或远程验证。公开输入仍仅source/result，不新增依赖、Analyze、触摸/移动端或4.3b API。",
       "description": "完成当前桌面Chrome/Edge键盘/焦点/ARIA及Windows Narrator评审。Source/Result保持带最小宽度与滚动的桌面双栏。保持缩放/旋转，仅在所选区域位于可见视口外时调整原文平移。负责人延期触摸/移动端。",
       "files": [
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
@@ -624,13 +624,26 @@ flowchart LR
         {"path": "src\\internal\\geometry.ts", "action": "modify"},
         {"path": "src\\internal\\viewportReveal.test.ts", "action": "create"},
         {"path": "src\\components\\DetailPanes.test.tsx", "action": "modify"},
+        {"path": "src\\components\\SourcePopover.tsx", "action": "create"},
+        {"path": "src\\components\\SourcePopover.test.tsx", "action": "create"},
+        {"path": "src\\components\\SourceTableMarkers.tsx", "action": "create"},
+        {"path": "src\\components\\TableGrid.tsx", "action": "create"},
+        {"path": "src\\components\\TableDialog.tsx", "action": "create"},
+        {"path": "src\\components\\TableDialog.test.tsx", "action": "create"},
+        {"path": "src\\internal\\sourceOverlays.ts", "action": "create"},
+        {"path": "src\\internal\\sourceOverlays.test.ts", "action": "create"},
+        {"path": "src\\internal\\parseCuResult.ts", "action": "modify"},
+        {"path": "src\\internal\\types.ts", "action": "modify"},
+        {"path": "src\\internal\\interaction.ts", "action": "modify"},
         {"path": "src\\styles.css", "action": "modify"},
         {"path": "tests\\e2e\\package-host.spec.ts", "action": "modify"},
         {"path": "tools\\verify-packed-consumers.mjs", "action": "modify"},
-        {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"}
+        {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\studio-overlays.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\source-tables.spec.ts", "action": "create"}
       ],
       "depends_on": ["4.1", "4.2", "4.2a"],
-      "acceptance_criteria": [{"id": "AC-4.3a", "text": "字段、动态结果标签和源文件控件可用键盘操作，焦点可见/稳定且ARIA正确；Windows Narrator通过；桌面双栏最小宽度/滚动工作；仅在原文区域位于可见视口外时居中，缩放/旋转不变。"}],
+      "acceptance_criteria": [{"id": "AC-4.3a", "text": "字段、动态结果标签及原文控件可用键盘操作，焦点可见/稳定、ARIA正确且Windows Narrator通过；双栏滚动与仅对视口外目标定位保持缩放/旋转。Studio按Tab来源框、字段/段落浮层、当前表格导航及左图标Rows/Columns/Table模态检查保留pin/标签/源状态、原生网格及生命周期，不补造来源或置信度。"}],
       "tests": [{"id": "T-4.3a", "type": "e2e", "framework": "playwright-and-manual-narrator", "description": "测试Chrome/Edge键盘/焦点/ARIA、桌面双栏容器尺寸变化及条件原文居中；执行Windows Narrator走查，不增加触摸/移动端测试。", "covers_criteria": ["AC-4.3a"]}]
     },
     {
@@ -829,3 +842,4 @@ flowchart LR
 | 2026-10-13 | 任务4.2a第二批实现六个专用面板、明细原文选择、同页多区域高亮、原生合并表格、真实source裁剪像素、剪贴板错误处理及安全高亮SDK示例。461单元、42相关功能浏览器、4生产预算及24 React18/19严格CSP使用方通过；C# GA/Preview示例编译、Python语法检查通过且不执行服务。包内附lowlight/highlight.js通知；视觉参考保持未改等待负责人评审，未启动4.3a。 |
 | 2026-10-14 | 负责人批准视觉候选：34张更新标签/页脚/空错误状态，16张新增明细/语言参考，共50张。旧Source和Fields正文变化为0像素，Chrome Fields批准PNG同步。普通视觉/富结果34场景与完整仓库116场景通过，含600压力轮及两浏览器漂移探针，50图哈希保持不变；React18/19启用截图的24使用方通过。任务4.2a完成，下一项4.3a尚未启动。 |
 | 2026-10-14 | 任务4.3a实现桌面键盘/焦点/ARIA、双栏独立滚动及仅对视口外目标定位，保持缩放/旋转。负责人只批准两张跨页参考；其余48张哈希及Fields像素不变。472单元、逐项核对的136仓库浏览器（先前125加续跑11）、4性能和32严格CSP且启用截图的使用方通过，含600压力轮。验证后全部50张获批哈希不变。Windows Narrator实际走查仍待人工验收，因此不关闭4.3a、不启动4.3b；本批仅有本地证据。 |
+| 2026-10-14 | 负责人Studio截图确认按Tab整页来源框、右侧字段/段落原文浮层、当前表格切换，以及左图标Rows/Columns悬停/只读Table模态点击。真实CSS尺寸投影和清晰框线消除变换边缘漂移；图标/模态焦点及StrictMode回放通过。负责人批准最终58张参考，12张原裁图不变。类型检查/lint、494单元、164普通仓库场景含600压力轮、4性能及32严格CSP且启用截图的React18/19使用方通过，58张哈希不变。Narrator实际走查待验收；没有新增依赖、服务调用、触摸/移动端或扩展API。 |

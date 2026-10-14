@@ -1,9 +1,24 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useEffect, useState } from "react";
 import { FieldsPane } from "./FieldsPane";
 import { parseCuResult } from "../internal/parseCuResult";
 import type { CuApiVersion, CuContent, CuField, CuRegion } from "../internal/types";
+import { availableResultTabs } from "../internal/resultViews";
+import type { ResultView } from "../internal/resultViews";
+
+function TestPane(props: Omit<Parameters<typeof FieldsPane>[0], "view" | "onViewChange" | "hideMissing" | "onHideMissingChange" | "previewId">) {
+    const [requested, setView] = useState<ResultView | undefined>("fields");
+    const [hideMissing, setHideMissing] = useState(true);
+    const tabs = availableResultTabs(props.content, props.result, props.apiVersion, props.analyzerId);
+    const view = (tabs.find(tab => tab.id === requested) ?? tabs[0])?.id;
+    useEffect(() => {
+        if (view !== requested) setView(view);
+    }, [view, requested]);
+    return <FieldsPane {...props} view={view} onViewChange={setView} hideMissing={hideMissing}
+        onHideMissingChange={setHideMissing} previewId="test-preview" />;
+}
 
 function region(pageNumber: number): CuRegion {
     return { pageNumber, polygon: [
@@ -58,8 +73,8 @@ function renderPane(content: CuContent, selected: CuField | null = null,
         onContentChange: vi.fn(), onHover: vi.fn(), onLeave: vi.fn(), onSelect, onClear: vi.fn(),
         ...context,
     };
-    const view = render(<FieldsPane {...props} />);
-    return { ...view, onSelect, rerenderContent: (next: CuContent) => view.rerender(<FieldsPane {...props} content={next} />) };
+    const view = render(<TestPane {...props} />);
+    return { ...view, onSelect, rerenderContent: (next: CuContent) => view.rerender(<TestPane {...props} content={next} />) };
 }
 
 afterEach(cleanup);

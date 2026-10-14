@@ -43,7 +43,8 @@ test("real paragraphs and native table cells navigate and retain source transfor
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
 
     await pane.getByRole("tab", { name: "Tables", exact: true }).click();
-    await expect(pane.getByRole("table")).toHaveCount(9);
+    await expect(pane.getByRole("table")).toHaveCount(1);
+    await expect(pane.locator(".cu-table-navigation")).toContainText("1 of 9");
     await expect(pane.getByRole("columnheader", { name: /SALESPERSON/ }).first()).toBeVisible();
     const cell = pane.getByRole("button", { name: "Select Table 1, row 1, column 1", exact: true });
     await cell.press("Space");

@@ -239,7 +239,7 @@ Publish the tested format/browser matrix and measured sample sizes. Missing HEIF
 
 D6 remains limited to the truncated `Result-pane` tail. The other named extension points are explicit requirements. This phase requires MCP integration design/documentation, not an unrequested MCP server implementation.
 
-**Current acceptance target: 4.3a.** Desktop keyboard/focus/ARIA, two-pane minimum-width scrolling and conditional source reveal are implemented. The owner approved only the two cross-page references that now preserve62% zoom rather than refit to66%; the other48 references are unchanged. Automated regression is complete:472 unit,136 repository browser,4 performance and32 packed-consumer cases pass. The actual Windows Narrator walkthrough remains pending before closing4.3a. Task4.3b follows; touch and the truncated `Result-pane` tail remain deferred.
+**Current acceptance target: 4.3a.** Desktop keyboard/focus/ARIA, side-by-side scrolling, conditional reveal and the owner-confirmed Studio source layers/previews/table inspectors are implemented. Final58 references are owner-approved;12 pane crops remain unchanged. Typecheck/lint,494 unit,164 ordinary repository browser,4 performance and32 packed-consumer cases pass, including600 stress rounds;58 accepted hashes stay unchanged. Actual Windows Narrator remains pending before closing4.3a. Task4.3b follows; touch and the truncated `Result-pane` tail remain deferred.
 
 **Exit G3**: all confirmed result views, current desktop interaction/accessibility scope, named extension points and MCP integration design pass their acceptance/tests; touch and the truncated `Result-pane` tail remain explicitly deferred.
 
@@ -608,7 +608,7 @@ Paths are relative to the target repository and use Windows separators. `create`
     {
       "id": "4.3a", "phase": 4, "priority": "P1", "title": "Complete desktop interaction and accessibility", "effort": "M",
       "status": "in_progress",
-      "implementation_evidence": "Desktop keyboard/focus/ARIA, scalar value controls/descriptions, source keyboard pan, side-by-side scrolling and explicit off-screen reveal are implemented. Page/region boundaries retain enabled control focus; edited page blur cannot re-submit a stale page; pending clipboard writes preserve focus and reject duplicate activation. Owner approved only two cross-page zoom references on2026-10-14; other48 hashes are unchanged. Unit472, repository browser136 (125 completed before interruption plus11 resumed cases, including600 stress rounds), performance4 and screenshot-enabled strict-CSP packed-consumer32 pass. All50 approved hashes remain unchanged after regression. Actual Windows Narrator remains explicitly pending; this batch is not yet pushed or remotely validated. Public inputs remain source/result; no touch/mobile or task4.3b API is added.",
+      "implementation_evidence": "Desktop keyboard/focus/ARIA, side-by-side scrolling/reveal and owner-confirmed Studio tab-scoped current-page outlines, field/paragraph previews, current-table navigation and source-icon Rows/Columns/Table modal inspection are implemented. Sharp vectors project to the actual committed CSS frame; loaded-source badges remain clickable during redraw. Native modal focus/StrictMode and source lifecycle pass. Owner approved58 final references (38 changed,8 new,12 crops unchanged). Unit494, ordinary repository164 including600 stress rounds, performance4 and screenshot-enabled strict-CSP React18/19 consumer32 pass; all58 accepted hashes remain unchanged. Actual Narrator remains pending, and this follow-up has not been pushed or remotely validated. Public inputs remain source/result; no new dependency, Analyze, touch/mobile or task4.3b API is added.",
       "description": "Complete current desktop Chrome/Edge keyboard/focus/ARIA behavior and Windows Narrator review. Keep Source/Result in a two-pane desktop layout with minimum widths and scrolling. Preserve zoom/rotation and adjust source pan only when a selected region is outside the visible viewport. Touch/mobile are deferred by the owner.",
       "files": [
         {"path": "src\\ContentUnderstandingResultViewer.tsx", "action": "modify"},
@@ -623,13 +623,26 @@ Paths are relative to the target repository and use Windows separators. `create`
         {"path": "src\\internal\\geometry.ts", "action": "modify"},
         {"path": "src\\internal\\viewportReveal.test.ts", "action": "create"},
         {"path": "src\\components\\DetailPanes.test.tsx", "action": "modify"},
+        {"path": "src\\components\\SourcePopover.tsx", "action": "create"},
+        {"path": "src\\components\\SourcePopover.test.tsx", "action": "create"},
+        {"path": "src\\components\\SourceTableMarkers.tsx", "action": "create"},
+        {"path": "src\\components\\TableGrid.tsx", "action": "create"},
+        {"path": "src\\components\\TableDialog.tsx", "action": "create"},
+        {"path": "src\\components\\TableDialog.test.tsx", "action": "create"},
+        {"path": "src\\internal\\sourceOverlays.ts", "action": "create"},
+        {"path": "src\\internal\\sourceOverlays.test.ts", "action": "create"},
+        {"path": "src\\internal\\parseCuResult.ts", "action": "modify"},
+        {"path": "src\\internal\\types.ts", "action": "modify"},
+        {"path": "src\\internal\\interaction.ts", "action": "modify"},
         {"path": "src\\styles.css", "action": "modify"},
         {"path": "tests\\e2e\\package-host.spec.ts", "action": "modify"},
         {"path": "tools\\verify-packed-consumers.mjs", "action": "modify"},
-        {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"}
+        {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\studio-overlays.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\source-tables.spec.ts", "action": "create"}
       ],
       "depends_on": ["4.1", "4.2", "4.2a"],
-      "acceptance_criteria": [{"id": "AC-4.3a", "text": "Fields, dynamic result tabs and source controls are operable by keyboard with visible/stable focus and correct ARIA; Windows Narrator passes; desktop two-pane minimum-width/scroll behavior works; source regions center only when outside the visible viewport while zoom/rotation remain unchanged."}],
+      "acceptance_criteria": [{"id": "AC-4.3a", "text": "Fields, dynamic result tabs and source controls are keyboard-operable with visible/stable focus and correct ARIA; Windows Narrator passes; two-pane scrolling and off-screen-only reveal preserve zoom/rotation. Studio tab-scoped outlines, field/paragraph previews, current-table navigation and source-icon Rows/Columns/Table modal inspection preserve pin/tab/source state, original grids and lifecycle without inventing sources/confidence."}],
       "tests": [{"id": "T-4.3a", "type": "e2e", "framework": "playwright-and-manual-narrator", "description": "Test Chrome/Edge keyboard/focus/ARIA, desktop two-pane container resizing and conditional source centering; perform a Windows Narrator walkthrough. Do not add touch/mobile tests.", "covers_criteria": ["AC-4.3a"]}]
     },
     {
@@ -828,3 +841,4 @@ For code rollback, revert only the task's reviewed changes or pin the preceding 
 | 2026-10-13 | Task4.2a batch two implements all six dedicated panes, detail-source selection, same-page multi-region highlights, native merged tables, real source crop pixels, clipboard error handling and safe highlighted SDK samples. Verified461 unit,42 focused functional browser,4 production budget and24 React18/19 strict-CSP consumer runs; C# GA/Preview samples compile and Python syntax checks pass without service execution. lowlight/highlight.js notices are packed. Visual references remain unchanged pending owner review; task4.3a is not started. |
 | 2026-10-14 | Owner approves visual candidates: refresh34 references for tabs/footer/empty-error presentation and add16 detail/language references, total50. Old Source and Fields-body changes are0 pixels; Chrome Fields approval PNG is synchronized. Ordinary visual/rich34 tests and full repository116 tests pass, including600 stress rounds and both drift probes;50 reference hashes stay unchanged. React18/19 screenshot-enabled consumer24 also pass. Task4.2a is complete; task4.3a is next, not started. |
 | 2026-10-14 | Task4.3a implements desktop keyboard/focus/ARIA, independent side-by-side scrolling and off-screen-only reveal with unchanged zoom/rotation. Owner approves only two cross-page references;48 other hashes and Fields pixels are unchanged. Unit472, reconciled repository136 (125 completed plus11 resumed), performance4 and strict-CSP screenshot-enabled consumer32 pass, including600 stress rounds. All50 accepted hashes remain unchanged through validation. Actual Windows Narrator walkthrough remains pending, so4.3a is not closed and4.3b is not started; current evidence is local only. |
+| 2026-10-14 | Owner Studio screenshots confirm full-page tab-specific source layers, right-side field/paragraph source previews, current-table navigation and left-icon Rows/Columns hover/read-only Table modal clicks. Actual CSS-frame projection and sharp strokes eliminate transform-edge drift; marker/modal focus and StrictMode replay pass. Owner approves final58 references, with12 original crops unchanged. Typecheck/lint,494 unit,164 ordinary repository cases including600 stress rounds,4 performance and32 strict-CSP screenshot-enabled React18/19 consumers pass; all58 hashes remain unchanged. Actual Narrator is pending; no new dependency, service call, touch/mobile or extension API. |

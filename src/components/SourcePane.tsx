@@ -1,10 +1,15 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PageSize } from "../internal/geometry";
 import { createPageGeometry, getFitZoom, getRevealOffset, projectRegion } from "../internal/geometry";
 import type { LoadedSource } from "../internal/source";
 import { hasSourcePage, unavailableSourcePageMessage } from "../internal/source";
 import type { CuContent, CuField, CuPoint, CuRegion } from "../internal/types";
-import { displayValue, fieldLabel, formatConfidence } from "../internal/interaction";
+import { fieldLabel } from "../internal/interaction";
+import type { ResultView } from "../internal/resultViews";
+import type { SourceOutline } from "../internal/sourceOverlays";
+import { SourcePopover } from "./SourcePopover";
+import { SourceTableMarkers } from "./SourceTableMarkers";
+import type { SourceTableMarker } from "./SourceTableMarkers";
 
 interface SourcePaneProps {
     source: LoadedSource | null;
@@ -14,6 +19,15 @@ interface SourcePaneProps {
     pageNumber: number;
     active: CuField | null;
     preview: boolean;
+    pinned: CuField | null;
+    pinnedRegions: readonly CuRegion[];
+    pinnedRegionIndex: number;
+    view: ResultView | undefined;
+    outlines: readonly SourceOutline[];
+    previewId: string;
+    onPreviewEnter: () => void;
+    onPreviewLeave: () => void;
+    onDismissPreview: () => void;
     regions: CuRegion[];
     regionIndex: number;
     revealRequest: number | null;
@@ -50,6 +64,17 @@ export function SourcePane(props: SourcePaneProps) {
     const renderKey = `${props.pageNumber}:${zoom}:${rotation}`;
     const dpr = window.devicePixelRatio;
     const ready = Boolean(rendered?.key === renderKey && rendered.source === props.source && rendered.dpr === dpr && !props.loading && !props.error && !renderError);
+    const [layerFrame, setLayerFrame] = useState<{ raster: typeof rendered; size: PageSize } | null>(null);
+    // SVG viewports must initialize after the paper's new CSS dimensions commit.
+    useLayoutEffect(() => {
+        const bounds = ready ? renderedPage.current?.getBoundingClientRect() : undefined;
+        setLayerFrame(bounds && bounds.width > 0 && bounds.height > 0 ?
+            { raster: rendered, size: { width: bounds.width, height: bounds.height } } : null);
+    }, [ready, rendered, available]);
+    const layersReady = ready && layerFrame?.raster === rendered;
+    const projectionSize = useMemo(() => layersReady && layerFrame ?
+        rotation % 180 === 0 ? layerFrame.size : { width: layerFrame.size.height, height: layerFrame.size.width } : null,
+    [layersReady, layerFrame, rotation]);
     const captureControlFocus = (): void => {
         const target = document.activeElement;
         if (target instanceof HTMLElement && (toolbar.current?.contains(target) || regionControls.current?.contains(target))) {
@@ -58,8 +83,8 @@ export function SourcePane(props: SourcePaneProps) {
     };
     useLayoutEffect(() => {
         const previous = previousView.current;
-        if (props.revealRequest !== null && props.revealRequest !== handledReveal.current &&
-            !props.preview && previous?.source === props.source && previous.pageNumber !== props.pageNumber &&
+        if ((props.preview || (props.revealRequest !== null && props.revealRequest !== handledReveal.current)) &&
+            previous?.source === props.source && previous.pageNumber !== props.pageNumber &&
             fit !== null && previous.zoom !== zoom) {
             setManualZoom(previous.zoom);
             setFit(null);
@@ -130,12 +155,36 @@ export function SourcePane(props: SourcePaneProps) {
         return () => controller.abort();
     }, [props.source, props.pageNumber, zoom, rotation, renderKey, dpr, page, props.onRenderReady]);
     const size = ready ? rendered?.size : undefined;
+    const background = useMemo(() => {
+        const outlines: (SourceOutline & { polygon: CuPoint[] })[] = [];
+        const markers: SourceTableMarker[] = [];
+        const cuPage = props.content?.pages.find(value => value.pageNumber === props.pageNumber);
+        if (!ready || !projectionSize || !page || !cuPage) return { outlines, markers, error: null };
+        try {
+            const geometry = createPageGeometry(cuPage, projectionSize, { zoom: 1, rotation, pan: { x: 0, y: 0 } });
+            for (const outline of props.outlines) outlines.push({ ...outline, polygon: projectRegion(outline.region, geometry).polygon });
+            if (["fields", "markdown", "paragraphs", "tables"].includes(props.view ?? "")) {
+                for (const table of props.content?.tables ?? []) {
+                    table.field.regions.forEach((region, index) => {
+                        if (region.pageNumber !== props.pageNumber) return;
+                        const points = projectRegion(region, geometry).polygon;
+                        markers.push({ key: `${table.id}:${index}`, table, polygon: points, point: {
+                            x: Math.min(...points.map(point => point.x)) - 18, y: Math.min(...points.map(point => point.y)),
+                        } });
+                    });
+                }
+            }
+            return { outlines, markers, error: null };
+        } catch (error) {
+            return { outlines: [], markers: [], error: error instanceof Error ? error.message : String(error) };
+        }
+    }, [props.outlines, props.view, props.content, props.pageNumber, ready, page, projectionSize, rotation]);
     let polygons: CuPoint[][] = [];
     const region = props.regions[props.regionIndex];
     const regionPageAvailable = hasSourcePage(props.source?.pages, region?.pageNumber);
     useEffect(() => {
         const request = props.revealRequest;
-        if (request === null || request === handledReveal.current || props.preview || !ready ||
+        if (request === null || request === handledReveal.current || props.preview || !ready || !projectionSize ||
             !region || region.pageNumber !== props.pageNumber || !page) return;
         const viewport = container.current;
         const paper = renderedPage.current;
@@ -144,7 +193,7 @@ export function SourcePane(props: SourcePaneProps) {
         handledReveal.current = request;
         setNavigationError(null);
         try {
-            const geometry = createPageGeometry(cuPage, page, { zoom, rotation, pan: { x: 0, y: 0 } });
+            const geometry = createPageGeometry(cuPage, projectionSize, { zoom: 1, rotation, pan: { x: 0, y: 0 } });
             const regions = props.active?.detailView ? props.regions.filter(value => value.pageNumber === props.pageNumber) : [region];
             const bounds = viewport.getBoundingClientRect();
             const frame = paper.getBoundingClientRect();
@@ -157,14 +206,14 @@ export function SourcePane(props: SourcePaneProps) {
         } catch (error) {
             setNavigationError(error instanceof Error ? error.message : String(error));
         }
-    }, [props.revealRequest, props.preview, props.pageNumber, props.content, props.active, props.regions, ready, region, page, zoom, rotation]);
+    }, [props.revealRequest, props.preview, props.pageNumber, props.content, props.active, props.regions, ready, region, page, projectionSize, rotation]);
     let overlayError: string | null = props.source && region && !regionPageAvailable ?
         unavailableSourcePageMessage(region.pageNumber) : null;
-    if (ready && region?.pageNumber === props.pageNumber && page) {
+    if (ready && projectionSize && region?.pageNumber === props.pageNumber && page) {
         const cuPage = props.content?.pages.find(value => value.pageNumber === props.pageNumber);
         if (cuPage) {
             try {
-                const geometry = createPageGeometry(cuPage, page, { zoom, rotation, pan: { x: 0, y: 0 } });
+                const geometry = createPageGeometry(cuPage, projectionSize, { zoom: 1, rotation, pan: { x: 0, y: 0 } });
                 const visibleRegions = props.active?.detailView ?
                     props.regions.filter(value => value.pageNumber === props.pageNumber) : [region];
                 polygons = visibleRegions.map(value => projectRegion(value, geometry).polygon);
@@ -204,12 +253,14 @@ export function SourcePane(props: SourcePaneProps) {
                     event.key === "ArrowUp" ? { x: 0, y: -40 } : event.key === "ArrowDown" ? { x: 0, y: 40 } : undefined;
                 if (!offset) return;
                 event.preventDefault();
+                props.onDismissPreview();
                 handledReveal.current = props.revealRequest;
                 setPan(current => ({ x: current.x + offset.x, y: current.y + offset.y }));
             }}
             onPointerDown={event => {
                 if (!ready || event.button !== 0) return;
                 event.preventDefault();
+                props.onDismissPreview();
                 handledReveal.current = props.revealRequest;
                 drag.current = { clientX: event.clientX, clientY: event.clientY, pan };
                 event.currentTarget.setPointerCapture(event.pointerId);
@@ -231,44 +282,54 @@ export function SourcePane(props: SourcePaneProps) {
                     transform: `translate(${pan.x}px, ${pan.y}px)`,
                 }}>
                     <canvas ref={canvas} role="img" aria-label={`Rendered source page ${props.pageNumber}`} data-testid="source-canvas" />
-                    {polygons.length > 0 && <svg className="cu-overlay" data-testid="source-overlay" aria-hidden="true"
-                        focusable="false" width={size?.width} height={size?.height}>
+                    {layersReady && background.outlines.length > 0 && <svg key={`outlines:${renderKey}:${props.view}`} className="cu-overlay" data-testid="result-overlay"
+                        data-result-view={props.view} aria-hidden="true" focusable="false" width={layerFrame?.size.width} height={layerFrame?.size.height}>
+                        {background.outlines.map(outline => <polygon key={outline.key} data-outline-id={outline.field.id}
+                            points={outline.polygon.map(point => `${point.x},${point.y}`).join(" ")}
+                            fill={outline.color} fillOpacity={props.view === "fields" ? 0.04 : 0.08}
+                            stroke={outline.color} strokeWidth={1} />)}
+                    </svg>}
+                    {layersReady && polygons.length > 0 && <svg key={`active:${renderKey}`} className="cu-overlay" data-testid="source-overlay" aria-hidden="true"
+                        focusable="false" width={layerFrame?.size.width} height={layerFrame?.size.height}>
                         {polygons.map((polygon, index) => <polygon key={index}
                             points={polygon.map(point => `${point.x},${point.y}`).join(" ")} fill={props.color} fillOpacity={props.preview ? 0.08 : 0.15}
                             stroke={props.color} strokeWidth={2} strokeDasharray={props.preview ? "4 3" : undefined} />)}
                     </svg>}
+                    {layersReady && layerFrame && background.markers.length > 0 &&
+                        <SourceTableMarkers key={`${props.content?.id}:${props.pageNumber}:${props.view}`}
+                            markers={background.markers} size={layerFrame.size} pan={pan}
+                            viewport={container} paper={renderedPage} onPreviewStart={props.onDismissPreview} />}
                 </div>
             </div>
+            {layersReady && props.preview && props.active && polygons[0] && (!props.active.detailView || props.active.detailView === "paragraphs") &&
+                <SourcePopover id={props.previewId} field={props.active} color={props.color} points={polygons[0]}
+                    pan={pan} viewport={container} paper={renderedPage} onEnter={props.onPreviewEnter} onLeave={props.onPreviewLeave} />}
             {(!ready || error) && <div className={`cu-source-state cu-state${error ? " cu-error" : ""}`} role={error ? "alert" : "status"}>
                 <h2>{error ? "Source could not be displayed" : "Loading source..."}</h2>
                 <p>{error ?? "Valid field data stays available."}</p>
             </div>}
         </div>
-        <div className={`cu-preview-dock${props.active && !props.preview && props.regions.length > 1 ? " has-region-controls" : ""}`}>
-            {props.preview && props.active && ready && polygons.length > 0 ?
-                <aside className="cu-preview" aria-label="Field preview">
-                    <strong>{fieldLabel(props.active)}</strong><span title={displayValue(props.active)}>{displayValue(props.active)}</span>
-                    {props.active.confidence !== undefined && <span>{formatConfidence(props.active.confidence)}</span>}
-                </aside> :
-                props.active && !props.preview && props.regions.length > 1 ?
+        <div className={`cu-preview-dock${props.pinned && props.pinnedRegions.length > 1 ? " has-region-controls" : ""}`}>
+            {props.pinned && props.pinnedRegions.length > 1 ?
                     <aside className="cu-preview cu-region-navigation" aria-label="Source region navigation">
-                        <strong>{fieldLabel(props.active)}</strong>
+                        <strong>{fieldLabel(props.pinned)}</strong>
                         <div className="cu-region-controls" ref={regionControls} onClickCapture={captureControlFocus}>
-                            <button type="button" aria-label="Previous source region" disabled={props.regionIndex === 0}
-                                onClick={() => props.onRegion(props.regionIndex - 1)}>‹</button>
-                            <span>Region {props.regionIndex + 1} of {props.regions.length}</span>
+                            <button type="button" aria-label="Previous source region" disabled={props.pinnedRegionIndex === 0}
+                                onClick={() => props.onRegion(props.pinnedRegionIndex - 1)}>‹</button>
+                            <span>Region {props.pinnedRegionIndex + 1} of {props.pinnedRegions.length}</span>
                             <button type="button" aria-label="Next source region"
-                                disabled={props.regionIndex >= props.regions.length - 1}
-                                onClick={() => props.onRegion(props.regionIndex + 1)}>›</button>
+                                disabled={props.pinnedRegionIndex >= props.pinnedRegions.length - 1}
+                                onClick={() => props.onRegion(props.pinnedRegionIndex + 1)}>›</button>
                         </div>
                     </aside> :
                 <span className="cu-preview-hint">{props.active && !region ?
                     `${props.active.name}: no source region` : region && !regionPageAvailable ?
                         props.source ? `Source page ${region.pageNumber} is unavailable in this file.` : "Source is not available for navigation." :
                         props.active && region?.pageNumber !== props.pageNumber ?
-                            `Selected source is on page ${region?.pageNumber}` : "Field preview appears here without covering document text."}</span>}
+                            `Selected source is on page ${region?.pageNumber}` : "Hover a result to preview its source; select to pin it."}</span>}
         </div>
         {overlayError && <div className="cu-inline-error" role="alert">Source region: {overlayError}</div>}
+        {background.error && <div className="cu-inline-error" role="alert">Source outlines: {background.error}</div>}
         {navigationError && <div className="cu-inline-error" role="alert">Source navigation: {navigationError}</div>}
         <footer className="cu-source-toolbar" ref={toolbar} onClickCapture={captureControlFocus}>
             <div className="cu-page-controls">

@@ -397,7 +397,8 @@ function parseTables(raw: unknown, content: CuContent, path: string, issues: CuP
             return [];
         }
         const table: CuTable = {
-            id: `${content.id}/tables/${index}`, raw: entry,
+            ...detailItem(entry, content, `tables/${index}`, tablePath, `Table ${index + 1}`,
+                `Table ${index + 1}`, "tables", issues),
             rowCount: entry.rowCount, columnCount: entry.columnCount, cells: [], rows: [],
             footnotes: footnoteTexts(entry.footnotes, `${tablePath}/footnotes`, issues),
         };

@@ -17,6 +17,11 @@ const CodePane = lazy(() => import("./CodePane").then(module => ({ default: modu
 
 interface FieldsPaneProps {
     result: unknown;
+    view: ResultView | undefined;
+    onViewChange: (view: ResultView) => void;
+    hideMissing: boolean;
+    onHideMissingChange: (hideMissing: boolean) => void;
+    previewId: string | undefined;
     source?: LoadedSource | null | undefined;
     apiVersion?: CuApiVersion | undefined;
     analyzerId?: string | undefined;
@@ -30,7 +35,7 @@ interface FieldsPaneProps {
     contents: CuContent[];
     contentIndex: number;
     onContentChange: (index: number) => void;
-    onHover: (field: CuField) => void;
+    onHover: (field: CuField, navigate?: boolean) => void;
     onLeave: (field: CuField) => void;
     onSelect: (field: CuField) => void;
     onClear: () => void;
@@ -38,23 +43,21 @@ interface FieldsPaneProps {
 
 export function FieldsPane(props: FieldsPaneProps) {
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
-    const [hideMissing, setHideMissing] = useState(true);
-    const [requestedView, setView] = useState<ResultView | undefined>("fields");
+    const { hideMissing, view } = props;
+    const [tableChoice, setTableChoice] = useState<{ tables: CuContent["tables"]; index: number } | null>(null);
     const tabRefs = useRef<Partial<Record<ResultView, HTMLButtonElement | null>>>({});
     const focusedTab = useRef<ResultView | undefined>(undefined);
     const tabBaseId = useId();
     const tabs = availableResultTabs(props.content, props.result, props.apiVersion, props.analyzerId);
-    const activeTab = tabs.find(tab => tab.id === requestedView) ?? tabs[0];
-    const view = activeTab?.id;
+    const activeTab = tabs.find(tab => tab.id === view);
+    const tableIndex = tableChoice?.tables === props.content?.tables ? tableChoice?.index ?? 0 : 0;
     const analyzerId = props.content?.analyzerId ?? props.analyzerId;
     useEffect(() => {
-        if (view === requestedView) return;
-        setView(view);
-        if (focusedTab.current === requestedView && view) tabRefs.current[view]?.focus();
-    }, [view, requestedView]);
+        if (focusedTab.current && focusedTab.current !== view && view) tabRefs.current[view]?.focus();
+    }, [view]);
     const visibleFields = (props.content?.fields ?? []).filter(field => !hideMissing || field.hasValue);
     const selectView = (next: ResultView): void => {
-        setView(next);
+        props.onViewChange(next);
         tabRefs.current[next]?.focus();
     };
     const onTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, current: ResultView): void => {
@@ -83,7 +86,8 @@ export function FieldsPane(props: FieldsPaneProps) {
         const valueId = `${tabBaseId}-value-${encodeURIComponent(field.id)}`;
         const confidenceId = `${tabBaseId}-confidence-${encodeURIComponent(field.id)}`;
         const childrenId = `${tabBaseId}-children-${encodeURIComponent(field.id)}`;
-        const description = [group ? undefined : valueId, field.confidence === undefined ? undefined : confidenceId].filter(Boolean).join(" ") || undefined;
+        const description = props.previewId && props.hovered?.id === field.id && props.sourceReady && region && pageAvailable ?
+            `${props.previewId}-content` : [group ? undefined : valueId, field.confidence === undefined ? undefined : confidenceId].filter(Boolean).join(" ") || undefined;
         return <div className={depth === 0 ? "cu-field-block" : "cu-nested-field-block"} key={field.id}>
             <div
                 className={`cu-field${group ? " is-group" : ""}${depth > 0 ? " is-nested" : ""}${selected ? " is-selected" : ""}${props.hovered?.id === field.id ? " is-hovered" : ""}`}
@@ -93,6 +97,12 @@ export function FieldsPane(props: FieldsPaneProps) {
                 data-field-type={field.type}
                 onMouseEnter={() => props.onHover(field)}
                 onMouseLeave={() => props.onLeave(field)}
+                onFocus={event => {
+                    if (!event.currentTarget.contains(event.relatedTarget)) props.onHover(field, false);
+                }}
+                onBlur={event => {
+                    if (!event.currentTarget.contains(event.relatedTarget)) props.onLeave(field);
+                }}
             >
                 <div className="cu-field-heading">
                     {depth === 0 && <span className="cu-dot" aria-hidden="true"
@@ -192,7 +202,7 @@ export function FieldsPane(props: FieldsPaneProps) {
                         className="cu-hide-missing-switch" disabled={!props.content || Boolean(props.error)}
                         onClick={() => {
                             const next = !hideMissing;
-                            setHideMissing(next);
+                            props.onHideMissingChange(next);
                             if (next && ((props.selected && !props.selected.hasValue) || (props.hovered && !props.hovered.hasValue))) props.onClear();
                         }}
                     ><span /></button>
@@ -209,9 +219,15 @@ export function FieldsPane(props: FieldsPaneProps) {
             {view && view !== "fields" && view !== "markdown" && view !== "result" && <Suspense
                 fallback={<div className="cu-state" role="status">Loading {activeTab?.label} view…</div>}>
                 {view === "paragraphs" && <ParagraphsPane paragraphs={props.content?.paragraphs ?? []}
-                    selected={props.selected} onSelect={props.onSelect} />}
+                    selected={props.selected} hovered={props.hovered} previewId={props.previewId}
+                    onHover={props.onHover} onLeave={props.onLeave} onSelect={props.onSelect} />}
                 {view === "tables" && <TablesPane tables={props.content?.tables ?? []}
-                    selected={props.selected} onSelect={props.onSelect} />}
+                    index={tableIndex} onTableChange={index => {
+                        const table = props.content?.tables?.[index];
+                        if (!table) throw new Error("The chosen table does not exist.");
+                        setTableChoice({ tables: props.content?.tables, index });
+                        props.onSelect(table.field);
+                    }} selected={props.selected} onSelect={props.onSelect} />}
                 {view === "figures" && props.content && <FiguresPane figures={props.content.figures ?? []}
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
                 {view === "signatures" && props.content && <SignaturesPane signatures={props.content.signatures ?? []}

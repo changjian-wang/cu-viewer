@@ -49,7 +49,7 @@ The known tab order is Fields, Markdown, Paragraphs, Tables, Figures, Signatures
 The dedicated result views are implemented:
 
 - **Paragraphs** preserves CU order, optional role and page metadata; mouse/keyboard selection locates its supplied source regions.
-- **Tables** renders the original native grid with headers and row/column spans, not Fields arrays or Markdown HTML. Cells are read-only and source-linked. Invalid or overlapping cells produce explicit errors; layouts above the existing 20,000-value ceiling are reported as a 20,000-position limit rather than truncated.
+- **Tables** uses **Current table** previous/next navigation to display one original native grid, with headers and row/column spans, not Fields arrays or Markdown HTML. Switching tables selects the returned whole-table source; cells remain individually source-linked. Invalid or overlapping cells produce explicit errors; layouts above the existing 20,000-value ceiling are reported as a 20,000-position limit rather than truncated.
 - **Figures/Signatures** show available returned metadata and source-region canvas crops. Rendering uses the loaded source, never an invented image or remote figure URL. Crops do not change the main page/zoom/rotation/pan, and pending work is aborted on tab/source change or unmount. No signed/unsigned state is inferred.
 - **Metadata** preserves returned string key/value order and supports individual value copy.
 - **Code** offers Python/C#/JavaScript samples, syntax highlighting and copy. Analyzer ID/API version come from the result; endpoint/key/file URL remain placeholders. SDK calls are never executed or installed as Viewer dependencies.
@@ -59,6 +59,28 @@ Copy uses the host Clipboard API; unavailable/denied access is a visible error, 
 Invalid detail containers produce visible path-specific warnings while valid fields and the unchanged Result remain inspectable. All detail regions on the selected source page are highlighted; the existing previous/next-region controls navigate the remaining regions/pages. Explicit selection or region navigation reveals an off-screen source region without changing zoom or rotation; an already visible target does not move.
 
 Switching views does not replace or reinitialize the source pane, so page, zoom, rotation, pan, pinned field and selected source-region index remain intact. Selecting another result content is a separate operation and retains its existing page/selection behavior.
+
+### Studio Source Layers and Hover Previews
+
+The active result tab determines the current source-page annotation layer:
+
+- **Fields** shows all returned field polygons on the current page, including grounded descendants in collapsed groups. Colors inherit original root-field order. Hide missing fields also filters these outlines; grouping does not invent a parent rectangle.
+- **Paragraphs** shows returned paragraph polygons in blue; **Tables** shows each returned whole-table polygon in blue rather than synthesizing a table rectangle from cell coordinates.
+- **Figures/Signatures** show their own returned regions. **Markdown** hides the field/paragraph/table polygon layers. Returned table markers remain visible in Fields, Markdown, Paragraphs and Tables.
+- **Result/Metadata/Code** do not retain a different tab's annotations. The pinned selection remains stored and reappears when its view is restored.
+
+Hover a right-side field to emphasize its source and show a source-anchored preview containing the field name, value and optional returned confidence. Hover a paragraph to show only its returned **Content**, not a fabricated field/confidence template. Other current-page outlines remain visible. The corresponding result value/card is emphasized without replacing the pinned selection.
+
+Keyboard focus provides the same preview without navigating to another page merely on focus. **Esc** dismisses it. Pointer previews close after leaving the trigger and popup; focus previews persist while the trigger stays focused. The popup can be hovered and long values scroll inside a viewport-bounded panel. Placement flips/clamps around the target and limits height to available space; off-screen targets do not get an unrelated floating preview. Pan, tab/content/source/result changes cancel stale previews. Pinned multi-region controls remain available during temporary previews.
+
+Vector layers initialize after the rendered paper's CSS frame commits, avoiding fractional-edge raster-cache drift after zoom cycles. Polygon geometry remains the original CU source transformed by the existing shared projection; no coordinates, source data or confidence are changed.
+
+Returned source-table icons are interactive in Fields, Markdown, Paragraphs and Tables:
+
+- Hover/focus displays the original **Rows: N, Columns: M** counts and emphasizes that table's source region with a dotted outline.
+- Click, Enter or Space opens a native modal titled **Table**, with a dimmed backdrop and the readonly original grid. Headers, row/column spans, empty values and explicit invalid-grid errors use the same renderer as the Tables pane; this inspector has no cell selection actions or added source-page labels.
+- The modal does not switch the right-side result tab, replace the pinned field, move the source or change zoom/rotation. X or Esc closes it and returns focus to the invoking icon. Keyboard focus stays within its close/scroll controls while open.
+- Source/result/content/page/view replacement closes a stale inspector. Opening/closing does not fetch or decode the source again, allocate new bitmaps/workers/URLs, call Analyze, or add a public extension API. Only actual returned table regions get icons; no rectangle is inferred from cells.
 
 To bound synchronous client rendering, Markdown is limited to 50,000 characters. JSON is limited to 500,000 serialized characters and 20,000 values. These limits retain substantial headroom over the verified 5,125-character Markdown and 393.5 kB Analyze result while avoiding the measured long tasks above those boundaries, including parallel GitHub-hosted load. Inputs beyond a limit receive an explicit state and remain caller-owned; the component does not truncate or mutate them. Circular, non-finite and other non-JSON values are also reported explicitly. Hosts that need to inspect larger results should provide a separate download or specialized large-document workflow rather than raising these internal limits without measuring the target devices.
 
@@ -88,7 +110,7 @@ The current interaction scope is desktop Chrome/Edge. Touch, mobile-app behavior
 Actual Narrator output is **pending owner walkthrough**. Automated keyboard/focus/ARIA checks are not a substitute for screen-reader acceptance, and task4.3a remains open until this check passes.
 
 1. Enable Narrator with **Win+Ctrl+Enter**. In Chrome and then Edge, open the saved-data demo at <http://127.0.0.1:5173/>.
-2. Check Tab focus, result-tab selection, field expansion/selection and the spoken returned value/confidence. Check paragraph/table/figure descriptions against the displayed data. Use **Narrator+Space** to change scan mode when testing viewport arrow-key pan.
+2. Check Tab focus, result-tab selection, field expansion/selection and the spoken returned value/confidence. Check field/paragraph source previews, Esc dismissal, source-table Rows/Columns tooltips and modal close/focus behavior, current-table navigation and paragraph/table/figure descriptions against the displayed data. Use **Narrator+Space** to change scan mode when testing viewport arrow-key pan.
 3. Check page number/total, invalid-page error, page/region boundaries and stable focus after rendering. Verify source-linked selection keeps zoom/rotation and does not move an already visible target.
 4. Check Code language controls, copying success and an explicitly denied/unavailable clipboard error. Record the browser, action, spoken output and any unexpected focus change.
 

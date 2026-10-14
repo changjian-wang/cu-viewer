@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 const SOURCE_READY_TIMEOUT_MS = 15000;
 
@@ -9,8 +9,9 @@ export async function ready(page: Page): Promise<void> {
     await expect(page.getByRole("alert")).toHaveCount(0);
 }
 
-export async function checkPolygon(page: Page, normalized: { x: number; y: number }[], rotation: number): Promise<void> {
-    const coordinates = await page.getByTestId("source-overlay").locator("polygon").evaluate(element => {
+export async function checkPolygon(page: Page, normalized: { x: number; y: number }[], rotation: number,
+    polygon: Locator = page.getByTestId("source-overlay").locator("polygon")): Promise<void> {
+    const coordinates = await polygon.evaluate(element => {
         if (!(element instanceof SVGPolygonElement)) throw new Error("Expected a rendered SVG polygon.");
         const polygon = element;
         const matrix = polygon.getScreenCTM();

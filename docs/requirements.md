@@ -198,6 +198,12 @@ These views supplement the original Fields/Markdown/JSON requirement:
 
 Do not render disabled result-view placeholders. Recompute applicable tabs when content changes and preserve source page, zoom, rotation, pan and selected field/region across view switches.
 
+### Confirmed Studio Source Interaction Supplement (2026-10-14)
+
+Owner screenshots additionally confirm current-page annotation layers driven by the active tab: colored field sources, blue paragraph/whole-table sources, and no such polygon layer in Markdown. Returned table markers remain available in Fields, Markdown, Paragraphs and Tables.
+
+Right-side field hover shows a source-anchored name/Value/optional Confidence preview; paragraph hover shows only Content. Other current-page outlines remain visible and the pinned item is retained. Left-table icon hover shows Rows/Columns; click opens a readonly modal titled Table with original grid/spans and a close control, not a right-tab switch. Tables also has current-table previous/next navigation. Use keyboard equivalents, Esc dismissal, bounded placement/scrolling and stable modal focus without changing inputs or adding service calls. Do not infer generic left-polygon interactions from these screenshots.
+
 ## P1: Advanced UX and Extensibility
 
 Add or improve:

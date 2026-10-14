@@ -39,7 +39,8 @@ test("real Paragraphs and native Tables preserve the product layout and source-l
     await pane.getByRole("tab", { name: "Tables", exact: true }).click();
     await pane.getByRole("button", { name: "Select Table 1, row 1, column 1", exact: true }).click();
     await ready(page);
-    await expect(pane.getByRole("table")).toHaveCount(9);
+    await expect(pane.getByRole("table")).toHaveCount(1);
+    await expect(pane.locator(".cu-table-navigation")).toContainText("1 of 9");
     await snapshot(page, "detail-tables.png");
 });
 
@@ -86,4 +87,39 @@ test("Python, C# and JavaScript read-only SDK examples retain syntax highlightin
         await expect(pane.getByRole("button", { name: "Copy SDK sample", exact: true })).toBeVisible();
         await snapshot(page, filename);
     }
+});
+
+test("right-side Fields and Paragraphs hover show their distinct Studio source previews", async ({ page }) => {
+    const pane = page.getByRole("region", { name: "Extraction results" });
+    await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
+    await pane.getByRole("button", { name: "BillingAddress", exact: true }).hover();
+    const fieldPreview = page.getByRole("tooltip", { name: "Field preview" });
+    await expect(fieldPreview).toBeVisible();
+    await expect(fieldPreview.locator("dt")).toHaveText(["Value", "Confidence"]);
+    await page.evaluate(async () => { await document.fonts.ready; });
+    await expect(page).toHaveScreenshot("studio-field-popover.png", { fullPage: true });
+    await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
+    await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).hover();
+    const paragraphPreview = page.getByRole("tooltip", { name: "Paragraph preview" });
+    await expect(paragraphPreview).toBeVisible();
+    await expect(paragraphPreview.locator("dt")).toHaveText(["Content"]);
+    await page.evaluate(async () => { await document.fonts.ready; });
+    await expect(page).toHaveScreenshot("studio-paragraph-popover.png", { fullPage: true });
+});
+
+test("source table icons show row/column counts and open the Studio-style readonly Table modal", async ({ page }) => {
+    const marker = page.getByRole("button", { name: "Open Table 3", exact: true });
+    await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
+    await marker.hover();
+    await expect(page.getByRole("tooltip", { name: "Table preview" })).toContainText("Rows:");
+    await expect(page.getByRole("tooltip", { name: "Table preview" })).toContainText("Columns: 2");
+    await page.evaluate(async () => { await document.fonts.ready; });
+    await expect(page).toHaveScreenshot("studio-table-marker-hover.png", { fullPage: true });
+    await marker.click();
+    const dialog = page.getByRole("dialog", { name: "Table", exact: true });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("table")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Close table" })).toBeVisible();
+    await page.evaluate(async () => { await document.fonts.ready; });
+    await expect(page).toHaveScreenshot("studio-table-dialog.png", { fullPage: true });
 });

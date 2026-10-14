@@ -1,40 +1,40 @@
-import { useId } from "react";
-import type { CuField, CuTable, CuTableCell } from "../internal/types";
-import { DetailSourceInfo } from "./DetailSourceInfo";
+import { useLayoutEffect, useRef } from "react";
+import type { CuField, CuTable } from "../internal/types";
+import { TableGrid } from "./TableGrid";
 
-function TableCell({ cell, selected, onSelect }: { cell: CuTableCell; selected: CuField | null; onSelect: (field: CuField) => void }) {
-    const baseId = useId();
-    const Tag = ["rowHeader", "columnHeader", "stubHead"].includes(cell.kind) ? "th" : "td";
-    const scope = cell.kind === "rowHeader" ? "row" : cell.kind === "columnHeader" ? "col" : undefined;
-    return <Tag rowSpan={cell.rowSpan} colSpan={cell.columnSpan} scope={scope} data-cell-kind={cell.kind}
-        aria-label={Tag === "th" ? cell.content || '"" (empty string)' : undefined}>
-        <button type="button" className="cu-table-cell-select" aria-label={`Select ${cell.field.name}`}
-            aria-describedby={`${baseId}-value ${baseId}-source`}
-            aria-pressed={selected?.id === cell.id} data-detail-id={cell.id} onClick={() => onSelect(cell.field)}>
-            <span id={`${baseId}-value`} className="cu-detail-text">{cell.content === "" ? '"" (empty string)' : cell.content}</span>
-            <DetailSourceInfo field={cell.field} id={`${baseId}-source`} />
-        </button>
-    </Tag>;
-}
-
-export function TablesPane({ tables, selected, onSelect }: {
-    tables: readonly CuTable[]; selected: CuField | null; onSelect: (field: CuField) => void;
+export function TablesPane({ tables, index, onTableChange, selected, onSelect }: {
+    tables: readonly CuTable[]; index: number; onTableChange: (index: number) => void;
+    selected: CuField | null; onSelect: (field: CuField) => void;
 }) {
+    const navigation = useRef<HTMLDivElement>(null);
+    const pendingFocus = useRef<HTMLButtonElement | null>(null);
+    useLayoutEffect(() => {
+        const target = pendingFocus.current;
+        pendingFocus.current = null;
+        if (!target || (document.activeElement !== document.body && document.activeElement !== target)) return;
+        const next = target.disabled ? navigation.current?.querySelector<HTMLButtonElement>("button:not(:disabled)") : target;
+        next?.focus({ preventScroll: true });
+    }, [index]);
+    const table = tables[index];
     return <div className="cu-rich-result-scroll cu-tables-pane">
-        {tables.map((table, index) => <section key={table.id} aria-label={`Table ${index + 1}`} className="cu-detail-table">
+        <div className="cu-table-navigation" aria-label="Table navigation" ref={navigation}>
+            <strong>Current table</strong>
+            <button type="button" aria-label="Previous table" disabled={index <= 0} onClick={event => {
+                pendingFocus.current = event.currentTarget;
+                onTableChange(index - 1);
+            }}>‹</button>
+            <span>{index + 1} of {tables.length}</span>
+            <button type="button" aria-label="Next table" disabled={index >= tables.length - 1} onClick={event => {
+                pendingFocus.current = event.currentTarget;
+                onTableChange(index + 1);
+            }}>›</button>
+        </div>
+        {table && <section key={table.id} aria-label={`Table ${index + 1}`} className="cu-detail-table">
             <h2>Table {index + 1}</h2>
-            {table.layoutError ? <div className="cu-inline-error" role="alert">{table.layoutError}</div> :
-                <div className="cu-table-scroll"><table aria-label={`Returned table ${index + 1}`}>
-                    {table.caption !== undefined && <caption>{table.caption}</caption>}
-                    <tbody>{table.rows.map((row, rowIndex) => <tr key={rowIndex}>
-                        {row.map((cell, columnIndex) => cell === undefined ? null : cell === null ?
-                            <td key={columnIndex} aria-label={`No cell returned at row ${rowIndex + 1}, column ${columnIndex + 1}`} /> :
-                            <TableCell key={cell.id} cell={cell} selected={selected} onSelect={onSelect} />)}
-                    </tr>)}</tbody>
-                </table></div>}
+            <TableGrid table={table} label={`Returned table ${index + 1}`} selected={selected} onSelect={onSelect} />
             {table.footnotes.length > 0 && <ul className="cu-detail-notes" aria-label={`Table ${index + 1} footnotes`}>
                 {table.footnotes.map((note, noteIndex) => <li key={noteIndex}>{note}</li>)}
             </ul>}
-        </section>)}
+        </section>}
     </div>;
 }

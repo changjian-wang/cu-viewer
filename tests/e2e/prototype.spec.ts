@@ -33,9 +33,9 @@ test("real PDF, pin/hover, transforms, manual page precedence and local assets",
     await expect(page.getByTestId("source-overlay")).toBeVisible();
     await expect(page.locator(amountRow).getByRole("button", { name: "Amount", exact: true })).toHaveAttribute("aria-pressed", "true");
     await page.locator('[data-field-id="/contents/0/fields/BillingAddress"]').hover();
-    await expect(page.getByRole("complementary", { name: "Field preview" })).toContainText("BillingAddress");
+    await expect(page.getByRole("tooltip", { name: "Field preview" })).toContainText("BillingAddress");
     await leave(page);
-    await expect(page.getByRole("complementary", { name: "Field preview" })).toHaveCount(0);
+    await expect(page.getByRole("tooltip", { name: "Field preview" })).toHaveCount(0);
     const sourcePoints = [[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.3628, 8.2124]] as const;
     const points = sourcePoints.map(([x, y]) => ({ x: x / 8.5, y: y / 11 }));
     for (let rotation = 0; rotation < 360; rotation += 90) {
@@ -259,9 +259,9 @@ test("multiple contents and synthetic scalar values remain truthful and inspecta
     await expect(page.locator('[data-field-id="/contents/0/fields/Null"] .cu-field-value')).toHaveText("null");
     await expect(page.locator('[data-field-id="/contents/0/fields/Empty"] .cu-field-value')).toHaveText('"" (empty string)');
     await page.locator('[data-field-id="/contents/0/fields/Zero"]').hover();
-    await expect(page.getByRole("complementary", { name: "Field preview" }).locator("span").last()).toHaveText("0.00%");
+    await expect(page.getByRole("tooltip", { name: "Field preview" }).locator("dd").last()).toHaveText("0.00%");
     await page.locator('[data-field-id="/contents/0/fields/Empty"]').hover();
-    await expect(page.getByRole("complementary", { name: "Field preview" }).locator("span")).toHaveCount(1);
+    await expect(page.getByRole("tooltip", { name: "Field preview" }).locator("dt")).toHaveText(["Value"]);
     await expect(page.locator('[data-field-id="/contents/0/fields/Empty"] .cu-confidence')).toHaveCount(0);
     await leave(page);
     await expect(page.locator('[data-field-id="/contents/0/fields/Missing"]')).toHaveCount(0);
@@ -359,7 +359,7 @@ test("Fields matches Studio grouping, icons, badges and spacing without altering
     await expect(country.locator(".cu-dot")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 
     await address.hover();
-    await expect(page.getByRole("complementary", { name: "Field preview" }).locator("span").last()).toHaveText("31.70%");
+    await expect(page.getByRole("tooltip", { name: "Field preview" }).locator("dd").last()).toHaveText("31.70%");
     await leave(page);
     await group.hover();
     await expect(group).toHaveClass(/is-hovered/);

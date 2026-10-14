@@ -20,7 +20,7 @@ describe("typed result details", () => {
         const input = detailResult({
             paragraphs: [null, { content: "Returned paragraph", role: "title", source: "D(1,10,20,20,10);D(2,30,40,10,20)" }],
             tables: [{
-                rowCount: 2, columnCount: 2,
+                rowCount: 2, columnCount: 2, source: "D(1,5,10,50,40)",
                 cells: [
                     { rowIndex: 0, columnIndex: 0, columnSpan: 2, kind: "columnHeader", content: "Heading" },
                     { rowIndex: 1, columnIndex: 0, content: "Left", source: "D(1,10,20,20,10)" },
@@ -42,6 +42,8 @@ describe("typed result details", () => {
         });
         expect(paragraph?.field.regions.map(region => region.pageNumber)).toEqual([1, 2]);
         const table = content.tables?.[0];
+        expect(table?.field).toMatchObject({ id: "/contents/0/tables/0", detailView: "tables", source: "D(1,5,10,50,40)" });
+        expect(table?.field.regions[0]?.polygon).toEqual([{ x: 5, y: 10 }, { x: 55, y: 10 }, { x: 55, y: 50 }, { x: 5, y: 50 }]);
         expect(table?.rows[0]?.[0]?.columnSpan).toBe(2);
         expect(table?.rows[0]?.[1]).toBeUndefined();
         expect(table?.rows[1]?.map(cell => cell?.content)).toEqual(["Left", "Right"]);
@@ -49,7 +51,7 @@ describe("typed result details", () => {
         expect(table?.footnotes).toEqual(["Returned footnote"]);
         expect(content.figures?.[0]).toMatchObject({ figureId: "figure-service-id", caption: "Figure caption", description: "Figure description" });
         expect(content.signatures?.[0]).toMatchObject({ signatureId: "signature-service-id", role: "signature" });
-        expect(selectableFields(content)).toHaveLength(7);
+        expect(selectableFields(content)).toHaveLength(8);
         expect(model.issues.map(issue => issue.path)).toEqual(["/result/contents/0/paragraphs/0"]);
         expect(JSON.stringify(input)).toBe(before);
     });

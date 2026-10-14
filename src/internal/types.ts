@@ -55,9 +55,7 @@ export interface CuTableCell extends CuDetailItem {
     columnSpan: number;
 }
 
-export interface CuTable {
-    id: string;
-    raw: CuDetailRecord;
+export interface CuTable extends CuDetailItem {
     rowCount: number;
     columnCount: number;
     cells: CuTableCell[];

@@ -132,13 +132,13 @@ test("hover preview and pinned selection retain the approved layout, colors and 
     const address = page.locator('[data-field-id="/contents/0/fields/BillingAddress"]');
     await address.hover();
     await expect(address).toHaveClass(/is-hovered/);
-    await expect(page.getByRole("complementary", { name: "Field preview" }).locator("span").last()).toHaveText("31.70%");
+    await expect(page.getByRole("tooltip", { name: "Field preview" }).locator("dd").last()).toHaveText("31.70%");
     await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveAttribute("stroke-dasharray", "4 3");
     await snapshot(page, "pdf-hover.png");
 
     await neutral(page);
     await pinAmount(page);
-    await expect(page.getByRole("complementary", { name: "Field preview" })).toHaveCount(0);
+    await expect(page.getByRole("tooltip", { name: "Field preview" })).toHaveCount(0);
     await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveAttribute("stroke", "#d13438");
     await snapshot(page, "pdf-pinned.png");
 });
