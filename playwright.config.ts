@@ -10,7 +10,7 @@ if (candidateRoot && (!isAbsolute(candidateRoot) || candidateRelative === "" ||
 
 export default defineConfig({
     testDir: "./tests/e2e",
-    testIgnore: ["package-host.spec.ts", "performance.spec.ts"],
+    testIgnore: ["package-host.spec.ts", "performance.spec.ts", "cli-host.spec.ts"],
     fullyParallel: false,
     workers: 1,
     timeout: 60000,

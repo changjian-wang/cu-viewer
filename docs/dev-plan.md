@@ -1,93 +1,95 @@
 # 开发计划
 
-更新：2026-10-15。本文是唯一任务和进度入口；“做什么”见[需求](requirements.md)，“怎么运行/嵌入及实际限制”见[README](../README.md)。保留现有任务编号和直接依赖，不再重复维护路线图、双语计划或逐批日志。
+更新：2026-10-15。本项目只交付供 cu-cli 使用的 Viewer；当前范围见[需求](requirements.md)，运行/嵌入说明见 [README](../README.md)。
 
-## 当前结论
+## 当前状态
 
-- 核心源渲染、字段/结果视图、桌面交互、来源框/浮层/表格检查和常驻黄色OCR层已实现并有本地技术证据。
-- 下一步是 **4.3b：确认必要宿主扩展API范围** 和 **4.4：MCP集成设计**；本次文档整理不实施它们。
-- Narrator真实走查未执行，只是补充验证，不阻塞4.3b/4.4，也不以ARIA自动化冒称读屏通过。
-- 外部CLI依然最后；触摸、截断的Result-pane尾项及TIFF/DI按原约定延期。公开发布/HEVC决策与私有技术完成分开。
+Viewer 主体及 5.1/5.2 CLI 接入已在工作区实现并完成下列本地验证，尚未提交、推送或发布。CLI 修改位于 `feat/cu-result-viewer`，不在原工作分支上。
 
-## 范围解释
+已实现：
 
-原文、后续确认、实现策略和工程方法不得混为一谈。七个扩展点是“such as”示例；具体API先确认再实施。容量、URL/CSP/远程图片策略及测试数值属于当前实现/工程选择，详见[实现限制](../README.md#implementation-limits)，不自动变成产品SLA、新功能或额外发布门槛。
+- 原始 CU JSON 解析、字段/多来源区域及明确错误提示。
+- PDF/所需图片格式、页导航、缩放/旋转/平移及资源取消/释放。
+- 条件动态结果视图、只读表格/裁剪/复制和安全 Markdown/JSON/Code。
+- 来源框、字段/段落浮层、表格图标与模态、常驻黄色 OCR 层，以及键盘/焦点/按需定位。
+- 独立开发演示、私有组件打包、本地资源交付和独立安装包验证。
 
-当前目标为桌面Chrome/Edge、React 18/19、Vite 8；其他平台/bundler是未验证，不自动列成剩余需求。代表性PDF、等价编码和许可HEIF依据已被接受；不追加逐格式服务调用、穷举矩阵、agent登录或源文件硬时间/峰值内存预算。
+## CLI 接入状态
 
-## 任务清单
+沿用 CLI 任务编号：
 
-“完成”指约定技术范围及已有证据，不表示公开发布或所有未测试场景通过。下面的前置关系是原有直接依赖，没有新增Narrator门槛。
-
-| 任务 | 优先级 | 当前范围与状态 | 直接前置 |
+| 任务 | 状态 | 交付与验收 | 前置 |
 | --- | --- | --- | --- |
-| `1.1` | P0 | 完成：真实输入/样本、Studio行为依据及约定。 | — |
-| `1.2` | P0 | 完成：渲染/解码方案评估与选型。 | 1.1 |
-| `2.1` | P0 | 完成：工具链及source/result公开输入。 | 1.1, 1.2 |
-| `2.2` | P0 | 完成：原始CU JSON解析与显式错误/警告。 | 2.1 |
-| `2.3` | P0 | 完成：共享几何与非法定位校验。 | 2.2 |
-| `2.4` | P0 | 完成：PDF适配、页信息、本地资源、取消/释放。 | 2.1 |
-| `2.5` | P0 | 完成：必需图片格式及已批准代表性方向/错误/生命周期验证。 | 2.4 |
-| `2.6` | P0 | 完成：字段、导航、选择与来源叠加层联动。 | 2.2, 2.3, 2.4, 2.5 |
-| `3.1` | P0 | 完成：控件、错误恢复、输入替换/卸载和资源归属。 | 2.6 |
-| `3.2` | P0 | 完成：独立保存源文件/JSON演示及浏览器回归。 | 3.1 |
-| `3.3` | P0 | 完成：私有打包、使用说明、本地资源、独立使用方和已有CI配置/历史运行。 | 3.2 |
-| `4.1` | P1 | 完成：结构化字段、稳定身份和多区域导航。 | 3.3 |
-| `4.2` | P1 | 完成：安全Markdown与原始交互JSON。 | 3.3, 4.1 |
-| `4.2a` | P1 | 完成：条件动态Studio结果视图、原文裁剪/定位、Metadata与Code样例。 | 4.1, 4.2 |
-| `4.3a` | P1 | 实现/本地自动化已验证：桌面键盘/焦点/ARIA、双栏滚动、按需定位及确认的Studio来源/表格/OCR交互；非读屏认证。 | 4.1, 4.2, 4.2a |
-| `4.3b` | P1 | 待开展：先确认有界宿主扩展范围，再实施选定可选API。 | 4.1, 4.2, 4.2a |
-| `4.4` | P1 | 待开展：MCP Apps/MCP UI/聊天宿主集成设计与评审，仅文档。 | 3.3 |
-| `5.1` | P0 | 后置：Viewer独立完成后，与外部CLI负责人确认交接契约。 | 3.3, 4.2a, 4.3a, 4.3b, 4.4 |
-| `5.2` | P0 | 阻塞于5.1及外部仓库/负责人/文件范围确认；本仓库未实现CLI查看命令。 | 3.3, 5.1 |
-| `6.1` | P2 | 独立待定：TIFF/多页TIFF样本、解码和页导航调研，不阻塞主线。 | 3.3 |
-| `6.2` | P2 | 独立待定：真实DI版本/字段/几何兼容调研，不继承未验证CU假设。 | 3.3 |
+| `5.1`：确认 CLI 交接 | 完成 | 已核对实际代码，确认下述命令、数据、资源、服务生命周期与修改边界。 | 复用已实现的 Viewer。 |
+| `5.2`：实施 CLI 接入 | 本地实现/安装包验证完成 | 两个入口、只读服务、静态分发和 Chrome/Edge 检查已通过；分析调用使用离线替身，没有新增真实 CU 调用。 | 5.1。 |
 
-## 剩余任务的验收边界
+现有 `source` / `result` 输入可满足交接，不需要先增加组件公开 API。实现发现具体缺口时再补最小必要能力。
 
-| 任务 | 交付及验收 |
+<a id="cli-handoff"></a>
+## 5.1 CLI 交接契约
+
+### 仓库与修改边界
+
+- 目标为 `C:\github\content-understanding-toolkit\cu-cli`，对应 [Azure/content-understanding-toolkit](https://github.com/Azure/content-understanding-toolkit)。
+- 已从核实过的 `origin/main`（`b3ff066960d6b517b6f1b4ee12201376369279a3`）创建并切到 `feat/cu-result-viewer`，仅在该新分支实施 CLI 改动，不改原工作分支或主分支。
+- 已核对独立 `cu` / `cu-cli` 的[注册入口](https://github.com/Azure/content-understanding-toolkit/blob/b3ff066960d6b517b6f1b4ee12201376369279a3/cu-cli/packages/standalone/src/cu_cli/cli.py)、[分析适配器](https://github.com/Azure/content-understanding-toolkit/blob/b3ff066960d6b517b6f1b4ee12201376369279a3/cu-cli/packages/standalone/src/cu_cli/commands/analyze.py)及[输出序列化](https://github.com/Azure/content-understanding-toolkit/blob/b3ff066960d6b517b6f1b4ee12201376369279a3/cu-cli/packages/standalone/src/cu_cli/output.py)；新查看参数只在独立前端实现，成功结果在终端格式化前即可交付。
+- Viewer 仓库增加薄浏览器宿主及静态构建；CLI 的独立前端负责参数、本地服务、包资源及相应测试/说明。不改共享分析引擎或其他命令前端，不把浏览器服务放进组件。
+
+### 命令语义
+
+| 用法 | 行为 |
 | --- | --- |
-| 4.3b | 从字段选择/渲染、Viewer事件、工具栏/布局、初始页码/缩放/Fit等例子选定必要范围。公开类型稳定、内部CU/PDF.js不外泄；省略新配置保持当前默认行为，选定能力在独立宿主及类型/组件/浏览器检查中可用。不为七个例子自动发明API或推断Result-pane尾项。 |
-| 4.4 | 说明原始source/result交付、载荷/资源/CSP、加载/错误、生命周期和信任边界；以代表性宿主场景做设计评审，不要求实现MCP runtime/server。 |
-| 5.1 | 确认外部仓库/负责人、源文件/原始JSON/保存结果交接、loopback文件访问边界、资产及浏览器/服务生命周期；不将CLI职责放进组件。 |
-| 5.2 | 按5.1在实际CLI仓库实施新分析/保存结果查看；保存查看零CU调用，启动/关闭/错误/文件边界符合契约，独立Viewer不回归。不发明未确认CLI参数。 |
-| 6.1/6.2 | 交付独立样本与范围计划，获单独批准后才创建后续实现工作。 |
+| `cu analyze sample.pdf --view` | 按现有流程分析，成功后将源文件和完整结果交给 Viewer，不为查看再分析一次。 |
+| `cu analyze sample.pdf --view --result sample.result.json` | 只查看已有源文件和 JSON，在加载 profile、认证或创建服务客户端之前走本地路径，零 CU 调用。 |
+| 不带 `--view` | 不启动浏览器或本地服务，保持现有分析、批处理、URL、输出和退出行为。 |
 
-G0—G4只是执行标记，不是新的产品功能：G0为依据/决策，G1为源结果闭环，G2为私有P0库/演示，G3为约定Viewer P1（剩4.3b/4.4），G4为最终外部CLI交付。Viewer独立完成要求G2+G3，不依赖CLI；公开发布审批不混进私有G2。
+首版每次查看一份本地 PDF/图片，不接受目录、批量、远程 URL 或 `--dry-run` 组合，并在分析前报错。`--result` 必须与 `--view` 同用，不能再附带分析/输出选项。文件不可读或 JSON 无效时明确报错，绝不回退到分析或覆盖输入。分析后查看保留现有 `--json`、Markdown、输出文件和报告；状态和打开 URL 写 stderr，不污染 stdout。
+
+### 数据与资源交付
+
+- CLI 只向会话交付选定源文件和对应完整 JSON；页面将同源 source URL 和解析后的原始对象传给现有组件。保留 inner result/envelope、未知属性、置信度和来源，不扁平化、不编造版本或服务结果。
+- 分析后查看复用刚完成的结果，保存结果查看直接读取文件；两者均不要求宿主生成 Viewer 专用 schema。源文件/保存 JSON 由用户配对，不能宣称自动证明二者匹配。
+- Viewer 构建产物包含页面、JS/CSS、异步 chunk、PDF Worker/字体/CMap/ICC/WASM、HEIF Worker/解码器和许可通知。CLI 将完整产物作为 Python 包资源分发，运行时不执行 npm、Node 或 Vite。
+- 使用当前资源插件及相对资产布局构建，资源与数据同源，保持已验证的 MIME/CSP 要求；不把带测试样本的演示应用作为 CLI 交付物。
+
+### 本地服务生命周期
+
+- Python 服务只绑定 `127.0.0.1` 的动态空闲端口，静态资源和数据使用不可猜测的会话 URL；不占用演示端口，不开放任意文件路径或目录列表。
+- 仅暴露选定源文件、结果和随包资源；校验 Host/Origin，不开放跨源读取，数据响应禁缓存。密钥、令牌、profile 和服务连接信息不交给浏览器。
+- 监听就绪后再打开浏览器并输出可复制 URL；浏览器无法自动打开时明确提示，服务继续供手动访问。绑定/资源/文件失败明确报错，不伪装启动成功，不重新分析。
+- 前台保持服务，Ctrl+C 关闭监听、句柄和临时资源；原始输入及已写分析结果保留。关闭浏览器标签页不自动退出服务。
+
+### 5.2 验收
+
+- 不带 `--view` 的现有测试不回归，stdout/文件/报告不变。
+- 用离线替身验证分析后打开只执行原本的一次分析；已有结果路径不加载 profile、不创建 CU 客户端、不调用服务，非法组合/文件/JSON 不会触发付费调用。
+- 从实际 Python 安装包打开页面，验证本地源文件和原始 JSON、懒加载 chunk、PDF/HEIF 资源及 CSP，无运行时 Node 或仓库路径依赖。
+- 验证会话/路径/跨源边界、就绪后打开、打开失败的明确提示，以及 Ctrl+C 后端口和资源释放。
 
 <a id="rendering-and-evidence"></a>
-## 渲染选型与依据
+## 实现与验证依据
 
-| 决策 | 当前实现与必要依据 |
-| --- | --- |
-| PDF | `pdfjs-dist 6.3.289`，内部适配器及共享投影；按CU报告页尺寸映射到真实渲染帧，不硬用inch×72假设。PDF.js类型私有，Worker/字体/CMap/WASM/ICC随包交付。 |
-| 高亮库 | 已评估react-pdf-highlighter及extended；其较旧PDF.js、标注契约/React peer增加适配成本，因此采用直接适配，不能把文档评估说成两库均经浏览器验证。 |
-| OCR-Form-Tools | 借鉴源渲染、图层和坐标模式，不继承旧Redux/Electron/服务/DI应用架构。 |
-| 图片/HEIF | 原生公共图片适配；HEIF为固定`heic-rs 0.1.4` MIT OR Apache-2.0 WASM Worker。许可/SBOM、源码锁与重建说明留在[codec目录](../codecs/heic-rs-wasm/README.md)和[资产目录](../assets/heif)。早期libheif/LGPL实验不分发，不是现有依赖或待办。 |
-| 来源/文字 | CU D(...)区域走共享校验和真实CSS帧投影；页级words黄底与Tab框、交互强调分层。2026-10-15公开[Studio主程序](https://contentunderstanding.ai.azure.com/assets/main-DRBDOXIp.js)及[可视化模块](https://contentunderstanding.ai.azure.com/assets/visual-sdk-AyAWovJX.js)确认Word层独立于fields/confidence；没有复制Studio代码进包。 |
-| 富结果 | React Markdown/GFM、HTML清理、成熟JSON树及安全text/span语法高亮；依赖通知见[第三方通知](../THIRD-PARTY-NOTICES.txt)。超限和安全/联网策略见README，不在需求中冒充原始限制。 |
-| 数据 | [样本清单](../tests/fixtures/manifest.json)保留来源、许可、哈希、版本、真实/派生/合成区分及历史测量；不包含新凭据/客户数据，不将合成输出当真实服务结果。 |
+PDF 使用 PDF.js 私有适配器，按 CU 页尺寸与真实渲染帧共享投影；HEIF 使用 `heic-rs 0.1.4` WASM Worker。文字基础层、Tab 来源框和交互强调分层。资源/CSP/限制及第三方通知见 [README](../README.md)，样本来源、许可、哈希及历史测量见[样本清单](../tests/fixtures/manifest.json)。
 
 <a id="verification"></a>
 ## 已记录的验证
 
-最近功能验证对应 `8eb04a6`，记录日期2026-10-15；不是本次文档合并重新运行的结果。
+下面的 Viewer 历史验证对应 `8eb04a6`，记录日期 2026-10-15；不是本次 CLI 检查重新运行的结果。
 
 | 检查 | 已记录结果 |
 | --- | --- |
-| 类型检查、lint、单元 | 通过；511个单元场景。 |
-| 普通仓库浏览器 | Chrome/Edge共178场景通过，含600轮PDF/PNG变换/替换/取消压力。 |
-| 生产性能 | 4场景在隔离运行中通过现有阈值；不是任意宿主性能保证。 |
-| 独立安装包 | React18.3.1/19.3.0、开发/生产、Chrome/Edge、严格CSP，共32场景通过。 |
-| 视觉 | 60张获批图，普通零差异回归后哈希不变；24张旧图含12张面板裁图未改；空结果图另经批准等待JSON完成态。 |
-| 环境 | Windows；Chrome155.0.8059.40、Edge155.0.4283.45、Vite8.3.2、TypeScript6.0.3。 |
-| 远程CI | [历史push](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38370248168)及[完整手动运行](https://github.com/changjian-wang/cu-result-viewer/actions/runs/38365385502)成功，不等于最新提交已推送或在远程验证。 |
-| 人工读屏 | Narrator尚未执行；[可选清单](../README.md#supplementary-validation)保留为非阻塞补充，不宣称通过。 |
+| 类型检查、lint、单元 | 通过；511 个单元场景。 |
+| 普通仓库浏览器 | Chrome/Edge 共 178 场景通过，含 600 轮 PDF/PNG 压力。 |
+| 生产性能 | 隔离运行 4 场景通过现有阈值。 |
+| 独立安装包 | React 18.3.1/19.3.0、开发/生产、Chrome/Edge、严格 CSP，共 32 场景通过。 |
+| 视觉 | 60 张获批图，普通零差异回归后哈希不变。 |
+| 环境 | Windows；Chrome 155.0.8059.40、Edge 155.0.4283.45、Vite 8.3.2、TypeScript 6.0.3。 |
 
-既有测试保留，按变更范围选择[验证命令](../README.md#validation)。1px、DPR1/2、100/600轮、零差异和性能数字是工程回归策略，不要求额外穷举真实样本/codec、agent登录或源文件硬时间/峰值内存预算。后续发现具体缺陷再补针对性覆盖。
+本次 CLI 接入另验证了：
 
-## 分发与回退
+- 已构建并安装真实 `cu-cli` / `cu-cli-core` wheel；230 个页面/资源清单项与 SHA-256 完全匹配，不包含样本或 source map。
+- Chrome/Edge 共 12 场景：PDF、PNG、JPEG、BMP、HEIF、按需 chunk/Worker/CSP、来源定位及端口释放。Python 服务子进程没有 Node 可执行文件。
+- 已有结果路径禁止加载 profile 或创建服务客户端；分析后打开用离线替身验证只调用一次分析，终端/文件 JSON 与 Markdown 保持原行为。
+- 240 个相关 Python pytest、ruff/mypy、前端类型/lint 和共享 SDK 边界检查通过；Viewer 的 511 个单元测试本轮也通过。没有真实服务或计费调用，未冒称全量云端集成测试通过。
 
-主项目MIT，第三方资产和样本保留各自许可；不把历史LGPL解码器或未确认Microsoft版权放进当前分发。私有技术完成不授予公开发布许可，公开HEVC/项目发布决策也不阻塞日常开发。
-
-代码/包更新可独立回退对应提交或固定到上一私有包，保留原始source/result与无关工作。文档合并不改运行时、容量、测试阈值或截图；包仅将已合并的使用说明入口改为根README。历史决策和逐批过程保留在Git，不另建归档文档。
+后续按实际改动选择[验证命令](../README.md#validation)，不新增无关门槛。

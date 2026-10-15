@@ -1,14 +1,14 @@
 # CU Result Viewer
 
-可复用的 React/TypeScript 组件，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。
+供 cu-cli 使用的 React/TypeScript 结果查看组件，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。
 
 组件只负责渲染：不调用 Analyze、不认证、不上传、不管理 analyzer 或轮询 LRO，也不依赖 CU SDK。宿主负责取得源文件和分析结果。
 
 ## 文档入口
 
 - **本文**：启动、使用、资源交付、当前限制和验证命令。
-- [需求](docs/requirements.md)：原始范围及后续明确确认的补充。
-- [开发计划](docs/dev-plan.md)：唯一任务清单、当前状态、依赖和已记录证据。
+- [需求](docs/requirements.md)：当前 cu-cli Viewer 的交付范围和已确认行为。
+- [开发计划](docs/dev-plan.md)：当前状态、CLI 接入工作和已记录证据。
 - [截图预览](docs/prototype/index.html#visual-baselines)：当前获批图片和历史静态稿；不是可操作的 Viewer。
 
 <a id="run-the-prototype"></a>
@@ -22,6 +22,19 @@ npm run dev
 ```
 
 打开 <http://127.0.0.1:5173/>。选择 PDF／Receipt PNG 使用真实配对样本，或分别选择本地源文件和保存的 JSON；不产生新的 CU 调用。文件选择属于演示宿主，不是组件公开 API。
+
+该页面由[演示宿主](demo)启动，直接使用[组件源码](src)。它用于开发和调试，实际 CLI 接入见[开发计划](docs/dev-plan.md)。
+
+## cu-cli 入口
+
+工作区内的 CLI 接入分支 `feat/cu-result-viewer` 已实现以下用法；需要安装该分支构建的 Python 包，不代表已发布的 CLI 版本具有这些选项：
+
+```powershell name="cu-cli 查看结果"
+cu analyze sample.pdf --view
+cu analyze sample.pdf --view --result sample.result.json
+```
+
+第一种按原有流程分析，完成后打开 Viewer；第二种只读取已有源文件和 JSON，跳过分析、登录和服务调用。不带 `--view` 时保持现有 CLI 行为，不自动打开。首版每次查看一份本地 PDF/图片，服务前台运行至 Ctrl+C；关闭标签页不会结束服务。资源分发和限制见 [CLI 交接契约](docs/dev-plan.md#cli-handoff)。
 
 <a id="embedding"></a>
 ## 嵌入 React
@@ -60,7 +73,7 @@ export function AnalyzeResultView(props: ContentUnderstandingResultViewerProps) 
 
 ### Vite 资源交付
 
-当前验证的构建宿主为 Vite 8；其他 bundler 未验证，不因此自动增加支持承诺。宿主配置：
+已验证的构建宿主为 Vite 8，其他构建链未验证。宿主配置：
 
 ```ts name="宿主 vite.config.ts"
 import { defineConfig } from "vite";
@@ -105,12 +118,12 @@ export default defineConfig({
 <a id="implementation-limits"></a>
 ## 实现限制与安全策略
 
-以下是**现有代码行为，不是原文规定的数值或用户 SLA**；这次文档合并不修改它们：
+以下是当前实现边界，不是产品 SLA：
 
-- Markdown 同步渲染上限 50,000 字符；JSON 为 500,000 序列化字符／20,000 值，Tables 网格为 20,000 位置。超限明确提示，不截断或修改调用方数据；“合理的大结果”仍需按实际需求评估。
-- 当前 Markdown 远程图片被替换为省略说明，不发起请求。这是实现的安全/联网策略，不是原文禁止所有远程图片。
+- Markdown 同步渲染上限 50,000 字符；JSON 为 500,000 序列化字符／20,000 值，Tables 网格为 20,000 位置。超限明确提示，不截断或修改调用方数据。
+- 当前 Markdown 远程图片被替换为省略说明，不发起请求。
 - 剪贴板使用宿主 Clipboard API，权限不足或不可用明确报错，不伪装复制成功；高亮通过安全 text/span 渲染，无 HTML 注入或 JavaScript eval。
-- Worker、bitmap、URL 和画布按归属取消/清理；HEIF 解码有 30 秒截止保护，不代表解码延迟 SLA。HEIF 图像序列、AVIF 当前不支持，TIFF/DI 留在 P2。
+- Worker、bitmap、URL 和画布按归属取消/清理；HEIF 解码有 30 秒截止保护，不代表解码延迟 SLA。HEIF 图像序列、AVIF 当前不支持。
 
 ### 宿主 CSP
 
@@ -146,17 +159,29 @@ npm run verify:performance
 npm run verify:consumer
 ```
 
-独立验证器构建 tgz，在仓库外安装 React 18/19 各自依赖并检查开发/生产、类型、资源和 CSP，不使用源码别名或共享 node_modules。默认 E2E 不包含该独立矩阵。性能 runner 的 1,000ms 冷切换／350ms 温切换／100ms Long Task／64MiB 增长是工程回归阈值，不是产品 SLA。几何 1 CSS px、压力轮数及截图阈值同样属于测试方法。
+独立验证器构建 tgz，在仓库外安装 React 18/19 各自依赖并检查开发/生产、类型、资源和 CSP，不使用源码别名或共享 node_modules。默认 E2E 不包含该独立矩阵。几何、性能和压力测试沿用现有工程阈值，不将其扩展为产品 SLA。
+
+### 更新 CLI 随包页面
+
+在本仓库根目录执行，导出路径指向工作区中的 CLI：
+
+```powershell name="构建并导出CLI静态资源"
+npm run export:cli -- C:\github\content-understanding-toolkit\cu-cli\packages\standalone\src\cu_cli\resources\viewer
+```
+
+生产入口是 [cli](cli)，不带演示样本。导出清单包含资源哈希；更新只覆盖上次导出的文件，检测到人工修改或未知文件冲突时明确停止。随后在 CLI 仓库构建 Python wheel 即可分发，运行时不启动 Vite。
+
+`npm run test:cli` 是独立的 Chrome/Edge 安装包检查，不纳入默认演示 E2E。运行前设置 `CU_CLI_PYTHON` 为测试 Python 路径、`CU_CLI_PACKAGE_ROOT` 为安装了本地 `cu-cli` 与 `cu-cli-core` wheel 的独立目录；测试要求真实安装包，不使用源码别名，并从 Python 子进程 PATH 排除 Node。
 
 截图用于保持后续批准的**本项目原型**，不是逐像素复制 Studio。普通运行不自动更新参考；外观意图变化先评审。样本来源/哈希及历史测量留在[样本清单](tests/fixtures/manifest.json)，当前任务与证据只维护在[开发计划](docs/dev-plan.md#verification)。
 
 <a id="supplementary-validation"></a>
-### 补充读屏验证
+### 验证边界
 
-真实 Windows Narrator 走查尚未执行，不以 ARIA 自动化冒称通过，也不阻塞扩展/MCP设计。需要补充时可用 Win+Ctrl+Enter 开启，在 Chrome/Edge 核对标签、字段值/置信度、页码错误、表格模态和焦点；Narrator+Space 切换扫描模式后检查方向键平移。若将其作为发布标准，应单独确认。
+现有自动化覆盖键盘、焦点和 ARIA 行为；实际读屏未经验证，不宣称已通过。
 
 ## 许可证与分发
 
-主项目为 [MIT](LICENSE)。PDF.js 和其他前端依赖的通知见 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)；当前 HEIF 为 MIT OR Apache-2.0 的 `heic-rs` WASM，不分发历史 LGPL 候选。[codec 构建说明](codecs/heic-rs-wasm/README.md)、[包内许可/SBOM](assets/heif)及[样本原许可](tests/fixtures/LICENSE.txt)保留在各自目录。
+主项目为 [MIT](LICENSE)。PDF.js 和其他前端依赖的通知见 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)；当前 HEIF 为 MIT OR Apache-2.0 的 `heic-rs` WASM。[codec 构建说明](codecs/heic-rs-wasm/README.md)、[包内许可/SBOM](assets/heif)及[样本原许可](tests/fixtures/LICENSE.txt)保留在各自目录。
 
-正常 npm 构建不需要 Rust；重建 codec 使用 `npm run verify:heif-codec`。公开发布/HEVC产品与专利决策独立于私有技术验证；当前没有 Microsoft 公开发布批准，不自动发布或推送。
+正常 npm 构建不需要 Rust；重建 codec 使用 `npm run verify:heif-codec`。分发时保留第三方许可和通知；包当前为私有候选，不自动公开发布。
