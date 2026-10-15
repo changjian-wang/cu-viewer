@@ -1,4 +1,4 @@
-import type { CuContent, CuDetailItem, CuDetailRecord, CuDetailView, CuField, CuFigure, CuPage, CuParagraph, CuParseIssue, CuRegion, CuResultModel, CuSignature, CuTable, CuTableCell } from "./types";
+import type { CuContent, CuDetailItem, CuDetailRecord, CuDetailView, CuField, CuFigure, CuPage, CuParagraph, CuParseIssue, CuRegion, CuResultModel, CuSignature, CuTable, CuTableCell, CuWord } from "./types";
 import { GeometryError, validateRegion } from "./geometry";
 import { MAX_JSON_VALUES } from "./resultLimits";
 
@@ -149,7 +149,7 @@ function parsePages(raw: unknown, path: string, issues: CuParseIssue[]): CuPage[
 function parseRegion(
     source: string,
     content: CuContent,
-    pages: Map<number, CuPage>,
+    pages: ReadonlyMap<number, CuPage>,
     path: string,
     issues: CuParseIssue[],
 ): CuRegion | undefined {
@@ -212,6 +212,7 @@ interface FieldFrame {
 
 function parseSource(
     raw: unknown, content: CuContent, path: string, issues: CuParseIssue[],
+    pages: ReadonlyMap<number, CuPage> = new Map(content.pages.map(page => [page.pageNumber, page])),
 ): { source?: string; regions: CuRegion[] } {
     const regions: CuRegion[] = [];
     if (raw === undefined || raw === null) return { regions };
@@ -219,7 +220,6 @@ function parseSource(
         warn(issues, "invalid-source", path, "Source must be a CU encoded string.");
         return { regions };
     }
-    const pages = new Map(content.pages.map(page => [page.pageNumber, page]));
     for (const text of raw.split(";")) {
         const region = parseRegion(text, content, pages, path, issues);
         if (region) regions.push(region);
@@ -312,6 +312,31 @@ function detailString(raw: CuDetailRecord, key: string, path: string, issues: Cu
         warn(issues, "invalid-content-detail", `${path}/${key}`, `${key} must be a string.`);
     }
     return undefined;
+}
+
+function parsePageWords(raw: unknown, content: CuContent, path: string, issues: CuParseIssue[]): void {
+    if (raw === undefined) return;
+    if (!isArray(raw)) fail("invalid-pages", path, "Pages must be an array.");
+    const pages = new Map(content.pages.map(page => [page.pageNumber, page]));
+    for (const [pageIndex, entry] of raw.entries()) {
+        const page = content.pages[pageIndex];
+        if (!isRecord(entry) || !page) throw new Error("The parsed word page is unavailable.");
+        const wordPath = `${path}/${pageIndex}/words`;
+        const entries = parseDetails(entry.words, wordPath, issues);
+        if (entries === undefined) continue;
+        page.words = entries.flatMap(({ raw: word, index }) => {
+            const itemPath = `${wordPath}/${index}`;
+            const text = detailString(word, "content", itemPath, issues, true);
+            if (text === undefined) return [];
+            const parsed: CuWord = { id: `${content.id}/pages/${pageIndex}/words/${index}`, content: text };
+            const region = parseSource(word.source, content, `${itemPath}/source`, issues, pages).regions[0];
+            if (region) {
+                if (region.pageNumber === page.pageNumber) parsed.region = region;
+                else warn(issues, "source-page-mismatch", `${itemPath}/source`, "A word source must belong to its containing page.");
+            }
+            return [parsed];
+        });
+    }
 }
 
 function detailItem(
@@ -504,6 +529,7 @@ export function parseCuResult(input: unknown): CuResultModel {
         if (entry.kind !== "document") warn(model.issues, "unverified-content-kind", `${path}/kind`, "Fields are retained, but source geometry is only verified for document contents.");
         if (entry.unit === "inch" || entry.unit === "pixel") content.unit = entry.unit;
         else if (entry.unit !== undefined) warn(model.issues, "unverified-unit", `${path}/unit`, "Only verified inch/pixel source units can be mapped.");
+        parsePageWords(entry.pages, content, `${path}/pages`, model.issues);
         const markdown = optionalString(entry, "markdown", path);
         if (markdown !== undefined) content.markdown = markdown;
         const contentAnalyzerId = optionalString(entry, "analyzerId", path);

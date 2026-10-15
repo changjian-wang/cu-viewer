@@ -204,6 +204,10 @@ Owner screenshots additionally confirm current-page annotation layers driven by 
 
 Right-side field hover shows a source-anchored name/Value/optional Confidence preview; paragraph hover shows only Content. Other current-page outlines remain visible and the pinned item is retained. Left-table icon hover shows Rows/Columns; click opens a readonly modal titled Table with original grid/spans and a close control, not a right-tab switch. Tables also has current-table previous/next navigation. Use keyboard equivalents, Esc dismissal, bounded placement/scrolling and stable modal focus without changing inputs or adding service calls. Do not infer generic left-polygon interactions from these screenshots.
 
+### Confirmed Persistent OCR Base Layer (2026-10-15)
+
+After inspecting Studio's public deployed viewer/WordVectorLayer code, the owner approves the pale-yellow word layer, separate from extracted fields: use each current page word's returned `source`, fixed fill/stroke `#FAFF7F40` and1px stroke. Keep it below tab-specific frames and interaction emphasis in all result tabs, including Markdown/Metadata/Result/Code. The color does not depend on confidence or field availability. Reuse validated source geometry, preserve caller JSON/source pixels, omit ungrounded/invalid words with explicit warnings where malformed, and do not create a new Word tab, hover action, API flag or service operation.
+
 ## P1: Advanced UX and Extensibility
 
 Add or improve:

@@ -62,18 +62,22 @@ Switching views does not replace or reinitialize the source pane, so page, zoom,
 
 ### Studio Source Layers and Hover Previews
 
-The active result tab determines the current source-page annotation layer:
+The permanent OCR base layer reads `contents[].pages[].words[].source` for the current source page. It uses Studio's verified `#FAFF7F40` fill and 1px same-color stroke (about25.1% opacity), independent of field values, confidence, missing-field filtering or the active tab. The first valid word region is used and identical polygons draw once, avoiding cumulative opacity. Invalid word containers/text/source produce path-specific warnings; missing or invalid geometry is not invented. The original JSON and source raster pixels are unchanged.
+
+This behavior is grounded in the publicly deployed [Studio viewer defaults](https://contentunderstanding.ai.azure.com/assets/main-DRBDOXIp.js) and [WordVectorLayer/style](https://contentunderstanding.ai.azure.com/assets/visual-sdk-AyAWovJX.js), inspected on2026-10-15, and the official [Words/source schema](https://learn.microsoft.com/azure/ai-services/content-understanding/document/elements#words). It is an OCR word overlay, not a confidence or extraction-quality indicator. No Studio code or additional dependency is bundled into the Viewer.
+
+The active result tab determines the annotation layer above those yellow words:
 
 - **Fields** shows all returned field polygons on the current page, including grounded descendants in collapsed groups. Colors inherit original root-field order. Hide missing fields also filters these outlines; grouping does not invent a parent rectangle.
 - **Paragraphs** shows returned paragraph polygons in blue; **Tables** shows each returned whole-table polygon in blue rather than synthesizing a table rectangle from cell coordinates.
-- **Figures/Signatures** show their own returned regions. **Markdown** hides the field/paragraph/table polygon layers. Returned table markers remain visible in Fields, Markdown, Paragraphs and Tables.
-- **Result/Metadata/Code** do not retain a different tab's annotations. The pinned selection remains stored and reappears when its view is restored.
+- **Figures/Signatures** show their own returned regions. **Markdown** hides the field/paragraph/table polygon layers but keeps the yellow OCR base. Returned table markers remain visible in Fields, Markdown, Paragraphs and Tables.
+- **Result/Metadata/Code** hide a different tab's annotations, not the permanent yellow OCR base. The pinned selection remains stored and reappears when its view is restored.
 
 Hover a right-side field to emphasize its source and show a source-anchored preview containing the field name, value and optional returned confidence. Hover a paragraph to show only its returned **Content**, not a fabricated field/confidence template. Other current-page outlines remain visible. The corresponding result value/card is emphasized without replacing the pinned selection.
 
 Keyboard focus provides the same preview without navigating to another page merely on focus. **Esc** dismisses it. Pointer previews close after leaving the trigger and popup; focus previews persist while the trigger stays focused. The popup can be hovered and long values scroll inside a viewport-bounded panel. Placement flips/clamps around the target and limits height to available space; off-screen targets do not get an unrelated floating preview. Pan, tab/content/source/result changes cancel stale previews. Pinned multi-region controls remain available during temporary previews.
 
-Vector layers initialize after the rendered paper's CSS frame commits, avoiding fractional-edge raster-cache drift after zoom cycles. Polygon geometry remains the original CU source transformed by the existing shared projection; no coordinates, source data or confidence are changed.
+Layers initialize after the paper's CSS frame commits. As in Studio's OpenLayers renderer, words are drawn on a separate transparent Canvas 2D layer, scaled to the actual CSS frame and device pixel ratio; result frames remain vector overlays. The word canvas does not paint into the source canvas. Its own backing store is cleared on replacement/unmount, with no additional ImageBitmap, Worker, object URL or source request. Shared geometry keeps raw CU coordinates unchanged; page/content/result/source changes replace the word collection, and unavailable/loading sources hide it. Exact long transform comparisons are preserved without snapshot masks or threshold changes.
 
 Returned source-table icons are interactive in Fields, Markdown, Paragraphs and Tables:
 

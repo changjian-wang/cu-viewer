@@ -7,9 +7,11 @@ import type { CuContent, CuField, CuPoint, CuRegion } from "../internal/types";
 import { fieldLabel } from "../internal/interaction";
 import type { ResultView } from "../internal/resultViews";
 import type { SourceOutline } from "../internal/sourceOverlays";
+import { sourceWordOutlines } from "../internal/sourceOverlays";
 import { SourcePopover } from "./SourcePopover";
 import { SourceTableMarkers } from "./SourceTableMarkers";
 import type { SourceTableMarker } from "./SourceTableMarkers";
+import { WordLayer } from "./WordLayer";
 
 interface SourcePaneProps {
     source: LoadedSource | null;
@@ -156,12 +158,14 @@ export function SourcePane(props: SourcePaneProps) {
     }, [props.source, props.pageNumber, zoom, rotation, renderKey, dpr, page, props.onRenderReady]);
     const size = ready ? rendered?.size : undefined;
     const background = useMemo(() => {
+        const words: { key: string; polygon: CuPoint[] }[] = [];
         const outlines: (SourceOutline & { polygon: CuPoint[] })[] = [];
         const markers: SourceTableMarker[] = [];
         const cuPage = props.content?.pages.find(value => value.pageNumber === props.pageNumber);
-        if (!ready || !projectionSize || !page || !cuPage) return { outlines, markers, error: null };
+        if (!ready || !projectionSize || !page || !cuPage) return { words, outlines, markers, error: null };
         try {
             const geometry = createPageGeometry(cuPage, projectionSize, { zoom: 1, rotation, pan: { x: 0, y: 0 } });
+            for (const word of sourceWordOutlines(cuPage)) words.push({ key: word.key, polygon: projectRegion(word.region, geometry).polygon });
             for (const outline of props.outlines) outlines.push({ ...outline, polygon: projectRegion(outline.region, geometry).polygon });
             if (["fields", "markdown", "paragraphs", "tables"].includes(props.view ?? "")) {
                 for (const table of props.content?.tables ?? []) {
@@ -174,9 +178,9 @@ export function SourcePane(props: SourcePaneProps) {
                     });
                 }
             }
-            return { outlines, markers, error: null };
+            return { words, outlines, markers, error: null };
         } catch (error) {
-            return { outlines: [], markers: [], error: error instanceof Error ? error.message : String(error) };
+            return { words: [], outlines: [], markers: [], error: error instanceof Error ? error.message : String(error) };
         }
     }, [props.outlines, props.view, props.content, props.pageNumber, ready, page, projectionSize, rotation]);
     let polygons: CuPoint[][] = [];
@@ -282,6 +286,9 @@ export function SourcePane(props: SourcePaneProps) {
                     transform: `translate(${pan.x}px, ${pan.y}px)`,
                 }}>
                     <canvas ref={canvas} role="img" aria-label={`Rendered source page ${props.pageNumber}`} data-testid="source-canvas" />
+                    {layersReady && layerFrame && props.content && background.words.length > 0 &&
+                        <WordLayer words={background.words} size={layerFrame.size} pageNumber={props.pageNumber}
+                            contentId={props.content.id} dpr={dpr} />}
                     {layersReady && background.outlines.length > 0 && <svg key={`outlines:${renderKey}:${props.view}`} className="cu-overlay" data-testid="result-overlay"
                         data-result-view={props.view} aria-hidden="true" focusable="false" width={layerFrame?.size.width} height={layerFrame?.size.height}>
                         {background.outlines.map(outline => <polygon key={outline.key} data-outline-id={outline.field.id}

@@ -13,11 +13,18 @@ export interface CuRegion {
     polygon: [CuPoint, CuPoint, CuPoint, CuPoint];
 }
 
+export interface CuWord {
+    id: string;
+    content: string;
+    region?: CuRegion;
+}
+
 export interface CuPage {
     pageNumber: number;
     width?: number;
     height?: number;
     textAngle?: number;
+    words?: readonly CuWord[];
 }
 
 export interface CuField {

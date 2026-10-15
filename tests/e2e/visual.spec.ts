@@ -229,6 +229,7 @@ test("empty result keeps the document available in the approved independent empt
         buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [] })),
     });
     await expect(page.getByRole("heading", { name: "No extracted fields" })).toBeVisible();
+    await expect(page.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(page.getByTestId("rendered-page")).toBeVisible();
     await neutral(page);
     await snapshot(page, "empty-result.png");

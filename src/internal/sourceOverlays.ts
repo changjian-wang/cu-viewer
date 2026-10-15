@@ -2,7 +2,21 @@ import { GeometryError } from "./geometry";
 import type { PageSize } from "./geometry";
 import { fieldColor } from "./interaction";
 import type { ResultView } from "./resultViews";
-import type { CuContent, CuField, CuPoint, CuRegion } from "./types";
+import type { CuContent, CuField, CuPage, CuPoint, CuRegion } from "./types";
+
+export const WORD_LAYER_COLOR = "#FAFF7F40";
+
+export function sourceWordOutlines(page: CuPage | undefined): { key: string; region: CuRegion }[] {
+    const seen = new Set<string>();
+    return (page?.words ?? []).flatMap(word => {
+        const region = word.region;
+        if (!region) return [];
+        const key = `${region.pageNumber}:${region.polygon.map(point => `${point.x},${point.y}`).join(";")}`;
+        if (seen.has(key)) return [];
+        seen.add(key);
+        return [{ key: word.id, region }];
+    });
+}
 
 export interface SourceOutline {
     key: string;

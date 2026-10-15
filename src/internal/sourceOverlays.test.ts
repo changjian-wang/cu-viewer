@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseCuResult } from "./parseCuResult";
-import { popoverPosition, sourceOutlines } from "./sourceOverlays";
+import { popoverPosition, sourceOutlines, sourceWordOutlines, WORD_LAYER_COLOR } from "./sourceOverlays";
 import { fieldColor } from "./interaction";
 
 function fixture() {
@@ -77,6 +77,23 @@ describe("source-anchored preview placement", () => {
     const viewport = { width: 600, height: 400 }, popup = { width: 330, height: 100 };
     it("prefers above the region without covering it", () => {
         expect(popoverPosition({ x: 50, y: 200, width: 100, height: 20 }, viewport, popup)).toEqual({ x: 50, y: 90 });
+    });
+
+    describe("persistent OCR word layer", () => {
+        it("uses the color verified in Studio code independently of field colors or selected tabs", () => {
+            expect(WORD_LAYER_COLOR).toBe("#FAFF7F40");
+            const content = fixture().content;
+            const page = content.pages[0];
+            if (!page) throw new Error("Expected the first page.");
+            page.words = [{ id: "/contents/0/pages/0/words/0", content: "Not a field",
+                region: { pageNumber: 1, polygon: [{ x: 1, y: 2 }, { x: 11, y: 2 }, { x: 11, y: 7 }, { x: 1, y: 7 }] } }];
+            const before = sourceWordOutlines(page);
+            content.fields = [];
+            expect(sourceOutlines(content, "fields", 1, true)).toEqual([]);
+            expect(sourceOutlines(content, "markdown", 1, false)).toEqual([]);
+            expect(sourceWordOutlines(page)).toEqual(before);
+            expect(sourceWordOutlines(content.pages[1])).toEqual([]);
+        });
     });
     it("flips below at the top edge and clamps to the viewport", () => {
         expect(popoverPosition({ x: 500, y: 0, width: 50, height: 20 }, viewport, popup)).toEqual({ x: 262, y: 30 });

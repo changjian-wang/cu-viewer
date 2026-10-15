@@ -240,7 +240,7 @@ CLI 的分析、凭据、浏览器启动和本地服务器均位于组件库外�
 
 D6只约束被截断的`Result-pane`后半段；其他具名扩展点是明确需求。本阶段要求MCP集成设计/文档，不要求实现未被请求的MCP服务器。
 
-**当前验收目标：4.3a。** 桌面键盘/焦点/ARIA、双栏滚动、条件定位及负责人确认的Studio来源框/浮层/表格检查已实现。最终58张参考获批，12张面板裁图不变。类型检查/lint、494单元、164普通仓库浏览器、4性能和32安装包使用方场景通过，含600压力轮；58张获批哈希保持不变。Windows Narrator实际走查仍待验收，通过后才能关闭4.3a。4.3b随后，触摸与被截断的`Result-pane`后半段保持延期。
+**当前验收目标：4.3a。** 桌面交互、原文/表格检查及已核实的常驻黄色OCR文字Canvas2D层均已实现。最终60张参考获批，24张旧图含12张面板裁图不变。类型检查/lint、511单元、178普通仓库浏览器、隔离4性能和32安装包使用方通过，含600压力轮；60张哈希保持不变。Narrator实际走查仍待验收，之后才能关闭4.3a。4.3b随后，触摸和被截断的`Result-pane`后半段保持延期。
 
 **G3 通过条件**：全部已确认结果视图、当前桌面交互/无障碍范围、具名扩展点和MCP集成设计通过验收/测试；触摸及被截断的`Result-pane`后半段明确延期。
 
@@ -609,6 +609,7 @@ flowchart LR
     {
       "id": "4.3a", "phase": 4, "priority": "P1", "title": "完成桌面交互与无障碍", "effort": "M",
       "status": "in_progress",
+      "ocr_word_followup": "负责人于2026-10-15批准基于公开Studio代码证据增加页级words.source独立#FAFF7F40填充/1px描边Canvas2D基础层，跨全部Tab保留。首个有效来源复用校验、同形去重，不依赖置信度/fields，不改输入或源像素；替换/卸载释放自己的像素存储。SVG方案长循环半透明边缘不稳定，最终Canvas方案通过511单元、178普通浏览器场景含600压力轮、隔离4性能及32严格CSP且启用截图的React18/19使用方。负责人approve_stable_canvas批准60图：32张Source更新、2张Markdown新增、2张单独稳定空结果，24张旧图不变，运行后60哈希未变。旧开发服务HEIF路由问题仅重启已识别的监听进程恢复，不改decoder。Narrator仍待人工验收；不新增依赖/API/Analyze，也不冒称远程CI或推送。",
       "implementation_evidence": "已实现桌面键盘/焦点/ARIA、双栏滚动/条件定位，以及负责人确认的Studio按Tab整页来源框、字段/段落浮层、当前表格切换和左图标Rows/Columns/Table模态检查。清晰框线按提交后的真实CSS文档尺寸投影；源已解码时徽标在重绘期间仍可点击。原生模态焦点/StrictMode及源生命周期通过。负责人批准最终58张参考（38更新、8新增、12裁图不变）。494单元、164普通仓库场景含600压力轮、4性能和32启用截图的严格CSP React18/19使用方通过，58张获批哈希保持不变。Narrator实际走查仍待验收，本批未推送或远程验证。公开输入仍仅source/result，不新增依赖、Analyze、触摸/移动端或4.3b API。",
       "description": "完成当前桌面Chrome/Edge键盘/焦点/ARIA及Windows Narrator评审。Source/Result保持带最小宽度与滚动的桌面双栏。保持缩放/旋转，仅在所选区域位于可见视口外时调整原文平移。负责人延期触摸/移动端。",
       "files": [
@@ -626,6 +627,8 @@ flowchart LR
         {"path": "src\\components\\DetailPanes.test.tsx", "action": "modify"},
         {"path": "src\\components\\SourcePopover.tsx", "action": "create"},
         {"path": "src\\components\\SourcePopover.test.tsx", "action": "create"},
+        {"path": "src\\components\\WordLayer.tsx", "action": "create"},
+        {"path": "src\\components\\WordLayer.test.tsx", "action": "create"},
         {"path": "src\\components\\SourceTableMarkers.tsx", "action": "create"},
         {"path": "src\\components\\TableGrid.tsx", "action": "create"},
         {"path": "src\\components\\TableDialog.tsx", "action": "create"},
@@ -634,13 +637,17 @@ flowchart LR
         {"path": "src\\internal\\sourceOverlays.test.ts", "action": "create"},
         {"path": "src\\internal\\parseCuResult.ts", "action": "modify"},
         {"path": "src\\internal\\types.ts", "action": "modify"},
+        {"path": "src\\internal\\pageWords.test.ts", "action": "create"},
         {"path": "src\\internal\\interaction.ts", "action": "modify"},
         {"path": "src\\styles.css", "action": "modify"},
         {"path": "tests\\e2e\\package-host.spec.ts", "action": "modify"},
         {"path": "tools\\verify-packed-consumers.mjs", "action": "modify"},
         {"path": "tests\\e2e\\accessibility.spec.ts", "action": "create"},
         {"path": "tests\\e2e\\studio-overlays.spec.ts", "action": "create"},
-        {"path": "tests\\e2e\\source-tables.spec.ts", "action": "create"}
+        {"path": "tests\\e2e\\source-tables.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\word-overlay.spec.ts", "action": "create"},
+        {"path": "tests\\e2e\\detail-visual.spec.ts", "action": "modify"},
+        {"path": "tests\\e2e\\visual.spec.ts", "action": "modify"}
       ],
       "depends_on": ["4.1", "4.2", "4.2a"],
       "acceptance_criteria": [{"id": "AC-4.3a", "text": "字段、动态结果标签及原文控件可用键盘操作，焦点可见/稳定、ARIA正确且Windows Narrator通过；双栏滚动与仅对视口外目标定位保持缩放/旋转。Studio按Tab来源框、字段/段落浮层、当前表格导航及左图标Rows/Columns/Table模态检查保留pin/标签/源状态、原生网格及生命周期，不补造来源或置信度。"}],
@@ -843,3 +850,4 @@ flowchart LR
 | 2026-10-14 | 负责人批准视觉候选：34张更新标签/页脚/空错误状态，16张新增明细/语言参考，共50张。旧Source和Fields正文变化为0像素，Chrome Fields批准PNG同步。普通视觉/富结果34场景与完整仓库116场景通过，含600压力轮及两浏览器漂移探针，50图哈希保持不变；React18/19启用截图的24使用方通过。任务4.2a完成，下一项4.3a尚未启动。 |
 | 2026-10-14 | 任务4.3a实现桌面键盘/焦点/ARIA、双栏独立滚动及仅对视口外目标定位，保持缩放/旋转。负责人只批准两张跨页参考；其余48张哈希及Fields像素不变。472单元、逐项核对的136仓库浏览器（先前125加续跑11）、4性能和32严格CSP且启用截图的使用方通过，含600压力轮。验证后全部50张获批哈希不变。Windows Narrator实际走查仍待人工验收，因此不关闭4.3a、不启动4.3b；本批仅有本地证据。 |
 | 2026-10-14 | 负责人Studio截图确认按Tab整页来源框、右侧字段/段落原文浮层、当前表格切换，以及左图标Rows/Columns悬停/只读Table模态点击。真实CSS尺寸投影和清晰框线消除变换边缘漂移；图标/模态焦点及StrictMode回放通过。负责人批准最终58张参考，12张原裁图不变。类型检查/lint、494单元、164普通仓库场景含600压力轮、4性能及32严格CSP且启用截图的React18/19使用方通过，58张哈希不变。Narrator实际走查待验收；没有新增依赖、服务调用、触摸/移动端或扩展API。 |
+| 2026-10-15 | 公开Studio代码证实常驻黄底来自页级words，不是fields/置信度。负责人批准独立DPR适配#FAFF7F40/1px Canvas2D层、首个有效来源映射、同形去重及输入/源像素保持。最终511单元、178普通浏览器场景含600压力轮、隔离4性能及32严格CSP使用方通过。负责人批准32张Source更新、2张新增Markdown及2张稳定空结果完成态；24张旧图含12裁图不变，共60图，验证后哈希未变。开发HEIF路由仅重启监听进程恢复。Narrator仍待验收；不新增依赖/API/Analyze或推送。 |

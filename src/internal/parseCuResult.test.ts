@@ -114,7 +114,9 @@ describe("verified CU result parsing", () => {
 
         expect(model.issues).toEqual([]);
         expect(model.analyzerId).toBe("prebuilt-receipt");
-        expect(content.pages).toEqual([{ pageNumber: 1, width: 1743, height: 878, textAngle: 0 }]);
+        expect(content.pages.map(page => ({ pageNumber: page.pageNumber, width: page.width,
+            height: page.height, textAngle: page.textAngle, wordCount: page.words?.length })))
+            .toEqual([{ pageNumber: 1, width: 1743, height: 878, textAngle: 0, wordCount: 39 }]);
         expect(content.unit).toBe("pixel");
         expect(content.fields).toHaveLength(12);
         expect(fields).toHaveLength(42);

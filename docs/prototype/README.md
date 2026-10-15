@@ -1,7 +1,7 @@
 # CU 结果查看器：界面原型 v2
 
-> 状态：当前共58张获批视觉参考；38张整页来源框/表格导航/提示图更新，8张字段/段落/表格图标浮层及模态图新增，12张Fields/Markdown/Result裁图不变。494单元、164仓库浏览器、4性能和32使用方通过；Narrator实际走查与公开发布批准仍待验收。
-> 更新：2026-10-14，动态Studio视图完成，桌面键盘/焦点/ARIA、双栏滚动与条件原文定位已实现。
+> 状态：当前共60张获批参考；常驻黄色文字层更新32张Source全页图，新增2张Markdown图，另单独稳定2张空结果完成态；24张旧图含12裁图不变。511单元、178仓库浏览器含600压力轮、4性能和32使用方通过；Narrator与公开发布批准仍待验收。
+> 更新：2026-10-15，增加经Studio公开代码验证的独立OCR文字Canvas2D基础层。
 > 方向：保留 Studio 风格，优先桌面 P0；Fields 外观按用户提供的截图对齐，不复制服务配置或整个 Studio 应用。
 > 流程：线框确认 → 可运行原型与交互基线批准 → 2.4/2.5 加固中 → 完整 P0 验收。
 > 交付顺序：先完成 Viewer 本体 P0/P1（含真实结果视图）及独立验收，再做 cu-cli 契约/集成；CLI 不阻塞页面直接运行。
@@ -18,11 +18,13 @@
 
 负责人随后提供按Tab来源框、右侧hover及左侧表格图标截图：Fields/Paragraphs/Tables显示各自当前页真实来源，Markdown保留可交互的表格标记；字段浮层显示名称/Value/已有Confidence，段落只显示Content。左图标hover显示Rows/Columns并用虚线强调表格；click打开只读Table模态，X/Esc关闭且焦点返回，不切右侧Tab、不改pin或源缩放。网格共用原生表格渲染，保留跨度/错误；清晰框线按真实CSS尺寸投影。负责人批准最终58张参考（38更新、8新增、12裁图不变）。普通164场景含600压力轮、4性能及32严格CSP使用方通过，58张哈希保持不变。
 
+2026-10-15根据公开Studio WordVectorLayer代码确认淡黄色并非fields默认底色，而是`pages.words.source`常驻基础层：独立透明Canvas2D使用`#FAFF7F40`填充及1px同色描边，按真实CSS尺寸/DPR绘制，所有Tab保留，置于结果框下；不依赖confidence、不改原图像素，替换/卸载清空自己的像素存储。最终Canvas方案解决SVG长循环边缘差异，178普通场景含600压力轮、511单元、隔离4性能、32使用方通过。负责人批准32张Source更新、2张新增Markdown、2张单独稳定空结果完成态，24旧图不变，共60图且验证后哈希不变；原Fields裁图未改。
+
 ### 最终产品外观基线
 
 用户于 2026-10-12 明确要求最终效果与原型一致，并批准先做视觉回归。本轮不改产品组件、样式或演示布局；基线使用最新获批交互实现，不恢复历史稿中的 Clear、固定状态横栏、缺失置信度占位等旧设计，也不把独立输入测试宿主的验证按钮带入最终产品。
 
-[产品视觉测试](../../tests/e2e/visual.spec.ts)固定Windows、Segoe UI、DPR1、浅色模式，完整界面为`1600 x 1040`；Fields对照采用`1458 x 861`视口。[富结果测试](../../tests/e2e/rich-results.spec.ts)保留Markdown/Result面板图，[明细视觉测试](../../tests/e2e/detail-visual.spec.ts)包含每浏览器8张专用面板/代码语言图及4张字段/段落/图标提示/模态图，当前共[58张基线](../../tests/e2e/visual.spec.ts-snapshots)。
+[产品视觉测试](../../tests/e2e/visual.spec.ts)固定Windows、Segoe UI、DPR1、浅色模式，完整界面为`1600 x 1040`；Fields对照采用`1458 x 861`视口。[富结果测试](../../tests/e2e/rich-results.spec.ts)保留Markdown/Result面板图，[明细视觉测试](../../tests/e2e/detail-visual.spec.ts)包含每浏览器8张专用面板/语言图、4张浮层/模态图及1张常驻Word/Markdown图，共[60张基线](../../tests/e2e/visual.spec.ts-snapshots)。
 
 - Chrome 的 Fields 与现有获批 PNG 逐像素一致；Edge 仅因原生滚动条不同而使用独立基线，不隐藏或遮罩 UI。
 - 正常比较为颜色阈值 `0`、容许差异像素 `0`；实际高亮另有不超过 `1 CSS px` 的顶点断言。

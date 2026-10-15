@@ -147,6 +147,8 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
     const viewport = page.getByRole("group", { name: "Source viewport", exact: true });
     const paper = page.getByTestId("rendered-page");
     const outlines = page.getByTestId("result-overlay");
+    const words = page.getByTestId("word-overlay");
+    await expect(words).toHaveAttribute("data-word-count", "197");
     await expect(outlines).toHaveAttribute("data-result-view", "fields");
     const count = await outlines.locator("polygon").count();
     expect(count).toBeGreaterThan(1);
@@ -223,6 +225,7 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
     await expect(outlines).toHaveAttribute("data-result-view", "tables");
     await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
     await expect(outlines).toHaveCount(0);
+    await expect(words).toHaveAttribute("data-word-count", "197");
     await expect(page.getByTestId("table-markers")).toBeVisible();
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
     await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");

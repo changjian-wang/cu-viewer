@@ -123,3 +123,13 @@ test("source table icons show row/column counts and open the Studio-style readon
     await page.evaluate(async () => { await document.fonts.ready; });
     await expect(page).toHaveScreenshot("studio-table-dialog.png", { fullPage: true });
 });
+
+test("Markdown keeps the permanent yellow OCR word layer while hiding tab-specific polygon outlines", async ({ page }) => {
+    await page.getByRole("tab", { name: "Markdown", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "INVOICE", exact: true })).toBeVisible();
+    await expect(page.getByTestId("word-overlay")).toHaveAttribute("data-word-count", "197");
+    await expect(page.getByTestId("result-overlay")).toHaveCount(0);
+    await expect(page.getByTestId("source-overlay")).toHaveCount(0);
+    await expect(page.getByTestId("table-markers")).toBeVisible();
+    await snapshot(page, "studio-words-markdown.png");
+});
