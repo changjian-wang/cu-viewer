@@ -9,8 +9,7 @@
     "dist",
     "LICENSE",
     "THIRD-PARTY-NOTICES.txt",
-    "README.md",
-    "docs/usage.md"
+    "README.md"
   ],
   "exports": {
     ".": {

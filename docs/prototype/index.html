@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CU Result Viewer · 原型 v2</title>
+    <title>CU Result Viewer · 图片预览</title>
     <style>
       :root { color-scheme: light; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; color: #243145; background: #f6f8fb; }
       * { box-sizing: border-box; }
@@ -30,9 +30,9 @@
   </head>
   <body>
     <header>
-      <h1>CU Result Viewer · 原型 v2</h1>
+      <h1>CU Result Viewer · 图片预览</h1>
       <p>保留 Studio 风格。下方先展示最新产品截图基线，再保留历史静态稿；这不是可运行查看器，图中的控件不可操作。</p>
-      <p>静态评审已通过。<a href="http://127.0.0.1:5173/" style="color:white">打开已启动的交互原型</a>，或查看 <a href="interactive-fields.png" style="color:white">Fields</a> / <a href="interactive-pdf.png" style="color:white">PDF</a> / <a href="interactive-png.png" style="color:white">PNG</a> / <a href="interactive-heif.png" style="color:white">HEIF 本机验证（合成定位）</a> 实际截图。</p>
+      <p><a href="http://127.0.0.1:5173/" style="color:white">打开已启动的Viewer</a> · <a href="../../README.md" style="color:white">运行与使用</a> · <a href="../requirements.md" style="color:white">需求</a> · <a href="../dev-plan.md" style="color:white">开发计划</a>。HEIF截图使用许可样本和明确标注的合成定位，不代表新的CU服务结果。</p>
     </header>
     <nav aria-label="原型状态导航">
       <a href="#visual-baselines">最新产品基线</a>
@@ -51,7 +51,7 @@
       <p class="note">本页仅用锚点浏览静态状态，不加载新文件、不调用 CU。真实数值来自已有 GA 样本；加载、空结果及错误页面是明确标注的设计场景，不是实际服务运行结果。</p>
       <section id="visual-baselines">
         <h2>最新产品外观基线 · 2026-10-15</h2>
-        <p>经公开Studio代码验证，负责人批准页级words.source常驻黄色Canvas2D层，位于结果框和交互强调之下，所有Tab保留且原图像素不改。32张Source更新、2张新增Markdown及2张单独稳定空结果完成态，共60图；24旧图含12裁图不变。511单元、178普通浏览器场景含600压力轮、4性能和32严格CSP使用方通过。普通测试零差异、不自动更新参考。</p>
+        <p>本节展示当前获批图片；黄色OCR基础层位于来源框下面，字段/段落浮层及表格图标检查按确认行为显示。图片不是可操作Viewer，功能状态和验证结果只在<a href="../dev-plan.md#verification">开发计划</a>维护。</p>
         <figure><img src="../../tests/e2e/visual.spec.ts-snapshots/default-pdf-chrome-win32.png" width="1600" height="1040" alt="最新产品默认界面：真实PDF、常驻浅黄色OCR文字、字段彩框及表格图标、动态标签、隐藏缺失字段"><figcaption>完整产品图固定1600 x 1040、DPR1；Chrome/Edge各30张，共60张基线。普通测试不会自动更新基线。</figcaption></figure>
         <figure style="max-width:490px"><img loading="lazy" src="../../tests/e2e/visual.spec.ts-snapshots/fields-reference-chrome-win32.png" width="490" height="697" alt="Chrome Fields基线，与获批参考图片逐像素一致"><figcaption>Fields 的真实值与置信度未替换；Chrome 与已批准 PNG 逐像素一致。Edge 原生滚动条采用自己的基线。</figcaption></figure>
         <table class="baseline-links">
@@ -89,9 +89,9 @@
             <tr><td>JavaScript SDK 示例</td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-code-javascript-chrome-win32.png">查看</a></td><td><a href="../../tests/e2e/visual.spec.ts-snapshots/detail-code-javascript-edge-win32.png">查看</a></td></tr>
           </tbody>
         </table>
-        <p>2026-10-14负责人在补齐左图标hover/click后批准最终58张参考；Fields对照PNG及12张面板裁图不变。164普通场景通过，58张哈希未被运行改写；两浏览器均检出12px到14px圆点漂移。原始坐标/值没有改写，框线按真实CSS尺寸清晰绘制，不放宽阈值、不遮罩UI。Figures/Signatures/Metadata仍为标注的合成Preview数据；Narrator人工验收与公开发布审批单独记录。</p>
+        <p>本项目原型回归另经批准，不要求逐像素复制Studio；尺寸/阈值属于工程策略。Figures/Signatures/Metadata图片使用标注的合成Preview数据，不表示真实签名检测。</p>
       </section>
-      <p class="note">以下图片保留为 v2 历史评审稿，不是最新 Fields 的像素验收基线。可运行版本已按后续反馈默认折叠组、隐藏未返回字段、移除 Clear 和旧固定状态栏、省略缺失置信度，并将原文预览放在文档下方；Fields 与预览置信度统一为两位小数。最新行为以<a href="README.md">原型说明</a>及运行截图为准。</p>
+      <p class="note">以下为v2历史静态评审图，保留旧控件/布局，不是当前产品验收基线。实际行为见<a href="../../README.md#result-views">使用说明</a>及上方获批图；不再另存原型说明或阶段日志。</p>
       <section id="main">
         <h2>01 · 主界面：固定选择</h2>
         <p>压缩顶部宿主栏，移除主画面的说明卡。保留底部源文件控件，字段区独立滚动；固定选择有行标记和清除入口，移开鼠标后不保留悬浮提示卡。</p>
@@ -142,7 +142,7 @@
         <p>从第 4 页进入第 1 页字段预览、点击固定，再手动返回第 4 页。页面位置与字段选择分开：保留选择不等于在当前页绘制不存在的区域。</p>
         <figure><img loading="lazy" src="cross-page.png" width="1600" height="870" alt="四步跨页流程：第4页浏览、悬停跳第1页、点击固定、手动回第4页"><figcaption>手动翻页优先于临时预览恢复；点击来源页定位可返回。此规则待原型评审，不当作 Studio 实测结论。</figcaption></figure>
       </section>
-      <footer><a href="README.md">交互契约、状态说明和评审清单</a> · <a href="../../tests/fixtures/LICENSE.txt">原始样本许可证</a> · 当前交互原型待使用方复核，完整 P0 验收仍未完成。</footer>
+      <footer><a href="../../README.md">运行与使用</a> · <a href="../requirements.md">需求</a> · <a href="../dev-plan.md">开发计划</a> · <a href="../../tests/fixtures/LICENSE.txt">原始样本许可证</a>。历史静态图不代表当前进度。</footer>
     </main>
   </body>
 </html>

@@ -12,7 +12,7 @@
     "mainLicense": "MIT",
     "dependencyLicensePolicy": "MIT main component; packaged HEIF uses heic-rs0.1.4 under MIT OR Apache-2.0. Historical LGPL candidates are not distributed. HEVC product/patent and publication approval remain separate.",
     "licensingRouteApproved": true,
-    "publicApiScope": "Core inputs remain source and result. P1 explicitly requires field selection callbacks, custom field rendering, viewer events, toolbar/layout customization, initial page and initial zoom/fit; only the truncated Result-pane tail remains unresolved.",
+    "publicApiScope": "Core inputs remain source and result. P1 asks for reasonable host extensions; the seven named items are examples (such as), not a mandatory API checklist. Task4.3b must confirm the bounded API scope; the truncated Result-pane tail stays deferred.",
     "supportedBundlerProfile": "Vite 8 only; other bundlers are unverified.",
     "foundationTask": "2.1 completed; input types/tooling only, not viewer rendering"
   },
@@ -24,7 +24,7 @@
     "status": "interactive-baseline-approved-hardening-in-progress",
     "wireframeApproved": true,
     "approvalDate": "2026-10-10",
-    "reference": "..\\..\\docs\\prototype\\README.md",
+    "reference": "../../README.md#result-views",
     "statePreview": "..\\..\\docs\\prototype\\index.html",
     "staticStateScreens": 10,
     "sourcePreviews": "Original PDF pages 1/4 freshly rendered without baked-in highlights; original PNG pixel canvas preserved.",
@@ -156,7 +156,7 @@
     "command": "npm run verify:consumer",
     "suite": "..\\e2e\\package-host.spec.ts",
     "config": "..\\..\\playwright.consumer.config.ts",
-    "usage": "..\\..\\docs\\usage.md",
+    "usage": "..\\..\\README.md",
     "reactRuntimes": ["18.3.1", "19.3.0"],
     "react18Types": {"react": "18.3.31", "reactDom": "18.3.7"},
     "react19Types": {"react": "19.3.0", "reactDom": "19.3.0"},
@@ -502,7 +502,7 @@
       "status": "pending-owner-walkthrough",
       "ownerDecision": "pending",
       "automatedAriaEquivalentToNarrator": false,
-      "checklist": "../../docs/usage.md#manual-windows-narrator-acceptance"
+      "checklist": "../../README.md#supplementary-validation"
     },
     "publicInputs": ["source", "result"],
     "touchMobileAdded": false,
@@ -668,7 +668,7 @@
   },
   "renderingInvestigation": {
     "date": "2026-10-09",
-    "document": "..\\..\\docs\\rendering-evaluation.md",
+    "document": "../../docs/dev-plan.md#rendering-and-evidence",
     "status": "probe-passed-shipping-decisions-open",
     "pdfjsVersion": "6.3.289",
     "heicToVersion": "1.6.5",
@@ -688,7 +688,7 @@
   },
   "heifOwnedWorkerInvestigation": {
     "date": "2026-10-09",
-    "document": "..\\..\\docs\\rendering-evaluation.md",
+    "document": "../../docs/dev-plan.md#rendering-and-evidence",
     "status": "technical-probe-passed-candidate-approved-distribution-pending",
     "libheifVersion": "1.23.5",
     "libde265Version": "1.0.15",
