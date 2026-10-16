@@ -25,8 +25,8 @@ describe("Studio result tab availability", () => {
             }],
         };
         const model = parseCuResult(raw);
-        expect(availableResultTabs(model.contents[0], raw, model.apiVersion, model.analyzerId).map(tab => tab.label))
-            .toEqual(["Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result", "Code"]);
+        expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.label))
+            .toEqual(["Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result"]);
     });
 
     it("hides absent and empty values while keeping provided raw JSON inspectable", () => {
@@ -65,13 +65,8 @@ describe("Studio result tab availability", () => {
             .toEqual(["signatures", "metadata", "result"]);
     });
 
-    it("requires supported API context and an analyzer ID for Code, preferring the selected content ID", () => {
-        expect(availableResultTabs(content(), {}, "2025-11-01", "root").map(tab => tab.id)).toEqual(["result", "code"]);
-        expect(availableResultTabs(content({ analyzerId: "child" }), {}, "2026-06-01-preview").map(tab => tab.id))
-            .toEqual(["result", "code"]);
-        expect(availableResultTabs(content(), {}, undefined, "root").map(tab => tab.id)).toEqual(["result"]);
-        expect(availableResultTabs(content(), {}, "2025-11-01", " ").map(tab => tab.id)).toEqual(["result"]);
-        expect(availableResultTabs(content({ analyzerId: "" }), {}, "2025-11-01", "root").map(tab => tab.id))
-            .toEqual(["result"]);
+    it("does not add a Code tab even when the result includes analyzer context", () => {
+        expect(availableResultTabs(content({ analyzerId: "child" }), { analyzerId: "root" }, "2026-06-01-preview")
+            .map(tab => tab.id)).toEqual(["result"]);
     });
 });

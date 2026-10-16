@@ -128,7 +128,7 @@ test("keyboard operates field expansion and value selection with truthful access
     await expect(page.locator('[data-field-id="/contents/0/fields/AmountDue"]')).toHaveClass(/is-selected/);
 });
 
-test("dynamic tabs have one keyboard stop, correct panel links and keyboard-operable detail and Code controls", async ({ page }) => {
+test("dynamic tabs have one keyboard stop, correct panel links and keyboard-operable detail and Result controls", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
     const fields = pane.getByRole("tab", { name: "Fields", exact: true });
     await tabTo(page, fields);
@@ -149,12 +149,9 @@ test("dynamic tabs have one keyboard stop, correct panel links and keyboard-oper
     await expect(paragraph).toBeFocused();
     await expect(paragraph).toHaveAttribute("aria-pressed", "true");
     await pane.getByRole("tab", { name: "Paragraphs", exact: true }).press("End");
-    await expect(pane.getByRole("tab", { name: "Code", exact: true })).toBeFocused();
-    const csharp = pane.getByRole("button", { name: "C#", exact: true });
-    await tabTo(page, csharp);
-    await page.keyboard.press("Space");
-    await expect(csharp).toHaveAttribute("aria-pressed", "true");
-    await expect(pane.getByLabel("C# SDK sample")).toBeVisible();
+    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeFocused();
+    await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
+    await tabTo(page, pane.getByRole("tabpanel"));
 });
 
 test("selecting visible targets avoids movement, selecting hidden targets centers only the necessary axis", async ({ page }) => {
@@ -263,10 +260,16 @@ test("cross-page selection and region navigation preserve the exact zoom and vie
 });
 
 test("keyboard copying retains focus while pending and never steals focus back from another control", async ({ page }) => {
-    await page.getByRole("tab", { name: "Fields", exact: true }).press("End");
-    const copy = page.getByRole("button", { name: "Copy SDK sample", exact: true });
+    const value = "Returned first";
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
+        name: "synthetic-copy-metadata.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({
+            apiVersion: "2026-06-01-preview",
+            contents: [{ kind: "document", metadata: { First: value, Second: "Returned second" } }],
+        })),
+    });
+    const copy = page.getByRole("button", { name: "Copy metadata First", exact: true });
     await tabTo(page, copy);
-    const code = await page.getByLabel("Python SDK sample").textContent();
     await page.evaluate(() => {
         window.cuClipboardWrites = [];
         Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
@@ -277,29 +280,29 @@ test("keyboard copying retains focus while pending and never steals focus back f
         } });
     });
     await page.keyboard.press("Enter");
-    await expect(copy).toBeDisabled();
+    await expect(copy).toHaveAttribute("aria-disabled", "true");
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     await expect(copy).toBeFocused();
     await page.keyboard.press("Enter");
-    expect(await page.evaluate(() => window.cuClipboardWrites)).toEqual([code]);
+    expect(await page.evaluate(() => window.cuClipboardWrites)).toEqual([value]);
     await page.evaluate(() => {
         if (!window.cuCompleteClipboardWrite) throw new Error("No clipboard write is pending.");
         window.cuCompleteClipboardWrite();
     });
-    await expect(copy).toBeEnabled();
+    await expect(copy).toHaveAttribute("aria-disabled", "false");
     await expect(copy).toBeFocused();
     await expect(page.getByRole("status").filter({ hasText: /^Copied$/ })).toBeVisible();
     await page.keyboard.press("Enter");
-    await expect(copy).toBeDisabled();
-    await page.keyboard.press("Shift+Tab");
-    const javascript = page.getByRole("button", { name: "JavaScript", exact: true });
-    await expect(javascript).toBeFocused();
+    await expect(copy).toHaveAttribute("aria-disabled", "true");
+    await page.keyboard.press("Tab");
+    const second = page.getByRole("button", { name: "Copy metadata Second", exact: true });
+    await expect(second).toBeFocused();
     await page.evaluate(() => {
         if (!window.cuCompleteClipboardWrite) throw new Error("No clipboard write is pending.");
         window.cuCompleteClipboardWrite();
     });
-    await expect(copy).toBeEnabled();
-    await expect(javascript).toBeFocused();
+    await expect(copy).toHaveAttribute("aria-disabled", "false");
+    await expect(second).toBeFocused();
 });
 
 test.describe("conditional reveal at DPR 2", () => {
@@ -373,7 +376,12 @@ test("desktop Source/Result stay side-by-side with minimum widths and scrolling 
     expect(layout.result.x).toBeGreaterThan(layout.source.x + layout.source.width);
     expect(layout.scrollWidth).toBeGreaterThan(layout.width);
     await page.getByRole("tab", { name: "Fields", exact: true }).press("End");
-    await expect(page.getByRole("tab", { name: "Code", exact: true })).toBeFocused();
-    await expect(page.getByRole("heading", { name: "Analyze SDK example" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Result", exact: true })).toBeFocused();
+    await expect(page.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     expect(await page.locator(".cu-viewer").evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+    const viewer = await page.locator(".cu-viewer").boundingBox();
+    const result = await page.getByRole("tab", { name: "Result", exact: true }).boundingBox();
+    if (!viewer || !result) throw new Error("Focused result tab bounds are unavailable.");
+    expect(result.x).toBeGreaterThanOrEqual(viewer.x);
+    expect(result.x + result.width).toBeLessThanOrEqual(viewer.x + viewer.width);
 });

@@ -9,6 +9,17 @@ export async function ready(page: Page): Promise<void> {
     await expect(page.getByRole("alert")).toHaveCount(0);
 }
 
+export async function selectResultView(pane: Locator, name: string): Promise<void> {
+    const tab = pane.getByRole("tab", { name, exact: true });
+    if (await tab.isVisible()) await tab.click();
+    else {
+        const more = pane.getByRole("button", { name: "More result views", exact: true });
+        if (await more.getAttribute("aria-expanded") !== "true") await more.click();
+        await pane.getByRole("menuitem", { name, exact: true }).click();
+    }
+    await expect(tab).toHaveAttribute("aria-selected", "true");
+}
+
 export async function checkPolygon(page: Page, normalized: { x: number; y: number }[], rotation: number,
     polygon: Locator = page.getByTestId("source-overlay").locator("polygon")): Promise<void> {
     const coordinates = await polygon.evaluate(element => {

@@ -41,7 +41,7 @@ const libraryJson = requireSingle(library, /^JsonPane-.*\.js$/, "library JSON ch
 const demoEntry = requireSingle(demo, /^index-.*\.js$/, "demo entry");
 const demoMarkdown = requireSingle(demo, /^MarkdownPane-.*\.js$/, "demo Markdown chunk");
 const demoJson = requireSingle(demo, /^JsonPane-.*\.js$/, "demo JSON chunk");
-const detailPanes = ["ParagraphsPane", "TablesPane", "FiguresPane", "SignaturesPane", "MetadataPane", "CodePane"];
+const detailPanes = ["ParagraphsPane", "TablesPane", "FiguresPane", "SignaturesPane", "MetadataPane"];
 const detailChunks = Object.fromEntries(detailPanes.map(name => [name, {
     libraryBytes: requireSingle(library, new RegExp(`^${name}-.*\\.js$`), `library ${name} chunk`).bytes,
     demoBytes: requireSingle(demo, new RegExp(`^${name}-.*\\.js$`), `demo ${name} chunk`).bytes,

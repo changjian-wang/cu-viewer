@@ -321,10 +321,10 @@ test("Fields matches Studio grouping, icons, badges and spacing without altering
     await expect(country.locator(".cu-confidence")).toHaveCount(0);
     await expect(country.locator(".cu-field-value")).toHaveText("USA");
     await expect(address.locator(".cu-confidence")).toHaveText("31.70%");
-    await expect(pane.getByRole("tab").filter({ hasText: /Markdown|Paragraphs|Tables|Code/ })).toHaveCount(4);
+    await expect(pane.getByRole("tab").filter({ hasText: /Markdown|Paragraphs|Tables/ })).toHaveCount(3);
     await expect(pane.getByRole("tab", { name: "Markdown", exact: true })).toBeEnabled();
     await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeEnabled();
-    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Markdown", "Paragraphs", "Tables", "Result", "Code"]);
+    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Markdown", "Paragraphs", "Tables", "Result"]);
     await expect(pane.locator('[role="tab"][disabled]')).toHaveCount(0);
 
     const appearance = await group.evaluate(element => {
@@ -385,13 +385,14 @@ test("Fields matches Studio grouping, icons, badges and spacing without altering
     for (const width of [972, 880]) {
         await page.setViewportSize({ width, height: 850 });
         const tabs = pane.locator(".cu-result-tabs");
-        await expect(tabs).toHaveCSS("overflow-x", "auto");
+        await expect(pane.getByRole("button", { name: "More result views" })).toBeVisible();
+        expect(await tabs.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
         await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
         const strip = await tabs.boundingBox();
-        const code = await pane.getByRole("tab", { name: "Code", exact: true }).boundingBox();
-        if (!strip || !code) throw new Error("The dynamic tabs are not laid out.");
-        expect(code.x).toBeGreaterThanOrEqual(strip.x - 1);
-        expect(code.x + code.width).toBeLessThanOrEqual(strip.x + strip.width + 1);
+        const result = await pane.getByRole("tab", { name: "Result", exact: true }).boundingBox();
+        if (!strip || !result) throw new Error("The dynamic tabs are not laid out.");
+        expect(result.x).toBeGreaterThanOrEqual(strip.x - 1);
+        expect(result.x + result.width).toBeLessThanOrEqual(strip.x + strip.width + 1);
     }
 });
 

@@ -2,7 +2,7 @@ import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { checkPolygon, ready } from "./viewerAssertions";
+import { checkPolygon, ready, selectResultView } from "./viewerAssertions";
 import { alive, trackSourceResources } from "./sourceResources";
 import { standardFontPdf } from "./pdfFixtures";
 
@@ -135,12 +135,11 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await pane.getByRole("tab", { name: "Tables", exact: true }).click();
     await expect(pane.getByRole("table")).toHaveCount(1);
     await expect(pane.locator(".cu-table-navigation")).toContainText("1 of 9");
-    await pane.getByRole("tab", { name: "Code", exact: true }).click();
-    await expect(pane.getByLabel("Python SDK sample")).toContainText("prebuilt-invoice");
-    await pane.getByRole("button", { name: "C#", exact: true }).click();
-    await expect(pane.getByLabel("C# SDK sample")).toContainText("V2025_11_01");
-    await pane.getByRole("button", { name: "JavaScript", exact: true }).click();
-    await expect(pane.getByLabel("JavaScript SDK sample")).toContainText("client.analyze(");
+    await expect(pane.getByRole("tab", { name: "Code", includeHidden: true, exact: true })).toHaveCount(0);
+    await page.setViewportSize({ width: 880, height: 850 });
+    await expect(pane.getByRole("button", { name: "More result views" })).toBeVisible();
+    await selectResultView(pane, "Result");
+    await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
 });
 
 test("isolated packed consumer preserves desktop keyboard focus and conditional source reveal under host CSP", async ({ page }) => {
@@ -229,9 +228,17 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
     await expect(page.getByTestId("table-markers")).toBeVisible();
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
     await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
-    await expect(pane.getByRole("tab", { name: "Code", exact: true })).toBeFocused();
-    const sample = await pane.getByLabel("Python SDK sample").textContent();
-    if (sample === null) throw new Error("Packed SDK sample text is unavailable.");
+    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeFocused();
+    await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
+    const sample = "Returned packed metadata";
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
+        name: "synthetic-packed-copy.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({
+            apiVersion: "2026-06-01-preview",
+            contents: [{ kind: "document", metadata: { Author: sample } }],
+        })),
+    });
+    await pane.getByRole("tab", { name: "Metadata", exact: true }).click();
     await page.evaluate(() => {
         const writes: string[] = [];
         window.cuPackedClipboardWrites = writes;
@@ -242,7 +249,7 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
             },
         } });
     });
-    const copy = pane.getByRole("button", { name: "Copy SDK sample", exact: true });
+    const copy = pane.getByRole("button", { name: "Copy metadata Author", exact: true });
     await copy.focus();
     await page.keyboard.press("Enter");
     await expect(copy).toHaveAttribute("aria-disabled", "true");

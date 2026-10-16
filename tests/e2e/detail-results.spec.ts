@@ -64,7 +64,7 @@ test("real paragraphs and native table cells navigate and retain source transfor
 
 test.describe("source thumbnails at DPR 2", () => {
     test.use({ deviceScaleFactor: 2 });
-    test("Figures and Signatures crop actual pixels, metadata copies and all SDK languages remain display-only", async ({ page, context }) => {
+    test("Figures and Signatures crop actual pixels and metadata remains safely copyable", async ({ page, context }) => {
         await context.grantPermissions(["clipboard-read", "clipboard-write"]);
         await page.getByLabel("Choose source file").setInputFiles(resolve("tests", "fixtures", "images", "orientation-marker.png"));
         await ready(page);
@@ -80,7 +80,7 @@ test.describe("source thumbnails at DPR 2", () => {
             }],
         });
         const pane = page.getByRole("region", { name: "Extraction results" });
-        await expect(pane.getByRole("tab")).toHaveText(["Figures", "Signatures", "Metadata", "Result", "Code"]);
+        await expect(pane.getByRole("tab")).toHaveText(["Figures", "Signatures", "Metadata", "Result"]);
         const figure = pane.getByRole("img", { name: "Figure 1 region 1 preview on page 1" });
         await expect(figure).toBeVisible();
         const figurePixel = await figure.evaluate(element => {
@@ -113,16 +113,7 @@ test.describe("source thumbnails at DPR 2", () => {
         await expect(pane.getByText("Copied", { exact: true })).toBeVisible();
         expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('<script>window.__bad=true</script>');
 
-        await pane.getByRole("tab", { name: "Code", exact: true }).click();
-        await expect(pane.getByLabel("Python SDK sample")).toContainText("client.begin_analyze(");
-        await pane.getByRole("button", { name: "C#", exact: true }).click();
-        await expect(pane.getByLabel("C# SDK sample")).toContainText("V2026_06_01_Preview");
-        await pane.getByRole("button", { name: "JavaScript", exact: true }).click();
-        const code = await pane.getByLabel("JavaScript SDK sample").textContent();
-        await pane.getByRole("button", { name: "Copy SDK sample", exact: true }).click();
-        await expect(pane.getByText("Copied", { exact: true })).toBeVisible();
-        const copiedCode = await page.evaluate(() => navigator.clipboard.readText());
-        expect(copiedCode.replaceAll("\r\n", "\n")).toBe(code);
+        await expect(pane.getByRole("tab", { name: "Code", includeHidden: true, exact: true })).toHaveCount(0);
         await expect(pane.locator("script, iframe, img, textarea")).toHaveCount(0);
         expect(await page.evaluate(() => "__bad" in window)).toBe(false);
         await expect.poll(() => alive(page)).toEqual({ workers: 0, bitmaps: 1, urls: 0 });

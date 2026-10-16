@@ -36,7 +36,9 @@
 
 从原始 JSON 识别 GA `2025-11-01` 与 Preview `2026-06-01-preview` 的适用非空数据，按以下顺序生成标签，无值隐藏，未知属性保留在完整 Result：
 
-`Fields → Markdown → Paragraphs → Tables → Figures → Signatures → Metadata → Result → Code`
+`Fields → Markdown → Paragraphs → Tables → Figures → Signatures → Metadata → Result`
+
+Tab 栏按可用宽度自动收纳，超出部分通过右侧 `...` 下拉菜单选择，不使用横向滚动。选中的视图标签始终可见，保留方向键及 Home/End 切换；菜单支持上下键、Home/End、Enter/Space 和 Esc。移除 Code 标签。
 
 | 视图 | 要求 |
 | --- | --- |
@@ -47,7 +49,6 @@
 | Figures/Signatures | 从已加载 source 的真实区域裁剪，显示已有 metadata 并定位，不推断签名状态或虚构图片。 |
 | Metadata | 只读字符串键值、保留顺序，支持单值复制。 |
 | Result | 成熟交互 JSON 树支持合理规模的大结果，展示完整原始输入/envelope，包括 usage；根展开、嵌套折叠。 |
-| Code | Python/C#/JavaScript 只读 SDK 样例及复制；版本/analyzer 来自结果，endpoint/key/file 为占位符，不执行。 |
 
 切换标签不重挂 Source，不重置页码、缩放、旋转、平移或固定项/区域索引；切换 content 时重算适用视图。
 

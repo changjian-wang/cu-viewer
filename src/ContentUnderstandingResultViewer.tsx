@@ -31,7 +31,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const [state, dispatch] = useReducer(interaction, initialInteraction);
     const [requestedView, setView] = useState<ResultView | undefined>("fields");
     const [hideMissing, setHideMissing] = useState(true);
-    const tabs = availableResultTabs(content, props.result, parsed.model?.apiVersion, parsed.model?.analyzerId);
+    const tabs = availableResultTabs(content, props.result, parsed.model?.apiVersion);
     const view = (tabs.find(tab => tab.id === requestedView) ?? tabs[0])?.id;
     useEffect(() => {
         if (view !== requestedView) setView(view);
@@ -167,7 +167,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             previewId={hovered && active && renderReady && available(active) &&
                 activeRegions[0]?.pageNumber === state.pageNumber ? previewId : undefined}
             source={source}
-            apiVersion={parsed.model?.apiVersion} analyzerId={parsed.model?.analyzerId}
+            apiVersion={parsed.model?.apiVersion}
             content={content} issues={[...(parsed.model?.issues ?? []), ...sourceIssues]} error={parsed.error}
             contents={parsed.model?.contents ?? []} contentIndex={contentIndex} onContentChange={chooseContent}
             selected={selected} hovered={hovered} sourceReady={Boolean(source)} isPageAvailable={isPageAvailable}

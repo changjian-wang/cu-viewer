@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useEffect, useState } from "react";
 import { FieldsPane } from "./FieldsPane";
@@ -11,7 +11,7 @@ import type { ResultView } from "../internal/resultViews";
 function TestPane(props: Omit<Parameters<typeof FieldsPane>[0], "view" | "onViewChange" | "hideMissing" | "onHideMissingChange" | "previewId">) {
     const [requested, setView] = useState<ResultView | undefined>("fields");
     const [hideMissing, setHideMissing] = useState(true);
-    const tabs = availableResultTabs(props.content, props.result, props.apiVersion, props.analyzerId);
+    const tabs = availableResultTabs(props.content, props.result, props.apiVersion);
     const view = (tabs.find(tab => tab.id === requested) ?? tabs[0])?.id;
     useEffect(() => {
         if (view !== requested) setView(view);
@@ -65,7 +65,7 @@ function structuredContent(): { content: CuContent; rows: CuField; first: CuFiel
 function renderPane(content: CuContent, selected: CuField | null = null,
     isPageAvailable: (pageNumber: number) => boolean = () => true,
     result: unknown = { apiVersion: "2025-11-01", rawOnly: "preserved" },
-    context: { apiVersion?: CuApiVersion; analyzerId?: string } = {}) {
+    context: { apiVersion?: CuApiVersion } = {}) {
     const onSelect = vi.fn();
     const props = {
         result, content, contents: [content], contentIndex: 0, issues: [], error: null,
@@ -77,7 +77,19 @@ function renderPane(content: CuContent, selected: CuField | null = null,
     return { ...view, onSelect, rerenderContent: (next: CuContent) => view.rerender(<TestPane {...props} content={next} />) };
 }
 
-afterEach(cleanup);
+beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+    vi.stubGlobal("ResizeObserver", class {
+        observe() {}
+        disconnect() {}
+    });
+});
+
+afterEach(() => {
+    cleanup();
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+    vi.unstubAllGlobals();
+});
 
 describe("structured Fields presentation", () => {
     it("shows one-based array items while retaining stable numeric source identities", () => {
@@ -159,15 +171,13 @@ describe("structured Fields presentation", () => {
             metadata: { Author: "Contoso" },
         });
         const { container } = renderPane(content, null, () => true, { rawOnly: "preserved" },
-            { apiVersion: "2026-06-01-preview", analyzerId: "saved-analyzer" });
+            { apiVersion: "2026-06-01-preview" });
         expect(screen.getAllByRole("tab").map(tab => tab.textContent))
-            .toEqual(["Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result", "Code"]);
+            .toEqual(["Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result"]);
         expect(container.querySelectorAll('[role="tab"][disabled]')).toHaveLength(0);
         fireEvent.keyDown(screen.getByRole("tab", { name: "Fields" }), { key: "End" });
-        expect(screen.getByRole("tab", { name: "Code" }).getAttribute("aria-selected")).toBe("true");
-        expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Code" }));
-        expect(await screen.findByRole("heading", { name: "Analyze SDK example" }, { timeout: 5000 })).toBeTruthy();
-        fireEvent.keyDown(screen.getByRole("tab", { name: "Code" }), { key: "ArrowLeft" });
+        expect(screen.getByRole("tab", { name: "Result" }).getAttribute("aria-selected")).toBe("true");
+        expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Result" }));
         expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" })).toBeTruthy();
         expect(screen.getByText(/rawOnly/)).toBeTruthy();
         fireEvent.keyDown(screen.getByRole("tab", { name: "Result" }), { key: "ArrowLeft" });

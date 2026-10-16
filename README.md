@@ -112,6 +112,8 @@ export default defineConfig({
 
 从原始 JSON 识别 `2025-11-01`／`2026-06-01-preview`。标签按下列顺序根据选中 content 的适用非空数据出现，无值隐藏，不显示 disabled 占位；未知属性保留在 Result。
 
+Tab 栏按可用宽度展示，放不下的标签收进右侧 `...` 下拉菜单，不再横向滚动。选择菜单项后切换视图，并让当前标签保持可见；支持方向键、Home/End 和菜单 Esc 关闭。不再提供 Code 标签。
+
 | 视图 | 行为 |
 | --- | --- |
 | Fields | 字段名称、值、已有置信度及来源；嵌套对象/数组默认折叠，缺失过滤不隐藏 `0`、`false`、空字符串或 `null`。后代继承根字段颜色，折叠不丢失固定选择。 |
@@ -121,14 +123,13 @@ export default defineConfig({
 | Figures／Signatures | 使用已加载 source 的真实区域裁剪及返回 metadata；不补造图片或签名状态。 |
 | Metadata | 保留字符串键值顺序，支持单值复制；与 Signatures 一样使用当前 Preview 映射。 |
 | Result | 完整原始输入/envelope，根展开、嵌套折叠，包括原有 usage，不显示内部标准化模型。 |
-| Code | 有版本与 analyzer ID 时提供 Python/C#/JavaScript 示例、高亮和复制；endpoint/key/file URL 为占位符，不安装或执行 SDK。 |
 
 切换标签不重挂 Source，不重置页码、缩放、旋转、平移或固定项/区域索引；切换 content 是另一操作，会重算适用视图。
 
 原文叠加层分开绘制：
 
 - 当前页 `pages[].words[].source` 绘制常驻浅黄色 OCR 基础层：`#FAFF7F40` 填充、1px 同色描边，所有 Tab 保留，与 fields/置信度无关。独立透明 Canvas 2D 按真实 CSS 尺寸/DPR 绘制，原图像素不动；相同区域只绘制一次，替换/卸载清空自身存储。
-- Tab 层显示 Fields 彩框或 Paragraphs/Tables 等各自的真实区域；Markdown/Metadata/Result/Code 不保留其他 Tab 的框，黄色 Word 层仍在。
+- Tab 层显示 Fields 彩框或 Paragraphs/Tables 等各自的真实区域；Markdown/Metadata/Result 不保留其他 Tab 的框，黄色 Word 层仍在。
 - 右侧字段 hover/focus 显示原文锚定的名称/Value/已有 Confidence，段落只显示 Content；临时预览不替换固定选择。Esc 可关闭，长值在有界浮层内滚动。
 - 左侧表格图标 hover/focus 显示 Rows/Columns 和虚线来源框；click/Enter/Space 打开只读 Table 模态。X/Esc 关闭、焦点回图标，不切右侧 Tab、不改 pin/页码/缩放。
 

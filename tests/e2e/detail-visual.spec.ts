@@ -75,20 +75,6 @@ test("Figures, Signatures and Metadata have reviewed source previews and safe re
     await snapshot(page, "detail-metadata.png");
 });
 
-test("Python, C# and JavaScript read-only SDK examples retain syntax highlighting and copy controls", async ({ page }) => {
-    const pane = page.getByRole("region", { name: "Extraction results" });
-    await pane.getByRole("tab", { name: "Code", exact: true }).click();
-    for (const [language, filename] of [
-        ["Python", "detail-code-python.png"], ["C#", "detail-code-csharp.png"], ["JavaScript", "detail-code-javascript.png"],
-    ]) {
-        if (!language || !filename) throw new Error("Visual code-language mapping is missing.");
-        await pane.getByRole("button", { name: language, exact: true }).click();
-        await expect(pane.getByLabel(`${language} SDK sample`)).toBeVisible();
-        await expect(pane.getByRole("button", { name: "Copy SDK sample", exact: true })).toBeVisible();
-        await snapshot(page, filename);
-    }
-});
-
 test("right-side Fields and Paragraphs hover show their distinct Studio source previews", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });

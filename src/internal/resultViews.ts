@@ -9,16 +9,15 @@ export const RESULT_TABS = [
     { id: "signatures", label: "Signatures" },
     { id: "metadata", label: "Metadata" },
     { id: "result", label: "Result" },
-    { id: "code", label: "Code" },
 ] as const;
 
+export type ResultTab = typeof RESULT_TABS[number];
 export type ResultView = typeof RESULT_TABS[number]["id"];
 
 export function availableResultTabs(
     content: CuContent | undefined,
     result: unknown,
     apiVersion?: CuApiVersion,
-    analyzerId?: string,
 ) {
     const available: Record<ResultView, boolean> = {
         fields: (content?.fields.length ?? 0) > 0,
@@ -30,7 +29,6 @@ export function availableResultTabs(
         metadata: apiVersion === "2026-06-01-preview" &&
             Object.values(content?.metadata ?? {}).some(value => value.trim().length > 0),
         result: result !== undefined,
-        code: apiVersion !== undefined && Boolean((content?.analyzerId ?? analyzerId)?.trim()),
     };
     return RESULT_TABS.filter(tab => available[tab.id]);
 }

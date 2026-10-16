@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
+import { lazy, Suspense, useId, useMemo, useState } from "react";
 import type { CuApiVersion, CuContent, CuField, CuParseIssue } from "../internal/types";
 import { displayValue, fieldColor, fieldDisplayName, fieldLabel, formatConfidence, primaryRegion } from "../internal/interaction";
 import { availableResultTabs } from "../internal/resultViews";
 import type { ResultView } from "../internal/resultViews";
 import { unavailableSourcePageMessage } from "../internal/source";
 import type { LoadedSource } from "../internal/source";
+import { ResultTabs } from "./ResultTabs";
 
 const MarkdownPane = lazy(() => import("./MarkdownPane").then(module => ({ default: module.MarkdownPane })));
 const JsonPane = lazy(() => import("./JsonPane").then(module => ({ default: module.JsonPane })));
@@ -13,7 +14,6 @@ const TablesPane = lazy(() => import("./TablesPane").then(module => ({ default: 
 const FiguresPane = lazy(() => import("./FiguresPane").then(module => ({ default: module.FiguresPane })));
 const SignaturesPane = lazy(() => import("./SignaturesPane").then(module => ({ default: module.SignaturesPane })));
 const MetadataPane = lazy(() => import("./MetadataPane").then(module => ({ default: module.MetadataPane })));
-const CodePane = lazy(() => import("./CodePane").then(module => ({ default: module.CodePane })));
 
 interface FieldsPaneProps {
     result: unknown;
@@ -24,7 +24,6 @@ interface FieldsPaneProps {
     previewId: string | undefined;
     source?: LoadedSource | null | undefined;
     apiVersion?: CuApiVersion | undefined;
-    analyzerId?: string | undefined;
     content: CuContent | undefined;
     issues: CuParseIssue[];
     error: string | null;
@@ -45,34 +44,12 @@ export function FieldsPane(props: FieldsPaneProps) {
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const { hideMissing, view } = props;
     const [tableChoice, setTableChoice] = useState<{ tables: CuContent["tables"]; index: number } | null>(null);
-    const tabRefs = useRef<Partial<Record<ResultView, HTMLButtonElement | null>>>({});
-    const focusedTab = useRef<ResultView | undefined>(undefined);
     const tabBaseId = useId();
-    const tabs = availableResultTabs(props.content, props.result, props.apiVersion, props.analyzerId);
+    const tabs = useMemo(() => availableResultTabs(props.content, props.result, props.apiVersion),
+        [props.content, props.result, props.apiVersion]);
     const activeTab = tabs.find(tab => tab.id === view);
     const tableIndex = tableChoice?.tables === props.content?.tables ? tableChoice?.index ?? 0 : 0;
-    const analyzerId = props.content?.analyzerId ?? props.analyzerId;
-    useEffect(() => {
-        if (focusedTab.current && focusedTab.current !== view && view) tabRefs.current[view]?.focus();
-    }, [view]);
     const visibleFields = (props.content?.fields ?? []).filter(field => !hideMissing || field.hasValue);
-    const selectView = (next: ResultView): void => {
-        props.onViewChange(next);
-        tabRefs.current[next]?.focus();
-    };
-    const onTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, current: ResultView): void => {
-        const views = tabs.map(tab => tab.id);
-        const currentIndex = views.indexOf(current);
-        let nextIndex: number | undefined;
-        if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % views.length;
-        else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + views.length) % views.length;
-        else if (event.key === "Home") nextIndex = 0;
-        else if (event.key === "End") nextIndex = views.length - 1;
-        if (nextIndex === undefined) return;
-        event.preventDefault();
-        const next = views[nextIndex];
-        if (next) selectView(next);
-    };
     const renderField = (field: CuField, depth: number) => {
         if (hideMissing && !field.hasValue) return null;
         const group = field.children.length > 0;
@@ -157,26 +134,9 @@ export function FieldsPane(props: FieldsPaneProps) {
             </option>)}
         </select>
     </label>;
-    const tab = (name: ResultView, label: string) => <button
-        key={name}
-        ref={element => { tabRefs.current[name] = element; }}
-        id={`${tabBaseId}-${name}`}
-        type="button"
-        role="tab"
-        aria-controls={panelId}
-        aria-selected={view === name}
-        tabIndex={view === name ? 0 : -1}
-        className={view === name ? "is-active" : undefined}
-        onClick={() => selectView(name)}
-        onKeyDown={event => onTabKeyDown(event, name)}
-        onFocus={() => { focusedTab.current = name; }}
-        onBlur={() => { focusedTab.current = undefined; }}
-    >{label}</button>;
     return <section className="cu-fields-pane" aria-label="Extraction results">
         {contentSelector}
-        <header className="cu-result-tabs" role="tablist" aria-label="Result views">
-            {tabs.map(value => tab(value.id, value.label))}
-        </header>
+        <ResultTabs tabs={tabs} view={view} baseId={tabBaseId} panelId={panelId} onViewChange={props.onViewChange} />
         <span className="cu-visually-hidden" role="status">{props.selected ? `Pinned: ${fieldLabel(props.selected)}` : "No field selected"}</span>
         <div
             id={panelId}
@@ -233,7 +193,6 @@ export function FieldsPane(props: FieldsPaneProps) {
                 {view === "signatures" && props.content && <SignaturesPane signatures={props.content.signatures ?? []}
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
                 {view === "metadata" && <MetadataPane metadata={props.content?.metadata ?? {}} />}
-                {view === "code" && props.apiVersion && analyzerId && <CodePane apiVersion={props.apiVersion} analyzerId={analyzerId} />}
             </Suspense>}
         </div>
         <footer className="cu-results-footer">
@@ -243,7 +202,6 @@ export function FieldsPane(props: FieldsPaneProps) {
             {["paragraphs", "tables", "figures", "signatures"].includes(view ?? "") &&
                 "Select a returned item to locate its source. All regions on the active source page are highlighted; region controls reach other pages."}
             {view === "metadata" && "Returned string metadata. Values and property order are preserved."}
-            {view === "code" && "Read-only SDK examples. No code, authentication or Analyze request is executed by the Viewer."}
         </footer>
     </section>;
 }

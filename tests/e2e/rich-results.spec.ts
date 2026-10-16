@@ -194,7 +194,7 @@ test("missing, malformed and oversized rich results have explicit bounded states
 
 test("GA and Preview derive Studio tabs from selected content without changing the source or inventing renderers", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
-    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Markdown", "Paragraphs", "Tables", "Result", "Code"]);
+    await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText(["Fields", "Markdown", "Paragraphs", "Tables", "Result"]);
     await expect(pane.locator('[role="tab"][disabled]')).toHaveCount(0);
     await expect(page.getByRole("combobox", { name: /version/i })).toHaveCount(0);
 
@@ -229,13 +229,11 @@ test("GA and Preview derive Studio tabs from selected content without changing t
         },
         usage: { units: 0 },
     }, "synthetic-preview-tabs.json");
-    await expect(pane.getByRole("tab")).toHaveText([
-        "Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result", "Code",
+    await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText([
+        "Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result",
     ]);
     await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
-    await expect(pane.getByRole("tab", { name: "Code", exact: true })).toBeFocused();
-    await expect(pane.getByRole("heading", { name: "Analyze SDK example" })).toBeVisible();
-    await pane.getByRole("tab", { name: "Code", exact: true }).press("ArrowLeft");
+    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeFocused();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(pane.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();
     await pane.locator(".cu-json-label", { hasText: "result:" }).click();
@@ -251,7 +249,7 @@ test("GA and Preview derive Studio tabs from selected content without changing t
 
     await page.getByRole("combobox", { name: "Result content" }).focus();
     await page.getByRole("combobox", { name: "Result content" }).selectOption("1");
-    await expect(pane.getByRole("tab")).toHaveText(["Result", "Code"]);
+    await expect(pane.getByRole("tab")).toHaveText(["Result"]);
     await expect(pane.getByRole("tab", { name: "Result", exact: true })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("combobox", { name: "Result content" })).toBeFocused();
     await page.getByRole("combobox", { name: "Result content" }).selectOption("0");
@@ -259,7 +257,7 @@ test("GA and Preview derive Studio tabs from selected content without changing t
 
     await page.getByRole("button", { name: "Receipt PNG", exact: true }).click();
     await ready(page);
-    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Markdown", "Paragraphs", "Result", "Code"]);
+    await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText(["Fields", "Markdown", "Paragraphs", "Result"]);
     await expect(pane.getByRole("tab", { name: "Figures", exact: true })).toHaveCount(0);
     await expect(pane.getByRole("tab", { name: "Signatures", exact: true })).toHaveCount(0);
 });

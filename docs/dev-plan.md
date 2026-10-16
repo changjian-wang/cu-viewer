@@ -99,9 +99,11 @@ flowchart LR
 
 Applicable nonempty data determines this tab order:
 
-`Fields -> Markdown -> Paragraphs -> Tables -> Figures -> Signatures -> Metadata -> Result -> Code`
+`Fields -> Markdown -> Paragraphs -> Tables -> Figures -> Signatures -> Metadata -> Result`
 
-Fields preserve generic values, confidence when returned, structured relationships, stable root colors, and multi-region navigation. Paragraphs preserve service order. Tables preserve native headers and spans, show one current table, and locate cells. Figures/Signatures crop actual loaded source regions rather than generating images or inferring detection states. Metadata preserves returned key/value order. Result renders the complete original input with a mature interactive JSON tree. Code provides read-only SDK examples with placeholders; it does not execute them.
+The tab bar fits the available width and puts overflow views in a `...` dropdown instead of scrolling horizontally. Selecting an overflow view keeps its active tab visible. Arrow keys and Home/End still reach every view; the menu supports Up/Down, Home/End, Enter/Space, and Escape. The Code tab has been removed.
+
+Fields preserve generic values, confidence when returned, structured relationships, stable root colors, and multi-region navigation. Paragraphs preserve service order. Tables preserve native headers and spans, show one current table, and locate cells. Figures/Signatures crop actual loaded source regions rather than generating images or inferring detection states. Metadata preserves returned key/value order. Result renders the complete original input with a mature interactive JSON tree.
 
 Markdown uses sanitization; the current remote-image omission policy and synchronous capacity limits are implementation choices documented in the README, not new product requirements.
 

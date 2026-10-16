@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { ready } from "./viewerAssertions";
+import { ready, selectResultView } from "./viewerAssertions";
 import { alive, trackSourceResources } from "./sourceResources";
 
 declare global {
@@ -94,7 +94,7 @@ test.beforeEach(async ({ page }) => {
     await ready(page);
 });
 
-test("yellow OCR words persist beneath all nine result tabs independently of selection and missing-field filtering", async ({ page }) => {
+test("yellow OCR words persist beneath all eight result tabs independently of selection and missing-field filtering", async ({ page }) => {
     await marker(page);
     await upload(page, synthetic());
     const words = page.getByTestId("word-overlay");
@@ -125,8 +125,8 @@ test("yellow OCR words persist beneath all nine result tabs independently of sel
         const result = wordLayer.parentElement?.querySelector('[data-testid="result-overlay"]');
         return Boolean(result && (wordLayer.compareDocumentPosition(result) & Node.DOCUMENT_POSITION_FOLLOWING));
     })).toBe(true);
-    for (const name of ["Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result", "Code"]) {
-        await page.getByRole("tab", { name, exact: true }).click();
+    for (const name of ["Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result"]) {
+        await selectResultView(page.getByRole("region", { name: "Extraction results" }), name);
         await expect(words).toBeVisible();
         expect(await words.evaluate((current, initial) => current === initial, element)).toBe(true);
         expect(await wordPoints(page)).toEqual(points);
