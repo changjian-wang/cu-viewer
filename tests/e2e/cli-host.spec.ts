@@ -1,5 +1,5 @@
 import { spawn, execFileSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { expect, test } from "@playwright/test";
@@ -111,6 +111,8 @@ async function startViewer(source: string, result: string, fresh = false) {
 
 async function inspect(page: Page, source: string, result: string, run: (url: string) => Promise<void>, fresh = false) {
     const before = await readFile(result);
+    const resources = join(installed!, "cu_cli", "resources", "viewer");
+    expect((await readdir(resources)).sort()).toEqual(["manifest.json", "viewer.zip"]);
     const host = await startViewer(source, result, fresh);
     const errors: string[] = [];
     const failed: string[] = [];
@@ -142,6 +144,7 @@ async function inspect(page: Page, source: string, result: string, run: (url: st
         await host.stop();
     }
     await expect(fetch(host.url)).rejects.toThrow();
+    expect((await readdir(resources)).sort()).toEqual(["manifest.json", "viewer.zip"]);
 }
 
 test("installed CLI serves real PDF, lazy result panes and source navigation without Node hosting", async ({ page }) => {

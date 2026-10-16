@@ -44,7 +44,7 @@
     "build": "vite build && tsc --project tsconfig.build.json",
     "build:demo": "vite build --config demo/vite.config.ts",
     "build:cli": "vite build --config cli/vite.config.ts",
-    "export:cli": "npm run build:cli && node tools/export-cli-viewer.mjs",
+    "export:cli": "npm run build:cli && python tools/export_cli_viewer.py",
     "preview:demo": "vite preview --config demo/vite.config.ts --host 127.0.0.1 --port 4173 --strictPort",
     "preview:performance": "vite preview --config demo/vite.config.ts --host 127.0.0.1 --port 41873 --strictPort"
   },

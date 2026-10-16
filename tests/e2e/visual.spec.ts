@@ -10,7 +10,7 @@ const amountPoints = ([[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.
     .map(([x, y]) => ({ x: x / 8.5, y: y / 11 }));
 const receiptPoints = [{ x: 775 / 1743, y: 73 / 878 }, { x: 973 / 1743, y: 72 / 878 },
     { x: 973 / 1743, y: 111 / 878 }, { x: 775 / 1743, y: 112 / 878 }];
-const approvedFields = readFileSync(resolve("docs", "prototype", "interactive-fields.png")).toString("base64");
+const approvedFields = readFileSync(resolve("tests", "fixtures", "visual", "approved-fields.png")).toString("base64");
 const captureCandidates = Boolean(process.env.CU_VISUAL_CANDIDATE_ROOT);
 const observations = new WeakMap<Page, { errors: string[]; external: string[] }>();
 

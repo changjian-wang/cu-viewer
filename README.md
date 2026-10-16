@@ -8,8 +8,7 @@
 
 - **本文**：启动、使用、资源交付、当前限制和验证命令。
 - [需求](docs/requirements.md)：当前 cu-cli Viewer 的交付范围和已确认行为。
-- [开发计划](docs/dev-plan.md)：当前状态、CLI 接入工作和已记录证据。
-- [截图预览](docs/prototype/index.html#visual-baselines)：当前获批图片和历史静态稿；不是可操作的 Viewer。
+- [开发计划（English）](docs/dev-plan.md)：完整架构、阶段任务、验收、依赖、测试映射和 CLI 交付状态。
 
 <a id="run-the-prototype"></a>
 ## 本地运行
@@ -169,11 +168,15 @@ npm run verify:consumer
 npm run export:cli -- C:\github\content-understanding-toolkit\cu-cli\packages\standalone\src\cu_cli\resources\viewer
 ```
 
-生产入口是 [cli](cli)，不带演示样本。导出清单包含资源哈希；更新只覆盖上次导出的文件，检测到人工修改或未知文件冲突时明确停止。随后在 CLI 仓库构建 Python wheel 即可分发，运行时不启动 Vite。
+生产入口是 [cli](cli)，不带演示样本。构建/导出需要 Node.js 和 Python 3.10+；[导出器](tools/export_cli_viewer.py)使用 Python 标准库，以固定顺序、时间戳和权限生成 `viewer.zip` 与 `manifest.json`。清单包含归档及逐项资源哈希；旧版散装资源只在清单和哈希全部匹配后清理，人工修改或未知文件会阻止更新。
+
+CLI 通过标准库在内存中校验并读取归档，不解压到用户目录。Python 包只携带这两个资源文件，PDF Worker 的内部 `build` 路径不会再被 Git 忽略规则漏掉。运行时无需 Node/Vite。导出回归可在已有 pytest 的 CLI 开发环境运行：`python -m pytest tools\test_export_cli_viewer.py`。
 
 `npm run test:cli` 是独立的 Chrome/Edge 安装包检查，不纳入默认演示 E2E。运行前设置 `CU_CLI_PYTHON` 为测试 Python 路径、`CU_CLI_PACKAGE_ROOT` 为安装了本地 `cu-cli` 与 `cu-cli-core` wheel 的独立目录；测试要求真实安装包，不使用源码别名，并从 Python 子进程 PATH 排除 Node。
 
-截图用于保持后续批准的**本项目原型**，不是逐像素复制 Studio。普通运行不自动更新参考；外观意图变化先评审。样本来源/哈希及历史测量留在[样本清单](tests/fixtures/manifest.json)，当前任务与证据只维护在[开发计划](docs/dev-plan.md#verification)。
+[视觉参考](tests/e2e/visual.spec.ts-snapshots)用于保持已批准的项目外观，不是逐像素复制 Studio。普通运行不自动更新参考；外观意图变化先评审。样本来源、许可、哈希和预期值见[样本清单](tests/fixtures/manifest.json)，计划及验证摘要见[英文开发计划](docs/dev-plan.md#verification)。
+
+源码库不保留构建目录、测试输出、缓存或历史静态原型。测试基线、原始样本和带许可的 HEIF 预构建资源是开发/运行输入，需要保留；普通构建无需 Rust。`node_modules` 仅是已忽略的本地依赖目录，不进入分发。
 
 <a id="supplementary-validation"></a>
 ### 验证边界
