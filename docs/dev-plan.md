@@ -29,6 +29,7 @@ The project supplies the browser Viewer used by cu-cli to inspect an original so
 - The implemented UI includes source navigation and transforms, structured fields, applicable rich-result views, source grounding, previews, table inspection, and a persistent OCR word layer.
 - Current delivery is validated with Chrome/Edge, React 18/19, and Vite 8. Other build/runtime profiles are unverified, not additional tasks.
 - The independent CLI frontend now implements both confirmed `--view` flows. Its code is on `feat/cu-result-viewer` in the adjacent toolkit checkout; this is not a claim that an existing published CLI already contains the feature.
+- Viewer is independently distributed as a Python package with prebuilt resources and a standard-library launcher. cu-cli consumes its compatible dependency, not a copied ZIP or local-server implementation. The candidate `cu-result-viewer 0.1.0b1` is not published; release approval remains separate.
 - No additional public customization API or separate host integration is planned. Add an interface only when a concrete CLI requirement demonstrates a gap.
 
 The approved implementation tasks below are complete within their recorded verification scope. Cleanup and packaging verification must not be confused with automatic publishing, blanket format support, or certification of every possible input.
@@ -48,9 +49,11 @@ Task `4.2a` completion refers to these display mappings and their recorded evide
 flowchart LR
     subgraph Hosts["Host responsibilities"]
         CLI["Python cu-cli"]
+        Launcher["Independent Viewer Python package"]
         Demo["Development demo"]
         Data["Original source and Analyze JSON"]
-        CLI --> Data
+        CLI --> Launcher
+        Launcher --> Data
         Demo --> Data
     end
     subgraph Viewer["Rendering-only React component"]
@@ -114,8 +117,9 @@ Markdown uses sanitization; the current remote-image omission policy and synchro
 
 | Location | Responsibility | Retention rule |
 | --- | --- | --- |
-| [src](../src) | Component, private parsing/geometry/adapters, result panes, styles, and unit tests. | Maintain as source; do not move CLI service code here. |
+| [src](../src) | Component, private parsing/geometry/adapters, result panes, styles, and unit tests. | Rendering-only TypeScript; no Python or CU service dependencies. |
 | [cli](../cli) | Sample-free production browser entry used by the Python CLI. | Keep source and Vite configuration; rebuild its output. |
+| [python](../python) | Independent Viewer distribution, public preparation/display API, read-only service, browser launcher, and runtime/build tests. | No cu-cli/core or third-party runtime dependency; generated archive and build outputs are ignored. |
 | [demo](../demo) | Development host with saved sample selection and file inputs. | Keep for local development and repository browser tests; it is not the CLI production page. |
 | [assets/heif](../assets/heif) | Pinned, licensed runtime decoder assets and SBOM. | Required build inputs, not disposable build caches. |
 | [codecs/heic-rs-wasm](../codecs/heic-rs-wasm) | Reproducible wrapper, lockfile, and codec build instructions. | Keep source/locks/licenses; remove generated `target` output when cleaning. |
@@ -124,7 +128,7 @@ Markdown uses sanitization; the current remote-image omission policy and synchro
 | [tests/e2e](../tests/e2e) | Functional, visual, lifecycle, performance, consumer, and CLI-wheel tests. | Keep tests and approved reference images, not run output or traces. |
 | [CI workflow](../.github/workflows/ci.yml) | Existing build, functional, package, performance, and scheduled stress/codec jobs. | Keep; local success does not imply the latest branch ran remotely. |
 
-This repository's workflow does not currently run the CLI-page build, exporter pytest suite, or installed-Python-wheel browser suite. Their recorded results below are local evidence, not checks already wired into this workflow. This distinction does not introduce an additional delivery gate.
+The workflow now builds the independent Viewer sdist/wheel and runs its Python/exporter tests on Python 3.10. Installed-Python-wheel browser and compatible-upgrade checks remain local; editing the workflow is not evidence of a completed remote run.
 
 `dist`, `dist-demo`, `dist-cli`, test reports, Python caches, and Rust build output are rebuildable and ignored. Local `node_modules` may be retained for development but is not source or a distribution artifact. Superseded static prototype pages/images are removed; the still-used approved Fields image lives with the fixtures. There is no additional archive-document tree.
 
@@ -174,7 +178,7 @@ Automated focus/ARIA coverage is not a claim of completed human assistive-techno
 | Task | Delivered scope and acceptance criteria | Direct dependencies | Status |
 | --- | --- | --- | --- |
 | `5.1` | Confirm actual CLI entry points, repository/branch, source/result handoff, resources, and lifetime. **AC-5.1:** the confirmed commands and responsibilities match the inspected standalone Python frontend; keep credentials/services outside the component. | 3.3, 4.2a, 4.3a | Done |
-| `5.2` | Implement and validate CLI viewing. **AC-5.2:** analysis-then-view uses the same completed result; saved viewing performs no analysis/authentication; ordinary output is unchanged; archive-only wheels work without runtime Node or repository paths; session boundaries and Ctrl+C cleanup pass. | 3.3, 5.1 | Implemented; local wheel/browser checks and one authorized real-file run passed |
+| `5.2` | Implement and validate CLI viewing. **AC-5.2:** the independently installed Viewer works without cu-cli, and the CLI calls its compatible dependency; analysis-then-view reuses the result, saved viewing makes no service/authentication calls, outputs remain unchanged, and wheels work without Node/repository paths; lifecycle and independent upgrades pass. | 3.3, 5.1 | Implemented; independent-package revision locally verified as recorded below |
 
 ## Dependencies and delivery sequence
 
@@ -195,10 +199,12 @@ The tables specify direct prerequisites rather than implying dependencies from r
 
 The standalone host is in [Azure/content-understanding-toolkit](https://github.com/Azure/content-understanding-toolkit), under `cu-cli/packages/standalone`. Implementation uses the workspace branch `feat/cu-result-viewer`, created from the inspected `origin/main` at `b3ff066960d6b517b6f1b4ee12201376369279a3`.
 
-- This repository owns the component, [production browser entry](../cli), resource build, [archive exporter](../tools/export_cli_viewer.py), and browser checks.
-- The Python frontend owns command options, local source/result loading, session serving, browser launch, Python package data, and shutdown.
+- This repository owns the component, [production browser entry](../cli), independent [Python package](../python), resource build, [archive exporter](../tools/export_cli_viewer.py), local service, browser launch, and shutdown.
+- The CLI frontend owns command options, source selection, analysis and result serialization, and translation of Viewer exceptions into its existing errors. It calls the independent package; it neither reads its archive nor exposes its internals.
 - The shared analysis engine and other command frontends were not changed to implement viewing.
 - Public component props remain `source` and `result`.
+
+The Python API is `prepare_viewer(source) -> PreparedViewer`, `PreparedViewer.show(result)`, and `read_result(path)` for saved JSON. Preparation validates basic source conditions and installed assets without networking or browser startup; display blocks until Ctrl+C. `ViewerInputError` distinguishes invalid local input from a `ViewerError` installation/serving failure. This API adds no React customization props.
 
 ### Confirmed command behavior
 
@@ -214,27 +220,30 @@ cu analyze sample.pdf --view --result sample.result.json
 | No `--view` | Do not start a browser/service or require viewer assets. Preserve existing analysis, batching, URL handling, stdout, files, and reports. |
 | Unsupported viewing selection | Reject directory, batch, remote URL, or `--dry-run` combinations before analysis. The first release views one local PDF/image at a time. |
 | Invalid option combination | Require `--view` with `--result`; reject additional analysis/output options in saved-result mode. Do not overwrite the source. |
-| Missing/corrupt viewer archive | Fail explicitly before analysis/authentication, with reinstall guidance. Do not silently ignore `--view` or download software. |
+| Missing/corrupt independent Viewer | Fail explicitly before analysis/authentication with guidance to repair the Viewer dependency in the actual CLI environment through its original installer. Do not require a development environment, silently ignore `--view`, or download software. |
 
 Status and the local URL go to stderr, preserving stdout data pipelines. Existing raw JSON, Markdown, result-file, and report behavior is retained in analysis-then-view mode. Source/result pairing is the caller's responsibility; the Viewer does not falsely certify that arbitrary files belong together.
 
-### Archive delivery
+### Independent package delivery and updates
 
 ```text name="Production asset pipeline"
 src + cli + licensed runtime assets
     -> dist-cli
     -> viewer.zip + manifest.json
-    -> Python package resources/viewer
-    -> wheel
+    -> independent cu-result-viewer sdist/wheel
+    -> package-manager installation alongside cu-cli
+    -> Viewer-owned preparation/display API
     -> loopback HTTP session
     -> browser component
 ```
 
 The archive includes the page, CSS/JS/lazy chunks, PDF Worker/fonts/CMaps/ICC/WASM, HEIF Worker/decoder, and notices. The exporter uses Python's standard library with fixed entry order, timestamps, and permissions. The manifest records archive and per-entry sizes/SHA-256 values.
 
-The Python host checks the exact manifest/archive inventory and serves verified bytes from memory. It neither extracts into user directories nor runs Node/Vite at runtime. Resource paths remain local and use correct MIME/CSP headers. A path named `build` inside the ZIP cannot be omitted by a source-control ignore rule.
+The independent Viewer checks the exact manifest/archive inventory and serves verified bytes from memory. It neither extracts into user directories nor runs Node/Vite at runtime. Resource paths remain local and use correct MIME/CSP headers. Its wheel/source builds reject absent/corrupt resources; the sdist contains prebuilt assets so rebuilding a user wheel does not require Node.
 
-Updates may replace only previously owned, verified output. Unexpected files or changed resources stop export. The migration from loose files checked the old manifest before deleting individual generated files.
+cu-cli declares `cu-result-viewer>=0.1.0b1,<0.2.0`, allowing compatible independent updates. Package managers perform installation/repair/upgrades in the same environment, not the `--view` command. Runtime code does not fetch latest releases or maintain a separate cache/updater. Breaking Python API changes require a compatible CLI update.
+
+Publish the independent package to the approved index before releasing the CLI dependency. The name was not found on PyPI when checked, which is not ownership or publication approval. Local validation installs built wheels, not an unpublished index dependency. Source repositories retain no generated Viewer ZIP; the toolkit has no Viewer resource directory. Export updates stop on unknown or modified files.
 
 ### Session and lifecycle
 
@@ -274,8 +283,8 @@ Updates may replace only previously owned, verified output. Unexpected files or 
 | Visual regression / `3.2`, `4.2a`, `4.3a` | [Product visual tests](../tests/e2e/visual.spec.ts), [detail visual tests](../tests/e2e/detail-visual.spec.ts), approved Fields fixture | Existing zero-difference comparisons; no automatic re-recording, threshold relaxation, or UI masking. |
 | Browser source URLs / `3.1`, `3.3` | [Source input tests](../tests/e2e/source-inputs.spec.ts) and controlled loopback CORS host | HTTP/HTTPS/blob policy, explicit CORS failures, anonymous cross-origin behavior, viewer-origin assets. |
 | Independent package / `3.3` | [Consumer verifier](../tools/verify-packed-consumers.mjs), [packed-host browser checks](../tests/e2e/package-host.spec.ts) | Real tgz installs with React 18/19, development/production assets, strict CSP, no source aliases. |
-| CLI assets / `5.2` | [Exporter tests](../tools/test_export_cli_viewer.py), CLI-side archive checks, clean Git-deliverable wheel build | Deterministic output, integrity/path errors, safe ownership migration, no ignored Worker or stale build dependency. |
-| CLI behavior / `5.1`, `5.2` | Toolkit command/HTTP tests and [installed-wheel browser checks](../tests/e2e/cli-host.spec.ts) | Single analysis or zero-call saved viewing, unchanged outputs, exact source/JSON handoff, CSP, no runtime Node/extraction, shutdown. |
+| Independent assets/runtime / `5.2` | [Exporter tests](../tools/test_export_cli_viewer.py), [Python runtime tests](../python/tests/test_runtime.py), [API/build tests](../python/tests/test_api.py), clean sdist/wheel builds | Deterministic output, integrity/path errors, explicit broken-build failures, no ignored Worker, standalone installation without CLI. |
+| CLI behavior / `5.1`, `5.2` | Toolkit adapter/command tests and [installed-wheel browser checks](../tests/e2e/cli-host.spec.ts) | Single analysis or zero-call saved viewing, unchanged output, dependency failure before billing, no embedded assets, compatible Viewer-only upgrades, CSP and shutdown. |
 
 ### Validation commands
 
@@ -296,7 +305,7 @@ npm run build:cli
 
 The exact visual selector above targets only the [product visual suite](../tests/e2e/visual.spec.ts), matching the recorded 18-case cleanup run. The [detail visual suite](../tests/e2e/detail-visual.spec.ts) is separate.
 
-The exporter tests require a Python environment with pytest, such as the CLI development environment. For wheel/browser checks, set `CU_CLI_PYTHON` and `CU_CLI_PACKAGE_ROOT` to the test interpreter and independent wheel installation, then run `npm run test:cli`. Use `npm run verify:consumer` or `npm run verify:performance` when their respective surfaces change.
+The Python/exporter tests require pytest. `npm run build:python` builds precompiled resources, then a sdist and a wheel from that sdist. For browser checks, set `CU_CLI_PYTHON` / `CU_CLI_PACKAGE_ROOT` to the three-package CLI installation and `CU_VIEWER_PYTHON` / `CU_VIEWER_PACKAGE_ROOT` to a Viewer-only environment, then run `npm run test:cli`. No source aliases are used. Use `npm run verify:consumer` or `npm run verify:performance` when their respective surfaces change.
 
 <a id="verification"></a>
 ## Recorded verification
@@ -306,10 +315,11 @@ Results have an explicit scope/date. They are not promises about untested hosts,
 | Evidence | Recorded outcome |
 | --- | --- |
 | Viewer baseline, 2026-10-15, `8eb04a6` | Type/lint and 511 unit cases; 178 ordinary Chrome/Edge cases including 600 stress rounds; four isolated performance cases; 32 independent React 18/19 consumer cases; 60 approved product images unchanged. |
-| CLI archive delivery, 2026-10-16 | Built core/standalone wheels from a clean projection of 175 Git-deliverable files, excluding ignored/stale outputs. The Viewer resource directory inside the Python package contains exactly `viewer.zip` and `manifest.json`; all 229 archived resource hashes match the prior verified payload. Repeat exports are byte-identical. |
+| Superseded CLI archive delivery, 2026-10-16 | Before independent packaging, built core/standalone wheels from a clean projection of 175 Git-deliverable files. The embedded resource directory held two files with all 229 payload hashes verified. Independent distribution now replaces this ownership model; these remain historical results. |
 | CLI automated regression, 2026-10-16 | 246 focused Python cases, 12 exporter cases, Python lint/types and frontend checks passed. Twelve Chrome/Edge installed-wheel cases cover PDF/PNG/JPEG/BMP/HEIF, rich chunks, source navigation, CSP, no Node/extraction, and port release. |
 | Authorized real CLI run, 2026-10-16 | The toolkit's `sample_files\sample_invoice.pdf` was analyzed once with `prebuilt-invoice`, API `2025-11-01`. One page, 31 returned fields, 63 paragraphs, three tables, and 197 words. Served PDF bytes and the original saved result matched exactly; tested fit/zoom/90-degree `InvoiceId` grounding stayed below 1 CSS px, with correct value/confidence preview. |
 | Source cleanup, 2026-10-16 | 511 unit, 18 Chrome/Edge product visual, and 12 exporter cases passed; type/lint, fresh library/CLI builds, and the 316-file component package inventory passed. All 160 protected source/codec/fixture/reference hashes were unchanged. The migrated Fields image and 60 product references retained their bytes; the rebuilt CLI archive matched the delivered SHA-256 exactly. Validation outputs/caches were removed afterwards, local dependencies retained, and the installed invoice Viewer stayed available. |
+| Independent Viewer migration, 2026-10-16 | Viewer runtime/API tests: 40; exporter: 12; CLI regression: 219; React unit cases: 511. Clean Viewer sdist-to-wheel and CLI wheels installed with dependency resolution; six missing/corrupt resource wheel/sdist builds were rejected. Fourteen Chrome/Edge cases passed, including a Viewer-only environment with no cu-cli. A simulated compatible `0.1.0b2` Viewer update changed the served page while all 82 installed CLI/core source files and the CLI wheel stayed unchanged; four further browser cases passed. The simulated update is not a published release. |
 
 The real invoice produced a PDF.js `TT: undefined function: 32` font warning; no Viewer alert or tested grounding failure was observed. Do not describe that run as warning-free or as an exhaustive font-fidelity test. The saved result remains outside the repository and is reusable without another Analyze call. No new service call is required for repository cleanup.
 
@@ -327,7 +337,7 @@ Existing timing, capacity, geometric, DPR, stress, and screenshot thresholds are
 | Cross-origin/local file exposure | Viewer URL policy plus the CLI's loopback-only capability session, Host/Origin checks, allowlisted assets and source, and no credential handoff. |
 | Unexpected billable analysis | `--result` bypasses profiles/clients with no fallback to Analyze. Before analysis, the CLI checks option/selection constraints, source existence/readability, supported extension, nonempty input, and viewer asset integrity. It does not fully validate PDF/image contents: a corrupt nonempty file with a supported extension may still be submitted and incur charges. Maintainer live-service checks require explicit authorization. |
 | Browser/font or screenshot drift | Keep approved inputs/versions and diagnose differences; do not automatically replace references or weaken checks. Retain the observed invoice font warning as a limitation, not a hidden success. |
-| Cross-repository asset version mismatch | Export from the matching Viewer source, verify ZIP/manifest/wheel inventory, then test the independent CLI installation before handoff. |
+| Cross-package version mismatch | Declare a compatible dependency range, verify standalone Viewer and CLI installations, and test upgrading only Viewer without rebuilding the unchanged CLI wheel. Do not copy artifacts between source repositories. |
 | License/publication assumptions | Retain MIT and all third-party/sample notices, decoder SBOM and locks. Technical validation does not itself grant publication or patent approval. |
 
 ## Build, rollout, and rollback
@@ -335,22 +345,22 @@ Existing timing, capacity, geometric, DPR, stress, and screenshot thresholds are
 ### Build and handoff
 
 1. Validate the component and build the sample-free CLI page using existing scripts.
-2. Export only `viewer.zip` and `manifest.json` to the toolkit's `resources\viewer` directory.
-3. Build/install the Python wheels from Git-deliverable files, not an old working-tree `build` directory.
+2. Generate the ignored ZIP/manifest for the independent Viewer package, and build its sdist/wheel with resource validation.
+3. Build the CLI wheel with its dependency, not Viewer assets; install the three wheels into a clean environment. Build sources exclude old working-tree output.
 4. Run the relevant command/server and installed-wheel browser tests. Reuse saved real JSON unless another paid call has been authorized.
 5. Review coordinated changes before any commit, push, installation replacement, or publication. Do not replace an existing user CLI automatically.
 
-```powershell name="Export to the workspace CLI"
-npm run export:cli -- C:\github\content-understanding-toolkit\cu-cli\packages\standalone\src\cu_cli\resources\viewer
+```powershell name="Build the independent Viewer distribution"
+npm run build:python
 ```
 
 ### Clean source repository
 
-After validation, remove rebuildable output and caches, leaving source, tests, approved fixtures/references, and required licensed assets. Keep the demo and production host because they exercise different contracts. Preserve unrelated/staged user changes and the toolkit's delivered archive; repository cleanup must not stop a separately installed Viewer session.
+After validation, remove rebuildable output, generated Python-package resources and caches, leaving source, tests, approved fixtures/references, and required licensed assets. Keep the demo and production host because they exercise different contracts. Preserve unrelated/staged user changes; cleanup must not stop a separately installed Viewer session.
 
 ### Rollback
 
-- Treat source, ZIP/manifest, and the matching Python host as coordinated versions.
+- Reinstall the previous compatible independent Viewer release without rebuilding CLI. If the Python API compatibility range changes, coordinate the CLI dependency update.
 - Revert only the relevant reviewed changes or install the previous known-good package; never reset unrelated work.
 - Do not downgrade integrity checks or replace missing resources with an online download.
 - Preserve source documents and saved Analyze JSON. Reverting a Viewer package does not require reanalysis.
@@ -361,6 +371,6 @@ After validation, remove rebuildable output and caches, leaving source, tests, a
 - Approved result views, grounding, source controls, previews/table inspection, keyboard behavior, and OCR layering retain their defined semantics.
 - Invalid input, limits, unavailable grounding, decode/render failure, and missing package resources are explicit.
 - Replacements, cancellation, modal closing, and unmount release owned resources without corrupting caller input.
-- An actual packaged CLI supports both confirmed viewing commands, preserves non-view behavior, and needs neither Node nor source-repository paths at runtime.
+- Viewer installs and opens saved results without cu-cli; an actual packaged CLI calls it for both confirmed viewing commands, preserves non-view behavior, and needs neither Node nor source-repository paths at runtime.
 - Clean-source builds include all required resources and notices; tests do not depend on obsolete prototype directories or local configuration.
 - The repository contains one complete English plan, not duplicate plans or accumulated generated reports.

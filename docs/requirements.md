@@ -7,11 +7,12 @@
 提供 React/TypeScript 组件，让 cu-cli 在浏览器中并排展示原始 PDF/图片和 CU 分析结果，并在结果与真实来源间关联定位。
 
 - Viewer 只负责渲染，不调用 Analyze、不依赖 CU SDK，不认证、不上传、不管理 analyzer、不轮询 LRO。
-- CLI 宿主负责取得源文件和结果、提供浏览器可访问的资源、打开页面及管理本地服务生命周期。
+- CLI 负责取得源文件和原始结果，并调用独立 Viewer 包；Viewer 项目提供预构建页面、只读本地服务、浏览器启动及生命周期，不反向依赖 cu-cli。
 - 原始需求已约定 `cu analyze sample.pdf --view`：分析完成后将源文件及原始结果交给浏览器 Viewer。不带 `--view` 时不自动打开 Viewer。
 - 后续已确认 `cu analyze sample.pdf --view --result sample.result.json`：只读取已有源文件和 JSON，跳过分析、登录和服务调用。无效或缺失的结果必须报错，不得回退到重新分析。
 - 已确认首版每次查看一份本地 PDF/图片；现有批量和 URL 分析保持原样，不新增这些输入与 `--view` 的组合。
 - 保持组件与 CLI 职责分离，Viewer 可以独立开发、运行演示和测试。
+- Viewer 独立发行和更新，cu-cli 通过兼容依赖自动安装它，不内嵌资源副本。普通用户不需要开发环境；缺失/损坏安装通过原安装渠道修复，不在 `--view` 时自动下载。
 
 ## 组件输入
 

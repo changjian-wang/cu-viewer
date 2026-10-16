@@ -35,6 +35,26 @@ cu analyze sample.pdf --view --result sample.result.json
 
 第一种按原有流程分析，完成后打开 Viewer；第二种只读取已有源文件和 JSON，跳过分析、登录和服务调用。不带 `--view` 时保持现有 CLI 行为，不自动打开。首版每次查看一份本地 PDF/图片，服务前台运行至 Ctrl+C；关闭标签页不会结束服务。资源分发和限制见 [CLI 交接契约](docs/dev-plan.md#cli-handoff)。
 
+### 独立安装与更新
+
+Viewer 独立发行 Python 包 `cu-result-viewer`，包含预构建页面和标准库启动器，不依赖 cu-cli、CU SDK 或 Node。cu-cli 只声明兼容依赖并调用启动接口，不保存 Viewer 资源副本。正式发布后，安装新版 cu-cli 会自动安装兼容 Viewer；也可在同一安装环境中单独升级 Viewer，而不重新发布 CLI。
+
+当前候选版本为 `0.1.0b1`，尚未上传包索引，不能把公开旧版 CLI 当成已具备该依赖。普通用户使用正式 wheel，不需要构建环境；若包缺失/损坏，用原安装渠道修复独立 Viewer 包，不要求用户构建资源，也不自动下载安装。
+
+正式发布后，pip 用户可在 cu-cli 所在的同一 Python 环境中独立升级兼容版本：
+
+```powershell name="正式发布后的Viewer独立更新（目前尚未发布）"
+python -m pip install --upgrade "cu-result-viewer>=0.1.0b1,<0.2.0"
+```
+
+不要在无关 Python 环境中运行更新；pipx 等隔离安装使用对应应用环境的包管理方式。
+
+独立 Viewer 安装后也可以直接运行，不需要 cu-cli：
+
+```powershell name="独立查看已有结果"
+python -m cu_result_viewer sample.pdf --result sample.result.json
+```
+
 <a id="embedding"></a>
 ## 嵌入 React
 
@@ -160,19 +180,21 @@ npm run verify:consumer
 
 独立验证器构建 tgz，在仓库外安装 React 18/19 各自依赖并检查开发/生产、类型、资源和 CSP，不使用源码别名或共享 node_modules。默认 E2E 不包含该独立矩阵。几何、性能和压力测试沿用现有工程阈值，不将其扩展为产品 SLA。
 
-### 更新 CLI 随包页面
+### 构建独立 Viewer 发行包（维护者）
 
-在本仓库根目录执行，导出路径指向工作区中的 CLI：
+维护者需要 Node.js、Python 3.10+ 和 Python `build` 工具，在仓库根目录执行：
 
-```powershell name="构建并导出CLI静态资源"
-npm run export:cli -- C:\github\content-understanding-toolkit\cu-cli\packages\standalone\src\cu_cli\resources\viewer
+```powershell name="构建独立Viewer的wheel和源码包"
+npm run build:python
 ```
 
-生产入口是 [cli](cli)，不带演示样本。构建/导出需要 Node.js 和 Python 3.10+；[导出器](tools/export_cli_viewer.py)使用 Python 标准库，以固定顺序、时间戳和权限生成 `viewer.zip` 与 `manifest.json`。清单包含归档及逐项资源哈希；旧版散装资源只在清单和哈希全部匹配后清理，人工修改或未知文件会阻止更新。
+生产入口是 [cli](cli)，不带演示样本。[导出器](tools/export_cli_viewer.py)默认只为[独立 Python 包](python)生成资源，以固定顺序、时间戳和权限生成 ZIP/清单；它们是已忽略的构建输入，不提交到 toolkit。`npm run build:python` 生成 wheel 和源码包，并从源码包重建 wheel；缺少/损坏资源时构建明确失败。
 
-CLI 通过标准库在内存中校验并读取归档，不解压到用户目录。Python 包只携带这两个资源文件，PDF Worker 的内部 `build` 路径不会再被 Git 忽略规则漏掉。运行时无需 Node/Vite。导出回归可在已有 pytest 的 CLI 开发环境运行：`python -m pytest tools\test_export_cli_viewer.py`。
+Viewer 自己负责归档校验、只读本地服务、浏览器打开及 Ctrl+C 清理，不解压到用户目录。CLI 在分析前调用 `prepare_viewer(source)`，完成后调用返回对象的 `show(result)`，不接触 ZIP 或资源字典。运行时无需 Node/Vite。
 
-`npm run test:cli` 是独立的 Chrome/Edge 安装包检查，不纳入默认演示 E2E。运行前设置 `CU_CLI_PYTHON` 为测试 Python 路径、`CU_CLI_PACKAGE_ROOT` 为安装了本地 `cu-cli` 与 `cu-cli-core` wheel 的独立目录；测试要求真实安装包，不使用源码别名，并从 Python 子进程 PATH 排除 Node。
+导出回归为 `python -m pytest tools\test_export_cli_viewer.py`，独立启动器测试为 `python -m pytest -c python\pyproject.toml python\tests`，使用已有 pytest 环境。
+
+`npm run test:cli` 是独立的 Chrome/Edge 安装包检查，不纳入默认演示 E2E。设置 `CU_CLI_PYTHON` / `CU_CLI_PACKAGE_ROOT` 为安装了三个本地 wheel 的测试环境；`CU_VIEWER_PYTHON` / `CU_VIEWER_PACKAGE_ROOT` 指向只装 Viewer 的隔离环境。测试不使用源码别名，并从 Python 子进程 PATH 排除 Node。
 
 [视觉参考](tests/e2e/visual.spec.ts-snapshots)用于保持已批准的项目外观，不是逐像素复制 Studio。普通运行不自动更新参考；外观意图变化先评审。样本来源、许可、哈希和预期值见[样本清单](tests/fixtures/manifest.json)，计划及验证摘要见[英文开发计划](docs/dev-plan.md#verification)。
 

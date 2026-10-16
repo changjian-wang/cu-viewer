@@ -8,36 +8,49 @@ import { checkPolygon, ready } from "./viewerAssertions";
 
 const python = process.env.CU_CLI_PYTHON;
 const installed = process.env.CU_CLI_PACKAGE_ROOT;
-if (!python || !installed) {
-    throw new Error("Set CU_CLI_PYTHON and CU_CLI_PACKAGE_ROOT to a Python executable and installed wheel directory.");
+const viewerPython = process.env.CU_VIEWER_PYTHON;
+const viewerInstalled = process.env.CU_VIEWER_PACKAGE_ROOT;
+if (!python || !installed || !viewerPython || !viewerInstalled) {
+    throw new Error("Set CU_CLI_PYTHON/CU_CLI_PACKAGE_ROOT and CU_VIEWER_PYTHON/CU_VIEWER_PACKAGE_ROOT to isolated wheel installations.");
 }
 const fixtures = resolve("tests", "fixtures");
 const harness = `
 import _thread, importlib, json, os, shutil, sys, threading, webbrowser
 from pathlib import Path
 from types import SimpleNamespace
-import cu_cli, cu_cli_core
-from cu_cli.cli import main
+import importlib.util
+from importlib.metadata import version
+import cu_result_viewer
 root = Path(sys.argv.pop(1)).resolve()
-assert Path(cu_cli.__file__).resolve().is_relative_to(root)
-assert Path(cu_cli_core.__file__).resolve().is_relative_to(root)
-assert list(root.glob("cu_cli-*.dist-info"))
-assert list(root.glob("cu_cli_core-*.dist-info"))
+independent = sys.argv.pop(1) == "independent"
+assert Path(cu_result_viewer.__file__).resolve().is_relative_to(root)
+assert list(root.glob("cu_result_viewer-*.dist-info"))
 assert shutil.which("node") is None
-adapter = importlib.import_module("cu_cli.commands.analyze")
 def no_service(*args, **kwargs):
     raise AssertionError("Saved viewing must not load profiles or build service clients")
-if "--result" in sys.argv:
-    adapter.Profile.load = staticmethod(no_service)
-    adapter.build_client = no_service
+if independent:
+    assert importlib.util.find_spec("cu_cli") is None
+    assert importlib.util.find_spec("cu_cli_core") is None
+    from cu_result_viewer.__main__ import main
 else:
-    adapter.Profile.load = staticmethod(lambda **kwargs: SimpleNamespace(
-        default_analyzer="prebuilt-layout", api_version="2025-11-01"))
-    adapter.build_client = lambda *args, **kwargs: object()
-    def analyze_once(client, job):
-        print("TEST_ANALYZE_CALL", file=sys.stderr, flush=True)
-        return job, json.loads(Path(os.environ["CU_CLI_BROWSER_TEST_RESULT"]).read_text(encoding="utf-8"))
-    adapter._run_one = analyze_once
+    import cu_cli, cu_cli_core
+    from cu_cli.cli import main
+    assert Path(cu_cli.__file__).resolve().is_relative_to(root)
+    assert Path(cu_cli_core.__file__).resolve().is_relative_to(root)
+    assert not (Path(cu_cli.__file__).parent / "resources/viewer").exists()
+    assert version("cu-result-viewer") == os.environ.get("CU_CLI_EXPECT_VIEWER_VERSION", "0.1.0b1")
+    adapter = importlib.import_module("cu_cli.commands.analyze")
+    if "--result" in sys.argv:
+        adapter.Profile.load = staticmethod(no_service)
+        adapter.build_client = no_service
+    else:
+        adapter.Profile.load = staticmethod(lambda **kwargs: SimpleNamespace(
+            default_analyzer="prebuilt-layout", api_version="2025-11-01"))
+        adapter.build_client = lambda *args, **kwargs: object()
+        def analyze_once(client, job):
+            print("TEST_ANALYZE_CALL", file=sys.stderr, flush=True)
+            return job, json.loads(Path(os.environ["CU_CLI_BROWSER_TEST_RESULT"]).read_text(encoding="utf-8"))
+        adapter._run_one = analyze_once
 def stop():
     if sys.stdin.readline().strip() == "stop":
         _thread.interrupt_main()
@@ -49,14 +62,17 @@ webbrowser.open = opened
 main()
 `;
 
-async function startViewer(source: string, result: string, fresh = false) {
+async function startViewer(source: string, result: string, fresh = false, independent = false) {
     const directory = await mkdtemp(join(tmpdir(), "cu-cli-browser-"));
-    const args = fresh ? ["--json"] : ["--result", result];
-    const child = spawn(python!, ["-u", "-B", "-c", harness, installed!, "analyze", source, "--view", ...args], {
+    const executable = independent ? viewerPython! : python!;
+    const packageRoot = independent ? viewerInstalled! : installed!;
+    const args = independent ? [source, "--result", result] :
+        ["analyze", source, "--view", ...(fresh ? ["--json"] : ["--result", result])];
+    const child = spawn(executable, ["-u", "-B", "-c", harness, packageRoot, independent ? "independent" : "cli", ...args], {
         cwd: directory,
         env: {
-            ...process.env, PYTHONPATH: installed!, CU_NO_UPDATE_CHECK: "1", PYTHONIOENCODING: "utf-8",
-            PATH: dirname(python!),
+            ...process.env, PYTHONPATH: packageRoot, CU_NO_UPDATE_CHECK: "1", PYTHONIOENCODING: "utf-8",
+            PATH: dirname(executable),
             CU_CLI_BROWSER_TEST_RESULT: result,
         },
         stdio: "pipe",
@@ -109,11 +125,11 @@ async function startViewer(source: string, result: string, fresh = false) {
     }
 }
 
-async function inspect(page: Page, source: string, result: string, run: (url: string) => Promise<void>, fresh = false) {
+async function inspect(page: Page, source: string, result: string, run: (url: string) => Promise<void>, fresh = false, independent = false) {
     const before = await readFile(result);
-    const resources = join(installed!, "cu_cli", "resources", "viewer");
+    const resources = join(independent ? viewerInstalled! : installed!, "cu_result_viewer", "resources", "viewer");
     expect((await readdir(resources)).sort()).toEqual(["manifest.json", "viewer.zip"]);
-    const host = await startViewer(source, result, fresh);
+    const host = await startViewer(source, result, fresh, independent);
     const errors: string[] = [];
     const failed: string[] = [];
     const external: string[] = [];
@@ -128,6 +144,9 @@ async function inspect(page: Page, source: string, result: string, run: (url: st
     try {
         const response = await page.goto(host.url);
         expect(response?.headers()["content-security-policy"]).toContain("script-src 'self' 'wasm-unsafe-eval'");
+        if (!independent && process.env.CU_CLI_EXPECT_VIEWER_VERSION === "0.1.0b2") {
+            await expect(page.locator('meta[name="viewer-compatibility-test"]')).toHaveAttribute("content", "0.1.0b2");
+        }
         await ready(page);
         await run(host.url);
         expect(errors).toEqual([]);
@@ -221,4 +240,12 @@ test("installed CLI analyzes once with an offline substitute then opens the same
     await inspect(page, join(fixtures, "receipt.png"), join(fixtures, "receipt.cu.json"), async () => {
         await expect(page.getByRole("button", { name: "MerchantName", exact: true })).toBeVisible();
     }, true);
+});
+
+test("independent Viewer wheel opens a saved PDF without any cu-cli installation", async ({ page }) => {
+    await inspect(page, join(fixtures, "mixed-financial-docs.pdf"), join(fixtures, "mixed-financial-docs.cu.json"), async () => {
+        await expect(page.locator("[data-field-depth='0']")).toHaveCount(28);
+        await page.getByRole("tab", { name: "Markdown", exact: true }).click();
+        await expect(page.getByRole("heading", { name: "INVOICE", exact: true })).toBeVisible();
+    }, false, true);
 });

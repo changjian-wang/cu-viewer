@@ -13,3 +13,7 @@ __pycache__/
 *.tgz
 .env.local
 codecs/**/target/
+python/build/
+python/dist/
+python/src/*.egg-info/
+python/src/cu_result_viewer/resources/

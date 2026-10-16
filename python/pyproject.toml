@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cu-result-viewer"
+version = "0.1.0b1"
+description = "Independent local browser viewer for original documents and Content Understanding JSON."
+readme = {text = "A prebuilt React viewer and standard-library Python launcher. No CU SDK, authentication, Node.js, or cu-cli is required at runtime.", content-type = "text/plain"}
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["build>=1.3", "pytest>=7.4"]
+
+[project.urls]
+Repository = "https://github.com/changjian-wang/cu-result-viewer"
+
+[project.scripts]
+cu-result-viewer = "cu_result_viewer.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
+
+[tool.setuptools.package-data]
+cu_result_viewer = ["resources/viewer/viewer.zip", "resources/viewer/manifest.json", "py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q --import-mode=importlib"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
