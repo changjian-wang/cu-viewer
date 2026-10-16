@@ -33,6 +33,15 @@ The project supplies the browser Viewer used by cu-cli to inspect an original so
 
 The approved implementation tasks below are complete within their recorded verification scope. Cleanup and packaging verification must not be confused with automatic publishing, blanket format support, or certification of every possible input.
 
+### CU version and evidence boundary
+
+| API version | Current evidence |
+| --- | --- |
+| `2025-11-01` (GA) | Real saved CU source/result pairs and the authorized live CLI invoice run. |
+| `2026-06-01-preview` (Preview) | Guarded display mappings checked with explicitly synthetic fixtures and schema/reference evidence, not a complete live-service matrix. |
+
+Task `4.2a` completion refers to these display mappings and their recorded evidence; it does not imply exhaustive real-service validation of Preview features.
+
 ## Architecture
 
 ```mermaid
@@ -115,6 +124,8 @@ Markdown uses sanitization; the current remote-image omission policy and synchro
 | [tests/e2e](../tests/e2e) | Functional, visual, lifecycle, performance, consumer, and CLI-wheel tests. | Keep tests and approved reference images, not run output or traces. |
 | [CI workflow](../.github/workflows/ci.yml) | Existing build, functional, package, performance, and scheduled stress/codec jobs. | Keep; local success does not imply the latest branch ran remotely. |
 
+This repository's workflow does not currently run the CLI-page build, exporter pytest suite, or installed-Python-wheel browser suite. Their recorded results below are local evidence, not checks already wired into this workflow. This distinction does not introduce an additional delivery gate.
+
 `dist`, `dist-demo`, `dist-cli`, test reports, Python caches, and Rust build output are rebuildable and ignored. Local `node_modules` may be retained for development but is not source or a distribution artifact. Superseded static prototype pages/images are removed; the still-used approved Fields image lives with the fixtures. There is no additional archive-document tree.
 
 ## Implementation phases and acceptance criteria
@@ -153,7 +164,7 @@ Task identifiers retain the established numbering. **Done** means the delivered 
 | --- | --- | --- | --- |
 | `4.1` | Structured fields and multiple sources. **AC-4.1:** stable nested/array identities, collapse/expand, missing-value filtering, and all valid own/descendant regions remain reachable without losing selection. | 3.3 | Done |
 | `4.2` | Safe Markdown and original JSON. **AC-4.2:** sanitize content, preserve the full caller input, support interactive nesting, lazy-load rich dependencies, retain source state, and report limits rather than truncating data. | 3.3, 4.1 | Done |
-| `4.2a` | Dynamic Studio-style result views. **AC-4.2a:** data-driven tabs, dedicated paragraph/table/crop/metadata/code displays, valid-source navigation, raw Result preservation, and explicit invalid-detail handling work for the supported GA/Preview mappings. | 4.1, 4.2 | Done |
+| `4.2a` | Dynamic Studio-style result views. **AC-4.2a:** data-driven tabs, dedicated paragraph/table/crop/metadata/code displays, valid-source navigation, raw Result preservation, and explicit invalid-detail handling work within the [version/evidence boundary](#cu-version-and-evidence-boundary). | 4.1, 4.2 | Done |
 | `4.3a` | Keyboard/focus/ARIA, bounded two-pane layout, conditional centering, and confirmed source interactions. **AC-4.3a:** visible/stable focus, no unintended pane remount or transform reset, previews and table dialog have keyboard behavior, and the OCR base layer remains stable across tabs and transforms. | 4.1, 4.2, 4.2a | Implemented; automated checks passed |
 
 Automated focus/ARIA coverage is not a claim of completed human assistive-technology certification. No separate certification task blocks CLI delivery.
@@ -278,10 +289,12 @@ npm run build
 ```
 
 ```powershell name="Targeted visual and export validation"
-npx playwright test 'visual\.spec\.ts' --project=chrome --project=edge
+npx playwright test '(^|[\\/])visual\.spec\.ts$' --project=chrome --project=edge
 python -m pytest tools\test_export_cli_viewer.py
 npm run build:cli
 ```
+
+The exact visual selector above targets only the [product visual suite](../tests/e2e/visual.spec.ts), matching the recorded 18-case cleanup run. The [detail visual suite](../tests/e2e/detail-visual.spec.ts) is separate.
 
 The exporter tests require a Python environment with pytest, such as the CLI development environment. For wheel/browser checks, set `CU_CLI_PYTHON` and `CU_CLI_PACKAGE_ROOT` to the test interpreter and independent wheel installation, then run `npm run test:cli`. Use `npm run verify:consumer` or `npm run verify:performance` when their respective surfaces change.
 
@@ -293,7 +306,7 @@ Results have an explicit scope/date. They are not promises about untested hosts,
 | Evidence | Recorded outcome |
 | --- | --- |
 | Viewer baseline, 2026-10-15, `8eb04a6` | Type/lint and 511 unit cases; 178 ordinary Chrome/Edge cases including 600 stress rounds; four isolated performance cases; 32 independent React 18/19 consumer cases; 60 approved product images unchanged. |
-| CLI archive delivery, 2026-10-16 | Built core/standalone wheels from a clean projection of 175 Git-deliverable files, excluding ignored/stale outputs. The Python package contains only `viewer.zip` and `manifest.json`; all 229 archived resource hashes match the prior verified payload. Repeat exports are byte-identical. |
+| CLI archive delivery, 2026-10-16 | Built core/standalone wheels from a clean projection of 175 Git-deliverable files, excluding ignored/stale outputs. The Viewer resource directory inside the Python package contains exactly `viewer.zip` and `manifest.json`; all 229 archived resource hashes match the prior verified payload. Repeat exports are byte-identical. |
 | CLI automated regression, 2026-10-16 | 246 focused Python cases, 12 exporter cases, Python lint/types and frontend checks passed. Twelve Chrome/Edge installed-wheel cases cover PDF/PNG/JPEG/BMP/HEIF, rich chunks, source navigation, CSP, no Node/extraction, and port release. |
 | Authorized real CLI run, 2026-10-16 | The toolkit's `sample_files\sample_invoice.pdf` was analyzed once with `prebuilt-invoice`, API `2025-11-01`. One page, 31 returned fields, 63 paragraphs, three tables, and 197 words. Served PDF bytes and the original saved result matched exactly; tested fit/zoom/90-degree `InvoiceId` grounding stayed below 1 CSS px, with correct value/confidence preview. |
 | Source cleanup, 2026-10-16 | 511 unit, 18 Chrome/Edge product visual, and 12 exporter cases passed; type/lint, fresh library/CLI builds, and the 316-file component package inventory passed. All 160 protected source/codec/fixture/reference hashes were unchanged. The migrated Fields image and 60 product references retained their bytes; the rebuilt CLI archive matched the delivered SHA-256 exactly. Validation outputs/caches were removed afterwards, local dependencies retained, and the installed invoice Viewer stayed available. |
@@ -312,7 +325,7 @@ Existing timing, capacity, geometric, DPR, stress, and screenshot thresholds are
 | Missing workers/fonts/decoder assets | Exact archive manifest, hashes and MIME/CSP checks, package-only installs, and clean Git-deliverable build verification. Never rely solely on a working local build tree. |
 | Archive export overwrites manual files | Verify ownership and prior bytes before replacement/migration; stop on unknown or changed files. |
 | Cross-origin/local file exposure | Viewer URL policy plus the CLI's loopback-only capability session, Host/Origin checks, allowlisted assets and source, and no credential handoff. |
-| Unexpected billable analysis | `--result` bypasses profiles/clients; invalid inputs/assets fail before analysis; no fallback from saved viewing to Analyze. New live calls require explicit authorization. |
+| Unexpected billable analysis | `--result` bypasses profiles/clients with no fallback to Analyze. Before analysis, the CLI checks option/selection constraints, source existence/readability, supported extension, nonempty input, and viewer asset integrity. It does not fully validate PDF/image contents: a corrupt nonempty file with a supported extension may still be submitted and incur charges. Maintainer live-service checks require explicit authorization. |
 | Browser/font or screenshot drift | Keep approved inputs/versions and diagnose differences; do not automatically replace references or weaken checks. Retain the observed invoice font warning as a limitation, not a hidden success. |
 | Cross-repository asset version mismatch | Export from the matching Viewer source, verify ZIP/manifest/wheel inventory, then test the independent CLI installation before handoff. |
 | License/publication assumptions | Retain MIT and all third-party/sample notices, decoder SBOM and locks. Technical validation does not itself grant publication or patent approval. |
