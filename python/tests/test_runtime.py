@@ -16,8 +16,9 @@ from zipfile import ZipFile
 
 import pytest
 
-from cu_result_viewer import ViewerError
+from cu_result_viewer import _assets as assets
 from cu_result_viewer import _runtime as viewer
+from cu_result_viewer import _server as server_module
 
 
 @pytest.fixture
@@ -34,7 +35,7 @@ def local_resources(tmp_path):
 def server(local_resources):
     source, assets = local_resources
     payload = {"result": {"extra": [0, False, None], "contents": []}}
-    with viewer._ViewerServer(source, payload, assets) as running:
+    with server_module._ViewerServer(source, payload, assets) as running:
         thread = threading.Thread(target=running.serve_forever, daemon=True)
         thread.start()
         try:
@@ -178,12 +179,12 @@ def packaged_archive(tmp_path, content):
 
 def test_manifest_integrity_and_packaged_assets(monkeypatch, tmp_path):
     root, _ = packaged_archive(tmp_path, [("index.html", b"page")])
-    monkeypatch.setattr(viewer, "files", lambda package: tmp_path)
-    assert viewer.load_viewer_assets() == {"index.html": b"page"}
+    monkeypatch.setattr(assets, "files", lambda package: tmp_path)
+    assert assets.load_viewer_assets() == {"index.html": b"page"}
     assert set(path.name for path in root.iterdir()) == {"viewer.zip", "manifest.json"}
     (root / "viewer.zip").write_bytes(b"modified")
-    with pytest.raises(ViewerError, match="integrity check failed"):
-        viewer.load_viewer_assets()
+    with pytest.raises(ValueError, match="integrity check failed"):
+        assets.load_viewer_assets()
 
 
 @pytest.mark.parametrize("change", ["hash", "size", "extra-file", "duplicate", "missing-entry"])
@@ -204,9 +205,9 @@ def test_archive_entry_mismatch_is_reported(monkeypatch, tmp_path, change):
             "path": "missing", "bytes": 0, "sha256": hashlib.sha256(b"").hexdigest(),
         })
     (root / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    monkeypatch.setattr(viewer, "files", lambda package: tmp_path)
-    with pytest.raises(ViewerError):
-        viewer.load_viewer_assets()
+    monkeypatch.setattr(assets, "files", lambda package: tmp_path)
+    with pytest.raises(ValueError):
+        assets.load_viewer_assets()
 
 
 def test_non_zip_archive_reports_a_friendly_error(monkeypatch, tmp_path):
@@ -215,21 +216,21 @@ def test_non_zip_archive_reports_a_friendly_error(monkeypatch, tmp_path):
     (root / "viewer.zip").write_bytes(data)
     manifest["archive"].update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
     (root / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    monkeypatch.setattr(viewer, "files", lambda package: tmp_path)
-    with pytest.raises(ViewerError, match="Packaged viewer resources"):
-        viewer.load_viewer_assets()
+    monkeypatch.setattr(assets, "files", lambda package: tmp_path)
+    with pytest.raises(ValueError, match="Packaged viewer resources"):
+        assets.load_viewer_assets()
 
 
 def test_real_export_has_required_runtime_assets_and_licenses():
-    assets = viewer.load_viewer_assets()
+    content = assets.load_viewer_assets()
     assert {
         "index.html", "LICENSE.txt", "THIRD-PARTY-NOTICES.txt",
         "assets/pdfjs/LICENSE", "assets/pdfjs/build/pdf.worker.mjs",
         "assets/heif/heif.worker.js", "assets/heif/heic_decoder.js",
         "assets/heif/heic_decoder_bg.wasm", "assets/heif/SBOM.json",
-    } <= set(assets)
-    assert any(name.startswith("assets/MarkdownPane-") for name in assets)
-    assert any(name.startswith("assets/JsonPane-") for name in assets)
+    } <= set(content)
+    assert any(name.startswith("assets/MarkdownPane-") for name in content)
+    assert any(name.startswith("assets/JsonPane-") for name in content)
 
 
 @pytest.mark.parametrize("path", ["../secret", "/absolute", "C:/secret", "assets\\secret", ""])
@@ -237,6 +238,6 @@ def test_invalid_manifest_paths_are_rejected(monkeypatch, tmp_path, path):
     root, manifest = packaged_archive(tmp_path, [("index.html", b"page")])
     manifest["files"][0]["path"] = path
     (root / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    monkeypatch.setattr(viewer, "files", lambda package: tmp_path)
-    with pytest.raises(ViewerError, match="Invalid viewer asset path"):
-        viewer.load_viewer_assets()
+    monkeypatch.setattr(assets, "files", lambda package: tmp_path)
+    with pytest.raises(ValueError, match="Invalid viewer asset path"):
+        assets.load_viewer_assets()

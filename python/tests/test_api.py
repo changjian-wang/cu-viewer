@@ -48,6 +48,32 @@ def test_installation_error_is_not_a_source_error(tmp_path, monkeypatch):
         cu_result_viewer.prepare_viewer(source)
 
 
+def test_invalid_assets_keep_the_public_installation_error_category(tmp_path, monkeypatch):
+    source = tmp_path / "document.pdf"
+    source.write_bytes(b"%PDF-1.7")
+    monkeypatch.setattr(
+        cu_result_viewer, "load_viewer_assets",
+        lambda: (_ for _ in ()).throw(ValueError("Packaged viewer resources are unavailable")),
+    )
+    with pytest.raises(ViewerError, match="Packaged viewer resources") as failure:
+        cu_result_viewer.prepare_viewer(source)
+    assert not isinstance(failure.value, ViewerInputError)
+
+
+def test_read_result_preserves_original_values_and_accepts_a_bom(tmp_path):
+    result = tmp_path / "saved.json"
+    result.write_text('{"unknown": [0, false, null, ""]}', encoding="utf-8-sig")
+    assert cu_result_viewer.read_result(result) == {"unknown": [0, False, None, ""]}
+
+
+@pytest.mark.parametrize("value", ["not JSON", '{"number": NaN}', '{"number": Infinity}'])
+def test_invalid_saved_result_keeps_the_public_input_error_category(tmp_path, value):
+    result = tmp_path / "saved.json"
+    result.write_text(value, encoding="utf-8")
+    with pytest.raises(ViewerInputError, match="Saved result could not be read"):
+        cu_result_viewer.read_result(result)
+
+
 def build_validator():
     path = Path(__file__).resolve().parents[1] / "setup.py"
     spec = spec_from_file_location("_viewer_setup_test", path)
@@ -69,7 +95,7 @@ def test_build_validator_rejects_incomplete_packages(tmp_path, monkeypatch, fail
     package = tmp_path / "src" / "cu_result_viewer"
     root = package / "resources" / "viewer"
     root.mkdir(parents=True)
-    (package / "_runtime.py").write_bytes((real / "_runtime.py").read_bytes())
+    (package / "_assets.py").write_bytes((real / "_assets.py").read_bytes())
     for name in ("viewer.zip", "manifest.json"):
         if failure != f"missing-{name.split('.')[0]}":
             (root / name).write_bytes((real / "resources" / "viewer" / name).read_bytes())

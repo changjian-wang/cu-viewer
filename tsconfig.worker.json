@@ -4,6 +4,6 @@
     "lib": ["ES2022", "WebWorker"],
     "types": []
   },
-  "include": ["src/internal/heif.worker.ts"],
+  "include": ["frontend/src/source/heif.worker.ts"],
   "exclude": []
 }

@@ -1,15 +1,15 @@
 import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
-import { heifAssets } from "./tools/heifAssets.ts";
-import { pdfAssets } from "./tools/pdfAssets.ts";
+import { heifAssets } from "./frontend/tooling/heifAssets.ts";
+import { pdfAssets } from "./frontend/tooling/pdfAssets.ts";
 
 export default defineConfig({
     plugins: [pdfAssets("pdfjs"), heifAssets("heif")],
     build: {
         lib: {
             entry: {
-                index: resolve(import.meta.dirname, "src", "index.ts"),
-                vite: resolve(import.meta.dirname, "src", "vite.ts"),
+                index: resolve(import.meta.dirname, "frontend", "src", "index.ts"),
+                vite: resolve(import.meta.dirname, "frontend", "src", "vite.ts"),
             },
             formats: ["es"],
             fileName: (_format, name) => `${name}.js`,
@@ -22,6 +22,6 @@ export default defineConfig({
     },
     test: {
         environment: "node",
-        include: ["src/**/*.test.{ts,tsx}"],
+        include: ["frontend/src/**/*.test.{ts,tsx}"],
     },
 });

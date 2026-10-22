@@ -1,23 +1,24 @@
 # Development Plan: CU Result Viewer
 
-Updated: 2026-10-16
+Updated: 2026-10-22
 
 This is the single development plan for the rendering component and its cu-cli delivery. Product scope is defined in [requirements](requirements.md); setup, embedding, limits, and commands are maintained in the [README](../README.md). Historical drafts and detailed execution logs belong in Git history, not parallel planning documents.
 
 ## Contents
 
 1. [Scope and delivery status](#scope-and-delivery-status)
-2. [Architecture](#architecture)
-3. [Repository responsibilities](#repository-responsibilities)
-4. [Implementation phases and acceptance criteria](#implementation-phases-and-acceptance-criteria)
-5. [Dependencies and delivery sequence](#dependencies-and-delivery-sequence)
-6. [CLI handoff contract](#cli-handoff)
-7. [Rendering decisions and evidence](#rendering-and-evidence)
-8. [Test plan and requirement mapping](#test-plan-and-requirement-mapping)
-9. [Recorded verification](#verification)
-10. [Risks and maintenance controls](#risks-and-maintenance-controls)
-11. [Build, rollout, and rollback](#build-rollout-and-rollback)
-12. [Completion criteria](#completion-criteria)
+2. [Approved productization refactor](#approved-productization-refactor)
+3. [Architecture](#architecture)
+4. [Repository responsibilities](#repository-responsibilities)
+5. [Implementation phases and acceptance criteria](#implementation-phases-and-acceptance-criteria)
+6. [Dependencies and delivery sequence](#dependencies-and-delivery-sequence)
+7. [CLI handoff contract](#cli-handoff)
+8. [Rendering decisions and evidence](#rendering-and-evidence)
+9. [Test plan and requirement mapping](#test-plan-and-requirement-mapping)
+10. [Recorded verification](#verification)
+11. [Risks and maintenance controls](#risks-and-maintenance-controls)
+12. [Build, rollout, and rollback](#build-rollout-and-rollback)
+13. [Completion criteria](#completion-criteria)
 
 ## Scope and delivery status
 
@@ -32,7 +33,7 @@ The project supplies the browser Viewer used by cu-cli to inspect an original so
 - Viewer is independently distributed as a Python package with prebuilt resources and a standard-library launcher. cu-cli consumes its compatible dependency, not a copied ZIP or local-server implementation. The candidate `cu-result-viewer 0.1.0b1` is not published; release approval remains separate.
 - No additional public customization API or separate host integration is planned. Add an interface only when a concrete CLI requirement demonstrates a gap.
 
-The approved implementation tasks below are complete within their recorded verification scope. Cleanup and packaging verification must not be confused with automatic publishing, blanket format support, or certification of every possible input.
+The original Demo implementation phases below are complete within their recorded verification scope. The approved productization refactor has its own status table. Cleanup and packaging verification must not be confused with automatic publishing, blanket format support, or certification of every possible input.
 
 ### CU version and evidence boundary
 
@@ -42,6 +43,85 @@ The approved implementation tasks below are complete within their recorded verif
 | `2026-06-01-preview` (Preview) | Guarded display mappings checked with explicitly synthetic fixtures and schema/reference evidence, not a complete live-service matrix. |
 
 Task `4.2a` completion refers to these display mappings and their recorded evidence; it does not imply exhaustive real-service validation of Preview features.
+
+## Approved productization refactor
+
+Approved on 2026-10-22. The primary users are CU developers, technical implementers, and technical testers. The product remains a read-only local Viewer, independently delivered as a Python wheel; cu-cli is a host, not a runtime dependency of the Viewer.
+
+Structural refactoring comes before new product features. This iteration changes only this repository. Moving source into content-understanding-toolkit, publishing releases, adding result editing/review state, multi-document browsing, search, or comparison are not included.
+
+### Target layout and dependency boundaries
+
+```text
+frontend/
+  src/
+    model/          CU types, guarded parsing, result availability and limits
+    source/         document adapters, geometry, rendering and source layers
+    interaction/    selection, hover and navigation state
+    components/     result views and UI composition
+  app/              production browser entry, formerly cli/
+  demo/             development-only host
+  tooling/          Vite asset build plugins
+python/
+  src/cu_result_viewer/
+  tests/
+scripts/            cross-language packaging, fixtures and delivery verification
+tests/              shared fixtures and end-to-end/installed-package checks
+assets/             licensed runtime build inputs
+codecs/             reproducible decoder source and locks
+docs/               requirements, this plan and maintained operational guidance
+```
+
+- Production and demo hosts use the same component. Model parsing must not depend on React components or browser-host startup.
+- Keep one npm project and the existing root verification commands; do not introduce workspaces, a new build framework, or a plugin architecture.
+- Preserve npm exports, React props, Python public names/signatures, wheel name, archive layout, session JSON, local-only serving protections, and source/result semantics.
+- Rename the results composition to match its actual responsibility, and separate cohesive source-rendering effects from pane composition without changing source, focus, or cancellation ownership.
+- Separate Python errors, input validation, packaged-resource validation, HTTP serving and startup lifecycle. Build-time validation reuses resource validation without loading HTTP/browser startup.
+- Unit tests remain beside frontend modules or under Python tests; shared fixtures and delivery tests remain under the root tests directory.
+- Generated outputs and caches remain ignored. Do not delete required licenses, decoder binaries, fixtures, or unrelated local environments to make the explorer look cleaner.
+
+### Tasks and acceptance gates
+
+| Task | Scope and acceptance criteria | Depends on | Status |
+| --- | --- | --- | --- |
+| R1 | Establish baseline and path/reference inventory. Record failures caused by missing generated resources separately from regressions. | None | Done |
+| R2 | Move frontend source/hosts/plugins into the target layout; group modules by responsibility, clarify result composition, and update imports/configuration/resource URLs. Existing root commands and public exports remain valid. | R1 | Done |
+| R3 | Separate Python runtime concerns and share pure asset validation with packaging. Existing public API, error categories, session routes and shutdown behavior remain unchanged. | R1 | Done |
+| R4 | Remove retired Code implementation, exclusive dependencies/styles/tests/references; relocate shared scripts and update every build, test, CI and documentation path. Preserve active Markdown code rendering. | R2 | Done |
+| R5 | Verify frontend/Python tests, type checks, lint, production library/demo/app builds, bundle/resource checks, packed React consumers and an installed Viewer wheel outside the repository. Exercise browser source/result interactions without accepting new visual baselines automatically. | R2, R3, R4 | Done |
+
+### Baseline and completion evidence
+
+- Frontend baseline: 23 test files, 519 tests passed.
+- Initial Python/exporter run: 47 passed and 5 failed because ignored generated `resources/viewer` files were absent. After the existing `npm run export:cli` build/export step: all 52 passed. No source change was needed to restore this baseline.
+- Final local evidence for this iteration is recorded below. Unrun platform, browser, live-service and visual-reference approvals remain explicit.
+- Keep behavior changes out of directory moves. If validation fails, inspect the affected import/resource/runtime path and repair it before progressing; do not suppress failures or copy stale build output as a fallback.
+- Rollback is the inverse of each scoped change set; no automatic commits, force pushes, repository relocation, or package publishing is authorized by this plan.
+
+| Final check, 2026-10-22 | Outcome |
+| --- | --- |
+| `npm run typecheck`, `npm run lint`, `npm run test:unit` | Passed; 23 unit files and 516 tests. Removed 8 retired Code cases and added 5 source-rendering ownership cases relative to the 519-test baseline. |
+| `python -m pytest -c python\pyproject.toml python\tests tests\test_export_cli_viewer.py` | 57 passed, including five new public API/value/error-category cases. |
+| Ruff on the changed Python package/tests/exporter/setup; `python -m mypy python\src\cu_result_viewer` | Passed; mypy checked all 7 runtime package modules. Pylance reported no syntax errors in the extracted assets/server modules or diagnostics in the public API module. |
+| `npm run verify:bundle` | Library/demo builds, lazy chunks, reviewed HEIF hashes and the existing 500,000-byte entry budget passed. |
+| `npm run build:python`, then a no-dependencies wheel installation in a fresh environment outside the repository | Built both sdist and wheel, including rebuilding the wheel from sdist; `pip check` passed. The initially missing `build` tool was installed only in a task-local build environment. |
+| Chrome/Edge: accessibility, responsive result tabs and OCR word-layer suites | All 40 cases passed across the initial run and focused rerun. One old test assumed Result was always directly visible; it now uses the existing overflow-aware selection helper. The existing service on port 5173 was left untouched; a temporary test-only configuration used port 5187. |
+| `npm run verify:consumer` with product screenshot approval disabled | 32 passed: real packed React 18/19 consumers, production/development, Chrome/Edge, their own dependencies, no source aliases, local decoder assets and host CSP. |
+| `playwright test --config playwright.cli.config.ts --grep "independent Viewer wheel"` | 10 passed against the installed wheel: PDF/PNG/JPEG/BMP/HEIF, real grounding, lazy result panes, overflow selection, local-only CSP, no cu-cli/core or Node hosting, and port release. |
+| `playwright test --config playwright.performance.config.ts` | All 4 production Markdown/JSON lazy-loading and interaction-budget cases passed. |
+| `git diff --check` and staged-change whitespace check | Passed. |
+
+This is local Windows/Python 3.11 evidence, not a new remote CI run, Python 3.10 validation, cross-platform certification, or live CU service validation. Existing product screenshots were not regenerated or re-approved; only the six retired Code references were removed.
+
+Builds still report setuptools metadata/standalone-README/resource-package-discovery warnings and the packed consumer's late-bound PDF/HEIF URL warnings. Successful builds and installed-artifact tests are not a claim of warning-free release readiness. Review these packaging warnings, screenshot references and the supported-platform matrix in the next release-hardening phase, separately from this behavior-preserving refactor.
+
+### Post-refactor cleanup, 2026-10-22
+
+- Removed 8 ignored, rebuildable cache/metadata directories: Python pytest/Ruff caches, four bytecode-cache directories, the setup bytecode cache, and generated `cu_result_viewer.egg-info` metadata. Total: 27 files, 140,259 bytes.
+- Checked that the removal targets contained no tracked files or reparse points. Retained the current wheel/sdist and required packaged Viewer archive/manifest; their SHA-256 hashes were unchanged by cleanup.
+- Existing root build/test outputs and `node_modules` were already absent. Active build/fixture/verification scripts, source, tests, licensed resources and codec inputs were retained; no additional source files were classified as disposable.
+- Cache-free validation passed: `$env:PYTHONDONTWRITEBYTECODE = "1"; python -B -m pytest -p no:cacheprovider -c python\pyproject.toml python\tests tests\test_export_cli_viewer.py` (57 tests). No empty source/test/resource/documentation directories remained.
+- This pass did not change frontend logic or reinstall its absent dependencies. It does not claim a new frontend build/browser run beyond the refactor evidence above.
 
 ## Architecture
 
@@ -85,7 +165,7 @@ flowchart LR
 
 | Boundary | Contract |
 | --- | --- |
-| Public input | `source: File \| Blob \| ArrayBuffer \| string`, `result: unknown`; see [public types](../src/index.ts). A string source is an allowed browser URL, not a filesystem path. |
+| Public input | `source: File \| Blob \| ArrayBuffer \| string`, `result: unknown`; see [public types](../frontend/src/index.ts). A string source is an allowed browser URL, not a filesystem path. |
 | Parser | Guard the original JSON, accept the supported envelope/inner-result shapes, preserve unknown properties in Result, and derive private field/page/region records. Do not mutate or flatten the caller's input. |
 | Field identity | Use stable content/field paths rather than display labels. Preserve nested objects, arrays, missing values, `0`, `false`, empty strings, `null`, and all valid source regions. |
 | Source adapter | Share page metadata, render/cancel/dispose, and source dimensions across PDF and images. PDF.js and decoder types remain private. |
@@ -119,13 +199,14 @@ Markdown uses sanitization; the current remote-image omission policy and synchro
 
 | Location | Responsibility | Retention rule |
 | --- | --- | --- |
-| [src](../src) | Component, private parsing/geometry/adapters, result panes, styles, and unit tests. | Rendering-only TypeScript; no Python or CU service dependencies. |
-| [cli](../cli) | Sample-free production browser entry used by the Python CLI. | Keep source and Vite configuration; rebuild its output. |
+| [frontend/src](../frontend/src) | Component, model parsing, source adapters/rendering/geometry, interaction state, result panes, styles, and colocated unit tests. | Rendering-only TypeScript; no Python or CU service dependencies. |
+| [frontend/app](../frontend/app) | Sample-free production browser entry used by the independent Python package and CLI. | Keep source and Vite configuration; rebuild its output. |
 | [python](../python) | Independent Viewer distribution, public preparation/display API, read-only service, browser launcher, and runtime/build tests. | No cu-cli/core or third-party runtime dependency; generated archive and build outputs are ignored. |
-| [demo](../demo) | Development host with saved sample selection and file inputs. | Keep for local development and repository browser tests; it is not the CLI production page. |
+| [frontend/demo](../frontend/demo) | Development host with saved sample selection and file inputs. | Keep for local development and repository browser tests; it is not the CLI production page. |
 | [assets/heif](../assets/heif) | Pinned, licensed runtime decoder assets and SBOM. | Required build inputs, not disposable build caches. |
 | [codecs/heic-rs-wasm](../codecs/heic-rs-wasm) | Reproducible wrapper, lockfile, and codec build instructions. | Keep source/locks/licenses; remove generated `target` output when cleaning. |
-| [tools](../tools) | Resource plugins, fixture generation, bundle/consumer checks, and deterministic CLI export. | Keep active build and regression tools. |
+| [frontend/tooling](../frontend/tooling) | PDF/HEIF asset build plugins shared by frontend build entries. | Build-only Node/TypeScript code, not browser runtime code. |
+| [scripts](../scripts) | Fixture generation, bundle/consumer checks, and deterministic production-page export. | Keep active cross-language build and regression tools. |
 | [tests/fixtures](../tests/fixtures) | Licensed source/result pairs, derived/synthetic decoder cases, provenance, and the active Fields reference. | Keep test inputs and their original bytes; no accumulated project progress logs. |
 | [tests/e2e](../tests/e2e) | Functional, visual, lifecycle, performance, consumer, and CLI-wheel tests. | Keep tests and approved reference images, not run output or traces. |
 | [CI workflow](../.github/workflows/ci.yml) | Existing build, functional, package, performance, and scheduled stress/codec jobs. | Keep; local success does not imply the latest branch ran remotely. |
@@ -201,7 +282,7 @@ The tables specify direct prerequisites rather than implying dependencies from r
 
 The standalone host is in [Azure/content-understanding-toolkit](https://github.com/Azure/content-understanding-toolkit), under `cu-cli/packages/standalone`. Implementation uses the workspace branch `feat/cu-result-viewer`, created from the inspected `origin/main` at `b3ff066960d6b517b6f1b4ee12201376369279a3`.
 
-- This repository owns the component, [production browser entry](../cli), independent [Python package](../python), resource build, [archive exporter](../tools/export_cli_viewer.py), local service, browser launch, and shutdown.
+- This repository owns the component, [production browser entry](../frontend/app), independent [Python package](../python), resource build, [archive exporter](../scripts/export_cli_viewer.py), local service, browser launch, and shutdown.
 - The CLI frontend owns command options, source selection, analysis and result serialization, and translation of Viewer exceptions into its existing errors. It calls the independent package; it neither reads its archive nor exposes its internals.
 - The shared analysis engine and other command frontends were not changed to implement viewing.
 - Public component props remain `source` and `result`.
@@ -273,19 +354,19 @@ Publish the independent package to the approved index before releasing the CLI d
 
 | Area / tasks | Existing checks | Required observations |
 | --- | --- | --- |
-| Public contract / `2.1`, `3.3` | [Public API tests](../src/index.test.ts), type-check, library build, [Vite asset tests](../src/vite.test.ts) | Declared inputs compile, internal types do not leak, styles/assets ship. |
-| Parsing / `1.1`, `2.2`, `4.1`, `4.2a` | [CU parser tests](../src/internal/parseCuResult.test.ts), [result-view tests](../src/internal/resultViews.test.ts), [detail tests](../src/internal/resultDetails.test.ts) | Original shapes/values survive, optional data is guarded, no invented tabs or regions. |
-| Geometry / `2.3`, `2.6`, `4.3a` | [Geometry](../src/internal/geometry.test.ts), [viewport reveal](../src/internal/viewportReveal.test.ts), [interaction](../src/internal/interaction.test.ts) | Page/coordinate correctness, invalid-region rejection, pin/hover separation, conditional positioning. |
-| Source/lifecycle / `2.4`, `2.5`, `3.1` | [PDF](../src/internal/pdfSource.test.ts), [images](../src/internal/imageSource.test.ts), [HEIF](../src/internal/heifSource.test.ts), [format browser checks](../tests/e2e/image-formats.spec.ts), [stress](../tests/e2e/stress.spec.ts) | Decode/render success or explicit errors, orientation, cancellation/replacement, balanced resource disposal. |
-| Fields/details / `2.6`, `4.1`, `4.2a` | [Fields](../src/components/FieldsPane.test.tsx), [detail panes](../src/components/DetailPanes.test.tsx), [detail browser checks](../tests/e2e/detail-results.spec.ts) | Nested/array/table behavior, all regions, state retention, crops and copy errors. |
-| Safe rich output / `4.2` | [Markdown](../src/components/MarkdownPane.test.tsx), [JSON](../src/components/JsonPane.test.tsx), [rich browser checks](../tests/e2e/rich-results.spec.ts), [production performance](../tests/e2e/performance.spec.ts) | Sanitization, complete raw JSON, lazy chunks, explicit limits and existing regression thresholds. |
-| Source interactions / `4.3a` | [Source previews](../src/components/SourcePopover.test.tsx), [table dialog](../src/components/TableDialog.test.tsx), [Studio overlays](../tests/e2e/studio-overlays.spec.ts), [source tables](../tests/e2e/source-tables.spec.ts) | Correct preview contents, independent outlines/pins, modal focus/closing, unchanged view state. |
-| OCR base / `4.3a` | [Word parsing](../src/internal/pageWords.test.ts), [WordLayer](../src/components/WordLayer.test.tsx), [word browser checks](../tests/e2e/word-overlay.spec.ts) | Correct source/color/ordering, deduplication, invalid-source warnings, cross-tab stability and cleanup. |
+| Public contract / `2.1`, `3.3` | [Public API tests](../frontend/src/index.test.ts), type-check, library build, [Vite asset tests](../frontend/src/vite.test.ts) | Declared inputs compile, internal types do not leak, styles/assets ship. |
+| Parsing / `1.1`, `2.2`, `4.1`, `4.2a` | [CU parser tests](../frontend/src/model/parseCuResult.test.ts), [result-view tests](../frontend/src/model/resultViews.test.ts), [detail tests](../frontend/src/model/resultDetails.test.ts) | Original shapes/values survive, optional data is guarded, no invented tabs or regions. |
+| Geometry / `2.3`, `2.6`, `4.3a` | [Geometry](../frontend/src/source/geometry.test.ts), [viewport reveal](../frontend/src/source/viewportReveal.test.ts), [interaction](../frontend/src/interaction/interaction.test.ts) | Page/coordinate correctness, invalid-region rejection, pin/hover separation, conditional positioning. |
+| Source/lifecycle / `2.4`, `2.5`, `3.1` | [PDF](../frontend/src/source/pdfSource.test.ts), [images](../frontend/src/source/imageSource.test.ts), [HEIF](../frontend/src/source/heifSource.test.ts), [format browser checks](../tests/e2e/image-formats.spec.ts), [stress](../tests/e2e/stress.spec.ts) | Decode/render success or explicit errors, orientation, cancellation/replacement, balanced resource disposal. |
+| Fields/details / `2.6`, `4.1`, `4.2a` | [Fields](../frontend/src/components/ResultsPane.test.tsx), [detail panes](../frontend/src/components/DetailPanes.test.tsx), [detail browser checks](../tests/e2e/detail-results.spec.ts) | Nested/array/table behavior, all regions, state retention, crops and copy errors. |
+| Safe rich output / `4.2` | [Markdown](../frontend/src/components/MarkdownPane.test.tsx), [JSON](../frontend/src/components/JsonPane.test.tsx), [rich browser checks](../tests/e2e/rich-results.spec.ts), [production performance](../tests/e2e/performance.spec.ts) | Sanitization, complete raw JSON, lazy chunks, explicit limits and existing regression thresholds. |
+| Source interactions / `4.3a` | [Source previews](../frontend/src/components/SourcePopover.test.tsx), [table dialog](../frontend/src/components/TableDialog.test.tsx), [Studio overlays](../tests/e2e/studio-overlays.spec.ts), [source tables](../tests/e2e/source-tables.spec.ts) | Correct preview contents, independent outlines/pins, modal focus/closing, unchanged view state. |
+| OCR base / `4.3a` | [Word parsing](../frontend/src/model/pageWords.test.ts), [WordLayer](../frontend/src/components/WordLayer.test.tsx), [word browser checks](../tests/e2e/word-overlay.spec.ts) | Correct source/color/ordering, deduplication, invalid-source warnings, cross-tab stability and cleanup. |
 | Keyboard/layout / `4.3a` | [Accessibility browser checks](../tests/e2e/accessibility.spec.ts) | Visible stable focus, keyboard equivalence, pane scrolling, page input and offscreen-target behavior. |
 | Visual regression / `3.2`, `4.2a`, `4.3a` | [Product visual tests](../tests/e2e/visual.spec.ts), [detail visual tests](../tests/e2e/detail-visual.spec.ts), approved Fields fixture | Existing zero-difference comparisons; no automatic re-recording, threshold relaxation, or UI masking. |
 | Browser source URLs / `3.1`, `3.3` | [Source input tests](../tests/e2e/source-inputs.spec.ts) and controlled loopback CORS host | HTTP/HTTPS/blob policy, explicit CORS failures, anonymous cross-origin behavior, viewer-origin assets. |
-| Independent package / `3.3` | [Consumer verifier](../tools/verify-packed-consumers.mjs), [packed-host browser checks](../tests/e2e/package-host.spec.ts) | Real tgz installs with React 18/19, development/production assets, strict CSP, no source aliases. |
-| Independent assets/runtime / `5.2` | [Exporter tests](../tools/test_export_cli_viewer.py), [Python runtime tests](../python/tests/test_runtime.py), [API/build tests](../python/tests/test_api.py), clean sdist/wheel builds | Deterministic output, integrity/path errors, explicit broken-build failures, no ignored Worker, standalone installation without CLI. |
+| Independent package / `3.3` | [Consumer verifier](../scripts/verify-packed-consumers.mjs), [packed-host browser checks](../tests/e2e/package-host.spec.ts) | Real tgz installs with React 18/19, development/production assets, strict CSP, no source aliases. |
+| Independent assets/runtime / `5.2` | [Exporter tests](../tests/test_export_cli_viewer.py), [Python runtime tests](../python/tests/test_runtime.py), [API/build tests](../python/tests/test_api.py), clean sdist/wheel builds | Deterministic output, shared server-independent asset validation, integrity/path errors, explicit broken-build failures, no ignored Worker, standalone installation without CLI. |
 | CLI behavior / `5.1`, `5.2` | Toolkit adapter/command tests and [installed-wheel browser checks](../tests/e2e/cli-host.spec.ts) | Single analysis or zero-call saved viewing, unchanged output, dependency failure before billing, no embedded assets, compatible Viewer-only upgrades, CSP and shutdown. |
 
 ### Validation commands
@@ -301,7 +382,7 @@ npm run build
 
 ```powershell name="Targeted visual and export validation"
 npx playwright test '(^|[\\/])visual\.spec\.ts$' --project=chrome --project=edge
-python -m pytest tools\test_export_cli_viewer.py
+python -m pytest tests\test_export_cli_viewer.py
 npm run build:cli
 ```
 

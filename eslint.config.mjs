@@ -17,7 +17,7 @@ export default defineConfig(
         },
     },
     {
-        files: ["src/internal/heif.worker.ts"],
+        files: ["frontend/src/source/heif.worker.ts"],
         languageOptions: {
             parserOptions: {
                 projectService: false,

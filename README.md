@@ -1,6 +1,6 @@
 # CU Result Viewer
 
-供 cu-cli 使用的 React/TypeScript 结果查看组件，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。
+面向 CU 开发者、技术实施和测试人员的只读本地结果查看器，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。以独立 Python wheel 交付，cu-cli 是其中一个入口；同一 React/TypeScript 组件也可嵌入其他宿主。
 
 组件只负责渲染：不调用 Analyze、不认证、不上传、不管理 analyzer 或轮询 LRO，也不依赖 CU SDK。宿主负责取得源文件和分析结果。
 
@@ -9,6 +9,20 @@
 - **本文**：启动、使用、资源交付、当前限制和验证命令。
 - [需求](docs/requirements.md)：当前 cu-cli Viewer 的交付范围和已确认行为。
 - [开发计划（English）](docs/dev-plan.md)：完整架构、阶段任务、验收、依赖、测试映射和 CLI 交付状态。
+
+## 代码结构
+
+| 位置 | 职责 |
+| --- | --- |
+| [frontend/src](frontend/src) | 共用查看组件；model 负责解析，source 负责文档渲染与几何，interaction 负责选择与导航，components 负责界面。单元测试与模块相邻。 |
+| [frontend/app](frontend/app) | 打入 wheel 的正式浏览器入口，不含演示样本。 |
+| [frontend/demo](frontend/demo) | 本地开发、演示和浏览器测试宿主，不进入 wheel。 |
+| [frontend/tooling](frontend/tooling) | 前端构建时的 PDF/HEIF 资源插件。 |
+| [python](python) | 独立包、公开 Python API、输入校验、资源校验、本地 HTTP 服务和启动/退出生命周期。 |
+| [scripts](scripts) | 跨语言打包导出、资源生成与交付验证。 |
+| [tests](tests) | 共享样本、端到端/安装包测试与导出器回归。 |
+
+保留一个 npm 项目，以下命令仍从仓库根目录执行。构建产物、依赖和缓存不属于源码或需提交的发行资源；资源及许可证保留规则见[开发计划](docs/dev-plan.md#repository-responsibilities)。
 
 <a id="run-the-prototype"></a>
 ## 本地运行
@@ -22,7 +36,7 @@ npm run dev
 
 打开 <http://127.0.0.1:5173/>。选择 PDF／Receipt PNG 使用真实配对样本，或分别选择本地源文件和保存的 JSON；不产生新的 CU 调用。文件选择属于演示宿主，不是组件公开 API。
 
-该页面由[演示宿主](demo)启动，直接使用[组件源码](src)。它用于开发和调试，实际 CLI 接入见[开发计划](docs/dev-plan.md)。
+该页面由[演示宿主](frontend/demo)启动，直接使用[组件源码](frontend/src)。它用于开发和调试，实际 CLI 接入见[开发计划](docs/dev-plan.md)。
 
 ## cu-cli 入口
 
@@ -142,7 +156,7 @@ Tab 栏按可用宽度展示，放不下的标签收进右侧 `...` 下拉菜单
 
 - Markdown 同步渲染上限 50,000 字符；JSON 为 500,000 序列化字符／20,000 值，Tables 网格为 20,000 位置。超限明确提示，不截断或修改调用方数据。
 - 当前 Markdown 远程图片被替换为省略说明，不发起请求。
-- 剪贴板使用宿主 Clipboard API，权限不足或不可用明确报错，不伪装复制成功；高亮通过安全 text/span 渲染，无 HTML 注入或 JavaScript eval。
+- 剪贴板使用宿主 Clipboard API，权限不足或不可用明确报错，不伪装复制成功。
 - Worker、bitmap、URL 和画布按归属取消/清理；HEIF 解码有 30 秒截止保护，不代表解码延迟 SLA。HEIF 图像序列、AVIF 当前不支持。
 
 ### 宿主 CSP
@@ -189,13 +203,19 @@ npm run verify:consumer
 npm run build:python
 ```
 
-生产入口是 [cli](cli)，不带演示样本。[导出器](tools/export_cli_viewer.py)默认只为[独立 Python 包](python)生成资源，以固定顺序、时间戳和权限生成 ZIP/清单；它们是已忽略的构建输入，不提交到 toolkit。`npm run build:python` 生成 wheel 和源码包，并从源码包重建 wheel；缺少/损坏资源时构建明确失败。
+生产入口是 [frontend/app](frontend/app)，不带演示样本。[导出器](scripts/export_cli_viewer.py)默认只为[独立 Python 包](python)生成资源，以固定顺序、时间戳和权限生成 ZIP/清单；它们是已忽略的构建输入，不提交到 toolkit。`npm run build:python` 生成 wheel 和源码包，并从源码包重建 wheel；缺少/损坏资源时构建明确失败。
 
 Viewer 自己负责归档校验、只读本地服务、浏览器打开及 Ctrl+C 清理，不解压到用户目录。CLI 在分析前调用 `prepare_viewer(source)`，完成后调用返回对象的 `show(result)`，不接触 ZIP 或资源字典。运行时无需 Node/Vite。
 
-导出回归为 `python -m pytest tools\test_export_cli_viewer.py`，独立启动器测试为 `python -m pytest -c python\pyproject.toml python\tests`，使用已有 pytest 环境。
+导出回归为 `python -m pytest tests\test_export_cli_viewer.py`，独立启动器测试为 `python -m pytest -c python\pyproject.toml python\tests`，使用已有 pytest 环境。
 
 `npm run test:cli` 是独立的 Chrome/Edge 安装包检查，不纳入默认演示 E2E。设置 `CU_CLI_PYTHON` / `CU_CLI_PACKAGE_ROOT` 为安装了三个本地 wheel 的测试环境；`CU_VIEWER_PYTHON` / `CU_VIEWER_PACKAGE_ROOT` 指向只装 Viewer 的隔离环境。测试不使用源码别名，并从 Python 子进程 PATH 排除 Node。
+
+仅验证独立 Viewer wheel 时，只需设置后一组环境变量，再运行：
+
+```powershell name="独立Viewer安装包浏览器验证"
+node .\node_modules\@playwright\test\cli.js test --config playwright.cli.config.ts --grep "independent Viewer wheel"
+```
 
 [视觉参考](tests/e2e/visual.spec.ts-snapshots)用于保持已批准的项目外观，不是逐像素复制 Studio。普通运行不自动更新参考；外观意图变化先评审。样本来源、许可、哈希和预期值见[样本清单](tests/fixtures/manifest.json)，计划及验证摘要见[英文开发计划](docs/dev-plan.md#verification)。
 

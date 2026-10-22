@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "../../src/components/JsonPane";
-import { MAX_MARKDOWN_CHARACTERS } from "../../src/components/MarkdownPane";
+import { MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "../../frontend/src/components/JsonPane";
+import { MAX_MARKDOWN_CHARACTERS } from "../../frontend/src/components/MarkdownPane";
 import { ready } from "./viewerAssertions";
 
 const amountId = "/contents/0/fields/AmountDue/valueObject/Amount";

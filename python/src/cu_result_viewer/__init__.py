@@ -5,8 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ._runtime import ViewerError, ViewerInputError, load_viewer_assets, prepare_source, serve_viewer
-from ._runtime import read_saved_result as read_result
+from ._assets import load_viewer_assets
+from ._errors import ViewerError, ViewerInputError
+from ._inputs import prepare_source
+from ._inputs import read_saved_result as read_result
+from ._runtime import serve_viewer
 
 __all__ = ["PreparedViewer", "ViewerError", "ViewerInputError", "prepare_viewer", "read_result"]
 
@@ -16,7 +19,10 @@ class PreparedViewer:
 
     def __init__(self, source: str | Path) -> None:
         self.source = prepare_source(Path(source))
-        self._assets = load_viewer_assets()
+        try:
+            self._assets = load_viewer_assets()
+        except ValueError as exc:
+            raise ViewerError(str(exc)) from exc
 
     def show(self, result: Any) -> None:
         """Open unchanged JSON-compatible data; block until Ctrl+C stops the session."""

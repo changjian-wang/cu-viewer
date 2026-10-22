@@ -6,8 +6,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from . import ViewerError, prepare_viewer
-from ._runtime import read_saved_result
+from . import ViewerError, prepare_viewer, read_result
 
 
 def main() -> None:
@@ -16,7 +15,7 @@ def main() -> None:
     parser.add_argument("--result", required=True, type=Path)
     args = parser.parse_args()
     try:
-        result = read_saved_result(args.result)
+        result = read_result(args.result)
         prepare_viewer(args.source).show(result)
     except ViewerError as exc:
         print(f"error: {exc}", file=sys.stderr)

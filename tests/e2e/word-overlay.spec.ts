@@ -156,7 +156,7 @@ test("words without extracted fields still have the fixed yellow color and the s
         if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected the unchanged source canvas.");
         return element.toDataURL();
     })).toBe(pixels);
-    await page.getByRole("tab", { name: "Result", exact: true }).click();
+    await selectResultView(page.getByRole("region", { name: "Extraction results" }), "Result");
     await expect(page.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(page.getByTestId("result-overlay")).toHaveCount(0);
     await expect(page.getByTestId("word-overlay")).toHaveAttribute("data-word-count", "2");

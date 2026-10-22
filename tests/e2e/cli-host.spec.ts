@@ -4,14 +4,21 @@ import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { checkPolygon, ready } from "./viewerAssertions";
+import { checkPolygon, ready, selectResultView } from "./viewerAssertions";
 
 const python = process.env.CU_CLI_PYTHON;
 const installed = process.env.CU_CLI_PACKAGE_ROOT;
 const viewerPython = process.env.CU_VIEWER_PYTHON;
 const viewerInstalled = process.env.CU_VIEWER_PACKAGE_ROOT;
-if (!python || !installed || !viewerPython || !viewerInstalled) {
-    throw new Error("Set CU_CLI_PYTHON/CU_CLI_PACKAGE_ROOT and CU_VIEWER_PYTHON/CU_VIEWER_PACKAGE_ROOT to isolated wheel installations.");
+function installedEnvironment(independent: boolean) {
+    const executable = independent ? viewerPython : python;
+    const packageRoot = independent ? viewerInstalled : installed;
+    if (!executable || !packageRoot) {
+        throw new Error(independent ?
+            "Set CU_VIEWER_PYTHON/CU_VIEWER_PACKAGE_ROOT to an isolated Viewer wheel installation." :
+            "Set CU_CLI_PYTHON/CU_CLI_PACKAGE_ROOT to an isolated CLI wheel installation.");
+    }
+    return { executable, packageRoot };
 }
 const fixtures = resolve("tests", "fixtures");
 const harness = `
@@ -64,8 +71,7 @@ main()
 
 async function startViewer(source: string, result: string, fresh = false, independent = false) {
     const directory = await mkdtemp(join(tmpdir(), "cu-cli-browser-"));
-    const executable = independent ? viewerPython! : python!;
-    const packageRoot = independent ? viewerInstalled! : installed!;
+    const { executable, packageRoot } = installedEnvironment(independent);
     const args = independent ? [source, "--result", result] :
         ["analyze", source, "--view", ...(fresh ? ["--json"] : ["--result", result])];
     const child = spawn(executable, ["-u", "-B", "-c", harness, packageRoot, independent ? "independent" : "cli", ...args], {
@@ -127,7 +133,7 @@ async function startViewer(source: string, result: string, fresh = false, indepe
 
 async function inspect(page: Page, source: string, result: string, run: (url: string) => Promise<void>, fresh = false, independent = false) {
     const before = await readFile(result);
-    const resources = join(independent ? viewerInstalled! : installed!, "cu_result_viewer", "resources", "viewer");
+    const resources = join(installedEnvironment(independent).packageRoot, "cu_result_viewer", "resources", "viewer");
     expect((await readdir(resources)).sort()).toEqual(["manifest.json", "viewer.zip"]);
     const host = await startViewer(source, result, fresh, independent);
     const errors: string[] = [];
@@ -193,48 +199,51 @@ test("installed CLI serves real PDF, lazy result panes and source navigation wit
     });
 });
 
-for (const source of ["receipt.png", join("images", "receipt-derived.jpg"), join("images", "receipt-derived.bmp")]) {
-    test(`installed CLI displays ${source} and real receipt grounding`, async ({ page }) => {
-        await inspect(page, join(fixtures, source), join(fixtures, "receipt.cu.json"), async () => {
-            await page.getByRole("button", { name: "MerchantName", exact: true }).click();
-            await checkPolygon(page, [
-                { x: 775 / 1743, y: 73 / 878 }, { x: 973 / 1743, y: 72 / 878 },
-                { x: 973 / 1743, y: 111 / 878 }, { x: 775 / 1743, y: 112 / 878 },
-            ], 0);
-            await page.getByRole("tab", { name: "Markdown", exact: true }).click();
-            await expect(page.locator(".cu-markdown")).toBeVisible();
+for (const independent of [false, true]) {
+    const host = independent ? "independent Viewer wheel" : "installed CLI";
+    for (const source of ["receipt.png", join("images", "receipt-derived.jpg"), join("images", "receipt-derived.bmp")]) {
+        test(`${host} displays ${source} and real receipt grounding`, async ({ page }) => {
+            await inspect(page, join(fixtures, source), join(fixtures, "receipt.cu.json"), async () => {
+                await page.getByRole("button", { name: "MerchantName", exact: true }).click();
+                await checkPolygon(page, [
+                    { x: 775 / 1743, y: 73 / 878 }, { x: 973 / 1743, y: 72 / 878 },
+                    { x: 973 / 1743, y: 111 / 878 }, { x: 775 / 1743, y: 112 / 878 },
+                ], 0);
+                await page.getByRole("tab", { name: "Markdown", exact: true }).click();
+                await expect(page.locator(".cu-markdown")).toBeVisible();
+            }, false, independent);
         });
+    }
+
+    test(`${host} loads its HEIF worker and WASM under real server CSP`, async ({ page }) => {
+        const directory = await mkdtemp(join(tmpdir(), "cu-cli-heif-"));
+        const saved = join(directory, "synthetic-grounding.json");
+        await writeFile(saved, JSON.stringify({
+            apiVersion: "2025-11-01", contents: [{
+                kind: "document", pages: [{ pageNumber: 1, width: 64, height: 64, unit: "pixel" }], fields: {},
+            }],
+        }));
+        const requests: string[] = [];
+        page.on("request", request => requests.push(request.url()));
+        try {
+            await inspect(page, join(fixtures, "images", "heic-rs", "flat-64.heic"), saved, async () => {
+                const pixel = await page.getByTestId("source-canvas").evaluate(element => {
+                    if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected the original source canvas.");
+                    const context = element.getContext("2d");
+                    if (!context) throw new Error("Source canvas unavailable.");
+                    return Array.from(context.getImageData(element.width / 2, element.height / 2, 1, 1).data);
+                });
+
+                expect(pixel[0]).toBeGreaterThan(150);
+                expect(pixel[1]).toBeLessThan(80);
+                expect(requests.some(url => url.endsWith("/heif/heif.worker.js"))).toBe(true);
+                expect(requests.some(url => url.endsWith("/heif/heic_decoder_bg.wasm"))).toBe(true);
+            }, false, independent);
+        } finally {
+            await rm(directory, { recursive: true, force: true });
+        }
     });
 }
-
-test("installed CLI loads its HEIF worker and WASM under real server CSP", async ({ page }) => {
-    const directory = await mkdtemp(join(tmpdir(), "cu-cli-heif-"));
-    const saved = join(directory, "synthetic-grounding.json");
-    await writeFile(saved, JSON.stringify({
-        apiVersion: "2025-11-01", contents: [{
-            kind: "document", pages: [{ pageNumber: 1, width: 64, height: 64, unit: "pixel" }], fields: {},
-        }],
-    }));
-    const requests: string[] = [];
-    page.on("request", request => requests.push(request.url()));
-    try {
-        await inspect(page, join(fixtures, "images", "heic-rs", "flat-64.heic"), saved, async () => {
-            const pixel = await page.getByTestId("source-canvas").evaluate(element => {
-                if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected the original source canvas.");
-                const context = element.getContext("2d");
-                if (!context) throw new Error("Source canvas unavailable.");
-                return Array.from(context.getImageData(element.width / 2, element.height / 2, 1, 1).data);
-            });
-
-            expect(pixel[0]).toBeGreaterThan(150);
-            expect(pixel[1]).toBeLessThan(80);
-            expect(requests.some(url => url.endsWith("/heif/heif.worker.js"))).toBe(true);
-            expect(requests.some(url => url.endsWith("/heif/heic_decoder_bg.wasm"))).toBe(true);
-        });
-    } finally {
-        await rm(directory, { recursive: true, force: true });
-    }
-});
 
 test("installed CLI analyzes once with an offline substitute then opens the same result", async ({ page }) => {
     await inspect(page, join(fixtures, "receipt.png"), join(fixtures, "receipt.cu.json"), async () => {
@@ -247,5 +256,12 @@ test("independent Viewer wheel opens a saved PDF without any cu-cli installation
         await expect(page.locator("[data-field-depth='0']")).toHaveCount(28);
         await page.getByRole("tab", { name: "Markdown", exact: true }).click();
         await expect(page.getByRole("heading", { name: "INVOICE", exact: true })).toBeVisible();
+        const pane = page.getByRole("region", { name: "Extraction results" });
+        await selectResultView(pane, "Tables");
+        await expect(pane.getByRole("table")).toBeVisible();
+        await page.setViewportSize({ width: 880, height: 850 });
+        await expect(pane.getByRole("button", { name: "More result views" })).toBeVisible();
+        await selectResultView(pane, "Result");
+        await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     }, false, true);
 });

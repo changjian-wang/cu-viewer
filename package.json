@@ -30,24 +30,24 @@
     "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
   },
   "scripts": {
-    "dev": "vite --config demo/vite.config.ts",
+    "dev": "vite --config frontend/demo/vite.config.ts",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.worker.json --noEmit",
     "lint": "eslint .",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "test:consumer": "playwright test --config playwright.consumer.config.ts",
     "test:cli": "playwright test --config playwright.cli.config.ts",
-    "verify:consumer": "node tools/verify-packed-consumers.mjs",
-    "verify:bundle": "npm run build && npm run build:demo && node tools/verify-rich-result-build.mjs",
-    "verify:heif-codec": "pwsh -NoProfile -File ./tools/build-heic-codec.ps1",
+    "verify:consumer": "node scripts/verify-packed-consumers.mjs",
+    "verify:bundle": "npm run build && npm run build:demo && node scripts/verify-rich-result-build.mjs",
+    "verify:heif-codec": "pwsh -NoProfile -File ./scripts/build-heic-codec.ps1",
     "verify:performance": "npm run verify:bundle && playwright test --config playwright.performance.config.ts",
     "build": "vite build && tsc --project tsconfig.build.json",
-    "build:demo": "vite build --config demo/vite.config.ts",
-    "build:cli": "vite build --config cli/vite.config.ts",
+    "build:demo": "vite build --config frontend/demo/vite.config.ts",
+    "build:cli": "vite build --config frontend/app/vite.config.ts",
     "build:python": "npm run export:cli && python -m build python",
-    "export:cli": "npm run build:cli && python tools/export_cli_viewer.py",
-    "preview:demo": "vite preview --config demo/vite.config.ts --host 127.0.0.1 --port 4173 --strictPort",
-    "preview:performance": "vite preview --config demo/vite.config.ts --host 127.0.0.1 --port 41873 --strictPort"
+    "export:cli": "npm run build:cli && python scripts/export_cli_viewer.py",
+    "preview:demo": "vite preview --config frontend/demo/vite.config.ts --host 127.0.0.1 --port 4173 --strictPort",
+    "preview:performance": "vite preview --config frontend/demo/vite.config.ts --host 127.0.0.1 --port 41873 --strictPort"
   },
   "peerDependencies": {
     "react": ">=18.0.0 <20.0.0",
@@ -60,8 +60,6 @@
     }
   },
   "dependencies": {
-    "highlight.js": "11.11.1",
-    "lowlight": "3.3.0",
     "pdfjs-dist": "6.3.289",
     "react-json-view-lite": "2.5.0",
     "react-markdown": "10.1.0",

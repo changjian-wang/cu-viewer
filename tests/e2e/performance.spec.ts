@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { MAX_JSON_CHARACTERS } from "../../src/components/JsonPane";
-import { MAX_MARKDOWN_CHARACTERS } from "../../src/components/MarkdownPane";
+import { MAX_JSON_CHARACTERS } from "../../frontend/src/components/JsonPane";
+import { MAX_MARKDOWN_CHARACTERS } from "../../frontend/src/components/MarkdownPane";
 import { ready } from "./viewerAssertions";
 
 const COLD_VIEW_BUDGET_MS = 1000;
@@ -98,7 +98,7 @@ test("Markdown stays lazy and within the production interaction budget", async (
     const initialResources = await page.evaluate(() => performance.getEntriesByType("resource").map(entry => entry.name));
     expect(initialResources.some(url => url.includes("MarkdownPane-"))).toBe(false);
     expect(initialResources.some(url => url.includes("JsonPane-"))).toBe(false);
-    expect(initialResources.some(url => /(?:ParagraphsPane|TablesPane|FiguresPane|SignaturesPane|MetadataPane|CodePane)-/.test(url))).toBe(false);
+    expect(initialResources.some(url => /(?:ParagraphsPane|TablesPane|FiguresPane|SignaturesPane|MetadataPane)-/.test(url))).toBe(false);
 
     const cold = await measure(
         page,
@@ -127,7 +127,7 @@ test("JSON stays lazy and within the production interaction budget", async ({ pa
     const initialResources = await page.evaluate(() => performance.getEntriesByType("resource").map(entry => entry.name));
     expect(initialResources.some(url => url.includes("MarkdownPane-"))).toBe(false);
     expect(initialResources.some(url => url.includes("JsonPane-"))).toBe(false);
-    expect(initialResources.some(url => /(?:ParagraphsPane|TablesPane|FiguresPane|SignaturesPane|MetadataPane|CodePane)-/.test(url))).toBe(false);
+    expect(initialResources.some(url => /(?:ParagraphsPane|TablesPane|FiguresPane|SignaturesPane|MetadataPane)-/.test(url))).toBe(false);
 
     const cold = await measure(
         page,

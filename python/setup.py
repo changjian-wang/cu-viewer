@@ -10,14 +10,14 @@ from setuptools.command.sdist import sdist
 
 def check_resources() -> None:
     package = Path(__file__).resolve().parent / "src" / "cu_result_viewer"
-    spec = spec_from_file_location("_viewer_build_runtime", package / "_runtime.py")
+    spec = spec_from_file_location("_viewer_build_assets", package / "_assets.py")
     if spec is None or spec.loader is None:
         raise RuntimeError("Viewer resource validator could not be loaded.")
-    runtime = module_from_spec(spec)
-    spec.loader.exec_module(runtime)
+    assets_module = module_from_spec(spec)
+    spec.loader.exec_module(assets_module)
     try:
-        assets = runtime.load_viewer_assets(package / "resources" / "viewer")
-    except runtime.ViewerError as exc:
+        assets = assets_module.load_viewer_assets(package / "resources" / "viewer")
+    except ValueError as exc:
         raise RuntimeError(f"Cannot build the Viewer distribution: {exc}") from exc
     required = {
         "index.html", "LICENSE.txt", "THIRD-PARTY-NOTICES.txt",

@@ -1,7 +1,7 @@
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { ContentUnderstandingResultViewer } from "../../src";
-import type { ViewerSource } from "../../src";
+import { ContentUnderstandingResultViewer } from "../../frontend/src";
+import type { ViewerSource } from "../../frontend/src";
 import pdfUrl from "../fixtures/mixed-financial-docs.pdf?url";
 import pdfResultUrl from "../fixtures/mixed-financial-docs.cu.json?url";
 import pngUrl from "../fixtures/receipt.png?url";

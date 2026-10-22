@@ -22,10 +22,8 @@
     ]
   },
   "include": [
-    "src",
-    "tools",
-    "demo",
-    "cli",
+    "frontend",
+    "scripts",
     "tests/e2e",
     "playwright.config.ts",
     "playwright.consumer.config.ts",
@@ -34,6 +32,6 @@
     "vite.config.ts"
   ],
   "exclude": [
-    "src/internal/heif.worker.ts"
+    "frontend/src/source/heif.worker.ts"
   ]
 }
