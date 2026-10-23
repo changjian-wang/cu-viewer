@@ -3,7 +3,7 @@ import test from "node:test";
 import {
     PALETTE, DEFAULT_SETTINGS, PreferenceError, validThreshold, formatThreshold, sourceColor, valueColor,
     displayValue, confidenceDescription, copyValue, fieldSummary, paneWidth,
-    allFields, leafFields, orderedFields, fieldMatches, moveField, moveFieldBy,
+    allFields, leafFields, sourceSelection, orderedFields, fieldMatches, moveField, moveFieldBy,
     preferenceKey, readPreferences, writePreferences, resetPreferences, clampZoom, rotatedSize, escapeHtml,
 } from "./model.mjs";
 import { PROFILES } from "./fixtures.mjs";
@@ -70,6 +70,63 @@ test("field counts consistently include missing fields and count table cells ind
         { total: 68, returned: 67, missing: 1, low: 6, matched: 68 });
     assert.equal(fieldSummary(fields, "", true, settings).matched, 6);
     assert.equal(fieldSummary(fields, "Printing Fee", false, settings).matched, 1);
+});
+
+test("group selection collects every descendant source without selecting only its first field", () => {
+    const customer = PROFILES[0].fields.find(item => item.id === "/Customer");
+    const before = JSON.stringify(customer);
+    const selection = sourceSelection(customer, 1);
+    assert.deepEqual(selection.fields.map(item => item.id),
+        ["/Customer/CustomerName", "/Customer/CustomerId", "/Customer/Recipient"]);
+    assert.equal(selection.regions.length, 3);
+    assert.deepEqual(selection.pages, [1]);
+    assert.equal(selection.page, 1);
+    assert.equal(JSON.stringify(customer), before);
+});
+
+test("nested groups span source pages without treating repeated regions as separate fields", () => {
+    const group = {
+        id: "/Group", kind: "object", children: [
+            { ...field(0.9), id: "/Group/A", regions: [{ page: 3 }, { page: 1 }, { page: 3 }] },
+            { id: "/Group/Nested", kind: "object", children: [
+                { ...field(0.8), id: "/Group/Nested/B", regions: [{ page: 2 }] },
+            ] },
+            { ...field(undefined), id: "/Group/Missing", regions: [], missing: true },
+        ],
+    };
+    const selection = sourceSelection(group, 2);
+    assert.equal(selection.fields.length, 3);
+    assert.equal(selection.regions.length, 4);
+    assert.deepEqual(selection.pages, [1, 2, 3]);
+    assert.equal(selection.page, 2);
+    assert.equal(sourceSelection(group, 4).page, 1);
+    assert.equal(selection.regions[2].field.id, "/Group/A");
+    assert.equal(selection.regions[2].index, 2);
+});
+
+test("source-less descendants stay in a selected group without fabricated regions", () => {
+    const group = PROFILES[0].fields.find(item => item.id === "/CustomerAddress");
+    const selection = sourceSelection(group, 1);
+    assert.equal(selection.fields.length, 6);
+    assert.equal(selection.regions.length, 4);
+    assert.equal(selection.fields.filter(item => item.regions.length === 0).length, 2);
+    const empty = sourceSelection({ kind: "object", children: [] }, 1);
+    assert.deepEqual(empty.fields, []);
+    assert.deepEqual(empty.regions, []);
+    assert.deepEqual(empty.pages, []);
+    assert.equal(empty.page, undefined);
+});
+
+test("array-group selection includes every cell and scalar selection preserves all real regions", () => {
+    const table = PROFILES[0].fields.find(item => item.id === "/LineItems");
+    const selection = sourceSelection(table, 1);
+    assert.equal(selection.fields.length, 24);
+    assert.equal(selection.regions.length, 23);
+    const invoice = PROFILES[0].fields.find(item => item.id === "/InvoiceId");
+    const scalar = sourceSelection(invoice, 2);
+    assert.deepEqual(scalar.fields, [invoice]);
+    assert.equal(scalar.regions.length, 2);
+    assert.equal(scalar.page, 2);
 });
 
 test("value copying preserves display formatting and real empty, zero and false values", () => {

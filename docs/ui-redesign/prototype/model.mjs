@@ -83,6 +83,13 @@ export function leafFields(fields) {
     return allFields(fields).filter(field => field.kind === "value");
 }
 
+export function sourceSelection(field, currentPage) {
+    const fields = field.kind === "value" ? [field] : leafFields(childFields(field));
+    const regions = fields.flatMap(item => item.regions.map((region, index) => ({ field: item, region, index })));
+    const pages = [...new Set(regions.map(item => item.region.page))].sort((a, b) => a - b);
+    return { fields, regions, pages, page: pages.includes(currentPage) ? currentPage : pages[0] };
+}
+
 export function fieldSummary(fields, query, lowOnly, settings) {
     const leaves = leafFields(fields);
     const missing = leaves.filter(field => field.missing).length;

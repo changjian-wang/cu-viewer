@@ -1,7 +1,7 @@
 import {
     PALETTE, DEFAULT_SETTINGS, PreferenceError, validThreshold, formatThreshold, sourceColor, valueColor,
     displayValue, confidenceLabel, confidenceDescription, copyValue, fieldSummary, paneWidth,
-    childFields, allFields, leafFields, orderedFields, fieldMatches,
+    allFields, leafFields, sourceSelection, orderedFields, fieldMatches,
     moveField, moveFieldBy, readPreferences, writePreferences, resetPreferences,
     clampZoom, rotatedSize, escapeHtml,
 } from "./model.mjs";
@@ -36,6 +36,11 @@ function fieldById(id) {
     const field = fieldsById.get(id);
     if (!field) throw new Error(`The requested prototype field does not exist: ${id}`);
     return field;
+}
+
+function selectedFieldIds() {
+    if (!state.selectedId) return new Set();
+    return new Set(sourceSelection(fieldById(state.selectedId), state.page).fields.map(field => field.id));
 }
 
 function fieldCaption(field) {
@@ -245,22 +250,24 @@ function chip(field) {
         ` style="background:${color.background};color:${color.text}"` : ""}>${escapeHtml(displayValue(field))}</span>`;
 }
 
-function regionsFor(field) {
-    return field.kind === "value" ? field.regions : leafFields(childFields(field)).flatMap(item => item.regions);
-}
-
 function locateButton(field) {
-    const regions = regionsFor(field);
-    if (!regions.length) return "";
-    const target = regions.find(region => region.page === state.page) ?? regions[0];
-    const elsewhere = target.page !== state.page;
+    const selection = sourceSelection(field, state.page);
+    if (!selection.pages.length) return "";
+    const target = selection.page;
+    const elsewhere = target !== state.page;
+    const group = field.kind !== "value";
+    const label = group ? `Locate all ${selection.fields.length} fields in ${field.name} on page ${target}` :
+        `Go to page ${target} for ${field.name}`;
+    const title = group ? `Locate the whole group. Source pages: ${selection.pages.join(", ")}` :
+        `${elsewhere ? "Jump to" : "Locate on"} page ${target}`;
     return `<button type="button" class="locate-button${elsewhere ? " is-other-page" : ""}"
-        data-action="locate" data-id="${escapeHtml(field.id)}"
-        aria-label="${escapeHtml(`Go to page ${target.page} for ${field.name}`)}"
-        title="${elsewhere ? "Jump to" : "Locate on"} page ${target.page}">${icon("locate")}<span>p.${target.page}</span></button>`;
+        data-action="locate" data-id="${escapeHtml(field.id)}" aria-pressed="${state.selectedId === field.id}"
+        aria-label="${escapeHtml(label)}" title="${escapeHtml(title)}">${icon("locate")}<span>p.${target}</span>
+        ${group && selection.pages.length > 1 ? `<span class="page-count">/ ${selection.pages.length} pages</span>` : ""}</button>`;
 }
 
 function tableMarkup(field, { filter = true, rowNumbers = true } = {}) {
+    const selectedIds = selectedFieldIds();
     const rows = field.rows.map((row, index) => ({ row, index })).filter(({ row }) =>
         !filter || row.some(cell => fieldMatches(cell, state.query, state.lowOnly, state.settings)));
     if (!rows.length) return `<p class="empty-state">No matching rows in this table.</p>`;
@@ -269,7 +276,7 @@ function tableMarkup(field, { filter = true, rowNumbers = true } = {}) {
         `<th scope="col">${escapeHtml(column)}</th>`).join("")}</tr></thead>
         <tbody>${rows.map(({ row, index }) => `<tr>${rowNumbers ? `<td class="row-index">${index + 1}</td>` : ""}${row.map(cell =>
         `<td><button type="button" class="cell-value" data-action="select" data-id="${escapeHtml(cell.id)}" tabindex="-1"
-            data-inspect-id="${escapeHtml(cell.id)}" aria-pressed="${state.selectedId === cell.id}"
+            data-inspect-id="${escapeHtml(cell.id)}" aria-pressed="${selectedIds.has(cell.id)}"
             aria-label="${escapeHtml(`${field.name}, row ${index + 1}, ${cell.name}: ${displayValue(cell)}`)}"
             aria-describedby="description-${encodeURIComponent(cell.id)}" aria-keyshortcuts="F2"
             title="${escapeHtml(fieldTooltip(cell))}">${chip(cell)}</button>
@@ -278,19 +285,23 @@ function tableMarkup(field, { filter = true, rowNumbers = true } = {}) {
 
 function fieldRows(fields, parentId = "$root", depth = 0, inheritedMatch = false) {
     const filtering = Boolean(state.query.trim() || state.lowOnly);
+    const selectedIds = selectedFieldIds();
+    const selectedRoot = state.selectedId ? fieldById(state.selectedId) : null;
     return orderedFields(fields, parentId, state.order).filter(field =>
         (inheritedMatch && !state.lowOnly) || fieldMatches(field, state.query, state.lowOnly, state.settings)).map(field => {
         const group = field.kind !== "value";
         const expanded = filtering || state.expanded.has(field.id);
-        const selected = state.selectedId === field.id ||
+        const selected = state.selectedId === field.id || selectedIds.has(field.id) ||
             (group && !expanded && state.selectedId?.startsWith(`${field.id}/`));
+        const groupMember = selectedRoot && selectedRoot.kind !== "value" && selectedRoot.id !== field.id &&
+            field.id.startsWith(`${selectedRoot.id}/`);
         const confidence = field.confidence === undefined ? "N/A" : confidenceLabel(field);
         const action = group ? "toggle" : "select";
         const label = group ? `${expanded ? "Collapse" : "Expand"} ${field.name}` : `Select ${field.name}`;
         const rowId = `field-${encodeURIComponent(field.id).replaceAll("%", "_")}`;
         const ownQueryMatch = state.query.trim() && `${field.name} ${field.id}`.toLowerCase().includes(state.query.trim().toLowerCase());
         return `<tr data-row-id="${escapeHtml(field.id)}" data-parent-id="${escapeHtml(parentId)}"
-            data-inspect-id="${escapeHtml(field.id)}" class="${group ? "group-row " : ""}${selected ? "is-selected" : ""}">
+            data-inspect-id="${escapeHtml(field.id)}" class="${group ? "group-row " : ""}${selected ? "is-selected " : ""}${group && state.selectedId === field.id ? "is-group-selected " : ""}${groupMember ? "is-group-member" : ""}">
             <td><div class="field-name-content" style="--depth:${depth}">
                 <button type="button" class="drag-handle" data-action="drag" data-id="${escapeHtml(field.id)}"
                     aria-label="Reorder ${escapeHtml(field.name)}" title="${filtering ? "Clear search and filters to reorder" : "Drag to reorder; Alt + Up / Down"}"
@@ -300,16 +311,17 @@ function fieldRows(fields, parentId = "$root", depth = 0, inheritedMatch = false
                     ${field.kind === "table" && expanded ? `aria-controls="${rowId}-children"` : ""}
                     ${filtering ? 'disabled title="Automatically expanded while filtering"' : ""}>${icon(expanded ? "down" : "right")}</button>` : '<span class="expand-spacer"></span>'}
                 <button type="button" class="field-name-button" data-action="${action}" data-id="${escapeHtml(field.id)}"
-                    ${group ? `aria-expanded="${expanded}"` : `aria-pressed="${state.selectedId === field.id}"`}
+                    ${group ? `aria-expanded="${expanded}"` : `aria-pressed="${selectedIds.has(field.id)}"`}
                     ${group ? "" : `aria-describedby="description-${encodeURIComponent(field.id)}" aria-keyshortcuts="F2"`}
                     ${group && filtering ? "disabled" : ""}
                     title="${escapeHtml(group ? `${field.name}\n${field.id}` : fieldTooltip(field))}">${escapeHtml(field.name)}</button>
                 ${field.kind === "table" ? `<span class="field-count">[${field.rows.length}]</span>` : ""}
+                ${group && state.selectedId === field.id ? `<span class="group-selection-count">${selectedIds.size} selected</span>` : ""}
             </div></td>
             <td>${group ? `<span class="summary-value">${escapeHtml(displayValue(field))}</span>` :
             `<button type="button" class="field-value-button" data-action="select" data-id="${escapeHtml(field.id)}" tabindex="-1"
                 aria-label="${escapeHtml(`Select value of ${fieldCaption(field)}`)}" aria-describedby="description-${encodeURIComponent(field.id)}"
-                title="${escapeHtml(fieldTooltip(field))}" aria-pressed="${state.selectedId === field.id}">${chip(field)}</button>
+                title="${escapeHtml(fieldTooltip(field))}" aria-pressed="${selectedIds.has(field.id)}">${chip(field)}</button>
                 <span id="description-${encodeURIComponent(field.id)}" class="sr-only">${escapeHtml(confidenceDescription(field, state.settings))}. Press F2 for full value details.</span>`}
                 <span class="value-actions">${locateButton(field)}${group ? "" :
             `<button type="button" class="icon-button" data-action="inspect" data-id="${escapeHtml(field.id)}"
@@ -385,7 +397,8 @@ function renderResults({ focusId, focusAction, viewPosition = captureResultView(
         `${counts.matched} of ${counts.total} fields` : `${counts.total} fields / ${counts.missing} not returned`;
     byId("field-summary").title = `${counts.returned} returned values, ${counts.missing} not returned, ${counts.low} below threshold. Table cells are counted individually.`;
     byId("low-count").textContent = counts.low;
-    byId("inspect-selected").disabled = !state.selectedId;
+    const selected = state.selectedId ? fieldById(state.selectedId) : null;
+    byId("inspect-selected").disabled = !selected || selected.kind !== "value";
     byId("reorder-hint").textContent = fieldsView ?
         (state.query.trim() || state.lowOnly ? "F2: full value / Clear filters to reorder" : "Up / Down: browse / Enter: locate / F2: details") :
         "Read-only illustrative result";
@@ -410,7 +423,9 @@ function renderResults({ focusId, focusAction, viewPosition = captureResultView(
     }
     const available = navigationFields();
     const index = available.findIndex(field => field.id === state.selectedId);
-    byId("field-position").textContent = index < 0 ? `${available.length} fields` : `${index + 1} / ${available.length} fields`;
+    byId("field-position").textContent = selected && selected.kind !== "value" ?
+        `${sourceSelection(selected, state.page).fields.length} selected` :
+        index < 0 ? `${available.length} fields` : `${index + 1} / ${available.length} fields`;
     byId("previous-field").disabled = !available.length || index === 0;
     byId("next-field").disabled = !available.length || index === available.length - 1;
 }
@@ -424,9 +439,10 @@ function activeFieldId() {
 }
 
 function updateActiveOutlines() {
+    const selectedIds = selectedFieldIds();
     for (const node of paper.querySelectorAll("[data-source-id]")) {
         const visible = sourceVisible(fieldById(node.dataset.sourceId));
-        const selected = node.dataset.sourceId === state.selectedId && visible;
+        const selected = selectedIds.has(node.dataset.sourceId) && visible;
         const preview = node.dataset.sourceId === state.previewId && visible;
         node.classList.toggle("is-selected", selected);
         node.classList.toggle("is-preview", preview);
@@ -574,7 +590,24 @@ function positionFlyover(ensureSpace = false) {
 
 function updateRegionControls() {
     const field = state.selectedId ? fieldById(state.selectedId) : null;
-    const count = field?.regions?.length ?? 0;
+    const group = field && field.kind !== "value";
+    byId("group-source-controls").hidden = !group;
+    byId("source-help").hidden = Boolean(group);
+    byId("source-caption").hidden = Boolean(group);
+    if (group) {
+        const selection = sourceSelection(field, state.page);
+        const currentRegions = selection.regions.filter(item => item.region.page === state.page);
+        byId("group-source-name").textContent = field.name;
+        byId("group-source-name").title = `${field.name}: all descendant fields selected`;
+        byId("group-source-count").textContent = `${selection.fields.length} fields / ${currentRegions.length} source regions on this page`;
+        const pages = selection.pages.includes(state.page) ? selection.pages :
+            [...selection.pages, state.page].sort((a, b) => a - b);
+        byId("group-source-page").innerHTML = pages.map(page =>
+            `<option value="${page}">p.${page}${selection.pages.includes(page) ? "" : " (no group source)"}</option>`).join("");
+        byId("group-source-page").value = state.page;
+        byId("group-source-page").disabled = pages.length < 2;
+    }
+    const count = field?.kind === "value" ? field.regions.length : 0;
     byId("region-controls").hidden = count < 2;
     byId("region-label").textContent = `Region ${state.regionIndex + 1} / ${count}`;
     byId("previous-region").disabled = state.regionIndex <= 0;
@@ -624,13 +657,14 @@ function goToPage(pageNumber, { announceChange = true } = {}) {
     byId("page-number").removeAttribute("aria-invalid");
     state.page = pageNumber;
     state.previewId = null;
-    if (state.selectedId) {
+    if (state.selectedId && fieldById(state.selectedId).kind === "value") {
         const available = fieldById(state.selectedId).regions.findIndex(region => region.page === pageNumber);
         if (available >= 0) state.regionIndex = available;
     }
     renderSource();
     renderResults();
     viewport.scrollTop = 0;
+    if (state.selectedId && fieldById(state.selectedId).kind !== "value") revealSelected();
     if (announceChange) announce(`Page ${pageNumber} of ${state.profile.pages.length}. Zoom and rotation are unchanged.`);
     return true;
 }
@@ -638,14 +672,23 @@ function goToPage(pageNumber, { announceChange = true } = {}) {
 function revealSelected() {
     if (!state.selectedId) return;
     const field = fieldById(state.selectedId);
-    const node = currentSourceNode(field);
-    if (!node) return;
+    const nodes = field.kind === "value" ? [currentSourceNode(field)].filter(Boolean) :
+        [...paper.querySelectorAll("[data-source-id].is-selected")];
+    if (!nodes.length) return;
     const bounds = viewport.getBoundingClientRect();
-    const target = node.getBoundingClientRect();
-    if (target.left < bounds.left + 20) viewport.scrollLeft -= bounds.left + 20 - target.left;
-    else if (target.right > bounds.left + viewport.clientWidth - 20) viewport.scrollLeft += target.right - bounds.left - viewport.clientWidth + 20;
-    if (target.top < bounds.top + 20) viewport.scrollTop -= bounds.top + 20 - target.top;
-    else if (target.bottom > bounds.top + viewport.clientHeight - 20) viewport.scrollTop += target.bottom - bounds.top - viewport.clientHeight + 20;
+    const regions = nodes.map(node => node.getBoundingClientRect());
+    const target = {
+        left: Math.min(...regions.map(region => region.left)),
+        right: Math.max(...regions.map(region => region.right)),
+        top: Math.min(...regions.map(region => region.top)),
+        bottom: Math.max(...regions.map(region => region.bottom)),
+    };
+    if (target.right - target.left > viewport.clientWidth - 40 || target.left < bounds.left + 20) {
+        viewport.scrollLeft += target.left - bounds.left - 20;
+    } else if (target.right > bounds.left + viewport.clientWidth - 20) viewport.scrollLeft += target.right - bounds.left - viewport.clientWidth + 20;
+    if (target.bottom - target.top > viewport.clientHeight - 40 || target.top < bounds.top + 20) {
+        viewport.scrollTop += target.top - bounds.top - 20;
+    } else if (target.bottom > bounds.top + viewport.clientHeight - 20) viewport.scrollTop += target.bottom - bounds.top - viewport.clientHeight + 20;
     positionFlyover(true);
 }
 
@@ -669,32 +712,37 @@ function revealResultField(id) {
 
 function selectField(id, { regionIndex } = {}) {
     clearTimeout(previewTimer);
-    let field = fieldById(id);
-    if (field.kind !== "value") {
-        const leaves = leafFields(childFields(field));
-        field = leaves.find(item => item.regions.some(region => region.page === state.page)) ??
-            leaves.find(item => item.regions.length) ?? leaves[0];
-    }
-    if (!field) {
-        announce("This group has no returned values.");
-        return;
-    }
+    const field = fieldById(id);
+    const group = field.kind !== "value";
+    const selection = sourceSelection(field, state.page);
     state.selectedId = field.id;
     state.previewId = null;
     state.flyoverDismissed = false;
-    state.regionIndex = regionIndex ?? Math.max(0, field.regions.findIndex(region => region.page === state.page));
-    for (const group of allFields(state.profile.fields).filter(item => item.kind !== "value")) {
-        if (field.id.startsWith(`${group.id}/`)) state.expanded.add(group.id);
+    state.regionIndex = group ? 0 : regionIndex ?? Math.max(0, field.regions.findIndex(region => region.page === state.page));
+    if (group) state.inspectedId = null;
+    for (const ancestor of allFields(state.profile.fields).filter(item => item.kind !== "value")) {
+        if (field.id.startsWith(`${ancestor.id}/`)) state.expanded.add(ancestor.id);
     }
-    const region = field.regions[state.regionIndex];
-    if (region && region.page !== state.page) goToPage(region.page, { announceChange: false });
+    const region = group ? undefined : field.regions[state.regionIndex];
+    const targetPage = group ? selection.page : region?.page;
+    if (targetPage !== undefined && targetPage !== state.page) goToPage(targetPage, { announceChange: false });
     renderResults();
     const resultVisible = revealResultField(field.id);
     const filterNotice = !resultVisible && (state.query.trim() || state.lowOnly) ?
         " This field is hidden by the current result filters." : "";
     updateActiveOutlines();
     updateRegionControls();
-    if (!region) {
+    if (group) {
+        hideFlyover();
+        revealSelected();
+        const pageSources = selection.regions.filter(item => item.region.page === state.page).length;
+        const hiddenFields = selection.fields.some(item =>
+            !fieldMatches(item, state.query, state.lowOnly, state.settings));
+        announce(`${field.name}: all ${selection.fields.length} descendant fields selected. ${pageSources} source regions on page ${state.page}.` +
+            (selection.pages.length > 1 ? ` Source pages: ${selection.pages.join(", ")}.` : "") +
+            (!selection.regions.length ? " No source regions were supplied." : "") +
+            (hiddenFields ? " Selection includes descendants hidden by the current filters." : "") + filterNotice);
+    } else if (!region) {
         hideFlyover();
         announce(`${field.name}: ${displayValue(field)}. No source region was supplied.${filterNotice}`);
     } else if (region.page !== state.page) {
@@ -708,8 +756,11 @@ function selectField(id, { regionIndex } = {}) {
 
 function navigateField(direction) {
     const available = navigationFields();
-    const index = available.findIndex(field => field.id === state.selectedId);
-    const target = index < 0 ? (direction > 0 ? 0 : available.length - 1) : index + direction;
+    const group = state.selectedId && fieldById(state.selectedId).kind !== "value";
+    const selectedIds = selectedFieldIds();
+    const index = available.findIndex(field => group ? selectedIds.has(field.id) : field.id === state.selectedId);
+    const target = index < 0 ? (direction > 0 ? 0 : available.length - 1) :
+        index + (group && direction > 0 ? 0 : direction);
     if (target < 0 || target >= available.length) return;
     selectField(available[target].id);
 }
@@ -958,9 +1009,21 @@ byId("zoom-select").addEventListener("change", event => {
     else if (event.target.value !== "custom") zoomTo(Number(event.target.value));
 });
 byId("rotate").addEventListener("click", rotateDocument);
+byId("group-source-page").addEventListener("change", event => {
+    const field = state.selectedId ? fieldById(state.selectedId) : null;
+    const targetPage = Number(event.target.value);
+    if (!field || field.kind === "value" || !sourceSelection(field, state.page).pages.includes(targetPage)) {
+        announce("Choose an existing source page for the selected group.");
+        updateRegionControls();
+        return;
+    }
+    goToPage(targetPage);
+});
 for (const [id, direction] of [["previous-region", -1], ["next-region", 1]]) {
     byId(id).addEventListener("click", () => {
-        if (state.selectedId) selectField(state.selectedId, { regionIndex: state.regionIndex + direction });
+        if (state.selectedId && fieldById(state.selectedId).kind === "value") {
+            selectField(state.selectedId, { regionIndex: state.regionIndex + direction });
+        }
     });
 }
 byId("reset-order").addEventListener("click", () => {
