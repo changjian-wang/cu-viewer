@@ -9,7 +9,7 @@ from setuptools.command.sdist import sdist
 
 
 def check_resources() -> None:
-    package = Path(__file__).resolve().parent / "src" / "cu_result_viewer"
+    package = Path(__file__).resolve().parent / "src" / "cu_viewer"
     spec = spec_from_file_location("_viewer_build_assets", package / "_assets.py")
     if spec is None or spec.loader is None:
         raise RuntimeError("Viewer resource validator could not be loaded.")

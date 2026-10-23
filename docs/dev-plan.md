@@ -1,6 +1,6 @@
-# Development Plan: CU Result Viewer
+# Development Plan: CU Viewer
 
-Updated: 2026-10-22
+Updated: 2026-10-23
 
 This is the single development plan for the rendering component and its cu-cli delivery. Product scope is defined in [requirements](requirements.md); setup, embedding, limits, and commands are maintained in the [README](../README.md). Historical drafts and detailed execution logs belong in Git history, not parallel planning documents.
 
@@ -29,11 +29,17 @@ The project supplies the browser Viewer used by cu-cli to inspect an original so
 - Supported sources are PDF, JPEG/JPG/JPE, PNG, BMP, and HEIF/HEIC.
 - The implemented UI includes source navigation and transforms, structured fields, applicable rich-result views, source grounding, previews, table inspection, and a persistent OCR word layer.
 - Current delivery is validated with Chrome/Edge, React 18/19, and Vite 8. Other build/runtime profiles are unverified, not additional tasks.
-- The independent CLI frontend now implements both confirmed `--view` flows. Its code is on `feat/cu-result-viewer` in the adjacent toolkit checkout; this is not a claim that an existing published CLI already contains the feature.
-- Viewer is independently distributed as a Python package with prebuilt resources and a standard-library launcher. cu-cli consumes its compatible dependency, not a copied ZIP or local-server implementation. The candidate `cu-result-viewer 0.1.0b1` is not published; release approval remains separate.
+- The independent CLI frontend implements both confirmed `--view` flows on `feat/cu-result-viewer` in the adjacent toolkit checkout. That branch still targets the former package/module names and is not updated by this repository rename; its dependency and imports must be migrated before using the renamed Viewer. This is not a claim that an existing published CLI contains the feature.
+- Viewer is independently distributed as a Python package with prebuilt resources and a standard-library launcher. cu-cli consumes its compatible dependency, not a copied ZIP or local-server implementation. The candidate `cu-viewer 0.1.0b1` is not published; release approval remains separate.
 - No additional public customization API or separate host integration is planned. Add an interface only when a concrete CLI requirement demonstrates a gap.
 
 The original Demo implementation phases below are complete within their recorded verification scope. The approved productization refactor has its own status table. Cleanup and packaging verification must not be confused with automatic publishing, blanket format support, or certification of every possible input.
+
+### Project rename, 2026-10-23
+
+The npm/Python distribution and console command are now `cu-viewer`; the Python module and package resources are under `cu_viewer`. Hosts must update package dependencies and Python/npm imports; no aliases for the former names are provided. React component exports, Python public API signatures, archive layout and runtime behavior remain unchanged. Historical verification commands and the adjacent toolkit branch name below retain their original names; they are not new verification of the rename.
+
+Rename validation passed locally: TypeScript checks, ESLint, 516 frontend unit tests, 57 Python/exporter tests, 32 isolated React 18/19 packed-consumer browser cases, and 10 independent-wheel Chrome/Edge cases. The renamed sdist/wheel built successfully; a fresh wheel-only environment verified distribution metadata, the `cu-viewer` console entry point, `python -m cu_viewer`, all 226 packaged resources, and the absence of the legacy Python module. This is local Windows/Python 3.11 evidence, not publication, remote CI, or validation of the unchanged toolkit host.
 
 ### CU version and evidence boundary
 
@@ -63,7 +69,7 @@ frontend/
   demo/             development-only host
   tooling/          Vite asset build plugins
 python/
-  src/cu_result_viewer/
+  src/cu_viewer/
   tests/
 scripts/            cross-language packaging, fixtures and delivery verification
 tests/              shared fixtures and end-to-end/installed-package checks
@@ -313,7 +319,7 @@ Status and the local URL go to stderr, preserving stdout data pipelines. Existin
 src + cli + licensed runtime assets
     -> dist-cli
     -> viewer.zip + manifest.json
-    -> independent cu-result-viewer sdist/wheel
+    -> independent cu-viewer sdist/wheel
     -> package-manager installation alongside cu-cli
     -> Viewer-owned preparation/display API
     -> loopback HTTP session
@@ -324,9 +330,9 @@ The archive includes the page, CSS/JS/lazy chunks, PDF Worker/fonts/CMaps/ICC/WA
 
 The independent Viewer checks the exact manifest/archive inventory and serves verified bytes from memory. It neither extracts into user directories nor runs Node/Vite at runtime. Resource paths remain local and use correct MIME/CSP headers. Its wheel/source builds reject absent/corrupt resources; the sdist contains prebuilt assets so rebuilding a user wheel does not require Node.
 
-cu-cli declares `cu-result-viewer>=0.1.0b1,<0.2.0`, allowing compatible independent updates. Package managers perform installation/repair/upgrades in the same environment, not the `--view` command. Runtime code does not fetch latest releases or maintain a separate cache/updater. Breaking Python API changes require a compatible CLI update.
+The adjacent cu-cli branch still declares the former `cu-result-viewer>=0.1.0b1,<0.2.0` dependency. Integrating the renamed package requires changing that dependency to `cu-viewer>=0.1.0b1,<0.2.0` and its Python imports to `cu_viewer`; the toolkit is outside this rename's scope. Package managers perform installation/repair/upgrades in the same environment, not the `--view` command. Runtime code does not fetch latest releases or maintain a separate cache/updater. Breaking Python API changes require a compatible CLI update.
 
-Publish the independent package to the approved index before releasing the CLI dependency. The name was not found on PyPI when checked, which is not ownership or publication approval. Local validation installs built wheels, not an unpublished index dependency. Source repositories retain no generated Viewer ZIP; the toolkit has no Viewer resource directory. Export updates stop on unknown or modified files.
+Publish the independent package to the approved index before releasing the CLI dependency. Previous PyPI name checks applied to the former name and do not establish availability or ownership of `cu-viewer`; name checks and publication approval remain separate. Local validation installs built wheels, not an unpublished index dependency. Source repositories retain no generated Viewer ZIP; the toolkit has no Viewer resource directory. Export updates stop on unknown or modified files.
 
 ### Session and lifecycle
 

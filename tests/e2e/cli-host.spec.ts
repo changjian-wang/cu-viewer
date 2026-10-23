@@ -27,25 +27,25 @@ from pathlib import Path
 from types import SimpleNamespace
 import importlib.util
 from importlib.metadata import version
-import cu_result_viewer
+import cu_viewer
 root = Path(sys.argv.pop(1)).resolve()
 independent = sys.argv.pop(1) == "independent"
-assert Path(cu_result_viewer.__file__).resolve().is_relative_to(root)
-assert list(root.glob("cu_result_viewer-*.dist-info"))
+assert Path(cu_viewer.__file__).resolve().is_relative_to(root)
+assert list(root.glob("cu_viewer-*.dist-info"))
+assert version("cu-viewer") == os.environ.get("CU_CLI_EXPECT_VIEWER_VERSION", "0.1.0b1")
 assert shutil.which("node") is None
 def no_service(*args, **kwargs):
     raise AssertionError("Saved viewing must not load profiles or build service clients")
 if independent:
     assert importlib.util.find_spec("cu_cli") is None
     assert importlib.util.find_spec("cu_cli_core") is None
-    from cu_result_viewer.__main__ import main
+    from cu_viewer.__main__ import main
 else:
     import cu_cli, cu_cli_core
     from cu_cli.cli import main
     assert Path(cu_cli.__file__).resolve().is_relative_to(root)
     assert Path(cu_cli_core.__file__).resolve().is_relative_to(root)
     assert not (Path(cu_cli.__file__).parent / "resources/viewer").exists()
-    assert version("cu-result-viewer") == os.environ.get("CU_CLI_EXPECT_VIEWER_VERSION", "0.1.0b1")
     adapter = importlib.import_module("cu_cli.commands.analyze")
     if "--result" in sys.argv:
         adapter.Profile.load = staticmethod(no_service)
@@ -133,7 +133,7 @@ async function startViewer(source: string, result: string, fresh = false, indepe
 
 async function inspect(page: Page, source: string, result: string, run: (url: string) => Promise<void>, fresh = false, independent = false) {
     const before = await readFile(result);
-    const resources = join(installedEnvironment(independent).packageRoot, "cu_result_viewer", "resources", "viewer");
+    const resources = join(installedEnvironment(independent).packageRoot, "cu_viewer", "resources", "viewer");
     expect((await readdir(resources)).sort()).toEqual(["manifest.json", "viewer.zip"]);
     const host = await startViewer(source, result, fresh, independent);
     const errors: string[] = [];
@@ -150,6 +150,8 @@ async function inspect(page: Page, source: string, result: string, run: (url: st
     try {
         const response = await page.goto(host.url);
         expect(response?.headers()["content-security-policy"]).toContain("script-src 'self' 'wasm-unsafe-eval'");
+        await expect(page).toHaveTitle("CU Viewer");
+        await expect(page.getByRole("heading", { name: "CU Viewer", exact: true })).toBeVisible();
         if (!independent && process.env.CU_CLI_EXPECT_VIEWER_VERSION === "0.1.0b2") {
             await expect(page.locator('meta[name="viewer-compatibility-test"]')).toHaveAttribute("content", "0.1.0b2");
         }

@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cu-result-viewer"
+name = "cu-viewer"
 version = "0.1.0b1"
 description = "Independent local browser viewer for original documents and Content Understanding JSON."
 readme = {text = "A prebuilt React viewer and standard-library Python launcher. No CU SDK, authentication, Node.js, or cu-cli is required at runtime.", content-type = "text/plain"}
@@ -15,17 +15,17 @@ dependencies = []
 dev = ["build>=1.3", "pytest>=7.4"]
 
 [project.urls]
-Repository = "https://github.com/changjian-wang/cu-result-viewer"
+Repository = "https://github.com/changjian-wang/cu-viewer"
 
 [project.scripts]
-cu-result-viewer = "cu_result_viewer.__main__:main"
+cu-viewer = "cu_viewer.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = false
 
 [tool.setuptools.package-data]
-cu_result_viewer = ["resources/viewer/viewer.zip", "resources/viewer/manifest.json", "py.typed"]
+cu_viewer = ["resources/viewer/viewer.zip", "resources/viewer/manifest.json", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -15,7 +15,7 @@ from zipfile import BadZipFile, ZipFile
 
 def load_viewer_assets(root: Path | None = None) -> dict[str, bytes]:
     """Read a validated archive in memory; report invalid resources as ValueError."""
-    resources = root if root is not None else files("cu_result_viewer").joinpath("resources").joinpath("viewer")
+    resources = root if root is not None else files("cu_viewer").joinpath("resources").joinpath("viewer")
     try:
         manifest = json.loads(resources.joinpath("manifest.json").read_text(encoding="utf-8"))
         if (

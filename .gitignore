@@ -16,4 +16,4 @@ codecs/**/target/
 python/build/
 python/dist/
 python/src/*.egg-info/
-python/src/cu_result_viewer/resources/
+python/src/cu_viewer/resources/

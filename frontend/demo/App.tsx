@@ -60,7 +60,7 @@ export function App() {
         setReload(current => current + 1);
     };
     return <main className="prototype-host">
-        <header className="prototype-banner"><h1>CU Result Viewer</h1><span>Interactive prototype · saved data only · not a released package</span></header>
+        <header className="prototype-banner"><h1>CU Viewer</h1><span>Interactive prototype · saved data only · not a released package</span></header>
         <div className="prototype-inputs">
             <label className="prototype-picker"><span>Source</span><strong>{input?.name ?? "Loading sample..."}</strong><span className="prototype-browse">Browse...</span>
                 <input type="file" aria-label="Choose source file" accept=".pdf,.png,.jpg,.jpeg,.jpe,.bmp,.heif,.heic" disabled={!input}

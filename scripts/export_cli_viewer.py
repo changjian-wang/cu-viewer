@@ -174,7 +174,7 @@ def main() -> None:
     root = Path(__file__).resolve().parents[1]
     parser.add_argument(
         "destination", type=Path, nargs="?",
-        default=root / "python" / "src" / "cu_result_viewer" / "resources" / "viewer",
+        default=root / "python" / "src" / "cu_viewer" / "resources" / "viewer",
     )
     arguments = parser.parse_args()
     export_viewer(root / "dist-cli", arguments.destination.absolute(), root)

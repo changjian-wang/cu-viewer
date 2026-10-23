@@ -29,7 +29,7 @@ function App() {
         return () => controller.abort();
     }, []);
     return <main className="cli-host">
-        <header><h1>CU Result Viewer</h1>{session && <span title={session.name}>{session.name}</span>}</header>
+        <header><h1>CU Viewer</h1>{session && <span title={session.name}>{session.name}</span>}</header>
         <div className="cli-workspace">
             {error ? <p role="alert">{error}</p> : session ?
                 <ContentUnderstandingResultViewer source={session.source} result={session.result} /> :

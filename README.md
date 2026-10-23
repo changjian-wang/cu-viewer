@@ -1,4 +1,4 @@
-# CU Result Viewer
+# CU Viewer
 
 面向 CU 开发者、技术实施和测试人员的只读本地结果查看器，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。以独立 Python wheel 交付，cu-cli 是其中一个入口；同一 React/TypeScript 组件也可嵌入其他宿主。
 
@@ -40,7 +40,7 @@ npm run dev
 
 ## cu-cli 入口
 
-工作区内的 CLI 接入分支 `feat/cu-result-viewer` 已实现以下用法；需要安装该分支构建的 Python 包，不代表已发布的 CLI 版本具有这些选项：
+工作区内的 CLI 接入分支 `feat/cu-result-viewer` 已实现以下用法；该分支仍使用更名前的 Viewer 包名和模块名，本次未修改相邻 toolkit，接入 `cu-viewer` 前需同步更新其依赖和导入。不代表已发布的 CLI 版本具有这些选项：
 
 ```powershell name="cu-cli 查看结果"
 cu analyze sample.pdf --view
@@ -51,14 +51,16 @@ cu analyze sample.pdf --view --result sample.result.json
 
 ### 独立安装与更新
 
-Viewer 独立发行 Python 包 `cu-result-viewer`，包含预构建页面和标准库启动器，不依赖 cu-cli、CU SDK 或 Node。cu-cli 只声明兼容依赖并调用启动接口，不保存 Viewer 资源副本。正式发布后，安装新版 cu-cli 会自动安装兼容 Viewer；也可在同一安装环境中单独升级 Viewer，而不重新发布 CLI。
+Viewer 独立发行 Python 包 `cu-viewer`，包含预构建页面和标准库启动器，不依赖 cu-cli、CU SDK 或 Node。cu-cli 接入时应只声明兼容依赖并调用启动接口，不保存 Viewer 资源副本。正式发布并完成 CLI 接入后，安装新版 cu-cli 会自动安装兼容 Viewer；也可在同一安装环境中单独升级 Viewer，而不重新发布 CLI。
 
 当前候选版本为 `0.1.0b1`，尚未上传包索引，不能把公开旧版 CLI 当成已具备该依赖。普通用户使用正式 wheel，不需要构建环境；若包缺失/损坏，用原安装渠道修复独立 Viewer 包，不要求用户构建资源，也不自动下载安装。
+
+项目包名和命令统一为 `cu-viewer`，Python 模块为 `cu_viewer`。旧包名、模块名和命令不提供兼容别名，已有宿主需同步更新引用；React 组件名称和公开接口保持不变。
 
 正式发布后，pip 用户可在 cu-cli 所在的同一 Python 环境中独立升级兼容版本：
 
 ```powershell name="正式发布后的Viewer独立更新（目前尚未发布）"
-python -m pip install --upgrade "cu-result-viewer>=0.1.0b1,<0.2.0"
+python -m pip install --upgrade "cu-viewer>=0.1.0b1,<0.2.0"
 ```
 
 不要在无关 Python 环境中运行更新；pipx 等隔离安装使用对应应用环境的包管理方式。
@@ -66,7 +68,7 @@ python -m pip install --upgrade "cu-result-viewer>=0.1.0b1,<0.2.0"
 独立 Viewer 安装后也可以直接运行，不需要 cu-cli：
 
 ```powershell name="独立查看已有结果"
-python -m cu_result_viewer sample.pdf --result sample.result.json
+python -m cu_viewer sample.pdf --result sample.result.json
 ```
 
 <a id="embedding"></a>
@@ -82,9 +84,9 @@ npm pack --ignore-scripts
 已验证 React 18/19 的独立安装包宿主；具体版本和范围见[开发计划](docs/dev-plan.md#verification)。
 
 ```tsx name="宿主中的 Viewer"
-import { ContentUnderstandingResultViewer } from "cu-result-viewer";
-import type { ContentUnderstandingResultViewerProps } from "cu-result-viewer";
-import "cu-result-viewer/styles.css";
+import { ContentUnderstandingResultViewer } from "cu-viewer";
+import type { ContentUnderstandingResultViewerProps } from "cu-viewer";
+import "cu-viewer/styles.css";
 
 export function AnalyzeResultView(props: ContentUnderstandingResultViewerProps) {
     return <div style={{ height: 720 }}>
@@ -110,7 +112,7 @@ export function AnalyzeResultView(props: ContentUnderstandingResultViewerProps) 
 
 ```ts name="宿主 vite.config.ts"
 import { defineConfig } from "vite";
-import { viewerAssets } from "cu-result-viewer/vite";
+import { viewerAssets } from "cu-viewer/vite";
 
 export default defineConfig({
     plugins: [viewerAssets()],

@@ -16,9 +16,9 @@ from zipfile import ZipFile
 
 import pytest
 
-from cu_result_viewer import _assets as assets
-from cu_result_viewer import _runtime as viewer
-from cu_result_viewer import _server as server_module
+from cu_viewer import _assets as assets
+from cu_viewer import _runtime as viewer
+from cu_viewer import _server as server_module
 
 
 @pytest.fixture

@@ -20,15 +20,15 @@ const profiles = [
 ];
 const demo = readFileSync(join(repository, "frontend", "demo", "App.tsx"), "utf8");
 assert.ok(demo.includes('from "../src"'), "The demo public-entry import is not the expected source.");
-const app = demo.replaceAll('"../src"', '"cu-result-viewer"')
+const app = demo.replaceAll('"../src"', '"cu-viewer"')
     .replaceAll('"../../tests/fixtures/', '"./fixtures/');
 const main = readFileSync(join(repository, "frontend", "demo", "main.tsx"), "utf8")
-    .replace('import "./styles.css";', 'import "./styles.css";\nimport "cu-result-viewer/styles.css";');
+    .replace('import "./styles.css";', 'import "./styles.css";\nimport "cu-viewer/styles.css";');
 mkdirSync(output, { recursive: true });
 for (const profile of profiles) {
     const directory = join(output, profile.name);
     mkdirSync(join(directory, "fixtures"), { recursive: true });
-    const archive = "cu-result-viewer.tgz";
+    const archive = "cu-viewer.tgz";
     copyFileSync(tarball, join(directory, archive));
     writeFileSync(join(directory, "package.json"), JSON.stringify({
         name: `cu-viewer-${profile.name}-isolated-consumer`,
@@ -41,7 +41,7 @@ for (const profile of profiles) {
             preview: "vite preview",
         },
         dependencies: {
-            "cu-result-viewer": `file:${archive}`,
+            "cu-viewer": `file:${archive}`,
             react: profile.react,
             "react-dom": profile.react,
         },
@@ -65,7 +65,7 @@ for (const profile of profiles) {
     }, null, 2) + "\n");
     writeFileSync(join(directory, "vite.config.ts"), [
         'import { defineConfig } from "vite";',
-        'import { viewerAssets } from "cu-result-viewer/vite";',
+        'import { viewerAssets } from "cu-viewer/vite";',
         "export default defineConfig({",
         "    root: import.meta.dirname,",
         "    plugins: [viewerAssets()],",

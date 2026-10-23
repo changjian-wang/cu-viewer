@@ -20,6 +20,7 @@ npm(["run", "build"]);
 const packed = JSON.parse(npm(["pack", "--ignore-scripts", "--json", "--pack-destination", artifacts], repository, process.env, true));
 assert.ok(Array.isArray(packed) && packed.length === 1 && typeof packed[0].filename === "string", "npm pack returned an invalid artifact.");
 const pack = packed[0];
+assert.equal(pack.name, "cu-viewer", "The packed artifact must use the current Viewer package name.");
 assert.ok(!/[\\/]/.test(pack.filename), "The tarball name is not local to the artifact directory.");
 assert.ok(Array.isArray(pack.files), "npm pack did not provide the file inventory.");
 for (const entry of pack.files) {

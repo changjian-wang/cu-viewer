@@ -32,11 +32,11 @@ test.beforeEach(async ({ page, context }, testInfo) => {
     if (typeof directory !== "string" || typeof reactVersion !== "string" || typeof base !== "string") {
         throw new Error("The isolated consumer test profile is incomplete.");
     }
-    const installed = join(directory, "node_modules", "cu-result-viewer");
+    const installed = join(directory, "node_modules", "cu-viewer");
     expect(lstatSync(installed).isSymbolicLink()).toBe(false);
     const location = relative(realpathSync(directory), realpathSync(installed));
     expect(location.startsWith(`..${sep}`)).toBe(false);
-    expect(location).toBe(join("node_modules", "cu-result-viewer"));
+    expect(location).toBe(join("node_modules", "cu-viewer"));
     const packageJson: unknown = JSON.parse(readFileSync(join(directory, "node_modules", "react", "package.json"), "utf8"));
     if (!packageJson || typeof packageJson !== "object" || !("version" in packageJson)) throw new Error("Installed React metadata is missing.");
     expect(packageJson.version).toBe(reactVersion);
@@ -81,6 +81,8 @@ test.beforeEach(async ({ page, context }, testInfo) => {
     await trackSourceResources(page);
     const response = await page.goto("/");
     expect(response?.headers()["content-security-policy"]).toBe(policy);
+    await expect(page).toHaveTitle("CU Viewer · Interactive prototype");
+    await expect(page.getByRole("heading", { name: "CU Viewer", exact: true })).toBeVisible();
     await ready(page);
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
 });
