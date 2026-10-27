@@ -8,8 +8,8 @@
 
 - **本文**：启动、使用、资源交付、当前限制和验证命令。
 - [需求](docs/requirements.md)：当前 cu-cli Viewer 的交付范围和已确认行为。
-- [开发计划（English）](docs/dev-plan.md)：完整架构、阶段任务、验收、依赖、测试映射和 CLI 交付状态。
-- [UI 改造需求与独立原型](docs/ui-redesign/requirements.md)：新一轮视觉及交互方案；原型不修改现有 React，确认后再考虑落地。
+- [开发计划（English）](docs/dev-plan.md#ui-redesign-react-migration)：原型对齐的 React UI 迁移阶段、依赖、验收矩阵与交付门禁；同一文档保留完整架构及既有交付记录。
+- [UI 改造需求与独立原型](docs/ui-redesign/requirements.md)：已确认的视觉、交互和真实源文件边界；React 落地当前处于计划阶段，尚未修改正式实现。
 
 ## 代码结构
 

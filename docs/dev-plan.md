@@ -1,24 +1,25 @@
 # Development Plan: CU Viewer
 
-Updated: 2026-10-23
+Updated: 2026-10-27
 
-This is the single development plan for the rendering component and its cu-cli delivery. Product scope is defined in [requirements](requirements.md); setup, embedding, limits, and commands are maintained in the [README](../README.md). Historical drafts and detailed execution logs belong in Git history, not parallel planning documents.
+This is the single development plan for the rendering component and its cu-cli delivery. Product scope is defined in [requirements](requirements.md); the new UI baseline is defined in the [approved prototype requirements](ui-redesign/requirements.md). Setup, embedding, limits, and commands are maintained in the [README](../README.md). Historical drafts and detailed execution logs belong in Git history, not parallel planning documents.
 
 ## Contents
 
 1. [Scope and delivery status](#scope-and-delivery-status)
-2. [Approved productization refactor](#approved-productization-refactor)
-3. [Architecture](#architecture)
-4. [Repository responsibilities](#repository-responsibilities)
-5. [Implementation phases and acceptance criteria](#implementation-phases-and-acceptance-criteria)
-6. [Dependencies and delivery sequence](#dependencies-and-delivery-sequence)
-7. [CLI handoff contract](#cli-handoff)
-8. [Rendering decisions and evidence](#rendering-and-evidence)
-9. [Test plan and requirement mapping](#test-plan-and-requirement-mapping)
-10. [Recorded verification](#verification)
-11. [Risks and maintenance controls](#risks-and-maintenance-controls)
-12. [Build, rollout, and rollback](#build-rollout-and-rollback)
-13. [Completion criteria](#completion-criteria)
+2. [Prototype-aligned React UI migration](#ui-redesign-react-migration)
+3. [Approved productization refactor](#approved-productization-refactor)
+4. [Architecture](#architecture)
+5. [Repository responsibilities](#repository-responsibilities)
+6. [Implementation phases and acceptance criteria](#implementation-phases-and-acceptance-criteria)
+7. [Dependencies and delivery sequence](#dependencies-and-delivery-sequence)
+8. [CLI handoff contract](#cli-handoff)
+9. [Rendering decisions and evidence](#rendering-and-evidence)
+10. [Test plan and requirement mapping](#test-plan-and-requirement-mapping)
+11. [Recorded verification](#verification)
+12. [Risks and maintenance controls](#risks-and-maintenance-controls)
+13. [Build, rollout, and rollback](#build-rollout-and-rollback)
+14. [Completion criteria](#completion-criteria)
 
 ## Scope and delivery status
 
@@ -31,7 +32,7 @@ The project supplies the browser Viewer used by cu-cli to inspect an original so
 - Current delivery is validated with Chrome/Edge, React 18/19, and Vite 8. Other build/runtime profiles are unverified, not additional tasks.
 - The independent CLI frontend implements both confirmed `--view` flows on `feat/cu-result-viewer` in the adjacent toolkit checkout. That branch still targets the former package/module names and is not updated by this repository rename; its dependency and imports must be migrated before using the renamed Viewer. This is not a claim that an existing published CLI contains the feature.
 - Viewer is independently distributed as a Python package with prebuilt resources and a standard-library launcher. cu-cli consumes its compatible dependency, not a copied ZIP or local-server implementation. The candidate `cu-viewer 0.1.0b1` is not published; release approval remains separate.
-- No additional public customization API or separate host integration is planned. Add an interface only when a concrete CLI requirement demonstrates a gap.
+- The original productization refactor did not add customization APIs. The new UI phase below proposes optional field-order controls for the explicitly requested React integration; the existing `source`/`result` call remains compatible.
 
 The original Demo implementation phases below are complete within their recorded verification scope. The approved productization refactor has its own status table. Cleanup and packaging verification must not be confused with automatic publishing, blanket format support, or certification of every possible input.
 
@@ -50,9 +51,149 @@ Rename validation passed locally: TypeScript checks, ESLint, 516 frontend unit t
 
 Task `4.2a` completion refers to these display mappings and their recorded evidence; it does not imply exhaustive real-service validation of Preview features.
 
+<a id="ui-redesign-react-migration"></a>
+## Prototype-aligned React UI migration
+
+Plan prepared on 2026-10-27. The user has approved moving from the standalone prototype to the React implementation and confirmed the boundaries below. This planning change does not implement the React UI: every `UI0`-`UI7` phase starts as **pending**, and the older verification records are not evidence that the new UI passes.
+
+### Frozen reference and confirmed boundaries
+
+- Visual and interaction base: commit [`d31b613`](https://github.com/changjian-wang/cu-viewer/commit/d31b613ccb0c3eae4854dbb3944beefe0cb8eeba), the [standalone prototype](ui-redesign/prototype/index.html), and [UI requirements UI-01 through UI-31](ui-redesign/requirements.md#11-验收清单). The subsequently requested menu-dismissal preview fix supplements that commit; UI0 must freeze the reviewed post-fix commit before porting it.
+- Port the approved behavior, dimensions, palette, typography, icons and default controls. Do not copy the prototype's imperative DOM replacement, simulated source coordinates, hard-coded schema IDs, or example values into production.
+- Baseline defaults are two columns with the three-column comparison switch, confidence threshold `0.70`, and the three enabled highlighting options. Do not silently substitute new product defaults.
+- Keep the reference prototype unchanged during implementation. A deliberate design deviation requires an explicit requirement update rather than adjusting the reference to make a regression pass.
+
+| Boundary confirmed by the user | Implementation rule |
+| --- | --- |
+| Real source text | Preserve the PDF/image and its original text rendering. Apply source-region highlight overlays and outlines; do not reconstruct, mask or repaint OCR text. Palette text colors apply to DOM values, details and flyovers. Validate overlay opacity/compositing on real sources so highlights do not obscure the original. |
+| Field-order ownership | Uncontrolled order is saved by the component in the current browser, isolated by analyzer, API version and field structure. Controlled order comes from the host, emits changes, and is persisted by the host. |
+| Existing capabilities | Retain all eight applicable result views, multiple-content selection, missing-value inspection/filtering, parser warnings, source errors, table dialogs, and existing source-format support under the new shell. |
+| Public compatibility | Retain `ContentUnderstandingResultViewer`, `ViewerSource`, and required `source`/`result` inputs. Optional order configuration must not expose internal CU or PDF.js types. |
+| Host versus component | Product naming is CU Viewer. Demo sample/file pickers, the prototype badge, simulated-data notice and requirements link remain development-only; never add them to the shared component or wheel. |
+| Delivery boundary | Change only this repository. Do not migrate the toolkit, alter Python launcher APIs, publish packages, call Analyze, or replace an installed user application as part of this UI work. |
+
+### Existing-code mapping
+
+| Surface | Primary existing files | Required change or protection |
+| --- | --- | --- |
+| Composition and lifecycle | [Viewer](../frontend/src/ContentUnderstandingResultViewer.tsx), [public types](../frontend/src/index.ts) | Compose shared preferences/review state and optional order inputs. Keep source loading, abort/disposal and original-result ownership intact. |
+| Selection and navigation | [Interaction reducer/helpers](../frontend/src/interaction/interaction.ts) | Separate hover, explicit scalar/group selection and source-region navigation. Hover must no longer change pages or restore pages on exit. Prefer an actual source on the current page; otherwise explicitly navigate to an available target page. |
+| Fields and structured arrays | [ResultsPane](../frontend/src/components/ResultsPane.tsx) | Replace the stacked list with the approved searchable tree table, inline array grids, order controls, value details and navigation. Keep review state above conditional tab content so it survives tab changes. |
+| Source transforms and gestures | [SourcePane](../frontend/src/components/SourcePane.tsx), [geometry](../frontend/src/source/geometry.ts), [rendering hook](../frontend/src/source/useSourceRendering.ts) | Reuse the real render frame and transforms. Add genuine region hit testing/selection, pointer-anchored wheel/pinch zoom and explicit reveal space without making hover move the source. |
+| Highlighting and flyovers | [Source overlays](../frontend/src/source/sourceOverlays.ts), [SourcePopover](../frontend/src/components/SourcePopover.tsx) | Replace identity colors and the above-first card with semantic styles, independent pinned/preview outlines, the compact Gauge card, and the agreed below-value boundary rule. |
+| Layout tables and copy | [TableGrid](../frontend/src/components/TableGrid.tsx), [CopyButton](../frontend/src/components/CopyButton.tsx), [parser](../frontend/src/model/parseCuResult.ts) | Reuse cell/value actions and clipboard/error conventions. Preserve real row/column spans. Detail cells currently retain raw input but do not normalize confidence; use only a genuinely supplied, validated score, otherwise show unavailable. |
+| Layout and hosts | [Component styles](../frontend/src/styles.css), [production host](../frontend/app/main.tsx), [production styles](../frontend/app/styles.css), [demo](../frontend/demo/App.tsx) | Match the shared shell, toolbar placement, resizers, menus and typography without duplicating host chrome or leaking global prototype styles into consumers. |
+| Existing views and delivery | [Tabs](../frontend/src/components/ResultTabs.tsx), [view availability](../frontend/src/model/resultViews.ts), existing build/consumer/CLI tests | Keep dynamic view availability, overflow navigation, safe Markdown/JSON, crops, metadata and package asset contracts. |
+
+Extract internal Fields, highlighting-settings and value-action components/helpers only where they remove a real responsibility or duplicate logic from these files. Do not build a parallel application, a generic design system, or a new state-management framework.
+
+### State and public-contract rules to freeze in UI0
+
+1. **Keep the data model truthful.** Reuse `CuField`, `CuRegion`, `CuTable` and guarded parsing. A structured object/array group is not the same target as a layout table or paragraph. Group selection includes every descendant leaf; source-less/missing leaves still belong, but do not acquire regions. Specify and test real parent-only grounding as a fallback, not an invented union polygon.
+2. **Project, do not rewrite.** Search, display order and inline grids are projections over the parsed input. Object arrays, heterogeneous rows, primitive arrays, empty groups, currency/date-like values and unknown data must remain inspectable. Do not fabricate `CuTable` objects or cast arbitrary field arrays into layout tables merely to reuse their renderer.
+3. **Share review semantics.** One matching-leaf set drives tree visibility, table-row inclusion, counts and next/previous navigation. One appearance helper drives the legend, list emphasis and source overlays. Unavailable confidence stays distinct from `0`; no parent/OCR confidence inheritance.
+4. **Separate interaction intents.** Mouse/focus preview never changes source page, pan or reserve. Mouse preview requires actual pointer movement, not an automatic enter event when a menu closes or layout changes; keyboard focus remains a valid preview intent. Explicit selection/reveal stays authoritative across React focus restoration. Re-hovering the selected list item/current region does not demote it; another actual region can still be previewed.
+5. **Own state at the correct lifetime.** The viewer/reducer owns selection and context identity; SourcePane owns real viewport transforms; ResultsPane owns per-view scroll and Fields review state; shared preferences are above both panes. Do not keep every expensive inactive rich view mounted merely to retain a scroll position.
+6. **Version asynchronous feedback.** Use a viewer-scoped ref/generation for copy attempts and context-reset intents, including a clear while IDs are already null, document/content/result replacement, detail close/reopen and same-field re-selection. Check both success and failure, plus mount/context identity. A `useEffect` depending only on selected IDs cannot detect these no-op resets.
+7. **Scope focus and overlays.** Use stable keys, refs, `useId` and the owning document. Restoring focus is not a new preview event; hidden affordances must become focusable without dropping focus to `body`. Menus, settings, details and dialogs follow their defined Escape hierarchy, and two embedded viewers must not clear one another.
+
+The current source polygons are pointer-inert and SourcePane does not receive a field-selection callback. Source clicks therefore require real hit testing or an accessible region interaction layer wired back to the shared selection state, not just restyled SVG. Record the pointer-down candidate, distinguish click from pan before pointer-up, and provide keyboard equivalence without intercepting table-marker/dialog controls. Native table dialogs remain a separate modal surface.
+
+The current zoom buttons reset pan and there is no wheel handler. Gesture work must normalize wheel deltas, use a non-passive viewport listener when preventing browser zoom, and clean it up on replacement/unmount. Cursor anchoring must use the existing rotated/cropped real-frame geometry and inverse transform, not assume unrotated HTML pages or CU coordinates equal CSS pixels.
+
+Proposed optional API, to be frozen and type-tested in UI0 before implementation:
+
+| Addition to the existing props/types | Proposed behavior |
+| --- | --- |
+| `ViewerFieldOrder = Readonly<Record<string, readonly string[]>>` | Parent-relative field paths map to ordered child paths; use escaped, content-relative JSON-pointer paths, not envelope prefixes, content indexes or display labels. Use `$root` for the root sibling list. Array business rows/cells are not reorderable entries. |
+| `fieldOrder?: ViewerFieldOrder` | Controlled order: render the supplied value and emit proposed changes. Do not also write a competing browser order. Without a change handler, keep the configured order read-only and explain why drag is unavailable. |
+| `defaultFieldOrder?: ViewerFieldOrder` | Initial uncontrolled configuration. A valid same-schema saved user preference takes precedence; otherwise use this value, then original input order. |
+| `onFieldOrderChange?: (order: ViewerFieldOrder) => void` | Emit a new immutable order mapping without mutating the prop or raw result. The host owns persistence in controlled mode. |
+
+An incomplete order must not hide newly returned fields: append unspecified siblings in input order. Reject cross-parent/array-row moves, validate configuration, report invalid/unrecognized storage explicitly, and provide an explicit reset. A schema key must ignore extracted values and object key display order while distinguishing changed field structure; do not use a file name or the prototype's fixed `invoice-example` key.
+
+The source/result unions, API-version mapping, format limits, URL/CORS rules, worker paths and Python signatures stay unchanged. No new dependency is planned; request a specific, evidenced exception if an existing tool/helper cannot meet a requirement.
+
+### Phases, dependencies and exit gates
+
+Each phase includes its focused tests and a runnable review point. The final phase is not the first time interaction behavior is tested.
+
+| Phase | Depends on | Work and review deliverable | Exit gate | Status |
+| --- | --- | --- | --- | --- |
+| **UI0 - Freeze contracts and regression fixtures** | None | Record the prototype-to-React mapping, freeze optional order paths/precedence, classify real input edge cases and host-only controls, and add durable browser regression scenarios for the previously missed entry paths. | Existing React baseline recorded; deterministic visual fixture and real PDF/image pairs identified; no unsupported prototype assumption is treated as service data. | Pending |
+| **UI1 - Shared review state and preferences** | UI0 | Implement typed matching/order/appearance helpers, explicit group/scalar intent, clipboard generation ownership, preference validation and optional order props with adjacent tests. | Unit/type tests cover thresholds, missing/falsy values, group pages, immutable sorting, parent-summary matching, null-state resets and controlled/uncontrolled order. | Pending |
+| **UI2 - Shared shell and controls** | UI1 | Migrate scoped layout/tokens, source toolbar, pane/column resizers, result tabs, menus and appropriate host chrome using the shared preference/state contracts. Keep all applicable views and error/status surfaces. | Default normal-state screen matches the reference; keyboard resizers/menus work; no demo controls or global style leakage in the component. | Pending |
+| **UI3 - Fields tree table and value workflow** | UI1, UI2 | Add two/three-column Fields, nested/array presentation, one search/filter result set, sequential navigation, sibling drag/keyboard order, group location, shared value actions and synchronized full-value details. | Every field/value remains accessible, actions do not squeeze values on hover, array rows are unchanged, and focus survives rerender and consecutive reorders. | Pending |
+| **UI4 - Real source highlighting and flyovers** | UI1, UI2, UI3 | Wire field/table semantic overlays, independent pinned/preview outlines, highlighting settings/legend, compact Gauge flyovers, current-page group sources and clear selection. Remove the permanent yellow OCR base from the default rendering path without deleting raw OCR data. | Original source text remains intact; absent confidence is gray; hover is stationary; all five explicit selection entry paths reveal a complete below-value card. | Pending |
+| **UI5 - Gesture zoom and reveal geometry** | UI4 | Add Ctrl/Command-wheel and touchpad-pinch handling, cursor anchoring, pan/click separation, bounded zoom and dynamic explicit-reveal space using the existing adapter geometry. | Real PDF/image tests cover zoom limits, rotation, DPR, offscreen/current-page targets and group unions; ordinary wheel scroll never changes zoom. | Pending |
+| **UI6 - Complete retained views and host integration** | UI3, UI4, UI5 | Apply the new shared shell to all applicable rich views; retain multi-content selection, table navigation/dialogs, crops, metadata copy and explicit warnings/errors. Update the demo/production hosts, embedding docs and consumer API examples. | The two-prop embedding still works; production and demo use the same React UI; dialogs and tab changes do not reset source state or corrupt current selection. | Pending |
+| **UI7 - Visual sign-off and delivery verification** | UI6 | Approve intended new visual baselines, run the full relevant suites, build and test actual consumer/wheel artifacts, and record scoped results here. | Prototype parity, real-source correctness, compatibility, packaging and rollback gates below pass; no unresolved primary-flow correctness issue remains. | Pending |
+
+Recommended execution order: UI0, UI1, UI2, UI3, UI4, UI5, UI6, UI7. Freeze shared state and preference ownership before wiring the controls, rather than building temporary competing state in each pane. Use coherent phase-sized commits; do not publish partial UI states or add a permanent legacy/new-UI switch.
+
+### Required acceptance matrix
+
+| Area | Required observation and evidence |
+| --- | --- |
+| Visual parity | Two/three columns, palette, 12.5px values, 11.5px grid values, 11px secondary confidence, Gauge icon, compact flyover, toolbar placement and resizers match the reference. Compare equal host/component frames; exclude demo chrome rather than distort the component to reproduce it. |
+| Source fidelity | Real PDF/image text is not redrawn. Validate transparent/composited highlights against genuine page pixels; blank/unextracted areas have no invented OCR tint. DOM text uses the defined palette, and adjusted secondary labels meet 4.5:1 contrast. |
+| Selection entry paths | Test field name, field value, keyboard Enter, locate menu and source-region click in normal Fit width and low-height Fit page. Every path pins the correct field, preserves focus/zoom/rotation, and displays the full below-value card. Include source-unavailable and asynchronous page-render readiness. |
+| Stationary hover | With a value near the viewport bottom, source coordinates and viewport offsets remain unchanged, allowing at most CSS-pixel rounding; a stationary real pointer click must still hit that field. Insufficient hover space produces an outline only; explicit selection may reveal. |
+| Menu dismissal and layout | Locate CustomerAddressRecipient, reopen its menu and show full details with the mouse stationary after the action. Do not preview the Line1 row exposed behind the menu. Deliberate pointer movement and keyboard focus must still preview another field without replacing the pin/details. |
+| Groups and sources | Nested and collapsed groups, multiple pages/regions, parent-only real grounding, missing/source-less descendants, hidden filter matches and scalar drill-down remain truthful. Do not turn group selection into selection of its first leaf or a fabricated group confidence. |
+| Arrays and layout tables | Structured arrays preserve business row order and values. Native tables preserve kind, spans, gaps and invalid-layout errors. Shared actions are available in selectable cells; a static source-table dialog must not accidentally gain selection-changing actions. |
+| Search, order and persistence | Parent-summary matches, counts and next/previous navigation agree. Verify sibling-only moves, new/deleted paths, schema isolation, storage corruption/read/write denial, explicit reset, controlled callbacks, and host versus browser ownership. |
+| Copy and context resets | Resolve/reject old and new copies in both orders. Test quick copy while no field/details are selected, clear while both IDs stay null, document round-trip, detail open/close, same-field reselect and unmount. Old feedback cannot replace current results; genuine errors and retries remain visible and usable. |
+| Focus and keyboard | Verify restored field/hidden-action focus, consecutive Alt+Up/Down reorders, F2, Shift+F10, arrows/Home/End, Tab/Shift+Tab, disabled actions and layered Escape. Moving focus to preview a field must not navigate pages. |
+| Layout and retained state | Cover 1536x960, 1280x800, 1030x760 and 1280x540 window frames; separately test bounded embedded hosts. Only nested tables scroll horizontally. Keep per-view scroll, expansion and valid selection without remounting Source or losing pan on tab changes. |
+| Real inputs and lifecycle | Saved GA pairs, explicitly synthetic Preview/rich cases, PDF page boxes, JPEG/PNG/BMP/HEIF/HEIC orientation, DPR 1/2, 0/90/180/270 rotation, cancellation/replacement, and source/result failures keep their existing contracts. |
+| Embedded and installed delivery | React 18/19 consumers, the Vite asset plugin, local CSP, lazy result chunks, source URL policy, independently installed Viewer wheel and unchanged Python API work with the built new assets. No source aliases, SDK, Analyze call or demo resource is required. |
+
+Use deterministic, explicitly synthetic UI cases for same-content visual comparison, and the existing [licensed real pairs](../tests/fixtures/manifest.json) for document rendering/grounding. The prototype's 26 Node checks verify the reference model only; they do not certify React focus, browser gestures or packaged delivery.
+
+Add a focused `tests/e2e/ui-redesign.spec.ts` in UI0 using the existing runner/fixture patterns, not another app or test framework. Extend [interaction tests](../frontend/src/interaction/interaction.test.ts), [Fields tests](../frontend/src/components/ResultsPane.test.tsx), [source positioning tests](../frontend/src/source/sourceOverlays.test.ts), [popover tests](../frontend/src/components/SourcePopover.test.tsx) and [accessibility cases](../tests/e2e/accessibility.spec.ts). Update old identity-color, hover-page-switch and permanent-word-layer assertions to the approved rules; do not delete unrelated tests, weaken visual thresholds, or automatically re-record snapshots. New approved screenshots must be reviewed before replacing affected baselines.
+
+### Validation and implementation checkpoints
+
+Run commands from the repository root. Start the reference on port 5188 and the React demo on port 5173 when side-by-side comparison is needed; do not mistake a passing standalone page for the React implementation.
+
+Restore locked development dependencies with `npm ci --ignore-scripts` only after a selected check reports missing packages/tools. Do not change the manifest/lockfile merely to begin this UI work. Capture existing baseline failures before editing and distinguish them from intentional UI expectation changes.
+
+```powershell name="Focused React UI checks after UI0 adds the new browser suite"
+npm run typecheck
+npm run lint
+npm run test:unit -- interaction ResultsPane.test.tsx SourcePopover.test.tsx geometry.test.ts viewportReveal.test.ts sourceOverlays.test.ts
+npm run test:e2e -- 'ui-redesign\.spec\.ts$' 'accessibility\.spec\.ts$' 'studio-overlays\.spec\.ts$' 'source-tables\.spec\.ts$' 'word-overlay\.spec\.ts$' 'result-tabs\.spec\.ts$' --project=chrome
+```
+
+The browser selectors are filename regexes, not filesystem paths. Expand focused selectors to include newly extracted helpers/components as they are introduced. Each phase must exercise its actual entry paths, not just reducer state or snapshot appearance.
+
+```powershell name="Final React and asset gates"
+npm run test:unit
+npm run test:e2e -- --project=chrome --project=edge
+npm run verify:bundle
+npm run verify:consumer
+npm run verify:performance
+npm run build:python
+```
+
+The [consumer verifier](../scripts/verify-packed-consumers.mjs) prepares its isolated React 18/19 hosts; do not invoke `test:consumer` without that setup. After building and installing the Viewer wheel into an isolated environment, set `CU_VIEWER_PYTHON` and `CU_VIEWER_PACKAGE_ROOT` as required by the [installed-wheel test](../tests/e2e/cli-host.spec.ts), then run `npm run test:cli -- --grep "independent Viewer wheel"`. Full cu-cli integration additionally requires its existing compatible three-package test environment; report a blocker if only the old-name toolkit adapter is available rather than silently editing the adjacent repository or claiming CLI compatibility.
+
+Keep the existing render/performance limits and resource-integrity checks. Do not add virtualization or a new dependency unless measured results demonstrate a need. Package verification must use the newly built assets, not an old wheel or the working standalone prototype.
+
+### Rollout, rollback and completion boundary
+
+- Start implementation on a dedicated branch from the final reviewed prototype baseline, after this plan is approved and UI0 freezes the post-fix commit. Keep that prototype as a frozen comparison target and preserve all caller source/JSON data.
+- Review a working UI3 screen before accepting source-layer changes, then review real-source behavior at UI5 and all retained views at UI6. Record approved differences, including original source text color, explicitly.
+- Roll back coherent implementation commits or the last approved Viewer artifact; do not reset unrelated work, require reanalysis, migrate stored data destructively, or replace an installed CLI automatically. Preference records are versioned and invalid records require explicit recovery.
+- Commit, push, package installation replacement and publication remain separately requested actions; the user request to prepare a plan is not permission to publish the implementation.
+- Complete this migration only when both the prototype acceptance matrix and actual React/installed-package gates pass. All UI phases remain pending in this document until their scoped evidence is recorded.
+
 ## Approved productization refactor
 
 Approved on 2026-10-22. The primary users are CU developers, technical implementers, and technical testers. The product remains a read-only local Viewer, independently delivered as a Python wheel; cu-cli is a host, not a runtime dependency of the Viewer.
+
+This section records the earlier refactor and its original exclusions. The later React UI migration above specifically adds field-only search, ordering and optional order props; it does not add multi-document search or comparison.
 
 Structural refactoring comes before new product features. This iteration changes only this repository. Moving source into content-understanding-toolkit, publishing releases, adding result editing/review state, multi-document browsing, search, or comparison are not included.
 
@@ -457,7 +598,7 @@ After validation, remove rebuildable output, generated Python-package resources 
 ## Completion criteria
 
 - The supported source and raw CU inputs work without browser-side Azure credentials or a CU SDK.
-- Approved result views, grounding, source controls, previews/table inspection, keyboard behavior, and OCR layering retain their defined semantics.
+- Approved result views, grounding, source controls, previews/table inspection and keyboard behavior retain their defined semantics. The new UI phase follows its approved overlay rules, including removal of the persistent yellow OCR tint without loss of raw OCR data.
 - Invalid input, limits, unavailable grounding, decode/render failure, and missing package resources are explicit.
 - Replacements, cancellation, modal closing, and unmount release owned resources without corrupting caller input.
 - Viewer installs and opens saved results without cu-cli; an actual packaged CLI calls it for both confirmed viewing commands, preserves non-view behavior, and needs neither Node nor source-repository paths at runtime.
