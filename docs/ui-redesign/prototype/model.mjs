@@ -57,13 +57,18 @@ export function displayValue(field) {
     return String(field.value);
 }
 
-export function confidenceLabel(field) {
-    return field.confidence === undefined ? "N/A" : field.confidence.toFixed(2);
+export function confidenceLabel(field, settings = DEFAULT_SETTINGS) {
+    if (field.confidence === undefined) return "N/A";
+    for (let digits = 2; digits <= 6; digits++) {
+        const label = field.confidence.toFixed(digits);
+        if ((Number(label) < settings.threshold) === (field.confidence < settings.threshold)) return label;
+    }
+    return String(field.confidence);
 }
 
 export function confidenceDescription(field, settings) {
     if (field.confidence === undefined) return "Confidence unavailable";
-    return `Confidence ${confidenceLabel(field)}, ${isLow(field, settings) ? "below" : "at or above"} threshold ${formatThreshold(settings.threshold)}`;
+    return `Confidence ${confidenceLabel(field, settings)}, ${isLow(field, settings) ? "below" : "at or above"} threshold ${formatThreshold(settings.threshold)}`;
 }
 
 export function copyValue(field) {
@@ -98,7 +103,7 @@ export function fieldSummary(fields, query, lowOnly, settings) {
         returned: leaves.length - missing,
         missing,
         low: leaves.filter(field => isLow(field, settings)).length,
-        matched: leaves.filter(field => fieldMatches(field, query, lowOnly, settings)).length,
+        matched: matchingFieldIds(fields, query, lowOnly, settings).size,
     };
 }
 
@@ -118,13 +123,24 @@ export function orderedFields(fields, parentId, order) {
         .sort((a, b) => a.rank - b.rank).map(item => item.field);
 }
 
-export function fieldMatches(field, query, lowOnly, settings) {
+export function matchingFieldIds(fields, query, lowOnly, settings) {
     const needle = query.trim().toLowerCase();
-    const ownMatch = !needle || `${field.name} ${field.id} ${displayValue(field)}`.toLowerCase().includes(needle);
-    if (field.kind === "value") return ownMatch && (!lowOnly || isLow(field, settings));
-    const descendants = leafFields(childFields(field));
-    return (ownMatch && descendants.some(item => !lowOnly || isLow(item, settings))) ||
-        childFields(field).some(item => fieldMatches(item, query, lowOnly, settings));
+    const matches = new Set();
+    const visit = (items, parentMatched) => {
+        for (const field of items) {
+            const matched = parentMatched || !needle ||
+                `${field.name} ${field.id} ${displayValue(field)}`.toLowerCase().includes(needle);
+            if (field.kind === "value") {
+                if (matched && (!lowOnly || isLow(field, settings))) matches.add(field.id);
+            } else visit(childFields(field), matched);
+        }
+    };
+    visit(fields, false);
+    return matches;
+}
+
+export function fieldMatches(field, query, lowOnly, settings) {
+    return matchingFieldIds([field], query, lowOnly, settings).size > 0;
 }
 
 function siblingsFor(fields, id, parentId = "$root") {

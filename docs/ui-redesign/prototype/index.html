@@ -76,10 +76,10 @@
                     </div>
                 </div>
                 <div id="document-menu" class="document-menu" role="menu" aria-label="Document actions" hidden>
-                    <button role="menuitem" type="button" data-document-action="fit-page">Fit page</button>
-                    <button role="menuitem" type="button" data-document-action="fit-width">Fit width</button>
-                    <button role="menuitem" type="button" data-document-action="rotate"><svg class="icon"><use href="#i-rotate"/></svg>Rotate 90 degrees</button>
-                    <button role="menuitem" type="button" data-document-action="reset-layout"><svg class="icon"><use href="#i-reset"/></svg>Reset pane and column widths</button>
+                    <button role="menuitem" type="button" tabindex="-1" data-document-action="fit-page">Fit page</button>
+                    <button role="menuitem" type="button" tabindex="-1" data-document-action="fit-width">Fit width</button>
+                    <button role="menuitem" type="button" tabindex="-1" data-document-action="rotate"><svg class="icon"><use href="#i-rotate"/></svg>Rotate 90 degrees</button>
+                    <button role="menuitem" type="button" tabindex="-1" data-document-action="reset-layout"><svg class="icon"><use href="#i-reset"/></svg>Reset pane and column widths</button>
                 </div>
                 <div id="page-error" class="page-error" role="alert" hidden></div>
                 <div id="source-viewport" class="source-viewport" tabindex="0" role="group" aria-label="Source viewport" aria-describedby="source-help">
@@ -98,6 +98,7 @@
                         <label class="sr-only" for="group-source-page">Source page for selected group</label>
                         <select id="group-source-page"></select>
                     </div>
+                    <button id="clear-selection" class="icon-button small" type="button" aria-label="Clear selection" title="Clear selection (Esc)" hidden><svg class="icon"><use href="#i-close"/></svg></button>
                     <span id="source-caption" class="source-caption">Illustrative PDF pages</span>
                 </footer>
                 <section id="settings-panel" class="settings-panel" role="dialog" aria-labelledby="settings-title" hidden>
@@ -147,6 +148,11 @@
             </section>
         </main>
         <footer class="app-footer"><span id="live-status" role="status" aria-live="polite">Ready. Explore the highlighting, fields and source navigation.</span><a href="/requirements" target="_blank" rel="noopener">Requirements <span aria-hidden="true">&nearr;</span></a></footer>
+    </div>
+    <div id="value-menu" class="value-menu" role="menu" aria-label="Value actions" hidden>
+        <button id="value-menu-locate" role="menuitem" type="button" tabindex="-1" data-value-action="locate"><svg class="icon"><use href="#i-locate"/></svg><span></span></button>
+        <button role="menuitem" type="button" tabindex="-1" data-value-action="inspect"><svg class="icon"><use href="#i-info"/></svg>View full value and confidence</button>
+        <button id="value-menu-copy" role="menuitem" type="button" tabindex="-1" data-value-action="copy"><svg class="icon"><use href="#i-copy"/></svg>Copy value</button>
     </div>
     <div id="drag-preview" class="drag-preview" aria-hidden="true" hidden></div>
 </body>

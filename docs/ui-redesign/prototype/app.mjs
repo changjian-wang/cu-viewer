@@ -1,7 +1,7 @@
 import {
     PALETTE, DEFAULT_SETTINGS, PreferenceError, validThreshold, formatThreshold, sourceColor, valueColor,
     displayValue, confidenceLabel, confidenceDescription, copyValue, fieldSummary, paneWidth,
-    allFields, leafFields, sourceSelection, orderedFields, fieldMatches,
+    allFields, leafFields, sourceSelection, orderedFields, matchingFieldIds,
     moveField, moveFieldBy, readPreferences, writePreferences, resetPreferences,
     clampZoom, rotatedSize, escapeHtml,
 } from "./model.mjs";
@@ -16,6 +16,7 @@ const results = byId("result-content");
 const flyover = byId("flyover");
 const dragPreview = byId("drag-preview");
 const workspace = document.querySelector(".workspace");
+const valueMenu = byId("value-menu");
 const state = {
     profile: PROFILES[0], settings: { ...DEFAULT_SETTINGS }, order: {}, page: 1, zoom: 1, fit: "page",
     rotation: 0, tab: "fields", expanded: new Set(), query: "", lowOnly: false,
@@ -27,6 +28,9 @@ let previewTimer;
 let panGesture = null;
 let lastFlyoverSignature = "";
 let resizeGesture = null;
+let valueMenuTrigger = null;
+let copyFeedbackVersion = 0;
+let restoringResultFocus = false;
 
 function announce(message) {
     byId("live-status").textContent = message;
@@ -111,6 +115,7 @@ function updateInspector() {
 function inspectField(id, focus = false) {
     const field = fieldById(id);
     if (field.kind !== "value") return;
+    if (state.inspectedId !== id) copyFeedbackVersion++;
     state.inspectedId = id;
     byId("copy-error").hidden = true;
     updateInspector();
@@ -119,6 +124,7 @@ function inspectField(id, focus = false) {
 }
 
 function closeInspector() {
+    copyFeedbackVersion++;
     const id = state.inspectedId;
     const heldFocus = byId("value-inspector").contains(document.activeElement);
     state.inspectedId = null;
@@ -128,9 +134,87 @@ function closeInspector() {
     }
 }
 
+function clearSelection() {
+    copyFeedbackVersion++;
+    const sourceControlFocused = document.activeElement === byId("clear-selection");
+    clearTimeout(previewTimer);
+    closeValueMenu(false);
+    state.selectedId = null;
+    state.previewId = null;
+    state.regionIndex = 0;
+    state.inspectedId = null;
+    state.flyoverDismissed = true;
+    byId("copy-error").hidden = true;
+    hideFlyover(true);
+    renderResults();
+    state.previewId = null;
+    state.flyoverDismissed = true;
+    hideFlyover(true);
+    updateActiveOutlines();
+    updateRegionControls();
+    if (sourceControlFocused) viewport.focus({ preventScroll: true });
+    announce("Selection cleared. Source page, zoom and rotation are unchanged.");
+}
+
+function valueMenuButton(field) {
+    return `<button type="button" class="icon-button value-menu-trigger" data-action="value-menu" data-id="${escapeHtml(field.id)}"
+        aria-label="Value actions for ${escapeHtml(fieldCaption(field))}" aria-haspopup="menu" aria-expanded="false"
+        aria-controls="value-menu" title="Locate, view full value or copy">${icon("more")}</button>`;
+}
+
+function closeValueMenu(restoreFocus = true) {
+    valueMenu.hidden = true;
+    if (restoreFocus && valueMenuTrigger?.isConnected) valueMenuTrigger.focus({ preventScroll: true });
+    valueMenuTrigger?.setAttribute("aria-expanded", "false");
+    valueMenuTrigger = null;
+    delete valueMenu.dataset.fieldId;
+}
+
+function openValueMenu(id, trigger) {
+    const field = fieldById(id);
+    closeSettings(false);
+    closeDocumentMenu(false);
+    closeValueMenu(false);
+    state.flyoverDismissed = true;
+    clearPreview();
+    valueMenuTrigger = trigger;
+    trigger.setAttribute("aria-expanded", "true");
+    valueMenu.dataset.fieldId = id;
+    valueMenu.setAttribute("aria-label", `Value actions for ${fieldCaption(field)}`);
+    const page = sourceSelection(field, state.page).page;
+    byId("value-menu-locate").disabled = page === undefined;
+    byId("value-menu-locate").querySelector("span").textContent = page === undefined ? "No source region" : `Locate on page ${page}`;
+    byId("value-menu-copy").disabled = field.missing;
+    valueMenu.hidden = false;
+    const bounds = trigger.getBoundingClientRect();
+    valueMenu.style.left = `${Math.max(8, Math.min(bounds.right - valueMenu.offsetWidth, innerWidth - valueMenu.offsetWidth - 8))}px`;
+    valueMenu.style.top = `${Math.max(8, Math.min(bounds.bottom + 5, innerHeight - valueMenu.offsetHeight - 8))}px`;
+    valueMenu.querySelector("button:not(:disabled)").focus();
+}
+
+function moveMenuFocus(event, menu, dismiss) {
+    if (event.key === "Tab") {
+        dismiss();
+        return;
+    }
+    if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const buttons = [...menu.querySelectorAll("button:not(:disabled)")];
+    const index = buttons.indexOf(event.target);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 :
+        (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
+    buttons[next]?.focus();
+}
+
 async function copyField(id) {
     const field = fieldById(id);
     const caption = fieldCaption(field);
+    const feedbackVersion = ++copyFeedbackVersion;
+    const selectionAtRequest = state.selectedId;
+    const inspectionAtRequest = state.inspectedId;
+    const isCurrentRequest = () => feedbackVersion === copyFeedbackVersion &&
+        fieldsById.get(id) === field && state.selectedId === selectionAtRequest &&
+        state.inspectedId === inspectionAtRequest;
     if (field.missing) {
         announce(`${field.name} was not returned. There is no value to copy.`);
         return;
@@ -138,12 +222,13 @@ async function copyField(id) {
     try {
         if (!navigator.clipboard?.writeText) throw new DOMException("Clipboard access is not available in this browser.", "NotSupportedError");
         await navigator.clipboard.writeText(copyValue(field));
+        if (!isCurrentRequest()) return;
         byId("copy-error").hidden = true;
         announce(`${caption} copied.`);
     } catch (error) {
         if (!(error instanceof DOMException)) throw error;
-        if (fieldsById.get(id) !== field) {
-            announce(`Copy failed for ${caption}: ${error.message}`);
+        if (!isCurrentRequest()) {
+            console.warn(`Superseded copy failed for ${caption}.`, error);
             return;
         }
         inspectField(id);
@@ -185,6 +270,7 @@ function persist() {
 function loadProfile(id) {
     const profile = PROFILES.find(item => item.id === id);
     if (!profile) throw new Error("Choose one of the provided example documents.");
+    copyFeedbackVersion++;
     clearTimeout(previewTimer);
     state.profile = profile;
     fieldsById = new Map(allFields(profile.fields).map(field => [field.id, field]));
@@ -194,6 +280,7 @@ function loadProfile(id) {
         query: "", lowOnly: false, persistenceBlocked: false, flyoverDismissed: false,
         focusedId: null, inspectedId: null, viewScroll: {},
     });
+    hideFlyover(true);
     byId("storage-error").hidden = true;
     byId("save-state").textContent = "Preferences stay in this browser";
     try {
@@ -241,7 +328,8 @@ function orderedLeaves(fields = state.profile.fields, parentId = "$root") {
 }
 
 function navigationFields() {
-    return orderedLeaves().filter(field => fieldMatches(field, state.query, state.lowOnly, state.settings));
+    const matches = matchingFieldIds(state.profile.fields, state.query, state.lowOnly, state.settings);
+    return orderedLeaves().filter(field => matches.has(field.id));
 }
 
 function chip(field) {
@@ -268,38 +356,39 @@ function locateButton(field) {
 
 function tableMarkup(field, { filter = true, rowNumbers = true } = {}) {
     const selectedIds = selectedFieldIds();
+    const matches = filter ? matchingFieldIds(state.profile.fields, state.query, state.lowOnly, state.settings) : null;
     const rows = field.rows.map((row, index) => ({ row, index })).filter(({ row }) =>
-        !filter || row.some(cell => fieldMatches(cell, state.query, state.lowOnly, state.settings)));
+        !matches || row.some(cell => matches.has(cell.id)));
     if (!rows.length) return `<p class="empty-state">No matching rows in this table.</p>`;
     return `<table class="items-table" aria-label="${escapeHtml(field.name)}">
         <thead><tr>${rowNumbers ? '<th scope="col">#</th>' : ""}${field.columns.map(column =>
         `<th scope="col">${escapeHtml(column)}</th>`).join("")}</tr></thead>
         <tbody>${rows.map(({ row, index }) => `<tr>${rowNumbers ? `<td class="row-index">${index + 1}</td>` : ""}${row.map(cell =>
-        `<td><button type="button" class="cell-value" data-action="select" data-id="${escapeHtml(cell.id)}" tabindex="-1"
+        `<td><div class="cell-content" data-inspect-id="${escapeHtml(cell.id)}"><button type="button" class="cell-value" data-action="select" data-id="${escapeHtml(cell.id)}" tabindex="-1"
             data-inspect-id="${escapeHtml(cell.id)}" aria-pressed="${selectedIds.has(cell.id)}"
             aria-label="${escapeHtml(`${field.name}, row ${index + 1}, ${cell.name}: ${displayValue(cell)}`)}"
             aria-describedby="description-${encodeURIComponent(cell.id)}" aria-keyshortcuts="F2"
-            title="${escapeHtml(fieldTooltip(cell))}">${chip(cell)}</button>
+            title="${escapeHtml(fieldTooltip(cell))}">${chip(cell)}</button>${valueMenuButton(cell)}</div>
             <span id="description-${encodeURIComponent(cell.id)}" class="sr-only">${escapeHtml(confidenceDescription(cell, state.settings))}. Press F2 for full value details.</span></td>`).join("")}</tr>`).join("")}</tbody></table>`;
 }
 
-function fieldRows(fields, parentId = "$root", depth = 0, inheritedMatch = false) {
+function fieldRows(fields, parentId = "$root", depth = 0,
+    matches = matchingFieldIds(state.profile.fields, state.query, state.lowOnly, state.settings)) {
     const filtering = Boolean(state.query.trim() || state.lowOnly);
     const selectedIds = selectedFieldIds();
     const selectedRoot = state.selectedId ? fieldById(state.selectedId) : null;
     return orderedFields(fields, parentId, state.order).filter(field =>
-        (inheritedMatch && !state.lowOnly) || fieldMatches(field, state.query, state.lowOnly, state.settings)).map(field => {
+        leafFields([field]).some(item => matches.has(item.id))).map(field => {
         const group = field.kind !== "value";
         const expanded = filtering || state.expanded.has(field.id);
         const selected = state.selectedId === field.id || selectedIds.has(field.id) ||
             (group && !expanded && state.selectedId?.startsWith(`${field.id}/`));
         const groupMember = selectedRoot && selectedRoot.kind !== "value" && selectedRoot.id !== field.id &&
             field.id.startsWith(`${selectedRoot.id}/`);
-        const confidence = field.confidence === undefined ? "N/A" : confidenceLabel(field);
+        const confidence = confidenceLabel(field, state.settings);
         const action = group ? "toggle" : "select";
         const label = group ? `${expanded ? "Collapse" : "Expand"} ${field.name}` : `Select ${field.name}`;
         const rowId = `field-${encodeURIComponent(field.id).replaceAll("%", "_")}`;
-        const ownQueryMatch = state.query.trim() && `${field.name} ${field.id}`.toLowerCase().includes(state.query.trim().toLowerCase());
         return `<tr data-row-id="${escapeHtml(field.id)}" data-parent-id="${escapeHtml(parentId)}"
             data-inspect-id="${escapeHtml(field.id)}" class="${group ? "group-row " : ""}${selected ? "is-selected " : ""}${group && state.selectedId === field.id ? "is-group-selected " : ""}${groupMember ? "is-group-member" : ""}">
             <td><div class="field-name-content" style="--depth:${depth}">
@@ -318,20 +407,16 @@ function fieldRows(fields, parentId = "$root", depth = 0, inheritedMatch = false
                 ${field.kind === "table" ? `<span class="field-count">[${field.rows.length}]</span>` : ""}
                 ${group && state.selectedId === field.id ? `<span class="group-selection-count">${selectedIds.size} selected</span>` : ""}
             </div></td>
-            <td>${group ? `<span class="summary-value">${escapeHtml(displayValue(field))}</span>` :
+            <td><div class="field-value-content">${group ? `<span class="summary-value">${escapeHtml(displayValue(field))}</span>` :
             `<button type="button" class="field-value-button" data-action="select" data-id="${escapeHtml(field.id)}" tabindex="-1"
                 aria-label="${escapeHtml(`Select value of ${fieldCaption(field)}`)}" aria-describedby="description-${encodeURIComponent(field.id)}"
-                title="${escapeHtml(fieldTooltip(field))}" aria-pressed="${selectedIds.has(field.id)}">${chip(field)}</button>
-                <span id="description-${encodeURIComponent(field.id)}" class="sr-only">${escapeHtml(confidenceDescription(field, state.settings))}. Press F2 for full value details.</span>`}
-                <span class="value-actions">${locateButton(field)}${group ? "" :
-            `<button type="button" class="icon-button" data-action="inspect" data-id="${escapeHtml(field.id)}"
-                aria-label="View full value of ${escapeHtml(field.name)}" title="View full value and confidence (F2)">${icon("info")}</button>
-            <button type="button" class="icon-button" data-action="copy" data-id="${escapeHtml(field.id)}"
-                aria-label="Copy value of ${escapeHtml(field.name)}" title="Copy value" ${field.missing ? "disabled" : ""}>${icon("copy")}</button>`}</span></td>
-            ${state.settings.layout === "three" ? `<td><span class="confidence-value${field.confidence === undefined ? " unavailable" : ""}"
-                aria-label="${escapeHtml(`Confidence ${confidence}`)}">${group ? "" : confidence}</span></td>` : ""}
+                title="${escapeHtml(fieldTooltip(field))}" aria-pressed="${selectedIds.has(field.id)}">${chip(field)}</button>`}
+                ${group ? `<span class="group-value-actions">${locateButton(field)}</span>` : valueMenuButton(field)}</div>
+                ${group ? "" : `<span id="description-${encodeURIComponent(field.id)}" class="sr-only">${escapeHtml(confidenceDescription(field, state.settings))}. Press F2 for full value details.</span>`}</td>
+            ${state.settings.layout === "three" ? `<td>${group ? "" : `<span class="confidence-value${field.confidence === undefined ? " unavailable" : ""}"
+                aria-label="${escapeHtml(`Confidence ${confidence}`)}">${confidence}</span>`}</td>` : ""}
         </tr>${expanded && field.kind === "object" ?
-            fieldRows(field.children, field.id, depth + 1, inheritedMatch || ownQueryMatch) :
+            fieldRows(field.children, field.id, depth + 1, matches) :
             expanded && field.kind === "table" ?
                 `<tr id="${rowId}-children" class="detail-row"><td colspan="${state.settings.layout === "three" ? 3 : 2}"><div class="inline-table-wrap" data-table-id="${escapeHtml(field.id)}">${tableMarkup(field)}</div></td></tr>` : ""}`;
     }).join("");
@@ -377,6 +462,7 @@ function alternateMarkup() {
 }
 
 function renderResults({ focusId, focusAction, viewPosition = captureResultView() } = {}) {
+    closeValueMenu(false);
     const active = document.activeElement?.closest("[data-action][data-id]");
     const restoreId = focusId ?? active?.dataset.id;
     const restoreAction = focusAction ?? active?.dataset.action;
@@ -419,7 +505,20 @@ function renderResults({ focusId, focusAction, viewPosition = captureResultView(
     results.scrollLeft = viewPosition.left;
     for (const table of results.querySelectorAll("[data-table-id]")) table.scrollLeft = viewPosition.tables[table.dataset.tableId] ?? 0;
     if (restoreId && restoreAction) {
-        results.querySelector(`[data-action="${CSS.escape(restoreAction)}"][data-id="${CSS.escape(restoreId)}"]`)?.focus({ preventScroll: true });
+        restoringResultFocus = true;
+        try {
+            const control = results.querySelector(`[data-action="${CSS.escape(restoreAction)}"][data-id="${CSS.escape(restoreId)}"]`);
+            if (control && getComputedStyle(control).visibility === "hidden") {
+                const context = control.closest("[data-inspect-id]");
+                if (context) {
+                    context.tabIndex = -1;
+                    context.focus({ preventScroll: true });
+                }
+            }
+            control?.focus({ preventScroll: true });
+        } finally {
+            restoringResultFocus = false;
+        }
     }
     const available = navigationFields();
     const index = available.findIndex(field => field.id === state.selectedId);
@@ -534,9 +633,9 @@ function currentSourceNode(field) {
     return paper.querySelector(`[data-source-id="${CSS.escape(field.id)}"][data-region-index="${index}"]`);
 }
 
-function hideFlyover() {
+function hideFlyover(resetSpace = false) {
     flyover.hidden = true;
-    stage.style.setProperty("--flyover-space", "0px");
+    if (resetSpace) stage.style.setProperty("--flyover-space", "0px");
     for (const node of paper.querySelectorAll('[aria-describedby="flyover"]')) node.removeAttribute("aria-describedby");
 }
 
@@ -556,28 +655,36 @@ function positionFlyover(ensureSpace = false) {
         return;
     }
     const color = sourceColor(field, { ...state.settings, showFields: true, showTables: true }) ?? PALETTE.unavailable;
-    const signature = `${id}|${color.background}|${confidenceLabel(field)}`;
+    const confidence = confidenceLabel(field, state.settings);
+    const signature = `${id}|${color.background}|${confidence}`;
     if (lastFlyoverSignature !== signature) {
         lastFlyoverSignature = signature;
         flyover.innerHTML = `<div class="flyover-heading" title="${escapeHtml(fieldCaption(field))}">${escapeHtml(fieldCaption(field))}</div>
             <div class="flyover-body"><span class="flyover-value">${escapeHtml(displayValue(field))}</span>
             <span class="flyover-score${field.confidence === undefined ? " unavailable" : ""}"
-                style="color:${color.text}" aria-label="Confidence ${confidenceLabel(field)}" title="Confidence: ${confidenceLabel(field)}">
-                ${field.confidence === undefined ? "" : icon("gauge")}${confidenceLabel(field)}</span></div>`;
+                style="color:${color.text}" aria-label="Confidence ${confidence}" title="Confidence: ${confidence}">
+                ${field.confidence === undefined ? "" : icon("gauge")}${confidence}</span></div>`;
         flyover.style.setProperty("--flyover-background", color.background);
     }
+    flyover.style.left = `${viewport.scrollLeft + 12}px`;
+    flyover.style.top = `${viewport.scrollTop + 12}px`;
     flyover.hidden = false;
     flyover.querySelector(".flyover-body").style.maxHeight = `${Math.min(112, Math.max(48, viewport.clientHeight - 72))}px`;
-    const requiredBottom = target.bottom - bounds.top + viewport.scrollTop + 12 + flyover.offsetHeight + 12;
-    const naturalBottom = Math.max(viewport.clientHeight, paper.offsetTop + paper.offsetHeight + 30);
-    stage.style.setProperty("--flyover-space", `${Math.max(0, Math.ceil(requiredBottom - naturalBottom))}px`);
-    for (const element of paper.querySelectorAll('[aria-describedby="flyover"]')) element.removeAttribute("aria-describedby");
-    node.setAttribute("aria-describedby", "flyover");
-    if (ensureSpace) {
+    if (ensureSpace && state.previewId === null) {
+        const requiredBottom = target.bottom - bounds.top + viewport.scrollTop + 12 + flyover.offsetHeight + 12;
+        const naturalBottom = Math.max(viewport.clientHeight, paper.offsetTop + paper.offsetHeight + 30);
+        stage.style.setProperty("--flyover-space", `${Math.max(0, Math.ceil(requiredBottom - naturalBottom))}px`);
+        target = node.getBoundingClientRect();
         const overflow = target.bottom + 12 + flyover.offsetHeight - (bounds.top + viewport.clientHeight - 12);
         if (overflow > 0) viewport.scrollTop += overflow;
         target = node.getBoundingClientRect();
     }
+    if (target.bottom + 12 + flyover.offsetHeight > bounds.top + viewport.clientHeight - 12) {
+        hideFlyover();
+        return;
+    }
+    for (const element of paper.querySelectorAll('[aria-describedby="flyover"]')) element.removeAttribute("aria-describedby");
+    node.setAttribute("aria-describedby", "flyover");
     const rawLeft = target.left - bounds.left + viewport.scrollLeft;
     const left = Math.max(viewport.scrollLeft + 12,
         Math.min(rawLeft, viewport.scrollLeft + viewport.clientWidth - flyover.offsetWidth - 12));
@@ -591,6 +698,7 @@ function positionFlyover(ensureSpace = false) {
 function updateRegionControls() {
     const field = state.selectedId ? fieldById(state.selectedId) : null;
     const group = field && field.kind !== "value";
+    byId("clear-selection").hidden = !field;
     byId("group-source-controls").hidden = !group;
     byId("source-help").hidden = Boolean(group);
     byId("source-caption").hidden = Boolean(group);
@@ -629,6 +737,11 @@ function previewField(id, regionIndex) {
         clearPreview();
         return;
     }
+    if (id === state.selectedId && (regionIndex === undefined || regionIndex === state.regionIndex)) {
+        state.flyoverDismissed = false;
+        clearPreview();
+        return;
+    }
     const index = regionIndex ?? field.regions.findIndex(region => region.page === state.page);
     if (index < 0 || field.regions[index]?.page !== state.page) {
         clearPreview();
@@ -638,7 +751,7 @@ function previewField(id, regionIndex) {
     state.previewRegion = index;
     state.flyoverDismissed = false;
     updateActiveOutlines();
-    positionFlyover(true);
+    positionFlyover();
 }
 
 function leavePreview() {
@@ -657,6 +770,7 @@ function goToPage(pageNumber, { announceChange = true } = {}) {
     byId("page-number").removeAttribute("aria-invalid");
     state.page = pageNumber;
     state.previewId = null;
+    hideFlyover(true);
     if (state.selectedId && fieldById(state.selectedId).kind === "value") {
         const available = fieldById(state.selectedId).regions.findIndex(region => region.page === pageNumber);
         if (available >= 0) state.regionIndex = available;
@@ -713,6 +827,8 @@ function revealResultField(id) {
 function selectField(id, { regionIndex } = {}) {
     clearTimeout(previewTimer);
     const field = fieldById(id);
+    copyFeedbackVersion++;
+    hideFlyover(true);
     const group = field.kind !== "value";
     const selection = sourceSelection(field, state.page);
     state.selectedId = field.id;
@@ -720,6 +836,8 @@ function selectField(id, { regionIndex } = {}) {
     state.flyoverDismissed = false;
     state.regionIndex = group ? 0 : regionIndex ?? Math.max(0, field.regions.findIndex(region => region.page === state.page));
     if (group) state.inspectedId = null;
+    else if (state.inspectedId) state.inspectedId = field.id;
+    byId("copy-error").hidden = true;
     for (const ancestor of allFields(state.profile.fields).filter(item => item.kind !== "value")) {
         if (field.id.startsWith(`${ancestor.id}/`)) state.expanded.add(ancestor.id);
     }
@@ -736,8 +854,8 @@ function selectField(id, { regionIndex } = {}) {
         hideFlyover();
         revealSelected();
         const pageSources = selection.regions.filter(item => item.region.page === state.page).length;
-        const hiddenFields = selection.fields.some(item =>
-            !fieldMatches(item, state.query, state.lowOnly, state.settings));
+        const matches = matchingFieldIds(state.profile.fields, state.query, state.lowOnly, state.settings);
+        const hiddenFields = selection.fields.some(item => !matches.has(item.id));
         announce(`${field.name}: all ${selection.fields.length} descendant fields selected. ${pageSources} source regions on page ${state.page}.` +
             (selection.pages.length > 1 ? ` Source pages: ${selection.pages.join(", ")}.` : "") +
             (!selection.regions.length ? " No source regions were supplied." : "") +
@@ -750,7 +868,7 @@ function selectField(id, { regionIndex } = {}) {
         announce(`${field.name}: source page ${region.page} is unavailable.${filterNotice}`);
     } else {
         revealSelected();
-        announce(`${field.name}: ${displayValue(field)}. Page ${region.page}, confidence ${confidenceLabel(field)}.${filterNotice}`);
+        announce(`${field.name}: ${displayValue(field)}. Page ${region.page}, confidence ${confidenceLabel(field, state.settings)}.${filterNotice}`);
     }
 }
 
@@ -767,6 +885,7 @@ function navigateField(direction) {
 
 function openSettings() {
     clearPreview();
+    closeValueMenu(false);
     closeDocumentMenu(false);
     byId("settings-panel").hidden = false;
     byId("settings-button").setAttribute("aria-expanded", "true");
@@ -808,6 +927,7 @@ function closeDocumentMenu(restoreFocus = true) {
 
 function openDocumentMenu() {
     closeSettings(false);
+    closeValueMenu(false);
     byId("document-menu").hidden = false;
     byId("document-more").setAttribute("aria-expanded", "true");
     byId("document-menu").querySelector("button").focus();
@@ -822,6 +942,7 @@ function startResize(element, kind, event) {
     if (event.button !== 0 || resizeGesture || state.drag) return;
     event.preventDefault();
     closeDocumentMenu(false);
+    closeValueMenu(false);
     clearPreview();
     element.focus();
     resizeGesture = {
@@ -902,15 +1023,24 @@ byId("document-menu").addEventListener("click", event => {
         persist();
     } else throw new Error(`Unknown document action: ${action}`);
 });
-byId("document-menu").addEventListener("keydown", event => {
-    const buttons = [...byId("document-menu").querySelectorAll("button")];
-    const index = buttons.indexOf(event.target);
-    if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 :
-        (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
-    buttons[next].focus();
+for (const [menu, dismiss] of [[byId("document-menu"), closeDocumentMenu], [valueMenu, closeValueMenu]]) {
+    menu.addEventListener("keydown", event => moveMenuFocus(event, menu, dismiss));
+    menu.addEventListener("focusout", event => {
+        if (!menu.hidden && !menu.contains(event.relatedTarget)) dismiss(false);
+    });
+}
+valueMenu.addEventListener("click", event => {
+    const button = event.target.closest("[data-value-action]");
+    if (!button || button.disabled) return;
+    const id = valueMenu.dataset.fieldId;
+    const action = button.dataset.valueAction;
+    closeValueMenu();
+    if (action === "locate") selectField(id);
+    else if (action === "inspect") inspectField(id, true);
+    else if (action === "copy") void copyField(id);
+    else throw new Error(`Unknown value action: ${action}`);
 });
+byId("clear-selection").addEventListener("click", clearSelection);
 byId("pane-resizer").addEventListener("pointerdown", event => startResize(event.currentTarget, "pane", event));
 byId("pane-resizer").addEventListener("keydown", event => resizeWithKey(event.currentTarget, "pane", event));
 byId("pane-resizer").addEventListener("dblclick", () => {
@@ -1062,8 +1192,7 @@ results.addEventListener("click", event => {
         else state.expanded.add(id);
         renderResults({ focusId: id, focusAction: "toggle" });
     } else if (action === "select" || action === "locate") selectField(id);
-    else if (action === "inspect") inspectField(id, true);
-    else if (action === "copy") void copyField(id);
+    else if (action === "value-menu") openValueMenu(id, button);
     else if (action === "clear-filters") clearFilters();
     else if (action === "drag") announce("Drag this handle within its group, or use Alt + Up / Down to reorder.");
     else throw new Error(`Unknown prototype action: ${action}`);
@@ -1082,7 +1211,7 @@ results.addEventListener("focusin", event => {
     const target = event.target.closest("[data-inspect-id]");
     if (target) {
         syncFieldFocus(target.dataset.inspectId);
-        previewField(target.dataset.inspectId);
+        if (!restoringResultFocus) previewField(target.dataset.inspectId);
     }
 });
 results.addEventListener("focusout", event => {
@@ -1097,6 +1226,12 @@ results.addEventListener("keydown", event => {
     }
     const inspected = event.target.closest("[data-inspect-id]");
     const field = inspected ? fieldById(inspected.dataset.inspectId) : null;
+    if (field?.kind === "value" && event.shiftKey && event.key === "F10") {
+        event.preventDefault();
+        const trigger = results.querySelector(`.value-menu-trigger[data-id="${CSS.escape(field.id)}"]`);
+        if (trigger) openValueMenu(field.id, trigger);
+        return;
+    }
     if (field?.kind === "value" && event.key === "F2") {
         event.preventDefault();
         inspectField(field.id, true);
@@ -1248,6 +1383,7 @@ viewport.addEventListener("pointerdown", event => {
         pointerId: event.pointerId, x: event.clientX, y: event.clientY,
         scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop, moved: false,
         targetId: target?.dataset.sourceId, regionIndex: Number(target?.dataset.regionIndex ?? 0),
+        blankDocument: !target && Boolean(event.target.closest("#document-stage")),
     };
     viewport.setPointerCapture(event.pointerId);
 });
@@ -1269,6 +1405,7 @@ viewport.addEventListener("pointerup", event => {
     viewport.classList.remove("is-panning");
     viewport.releasePointerCapture(event.pointerId);
     if (!gesture.moved && gesture.targetId) selectField(gesture.targetId, { regionIndex: gesture.regionIndex });
+    else if (!gesture.moved && gesture.blankDocument) clearSelection();
 });
 for (const name of ["pointercancel", "lostpointercapture"]) {
     viewport.addEventListener(name, () => {
@@ -1329,6 +1466,9 @@ document.querySelector(".result-tabs").addEventListener("keydown", event => {
     tabs[next].focus();
 });
 document.addEventListener("click", event => {
+    if (!valueMenu.hidden && !valueMenu.contains(event.target) && !valueMenuTrigger?.contains(event.target)) {
+        closeValueMenu(false);
+    }
     if (!byId("settings-panel").hidden && !byId("settings-panel").contains(event.target) &&
         !byId("settings-button").contains(event.target)) closeSettings(false);
     if (!byId("document-menu").hidden && !byId("document-menu").contains(event.target) &&
@@ -1344,15 +1484,23 @@ document.addEventListener("keydown", event => {
         cancelPointerDrag();
         return;
     }
-    if (!byId("document-menu").hidden) closeDocumentMenu();
+    if (!valueMenu.hidden) closeValueMenu();
+    else if (!byId("document-menu").hidden) closeDocumentMenu();
     else if (!byId("settings-panel").hidden) closeSettings();
-    else if (!byId("value-inspector").hidden && byId("value-inspector").contains(document.activeElement)) closeInspector();
+    else if (!byId("value-inspector").hidden) {
+        closeInspector();
+        state.flyoverDismissed = true;
+        clearPreview();
+        hideFlyover();
+    } else if (state.selectedId) clearSelection();
     else {
         state.flyoverDismissed = true;
         clearPreview();
         hideFlyover();
     }
 });
+results.addEventListener("scroll", () => closeValueMenu(false), { capture: true, passive: true });
+window.addEventListener("resize", () => closeValueMenu(false));
 
 new ResizeObserver(() => {
     if (state.fit) fitDocument(state.fit);

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
     PALETTE, DEFAULT_SETTINGS, PreferenceError, validThreshold, formatThreshold, sourceColor, valueColor,
-    displayValue, confidenceDescription, copyValue, fieldSummary, paneWidth,
-    allFields, leafFields, sourceSelection, orderedFields, fieldMatches, moveField, moveFieldBy,
+    displayValue, confidenceLabel, confidenceDescription, copyValue, fieldSummary, paneWidth,
+    allFields, leafFields, sourceSelection, orderedFields, fieldMatches, matchingFieldIds, moveField, moveFieldBy,
     preferenceKey, readPreferences, writePreferences, resetPreferences, clampZoom, rotatedSize, escapeHtml,
 } from "./model.mjs";
 import { PROFILES } from "./fixtures.mjs";
@@ -144,6 +144,21 @@ test("confidence descriptions provide status without relying on color", () => {
     assert.match(confidenceDescription(field(0.7), settings), /at or above threshold/);
 });
 
+test("confidence labels retain enough precision to agree with the real threshold classification", () => {
+    assert.equal(confidenceLabel(field(undefined), settings), "N/A");
+    assert.equal(confidenceLabel(field(0.91), settings), "0.91");
+    assert.equal(confidenceLabel(field(0.7), settings), "0.70");
+    assert.equal(confidenceLabel(field(0.699), settings), "0.699");
+    assert.equal(confidenceLabel(field(0.704), { ...settings, threshold: 0.703 }), "0.704");
+    assert.match(confidenceDescription(field(0.699), settings), /0.699, below threshold 0.70/);
+    for (const confidence of [0, 0.000000001, 0.38499, 0.699, 0.6999999999999999, 0.704, 1]) {
+        for (const threshold of [0, 0.000000001, 0.385, 0.7, 0.703, 1]) {
+            const label = confidenceLabel(field(confidence), { ...settings, threshold });
+            assert.equal(Number(label) < threshold, confidence < threshold);
+        }
+    }
+});
+
 test("pane sizing respects both minimum widths at desktop sizes", () => {
     for (const width of [1030, 1280, 1536, 1920]) {
         for (const ratio of [0.3, 0.46, 0.58, 0.7]) {
@@ -165,6 +180,30 @@ test("search includes nested values and retains matching ancestor groups", () =>
     assert.equal(fieldMatches(customer.children[0], "", true, settings), false);
 });
 
+test("matching a parent summary includes all its descendant values in search and counts", () => {
+    const fields = PROFILES[0].fields;
+    const before = JSON.stringify(fields);
+    const matches = matchingFieldIds(fields, "3 items", false, settings);
+    assert.equal(matches.size, 24);
+    assert.ok([...matches].every(id => id.startsWith("/LineItems/")));
+    assert.equal(fieldSummary(fields, "3 items", false, settings).matched, matches.size);
+    const table = fields.find(item => item.id === "/LineItems");
+    assert.equal(table.rows.filter(row => row.some(cell => matches.has(cell.id))).length, 3);
+    const address = matchingFieldIds(fields, "123 Service St, Redmond WA 98052", false, settings);
+    assert.equal(address.size, 5);
+    assert.ok([...address].every(id => id.startsWith("/ServiceAddress/")));
+    assert.equal(JSON.stringify(fields), before);
+});
+
+test("low-confidence filtering applies to each leaf even when its parent matches the query", () => {
+    const fields = PROFILES[0].fields;
+    const matches = matchingFieldIds(fields, "3 items", true, settings);
+    assert.deepEqual([...matches], ["/LineItems/2/UM"]);
+    assert.equal(fieldSummary(fields, "3 items", true, settings).matched, 1);
+    assert.equal(matchingFieldIds(fields, "no-such-value", false, settings).size, 0);
+    assert.equal(matchingFieldIds(fields, "consulting services", false, settings).size, 1);
+    assert.equal(matchingFieldIds(fields, "", false, settings).size, 68);
+});
 test("sibling ordering is immutable and groups move with their children", () => {
     const fields = PROFILES[0].fields;
     const before = JSON.stringify(fields);
