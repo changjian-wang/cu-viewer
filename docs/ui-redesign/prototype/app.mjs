@@ -731,22 +731,25 @@ function clearPreview() {
 
 function previewField(id, regionIndex) {
     clearTimeout(previewTimer);
-    if (state.drag || resizeGesture || panGesture?.moved) return;
+    if (state.drag || resizeGesture || panGesture?.moved || !valueMenu.hidden) return;
     const field = fieldById(id);
     if (field.kind !== "value") {
-        clearPreview();
+        if (state.previewId !== null) clearPreview();
         return;
     }
     if (id === state.selectedId && (regionIndex === undefined || regionIndex === state.regionIndex)) {
-        state.flyoverDismissed = false;
-        clearPreview();
+        if (state.previewId !== null || state.flyoverDismissed) {
+            state.flyoverDismissed = false;
+            clearPreview();
+        }
         return;
     }
     const index = regionIndex ?? field.regions.findIndex(region => region.page === state.page);
     if (index < 0 || field.regions[index]?.page !== state.page) {
-        clearPreview();
+        if (state.previewId !== null) clearPreview();
         return;
     }
+    if (state.previewId === id && state.previewRegion === index && !state.flyoverDismissed) return;
     state.previewId = id;
     state.previewRegion = index;
     state.flyoverDismissed = false;
@@ -1197,10 +1200,9 @@ results.addEventListener("click", event => {
     else if (action === "drag") announce("Drag this handle within its group, or use Alt + Up / Down to reorder.");
     else throw new Error(`Unknown prototype action: ${action}`);
 });
-results.addEventListener("pointerover", event => {
+results.addEventListener("pointermove", event => {
     const target = event.target.closest("[data-inspect-id]");
     if (target) previewField(target.dataset.inspectId);
-    else leavePreview();
 });
 results.addEventListener("pointerout", event => {
     const from = event.target.closest("[data-inspect-id]");
@@ -1413,10 +1415,9 @@ for (const name of ["pointercancel", "lostpointercapture"]) {
         viewport.classList.remove("is-panning");
     });
 }
-paper.addEventListener("pointerover", event => {
+paper.addEventListener("pointermove", event => {
     const target = event.target.closest("[data-source-id]");
     if (target) previewField(target.dataset.sourceId, Number(target.dataset.regionIndex));
-    else leavePreview();
 });
 paper.addEventListener("pointerout", event => {
     const from = event.target.closest("[data-source-id]");

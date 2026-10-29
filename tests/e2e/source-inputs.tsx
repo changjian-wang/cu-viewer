@@ -1,7 +1,7 @@
 import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ContentUnderstandingResultViewer } from "../../frontend/src";
-import type { ViewerSource } from "../../frontend/src";
+import type { ViewerFieldOrder, ViewerSource } from "../../frontend/src";
 import pdfUrl from "../fixtures/mixed-financial-docs.pdf?url";
 import pdfResultUrl from "../fixtures/mixed-financial-docs.cu.json?url";
 import pngUrl from "../fixtures/receipt.png?url";
@@ -46,6 +46,11 @@ function SourceInputHost() {
     const [preparing, setPreparing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [inspection, setInspection] = useState<Inspection | null>(null);
+    const [controlled, setControlled] = useState(false);
+    const [handleOrder, setHandleOrder] = useState(true);
+    const [secondViewer, setSecondViewer] = useState(false);
+    const [order, setOrder] = useState<ViewerFieldOrder>({ $root: ["/InvoiceId", "/CustomerName"] });
+    const [orderChanges, setOrderChanges] = useState(0);
     const currentInput = useRef<HostInput | null>(null);
     const pending = useRef<AbortController | null>(null);
 
@@ -158,6 +163,12 @@ function SourceInputHost() {
             <button type="button" disabled={!input || mounted} onClick={() => setMounted(true)}>Mount viewer</button>
             <button type="button" disabled={!input} onClick={() => { void inspect(); }}>Inspect caller data</button>
             <button type="button" disabled={!input && !preparing} onClick={release}>Release host input</button>
+            <label><input type="checkbox" aria-label="Controlled field order" checked={controlled}
+                onChange={event => setControlled(event.target.checked)} />Controlled order</label>
+            <label><input type="checkbox" aria-label="Handle order changes" checked={handleOrder}
+                onChange={event => setHandleOrder(event.target.checked)} />Handle changes</label>
+            <label><input type="checkbox" aria-label="Show second viewer" checked={secondViewer}
+                onChange={event => setSecondViewer(event.target.checked)} />Second viewer</label>
         </div>
         {preparing && <p role="status">Preparing saved input...</p>}
         {error && <p role="alert">Test host: {error}</p>}
@@ -167,10 +178,18 @@ function SourceInputHost() {
             <span data-testid="caller-result-unchanged">{String(inspection.resultUnchanged)}</span>{" / "}
             <span data-testid="caller-blob-url-readable">{inspection.blobUrlReadable === null ? "not applicable" : String(inspection.blobUrlReadable)}</span>
         </div>}
+        {controlled && <pre data-testid="host-field-order">{JSON.stringify({ changes: orderChanges, order })}</pre>}
         <div className="input-workspace">
-            {mounted && input ? <ContentUnderstandingResultViewer source={input.source} result={input.result} /> :
+            {mounted && input ? <ContentUnderstandingResultViewer source={input.source} result={input.result}
+                {...controlled ? { fieldOrder: order } : {}}
+                {...controlled && handleOrder ? { onFieldOrderChange: (next: ViewerFieldOrder) => {
+                    setOrder(next); setOrderChanges(current => current + 1);
+                } } : {}} /> :
                 <p role="status">Viewer unmounted.</p>}
         </div>
+        {secondViewer && mounted && input && <div className="input-workspace">
+            <ContentUnderstandingResultViewer source={input.source} result={input.result} />
+        </div>}
     </main>;
 }
 

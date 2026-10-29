@@ -60,7 +60,7 @@ export function App() {
         setReload(current => current + 1);
     };
     return <main className="prototype-host">
-        <header className="prototype-banner"><h1>CU Viewer</h1><span>Interactive prototype · saved data only · not a released package</span></header>
+        <header className="prototype-banner"><div className="prototype-brand"><h1>CU Viewer</h1><span>Development preview · saved data</span></div>
         <div className="prototype-inputs">
             <label className="prototype-picker"><span>Source</span><strong>{input?.name ?? "Loading sample..."}</strong><span className="prototype-browse">Browse...</span>
                 <input type="file" aria-label="Choose source file" accept=".pdf,.png,.jpg,.jpeg,.jpe,.bmp,.heif,.heic" disabled={!input}
@@ -88,6 +88,7 @@ export function App() {
                 <button type="button" aria-pressed={sample === "png"} onClick={() => chooseSample("png")}>Receipt PNG</button>
             </div>
         </div>
+        </header>
         {hostError && <div className="prototype-alert" role="alert">{hostError}</div>}
         <div className="prototype-workspace">
             {input ? <ContentUnderstandingResultViewer source={input.source} result={input.result} /> :

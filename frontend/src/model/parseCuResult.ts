@@ -276,11 +276,8 @@ function parseFields(raw: unknown, content: CuContent, rootPath: string, issues:
         };
         if (valueKey) node.valueKey = valueKey;
         frame.destination.push(node);
-        if (field.confidence !== undefined && field.confidence !== null) {
-            if (typeof field.confidence === "number" && Number.isFinite(field.confidence) &&
-                field.confidence >= 0 && field.confidence <= 1) node.confidence = field.confidence;
-            else warn(issues, "invalid-confidence", `${frame.path}/confidence`, "Confidence must be a finite number from 0 to 1.");
-        }
+        const confidence = parseConfidence(field.confidence, frame.path, issues);
+        if (confidence !== undefined) node.confidence = confidence;
         Object.assign(node, parseSource(field.source, content, `${frame.path}/source`, issues));
         if (type === "object" && isRecord(value)) {
             pushFields(Object.entries(value), `${frame.id}/valueObject`, `${frame.path}/valueObject`, node.children);
@@ -339,6 +336,13 @@ function parsePageWords(raw: unknown, content: CuContent, path: string, issues: 
     }
 }
 
+function parseConfidence(value: unknown, path: string, issues: CuParseIssue[]): number | undefined {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1) return value;
+    warn(issues, "invalid-confidence", `${path}/confidence`, "Confidence must be a finite number from 0 to 1.");
+    return undefined;
+}
+
 function detailItem(
     raw: CuDetailRecord, content: CuContent, suffix: string, path: string, name: string,
     value: string, view: CuDetailView, issues: CuParseIssue[],
@@ -349,6 +353,8 @@ function detailItem(
         detailView: view, ...parseSource(raw.source, content, `${path}/source`, issues),
     };
     const item: CuDetailItem = { id, raw, field };
+    const confidence = parseConfidence(raw.confidence, path, issues);
+    if (confidence !== undefined) field.confidence = confidence;
     const role = detailString(raw, "role", path, issues);
     if (role !== undefined) item.role = role;
     return item;

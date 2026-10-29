@@ -1,8 +1,8 @@
 html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { font-family: "Segoe UI", sans-serif; color: #243145; background: #f4f5f7; }
 .cli-host { height: 100%; display: flex; flex-direction: column; }
-.cli-host > header { display: flex; align-items: center; gap: 24px; padding: 12px 20px; background: #172f4b; color: white; }
-.cli-host h1 { flex: none; margin: 0; font-size: 18px; font-weight: 600; }
+.cli-host > header { display: flex; flex: none; align-items: center; gap: 24px; padding: 0 22px; height: 54px; background: #193348; color: white; }
+.cli-host h1 { flex: none; margin: 0; font-size: 17px; font-weight: 650; }
 .cli-host header span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cli-workspace { flex: 1; min-height: 0; overflow: auto; }
 .cli-workspace > p { margin: 24px; }

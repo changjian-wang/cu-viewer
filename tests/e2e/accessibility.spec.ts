@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
-import { checkPolygon, ready } from "./viewerAssertions";
+import { checkPolygon, ready, rotateSource, fitSource } from "./viewerAssertions";
 import { croppedRotatedPdf } from "./pdfFixtures";
 
 declare global {
@@ -34,6 +34,53 @@ test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await ready(page);
 });
+
+for (const focus of ["pointer", "keyboard"] as const) {
+    test(`search has one stable focus boundary with ${focus} focus`, async ({ page }) => {
+        const search = page.getByRole("searchbox", { name: "Search fields or values", exact: true });
+        const box = page.locator(".cu-search-box");
+        const boxBounds = await box.boundingBox();
+        const inputBounds = await search.boundingBox();
+        expect(boxBounds).not.toBeNull();
+        expect(inputBounds).not.toBeNull();
+        await expect(box).toHaveCSS("border-color", "rgb(220, 227, 235)");
+        await expect(box).toHaveCSS("border-top-width", "1px");
+        await expect(box).toHaveCSS("outline-style", "none");
+
+        if (focus === "pointer") await search.click();
+        else await tabTo(page, search);
+
+        await expect(search).toBeFocused();
+        await expect(search).toHaveCSS("outline-style", "none");
+        await expect(search).toHaveCSS("border-top-width", "0px");
+        await expect(search).toHaveCSS("box-shadow", "none");
+        await expect(box).toHaveCSS("border-color", "rgb(55, 111, 172)");
+        await expect(box).toHaveCSS("border-top-width", "1px");
+        await expect(box).toHaveCSS("border-radius", "5px");
+        await expect(box).toHaveCSS("outline", "rgb(55, 111, 172) solid 2px");
+        await expect(box).toHaveCSS("outline-offset", "-2px");
+        await expect(box).toHaveCSS("box-shadow", "none");
+        expect(await box.boundingBox()).toEqual(boxBounds);
+        expect(await search.boundingBox()).toEqual(inputBounds);
+
+        await search.fill("no-such-value");
+        await expect(page.getByRole("heading", { name: "No matching fields", exact: true })).toBeVisible();
+        await search.fill("");
+        await page.mouse.move(0, 0);
+        await search.press("Shift+Tab");
+        const columns = page.getByRole("button", { name: "3 columns", exact: true });
+        await expect(columns).toBeFocused();
+        await expect(columns).toHaveCSS("outline-style", "solid");
+        await expect(columns).toHaveCSS("outline-width", "2px");
+        await expect(box).toHaveCSS("outline-style", "none");
+        await expect(box).toHaveCSS("border-color", "rgb(220, 227, 235)");
+
+        await box.hover();
+        await expect(box).toHaveCSS("border-color", "rgb(186, 199, 214)");
+        expect(await box.boundingBox()).toEqual(boxBounds);
+        expect(await search.boundingBox()).toEqual(inputBounds);
+    });
+}
 
 test("desktop keyboard reaches source controls, pans, validates pages and retains focus after rendering", async ({ page }) => {
     const viewport = page.getByRole("group", { name: "Source viewport", exact: true });
@@ -80,13 +127,13 @@ test("desktop keyboard reaches source controls, pans, validates pages and retain
     await number.focus();
     await page.locator('[data-field-id="/contents/0/fields/AmountDue"]').hover();
     await ready(page);
-    await expect(number).toHaveValue("1");
+    await expect(number).toHaveValue("4");
     await page.locator(".prototype-banner").hover();
     await number.fill("2");
     await number.press("Tab");
     await ready(page);
     await expect(number).toHaveValue("2");
-    await expect(next).toBeFocused();
+    await expect(page.getByRole("button", { name: "Zoom out", exact: true })).toBeFocused();
 });
 
 test("hidden field descriptions do not overflow the desktop and Result scrolls independently of Source", async ({ page }) => {
@@ -105,25 +152,23 @@ test("hidden field descriptions do not overflow the desktop and Result scrolls i
 });
 
 test("keyboard operates field expansion and value selection with truthful accessible descriptions", async ({ page }) => {
-    const expand = page.getByRole("button", { name: "Expand AmountDue", exact: true });
+    const expand = page.getByRole("button", { name: "AmountDue", exact: true });
     await tabTo(page, expand);
     await page.keyboard.press("Enter");
-    const collapse = page.getByRole("button", { name: "Collapse AmountDue", exact: true });
+    const collapse = page.getByRole("button", { name: "AmountDue", exact: true });
     await expect(collapse).toBeFocused();
     await expect(collapse).toHaveAttribute("aria-expanded", "true");
-    const controls = await collapse.getAttribute("aria-controls");
-    if (!controls) throw new Error("Expanded field has no controlled child region.");
-    expect(await page.evaluate(id => Boolean(document.getElementById(id)), controls)).toBe(true);
-    const value = page.getByRole("button", { name: "Select value of AmountDue / Amount", exact: true });
-    await tabTo(page, value);
-    await expect(value).toHaveAccessibleDescription(/610.*Confidence 34\.10%/);
+    const value = page.locator('[data-field-id="/contents/0/fields/AmountDue/valueObject/Amount"]').getByRole("button", { name: "Amount", exact: true });
+    await page.keyboard.press("ArrowDown");
+    await expect(value).toBeFocused();
+    await expect(value).toHaveAccessibleDescription(/610.*Confidence 0\.34/);
     await page.keyboard.press("Space");
     await ready(page);
     await expect(value).toBeFocused();
     await expect(value).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("source-overlay")).toBeVisible();
     await expect(page.getByRole("button", { name: "BillingAddress", exact: true }))
-        .toHaveAccessibleDescription(/123 Bill St, Redmond WA, 98052.*Confidence 31\.70%/);
+        .toHaveAccessibleDescription(/123 Bill St, Redmond WA, 98052.*Confidence 0\.32/);
     await page.getByRole("button", { name: "Collapse AmountDue", exact: true }).press("Enter");
     await expect(page.locator('[data-field-id="/contents/0/fields/AmountDue"]')).toHaveClass(/is-selected/);
 });
@@ -172,7 +217,7 @@ test("selecting visible targets avoids movement, selecting hidden targets center
     await target.press("Enter");
     await expect.poll(async () => {
         const { polygon, viewport } = await polygonBounds(page);
-        return Math.abs(polygon.x + polygon.width / 2 - viewport.x - viewport.width / 2);
+        return Math.max(viewport.x - polygon.x, polygon.x + polygon.width - viewport.x - viewport.width);
     }).toBeLessThanOrEqual(1);
     const revealed = await page.getByTestId("rendered-page").boundingBox();
     expect(revealed?.y).toBeCloseTo(hidden.y, 1);
@@ -222,7 +267,7 @@ test("cross-page selection and region navigation preserve the exact zoom and vie
                 } }],
         })),
     });
-    await page.getByRole("button", { name: "Rotate 90°", exact: true }).press("Enter");
+    await rotateSource(page);
     await ready(page);
     const paper = page.getByTestId("rendered-page");
     for (const fit of ["Fit page", "Fit width"]) {
@@ -230,7 +275,7 @@ test("cross-page selection and region navigation preserve the exact zoom and vie
         await number.fill("1");
         await number.press("Enter");
         await ready(page);
-        await page.getByRole("button", { name: fit, exact: true }).press("Enter");
+        await fitSource(page, fit === "Fit page" ? "page" : "width");
         await ready(page);
         const zoom = await paper.evaluate(element => Number.parseFloat(element.style.width) / 200);
         const target = page.getByRole("button", { name: "Target", exact: true });
@@ -246,6 +291,10 @@ test("cross-page selection and region navigation preserve the exact zoom and vie
         const regions = page.getByRole("button", { name: "Regions", exact: true });
         await regions.focus();
         await page.keyboard.press("Enter");
+        await ready(page);
+        await expect(number).toHaveValue("2");
+        expect(Math.abs(await paper.evaluate(element => Number.parseFloat(element.style.width)) - zoom * 360)).toBeLessThan(1 / 64);
+        await page.getByRole("button", { name: "Previous source region", exact: true }).press("Enter");
         await ready(page);
         await expect(number).toHaveValue("1");
         expect(Math.abs(await paper.evaluate(element => Number.parseFloat(element.style.width)) - zoom * 200)).toBeLessThan(1 / 64);
@@ -321,7 +370,7 @@ test.describe("conditional reveal at DPR 2", () => {
         const target = page.getByRole("button", { name: "Target", exact: true });
         for (let rotation = 0; rotation < 360; rotation += 90) {
             if (rotation > 0) {
-                await page.getByRole("button", { name: "Rotate 90°", exact: true }).press("Enter");
+                await rotateSource(page);
                 await ready(page);
             }
             const zoom = await page.getByLabel("Zoom percentage").textContent();
@@ -334,8 +383,8 @@ test.describe("conditional reveal at DPR 2", () => {
             await target.press("Enter");
             await expect.poll(async () => {
                 const { polygon, viewport } = await polygonBounds(page);
-                return Math.max(Math.abs(polygon.x + polygon.width / 2 - viewport.x - viewport.width / 2),
-                    Math.abs(polygon.y + polygon.height / 2 - viewport.y - viewport.height / 2));
+                return Math.max(viewport.x - polygon.x, polygon.x + polygon.width - viewport.x - viewport.width,
+                    viewport.y - polygon.y, polygon.y + polygon.height - viewport.y - viewport.height);
             }).toBeLessThanOrEqual(1);
             await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
             await checkPolygon(page, [{ x: 12 / 96, y: 8 / 64 }, { x: 24 / 96, y: 8 / 64 },
@@ -355,8 +404,8 @@ test("desktop Source/Result stay side-by-side with minimum widths and scrolling 
         return { width: element.clientWidth, scrollWidth: element.scrollWidth,
             source: { y: source.y, width: source.width }, result: { y: result.y, width: result.width } };
     });
-    expect(embedded.source.width).toBeGreaterThanOrEqual(400);
-    expect(embedded.result.width).toBeGreaterThanOrEqual(330);
+    expect(embedded.source.width).toBeGreaterThanOrEqual(570);
+    expect(embedded.result.width).toBeGreaterThanOrEqual(440);
     expect(embedded.result.y).toBeCloseTo(embedded.source.y, 1);
     expect(embedded.scrollWidth).toBeGreaterThan(embedded.width);
     await workspace.evaluate(element => { element.style.width = ""; element.style.alignSelf = ""; });
@@ -370,8 +419,8 @@ test("desktop Source/Result stay side-by-side with minimum widths and scrolling 
             source: { x: source.x, y: source.y, width: source.width },
             result: { x: result.x, y: result.y, width: result.width } };
     });
-    expect(layout.source.width).toBeGreaterThanOrEqual(400);
-    expect(layout.result.width).toBeGreaterThanOrEqual(330);
+    expect(layout.source.width).toBeGreaterThanOrEqual(570);
+    expect(layout.result.width).toBeGreaterThanOrEqual(440);
     expect(layout.result.y).toBeCloseTo(layout.source.y, 1);
     expect(layout.result.x).toBeGreaterThan(layout.source.x + layout.source.width);
     expect(layout.scrollWidth).toBeGreaterThan(layout.width);

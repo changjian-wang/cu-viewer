@@ -210,10 +210,28 @@ export function getRevealOffset(points: readonly CuPoint[], viewport: PageSize):
         top = Math.min(top, value.y);
         bottom = Math.max(bottom, value.y);
     }
-    const offset = {
-        x: left < 0 || right > size.width ? size.width / 2 - (left + right) / 2 : 0,
-        y: top < 0 || bottom > size.height ? size.height / 2 - (top + bottom) / 2 : 0,
-    };
+    const axis = (start: number, end: number, length: number): number =>
+        end - start > length ? start < 0 && end > length ? 0 : start < 0 ? length - end : -start :
+            start < 0 ? -start : end > length ? length - end : 0;
+    const offset = { x: axis(left, right, size.width), y: axis(top, bottom, size.height) };
     point(offset);
     return offset;
+}
+
+export function pointInPolygon(value: CuPoint, polygon: readonly CuPoint[]): boolean {
+    point(value);
+    let inside = false;
+    for (let index = 0, previous = polygon.length - 1; index < polygon.length; previous = index++) {
+        const a = polygon[index]!, b = polygon[previous]!;
+        if ((a.y > value.y) !== (b.y > value.y) && value.x < (b.x - a.x) * (value.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+    }
+    return inside;
+}
+
+export function wheelZoomFactor(delta: number, mode: number, viewportHeight: number): number {
+    if (!Number.isFinite(delta) || !positive(viewportHeight) || ![0, 1, 2].includes(mode)) {
+        throw new GeometryError("invalid-wheel-input", "Wheel delta, mode and viewport height must be valid.");
+    }
+    const pixels = delta * (mode === 1 ? 16 : mode === 2 ? viewportHeight : 1);
+    return Math.exp(Math.max(-1, Math.min(1, -pixels * 0.002)));
 }

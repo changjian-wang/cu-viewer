@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { displayValue, fieldColor, fieldDisplayName, fieldLabel, fieldRegion, fieldRegions, flattenFields, formatConfidence, initialInteraction, interaction, primaryRegion } from "./interaction";
+import { displayValue, fieldDisplayName, fieldLabel, fieldRegion, fieldRegions, flattenFields, formatConfidence, initialInteraction, interaction, primaryRegion } from "./interaction";
+import { appearance, defaultReviewSettings } from "./reviewFields";
 import type { CuField } from "../model/types";
 
 function field(name: string, pageNumber?: number): CuField {
@@ -13,12 +14,12 @@ function field(name: string, pageNumber?: number): CuField {
 }
 
 describe("prototype selection and page interaction", () => {
-    it("previews across pages without fixing a selection", () => {
+    it("previews without changing pages or fixing a selection", () => {
         const value = field("Amount", 1);
         const hovered = interaction({ ...initialInteraction, pageNumber: 4 }, { type: "hover", field: value, pageAvailable: true });
-        expect(hovered).toEqual({ pageNumber: 1, hovered: value, selected: null, selectedRegionIndex: 0 });
+        expect(hovered).toEqual({ pageNumber: 4, hovered: value, selected: null, selectedRegionIndex: 0 });
         expect(interaction(hovered, { type: "leave", fieldId: value.id, restorePageAvailable: false }))
-            .toEqual({ pageNumber: 1, hovered: null, selected: null, selectedRegionIndex: 0 });
+            .toEqual({ pageNumber: 4, hovered: null, selected: null, selectedRegionIndex: 0 });
     });
 
     it("pins a field and restores it after another field's preview", () => {
@@ -27,7 +28,7 @@ describe("prototype selection and page interaction", () => {
         const selected = interaction(initialInteraction, { type: "select", field: pinned, pageAvailable: true });
         const hovered = interaction(selected, { type: "hover", field: preview, pageAvailable: true });
         expect(hovered.selected).toBe(pinned);
-        expect(hovered.pageNumber).toBe(2);
+        expect(hovered.pageNumber).toBe(1);
         expect(interaction(hovered, { type: "leave", fieldId: preview.id, restorePageAvailable: true }))
             .toEqual({ pageNumber: 1, selected: pinned, hovered: null, selectedRegionIndex: 0 });
     });
@@ -113,12 +114,16 @@ describe("prototype selection and page interaction", () => {
 });
 
 describe("truthful field values and identities", () => {
+    it("does not invent object summaries while retaining array item counts", () => {
+        expect(displayValue({ ...field("Group"), type: "object", value: { A: "value" }, children: [field("A")] })).toBe("");
+        expect(displayValue({ ...field("Rows"), type: "array", value: ["value"], children: [field("0")] })).toBe("1 items");
+    });
     it.each([
-        [0, "0.00%"],
-        [0.317, "31.70%"],
-        [0.341, "34.10%"],
-        [0.12345, "12.35%"],
-        [1, "100.00%"],
+        [0, "0.00"],
+        [0.317, "0.32"],
+        [0.341, "0.34"],
+        [0.12345, "0.12"],
+        [1, "1.00"],
     ])("formats service confidence consistently (%s)", (confidence, expected) => {
         expect(formatConfidence(confidence)).toBe(expected);
     });
@@ -181,9 +186,9 @@ describe("Studio-style grouped field grounding and colors", () => {
         expect(primaryRegion(group)).toBe(date.regions[0]);
     });
 
-    it("keeps a group's own grounding ahead of its descendant's regions", () => {
+    it("uses descendant grounding before a parent-only fallback", () => {
         const group = { ...field("AmountDue", 1), children: [field("Amount", 2)] };
-        expect(primaryRegion(group)).toBe(group.regions[0]);
+        expect(primaryRegion(group)).toBe(group.children[0]?.regions[0]);
     });
 
     it("does not invent a region for an ungrounded group or empty selection", () => {
@@ -200,17 +205,19 @@ describe("Studio-style grouped field grounding and colors", () => {
         expect(interaction(hovered, { type: "leave", fieldId: preview.id, restorePageAvailable: true }).pageNumber).toBe(1);
     });
 
-    it("keeps root colors stable across nesting, collapse and display filtering", () => {
+    it("does not assign field-identity colors or inherit parent confidence", () => {
         const amountDue = field("AmountDue");
         const balance = field("BalanceForward");
         const address = field("BillingAddress");
         const recipient = field("BillingAddressRecipient");
-        const roots = [amountDue, balance, address, recipient];
         const child = { ...field("Amount"), id: `${amountDue.id}/valueObject/Amount` };
-        expect(fieldColor(amountDue, roots)).toBe("#d13438");
-        expect(fieldColor(child, roots)).toBe("#d13438");
-        expect(fieldColor(balance, roots)).toBe("#ffaa44");
-        expect(fieldColor(address, roots)).toBe("#8cbd18");
-        expect(fieldColor(recipient, roots)).toBe("#005b70");
+        amountDue.confidence = 0.9;
+        balance.confidence = 0;
+        const color = (value: CuField) => appearance(value, false, defaultReviewSettings).color;
+        expect(color(amountDue)).toBe("#1E3A2A");
+        expect(color(child)).toBe("#374151");
+        expect(color(balance)).toBe("#9B1C1C");
+        expect(color(address)).toBe("#374151");
+        expect(color(recipient)).toBe("#374151");
     });
 });

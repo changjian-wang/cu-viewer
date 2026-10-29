@@ -4,7 +4,6 @@ export const RESULT_TABS = [
     { id: "fields", label: "Fields" },
     { id: "markdown", label: "Markdown" },
     { id: "paragraphs", label: "Paragraphs" },
-    { id: "tables", label: "Tables" },
     { id: "figures", label: "Figures" },
     { id: "signatures", label: "Signatures" },
     { id: "metadata", label: "Metadata" },
@@ -20,10 +19,9 @@ export function availableResultTabs(
     apiVersion?: CuApiVersion,
 ) {
     const available: Record<ResultView, boolean> = {
-        fields: (content?.fields.length ?? 0) > 0,
+        fields: (content?.fields.length ?? 0) > 0 || (content?.tables?.length ?? 0) > 0,
         markdown: Boolean(content?.markdown?.trim()),
         paragraphs: (content?.paragraphs?.length ?? 0) > 0,
-        tables: (content?.tables?.length ?? 0) > 0,
         figures: (content?.figures?.length ?? 0) > 0,
         signatures: apiVersion === "2026-06-01-preview" && (content?.signatures?.length ?? 0) > 0,
         metadata: apiVersion === "2026-06-01-preview" &&

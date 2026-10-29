@@ -2,7 +2,7 @@ import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { checkPolygon, ready, selectResultView } from "./viewerAssertions";
+import { checkPolygon, expandField, ready, selectResultView } from "./viewerAssertions";
 import { alive, trackSourceResources } from "./sourceResources";
 import { standardFontPdf } from "./pdfFixtures";
 
@@ -81,7 +81,7 @@ test.beforeEach(async ({ page, context }, testInfo) => {
     await trackSourceResources(page);
     const response = await page.goto("/");
     expect(response?.headers()["content-security-policy"]).toBe(policy);
-    await expect(page).toHaveTitle("CU Viewer · Interactive prototype");
+    await expect(page).toHaveTitle("CU Viewer · React development preview");
     await expect(page.getByRole("heading", { name: "CU Viewer", exact: true })).toBeVisible();
     await ready(page);
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
@@ -96,9 +96,9 @@ test.afterEach(({ page }) => {
 });
 
 test("isolated packed React consumer preserves real PDF/PNG behavior and approved product appearance under host CSP", async ({ page }) => {
-    await expect(page.locator("[data-field-depth='0']")).toHaveCount(28);
+    await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
     if (process.platform === "win32" && verifyProductScreenshots) await expect(page).toHaveScreenshot("default-pdf.png", { fullPage: true });
-    await page.getByRole("button", { name: "Expand AmountDue", exact: true }).click();
+    await expandField(page, "AmountDue");
     await page.locator(amountRow).getByRole("button", { name: "Amount", exact: true }).click();
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
     await checkPolygon(page, amountPoints, 0);
@@ -109,11 +109,14 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
     await page.locator(amountRow).hover();
     await ready(page);
+    await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
+    await page.locator(amountRow).getByRole("button", { name: "Amount", exact: true }).click();
+    await ready(page);
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
     await checkPolygon(page, amountPoints, 0);
     await page.getByRole("button", { name: "Receipt PNG", exact: true }).click();
-    await expect(page.locator(".cu-source-heading")).toContainText("receipt.png");
+    await expect(page.getByLabel("Source information")).toContainText("receipt.png");
     await ready(page);
     await page.getByRole("button", { name: "MerchantName", exact: true }).click();
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
@@ -134,22 +137,23 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
     await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).press("Enter");
     await expect(page.getByTestId("source-overlay")).toBeVisible();
-    await pane.getByRole("tab", { name: "Tables", exact: true }).click();
-    await expect(pane.getByRole("table")).toHaveCount(1);
-    await expect(pane.locator(".cu-table-navigation")).toContainText("1 of 9");
+    await expect(pane.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
+    await pane.getByRole("tab", { name: "Fields", exact: true }).click();
+    await expect(pane.getByRole("table", { name: "LineItems values", exact: true })).toBeVisible();
     await expect(pane.getByRole("tab", { name: "Code", includeHidden: true, exact: true })).toHaveCount(0);
     await page.setViewportSize({ width: 880, height: 850 });
-    await expect(pane.getByRole("button", { name: "More result views" })).toBeVisible();
+    await expect(pane.getByRole("button", { name: "More result views" })).toHaveCount(0);
     await selectResultView(pane, "Result");
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
 });
 
 test("isolated packed consumer preserves desktop keyboard focus and conditional source reveal under host CSP", async ({ page }) => {
     const viewport = page.getByRole("group", { name: "Source viewport", exact: true });
+    const pane = page.getByRole("region", { name: "Extraction results" });
     const paper = page.getByTestId("rendered-page");
     const outlines = page.getByTestId("result-overlay");
     const words = page.getByTestId("word-overlay");
-    await expect(words).toHaveAttribute("data-word-count", "197");
+    await expect(words).toHaveCount(0);
     await expect(outlines).toHaveAttribute("data-result-view", "fields");
     const count = await outlines.locator("polygon").count();
     expect(count).toBeGreaterThan(1);
@@ -158,28 +162,29 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
     const preview = page.getByRole("tooltip", { name: "Field preview", exact: true });
     await expect(preview).toBeVisible();
     await expect(preview.locator("dt")).toHaveText(["Value", "Confidence"]);
-    await expect(preview.locator("dd").last()).toHaveText("31.70%");
+    await expect(preview.locator("dd").last()).toHaveText("0.32");
     await expect(outlines.locator("polygon")).toHaveCount(count);
     await page.keyboard.press("Escape");
     await expect(preview).toHaveCount(0);
-    const tableMarker = page.getByRole("button", { name: "Open Table 3", exact: true });
-    await tableMarker.hover();
-    await expect(page.getByRole("tooltip", { name: "Table preview" })).toHaveText("Rows: 5, Columns: 2");
-    await tableMarker.click();
-    const tableDialog = page.getByRole("dialog", { name: "Table", exact: true });
-    await expect(tableDialog.getByRole("row")).toHaveCount(5);
-    await expect(tableDialog.getByRole("button")).toHaveCount(1);
+    const tableTarget = page.getByRole("group", { name: "Source tables", exact: true })
+        .getByRole("button", { name: "Locate Table 3 in results", exact: true });
+    await expect(page.getByTestId("table-markers")).toHaveCount(0);
+    await tableTarget.press("Enter");
+    await expect(pane.locator(".cu-fields-review-footer")).toContainText("related fields located in Fields");
+    await expect(pane.locator('[data-field-id="/contents/0/fields/AmountDue"]')).toHaveClass(/is-selected/);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveText("Fields");
+    await expect(tableTarget).toBeFocused();
     await page.keyboard.press("Escape");
-    await expect(tableDialog).toHaveCount(0);
-    await expect(tableMarker).toBeFocused();
+    await expect(page.getByTestId("source-overlay")).toHaveCount(0);
+    await pane.getByRole("tab", { name: "Fields", exact: true }).click();
     const original = await paper.boundingBox();
     const zoom = await page.getByLabel("Zoom percentage").textContent();
     if (!original || zoom === null) throw new Error("Packed source frame or zoom is unavailable.");
     await viewport.focus();
     for (let step = 0; step < 25; step++) await page.keyboard.press("ArrowLeft");
     await field.focus();
-    await expect(field).toHaveAccessibleDescription(/123 Bill St, Redmond WA, 98052.*Confidence 31\.70%/);
+    await expect(field).toHaveAccessibleDescription(/123 Bill St, Redmond WA, 98052.*Confidence 0\.32/);
     await page.keyboard.press("Enter");
     await ready(page);
     await expect(field).toBeFocused();
@@ -187,7 +192,7 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
         const region = await page.getByTestId("source-overlay").locator("polygon").boundingBox();
         const bounds = await viewport.boundingBox();
         if (!region || !bounds) throw new Error("Packed source navigation bounds are unavailable.");
-        return Math.abs(region.x + region.width / 2 - bounds.x - bounds.width / 2);
+        return Math.max(bounds.x - region.x, region.x + region.width - bounds.x - bounds.width);
     }).toBeLessThanOrEqual(1);
     const revealed = await paper.boundingBox();
     if (!revealed) throw new Error("Packed source frame bounds are unavailable.");
@@ -213,21 +218,26 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
     await expect(nextPage).toBeDisabled();
     await expect(page.getByRole("button", { name: "Previous page", exact: true })).toBeFocused();
 
-    const pane = page.getByRole("region", { name: "Extraction results" });
     await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
     await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).hover();
     await ready(page);
+    await expect(number).toHaveValue("4");
+    await expect(page.getByRole("tooltip", { name: "Paragraph preview", exact: true })).toHaveCount(0);
+    await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).click();
+    await ready(page);
+    await expect(number).toHaveValue("1");
     const paragraphPreview = page.getByRole("tooltip", { name: "Paragraph preview", exact: true });
     await expect(paragraphPreview.locator("dt")).toHaveText(["Content"]);
     await expect(paragraphPreview.locator("dd")).toHaveText("CONTOSO LTD.");
     await expect(outlines).toHaveAttribute("data-result-view", "paragraphs");
-    await pane.getByRole("tab", { name: "Tables", exact: true }).click();
-    await expect(pane.getByRole("table")).toHaveCount(1);
-    await expect(outlines).toHaveAttribute("data-result-view", "tables");
+    await pane.getByRole("tab", { name: "Fields", exact: true }).click();
+    await expect(pane.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
+    await expect(outlines).toHaveAttribute("data-result-view", "fields");
     await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
     await expect(outlines).toHaveCount(0);
-    await expect(words).toHaveAttribute("data-word-count", "197");
-    await expect(page.getByTestId("table-markers")).toBeVisible();
+    await expect(words).toHaveCount(0);
+    await expect(page.getByTestId("table-markers")).toHaveCount(0);
+    await expect(page.getByTestId("source-tables")).toBeVisible();
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
     await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
     await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeFocused();
@@ -276,7 +286,7 @@ test("isolated packed consumer loads local standard fonts rather than relying on
     await page.getByLabel("Choose source file").setInputFiles({
         name: "synthetic-font.pdf", mimeType: "application/pdf", buffer: standardFontPdf(),
     });
-    await expect(page.locator(".cu-source-heading")).toContainText("synthetic-font.pdf");
+    await expect(page.getByLabel("Source information")).toContainText("synthetic-font.pdf");
     await ready(page);
     expect(observations.get(page)?.fonts.length).toBeGreaterThan(0);
     await expect(page.getByRole("heading", { name: "No extracted fields" })).toBeVisible();
@@ -296,9 +306,9 @@ test("isolated packed consumer decodes packaged HEIF under a WASM-only worker CS
     if (typeof directory !== "string") throw new Error("The isolated consumer directory is unavailable.");
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles(join(directory, "fixtures", "example.synthetic.cu.json"));
     await page.getByLabel("Choose source file").setInputFiles(join(directory, "fixtures", "example.heic"));
-    await expect(page.locator(".cu-source-heading")).toContainText("example.heic");
+    await expect(page.getByLabel("Source information")).toContainText("example.heic");
     await ready(page);
-    await expect(page.locator(".cu-source-heading")).toContainText("1280 × 854 px");
+    await expect(page.getByLabel("Source information")).toContainText("1280 × 854 px");
     await page.getByRole("button", { name: "SyntheticRegion", exact: true }).click();
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
     await checkPolygon(page, heifPoints, 0);

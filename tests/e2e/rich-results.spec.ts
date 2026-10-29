@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "../../frontend/src/components/JsonPane";
 import { MAX_MARKDOWN_CHARACTERS } from "../../frontend/src/components/MarkdownPane";
-import { ready } from "./viewerAssertions";
+import { expandField, ready, rotateSource } from "./viewerAssertions";
 
 const amountId = "/contents/0/fields/AmountDue/valueObject/Amount";
 const verifyProductScreenshots = process.env.CU_VERIFY_PRODUCT_SCREENSHOTS !== "false";
@@ -38,12 +38,12 @@ test.beforeEach(async ({ page }) => {
 
 test("real Markdown and original JSON preserve source page, zoom, rotation and pinned field state", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
-    await page.getByRole("button", { name: "Expand AmountDue", exact: true }).click();
+    await expandField(page, "AmountDue");
     await pane.locator(`[data-field-id="${amountId}"]`).getByRole("button", { name: "Amount", exact: true }).click();
     await page.locator(".prototype-banner").hover();
     await page.getByRole("button", { name: "Zoom in", exact: true }).click();
     await ready(page);
-    await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+    await rotateSource(page);
     await ready(page);
     await page.getByRole("textbox", { name: "Page number" }).fill("4");
     await page.getByRole("textbox", { name: "Page number" }).press("Enter");
@@ -96,12 +96,12 @@ test("real Markdown and original JSON preserve source page, zoom, rotation and p
     await address.getByRole("button", { name: "BillingAddress", exact: true }).click();
     await page.locator(".prototype-banner").hover();
     await page.getByRole("button", { name: "Next source region" }).click();
-    await expect(page.getByRole("complementary", { name: "Source region navigation" })).toContainText("Region 2 of 2");
+    await expect(page.getByRole("complementary", { name: "Source region navigation" })).toContainText("Location 2 of 2");
     await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
     await expect(address.getByRole("button", { name: "BillingAddress", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByRole("complementary", { name: "Source region navigation" })).toContainText("Region 2 of 2");
+    await expect(page.getByRole("complementary", { name: "Source region navigation" })).toContainText("Location 2 of 2");
 });
 
 test("Markdown sanitizes active content while retaining headings, lists, tables and code", async ({ page }) => {
@@ -194,13 +194,13 @@ test("missing, malformed and oversized rich results have explicit bounded states
 
 test("GA and Preview derive Studio tabs from selected content without changing the source or inventing renderers", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
-    await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText(["Fields", "Markdown", "Paragraphs", "Tables", "Result"]);
+    await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText(["Fields", "Markdown", "Paragraphs", "Result"]);
     await expect(pane.locator('[role="tab"][disabled]')).toHaveCount(0);
     await expect(page.getByRole("combobox", { name: /version/i })).toHaveCount(0);
 
     await page.getByRole("button", { name: "Zoom in", exact: true }).click();
     await ready(page);
-    await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+    await rotateSource(page);
     await ready(page);
     const zoom = await page.getByLabel("Zoom percentage").textContent();
     const bounds = await page.getByTestId("rendered-page").boundingBox();
@@ -230,7 +230,7 @@ test("GA and Preview derive Studio tabs from selected content without changing t
         usage: { units: 0 },
     }, "synthetic-preview-tabs.json");
     await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText([
-        "Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result",
+        "Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Metadata", "Result",
     ]);
     await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
     await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeFocused();

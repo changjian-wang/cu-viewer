@@ -29,19 +29,18 @@ async function snapshot(page: Page, name: string): Promise<void> {
     await expect(page).toHaveScreenshot(name, { fullPage: true });
 }
 
-test("real Paragraphs and native Tables preserve the product layout and source-linked selection", async ({ page }) => {
+test("real Paragraphs and existing Fields arrays preserve source-linked selection", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
     await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
     await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).click();
     await ready(page);
     await expect(page.getByTestId("source-overlay")).toBeVisible();
     await snapshot(page, "detail-paragraphs.png");
-    await pane.getByRole("tab", { name: "Tables", exact: true }).click();
-    await pane.getByRole("button", { name: "Select Table 1, row 1, column 1", exact: true }).click();
+    await page.getByTestId("source-tables").getByRole("button", { name: "Locate Table 2 in results", exact: true }).press("Enter");
     await ready(page);
-    await expect(pane.getByRole("table")).toHaveCount(1);
-    await expect(pane.locator(".cu-table-navigation")).toContainText("1 of 9");
-    await snapshot(page, "detail-tables.png");
+    await expect(pane.getByRole("table", { name: "LineItems values", exact: true })).toBeVisible();
+    await expect(pane.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
+    await snapshot(page, "fields-array-from-source.png");
 });
 
 test("Figures, Signatures and Metadata have reviewed source previews and safe read-only values", async ({ page }) => {
@@ -93,29 +92,27 @@ test("right-side Fields and Paragraphs hover show their distinct Studio source p
     await expect(page).toHaveScreenshot("studio-paragraph-popover.png", { fullPage: true });
 });
 
-test("source table icons show row/column counts and open the Studio-style readonly Table modal", async ({ page }) => {
-    const marker = page.getByRole("button", { name: "Open Table 3", exact: true });
+test("source table regions locate right-hand data without table icons or a modal", async ({ page }) => {
+    const table = page.getByRole("group", { name: "Source tables", exact: true })
+        .getByRole("button", { name: "Locate Table 3 in results", exact: true });
     await page.locator(".prototype-banner").click({ position: { x: 10, y: 10 } });
-    await marker.hover();
-    await expect(page.getByRole("tooltip", { name: "Table preview" })).toContainText("Rows:");
-    await expect(page.getByRole("tooltip", { name: "Table preview" })).toContainText("Columns: 2");
+    await expect(page.getByTestId("table-markers")).toHaveCount(0);
+    await expect(page.getByRole("tooltip", { name: "Table preview" })).toHaveCount(0);
+    await table.press("Enter");
+    await expect(page.locator(".cu-fields-review-footer")).toContainText("related fields located in Fields");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "Fields", exact: true })).toHaveAttribute("aria-selected", "true");
     await page.evaluate(async () => { await document.fonts.ready; });
-    await expect(page).toHaveScreenshot("studio-table-marker-hover.png", { fullPage: true });
-    await marker.click();
-    const dialog = page.getByRole("dialog", { name: "Table", exact: true });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole("table")).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Close table" })).toBeVisible();
-    await page.evaluate(async () => { await document.fonts.ready; });
-    await expect(page).toHaveScreenshot("studio-table-dialog.png", { fullPage: true });
+    await expect(page).toHaveScreenshot("source-table-fields-located.png", { fullPage: true });
 });
 
-test("Markdown keeps the permanent yellow OCR word layer while hiding tab-specific polygon outlines", async ({ page }) => {
+test("Markdown preserves original pixels and OCR data without a permanent yellow layer or field outlines", async ({ page }) => {
     await page.getByRole("tab", { name: "Markdown", exact: true }).click();
     await expect(page.getByRole("heading", { name: "INVOICE", exact: true })).toBeVisible();
-    await expect(page.getByTestId("word-overlay")).toHaveAttribute("data-word-count", "197");
+    await expect(page.getByTestId("word-overlay")).toHaveCount(0);
     await expect(page.getByTestId("result-overlay")).toHaveCount(0);
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
-    await expect(page.getByTestId("table-markers")).toBeVisible();
+    await expect(page.getByTestId("table-markers")).toHaveCount(0);
+    await expect(page.getByTestId("source-tables")).toBeVisible();
     await snapshot(page, "studio-words-markdown.png");
 });

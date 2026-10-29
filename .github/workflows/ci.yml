@@ -67,6 +67,8 @@ jobs:
           tests/e2e/rich-results.spec.ts
           tests/e2e/source-inputs.spec.ts
           tests/e2e/image-formats.spec.ts
+          tests/e2e/ui-parity.spec.ts
+          tests/e2e/toolbar-legend.spec.ts
           --project=chrome
           --project=edge
       - uses: actions/upload-artifact@v4
