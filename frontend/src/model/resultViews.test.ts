@@ -26,7 +26,7 @@ describe("Studio result tab availability", () => {
         };
         const model = parseCuResult(raw);
         expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.label))
-            .toEqual(["Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result"]);
+            .toEqual(["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Metadata", "Result"]);
     });
 
     it("hides absent and empty values while keeping provided raw JSON inspectable", () => {
@@ -68,5 +68,15 @@ describe("Studio result tab availability", () => {
     it("does not add a Code tab even when the result includes analyzer context", () => {
         expect(availableResultTabs(content({ analyzerId: "child" }), { analyzerId: "root" }, "2026-06-01-preview")
             .map(tab => tab.id)).toEqual(["result"]);
+    });
+    it("keeps Fields available for table-only results without exposing a Tables tab or changing raw data", () => {
+        const raw = { apiVersion: "2025-11-01", contents: [{ kind: "document",
+            tables: [{ rowCount: 1, columnCount: 2, cells: [{ rowIndex: 0, columnIndex: 0, columnSpan: 2, content: "Raw native table" }] }],
+        }] };
+        const before = JSON.stringify(raw), model = parseCuResult(raw);
+        expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id)).toEqual(["fields", "result"]);
+        expect(model.contents[0]!.fields).toEqual([]);
+        expect(model.original).toBe(raw);
+        expect(JSON.stringify(raw)).toBe(before);
     });
 });

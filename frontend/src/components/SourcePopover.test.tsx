@@ -25,7 +25,7 @@ function setup(field: CuField) {
     });
     viewport.current = element;
     paper.current = element;
-    render(<SourcePopover id="source-preview" field={field} color="#8cbd18"
+    render(<SourcePopover id="source-preview" field={field}
         points={[{ x: 50, y: 200 }, { x: 150, y: 200 }, { x: 150, y: 220 }, { x: 50, y: 220 }]}
         pan={{ x: 0, y: 0 }} viewport={viewport} paper={paper} onEnter={onEnter} onLeave={onLeave} />);
     return { onEnter, onLeave };
@@ -38,19 +38,34 @@ describe("Studio source preview content", () => {
     it("shows returned field name/value/confidence including real zero and remains hoverable", () => {
         const { onEnter, onLeave } = setup(field);
         const popup = screen.getByRole("tooltip", { name: "Field preview" });
-        expect(popup.textContent).toContain("ZeroValue0Confidence0.00%");
+        expect(popup.textContent).toContain("ZeroValue0Confidence0.00");
         expect(popup.style.left).toBe("50px");
-        expect(popup.style.top).toBe("90px");
+        expect(popup.style.top).toBe("232px");
         fireEvent.mouseEnter(popup); fireEvent.mouseLeave(popup);
         expect(onEnter).toHaveBeenCalledOnce();
         expect(onLeave).toHaveBeenCalledOnce();
     });
-    it("omits confidence when it was not returned", () => {
+    it("marks unavailable confidence without inventing a zero or showing a Gauge", () => {
         const withoutConfidence = { ...field };
         delete withoutConfidence.confidence;
         setup(withoutConfidence);
-        expect(screen.queryByText("Confidence")).toBeNull();
+        expect(screen.getByText("N/A")).toBeTruthy();
+        expect(screen.getByRole("tooltip").querySelector("svg")).toBeNull();
     });
+    for (const table of [false, true]) {
+        it.each([0, 0.95, undefined])(`does not apply confidence color to ${table ? "array" : "field"} value text at confidence %s`, confidence => {
+            const current = { ...field };
+            if (table) current.id = current.path = "/contents/0/fields/LineItems/valueArray/0/valueObject/Name";
+            if (confidence === undefined) delete current.confidence;
+            else current.confidence = confidence;
+            setup(current);
+            const popup = screen.getByRole("tooltip", { name: "Field preview" });
+            expect(popup.querySelector<HTMLElement>(".cu-flyover-value dd")?.style.color).toBe("");
+            expect(popup.querySelector<HTMLElement>(".cu-flyover-confidence")?.style.color).toBe(
+                confidence === undefined ? "rgb(55, 65, 81)" : confidence === 0 ? "rgb(155, 28, 28)" :
+                    table ? "rgb(30, 64, 175)" : "rgb(30, 58, 42)");
+        });
+    }
     it("shows only paragraph Content and escapes returned markup", () => {
         setup({ ...field, detailView: "paragraphs", value: "<script>bad()</script>" });
         const popup = screen.getByRole("tooltip", { name: "Paragraph preview" });
@@ -58,5 +73,6 @@ describe("Studio source preview content", () => {
         expect(popup.querySelector("script")).toBeNull();
         expect(screen.queryByText("Confidence")).toBeNull();
         expect(screen.queryByText("Value")).toBeNull();
+        expect(popup.querySelector<HTMLElement>(".cu-flyover-value dd")?.style.color).toBe("rgb(155, 28, 28)");
     });
 });

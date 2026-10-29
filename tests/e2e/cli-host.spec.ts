@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { checkPolygon, ready, selectResultView } from "./viewerAssertions";
+import { checkPolygon, expandField, ready, selectResultView } from "./viewerAssertions";
 
 const python = process.env.CU_CLI_PYTHON;
 const installed = process.env.CU_CLI_PACKAGE_ROOT;
@@ -180,16 +180,17 @@ test("installed CLI serves real PDF, lazy result panes and source navigation wit
     await inspect(page, join(fixtures, "mixed-financial-docs.pdf"), join(fixtures, "mixed-financial-docs.cu.json"), async () => {
         expect(requested.some(url => /\/pdfjs\/build\/pdf\.worker\.mjs$/.test(url))).toBe(true);
         expect(requested.some(url => /\/(MarkdownPane|JsonPane)-/.test(url))).toBe(false);
-        await expect(page.locator("[data-field-depth='0']")).toHaveCount(28);
-        await page.getByRole("button", { name: "Expand AmountDue", exact: true }).click();
+        await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
+        await expandField(page, "AmountDue");
         await page.locator('[data-field-id="/contents/0/fields/AmountDue/valueObject/Amount"]')
             .getByRole("button", { name: "Amount", exact: true }).click();
         await expect(page.getByTestId("source-overlay")).toBeVisible();
         await page.getByRole("tab", { name: "Markdown", exact: true }).click();
         await expect(page.getByRole("heading", { name: "INVOICE", exact: true })).toBeVisible();
-        await expect(page.getByTestId("word-overlay")).toBeVisible();
-        await page.getByRole("tab", { name: "Tables", exact: true }).click();
-        await expect(page.getByRole("table")).toBeVisible();
+        await expect(page.getByTestId("word-overlay")).toHaveCount(0);
+        await page.getByRole("tab", { name: "Fields", exact: true }).click();
+        await expect(page.getByRole("table", { name: "LineItems values", exact: true })).toBeVisible();
+        await expect(page.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
         await page.getByRole("tab", { name: "Result", exact: true }).click();
         await expect(page.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
         expect(requested.some(url => /\/MarkdownPane-/.test(url))).toBe(true);
@@ -255,14 +256,15 @@ test("installed CLI analyzes once with an offline substitute then opens the same
 
 test("independent Viewer wheel opens a saved PDF without any cu-cli installation", async ({ page }) => {
     await inspect(page, join(fixtures, "mixed-financial-docs.pdf"), join(fixtures, "mixed-financial-docs.cu.json"), async () => {
-        await expect(page.locator("[data-field-depth='0']")).toHaveCount(28);
+        await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
         await page.getByRole("tab", { name: "Markdown", exact: true }).click();
         await expect(page.getByRole("heading", { name: "INVOICE", exact: true })).toBeVisible();
         const pane = page.getByRole("region", { name: "Extraction results" });
-        await selectResultView(pane, "Tables");
-        await expect(pane.getByRole("table")).toBeVisible();
+        await selectResultView(pane, "Fields");
+        await expect(pane.getByRole("table", { name: "LineItems values", exact: true })).toBeVisible();
+        await expect(pane.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
         await page.setViewportSize({ width: 880, height: 850 });
-        await expect(pane.getByRole("button", { name: "More result views" })).toBeVisible();
+        await expect(pane.getByRole("button", { name: "More result views" })).toHaveCount(0);
         await selectResultView(pane, "Result");
         await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     }, false, true);

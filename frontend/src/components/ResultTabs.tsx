@@ -42,9 +42,11 @@ export function ResultTabs({ tabs, view, baseId, panelId, onViewChange }: Result
         const trigger = more.current;
         if (!element || !trigger) return;
         const measure = (): void => {
-            const width = element.getBoundingClientRect().width;
+            const style = getComputedStyle(element);
+            const width = element.getBoundingClientRect().width -
+                (Number.parseFloat(style.paddingLeft) || 0) - (Number.parseFloat(style.paddingRight) || 0);
             if (width === 0) return;
-            const gap = Number.parseFloat(getComputedStyle(element).columnGap) || 0;
+            const gap = Number.parseFloat(style.columnGap) || 0;
             const widths = new Map(tabs.map(tab => {
                 const button = tabRefs.current[tab.id];
                 if (!button) throw new Error(`The ${tab.label} result tab is unavailable for measurement.`);

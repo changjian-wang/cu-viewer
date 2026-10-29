@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { checkPolygon, ready } from "./viewerAssertions";
+import { checkPolygon, expandField, ready } from "./viewerAssertions";
 import { alive, holdRequest, trackSourceResources } from "./sourceResources";
 
 const hostUrl = `/@fs/${resolve("tests", "e2e", "source-inputs.html").replaceAll("\\", "/")}`;
@@ -11,10 +11,10 @@ const pdfUrl = `/@fs/${resolve("tests", "fixtures", "mixed-financial-docs.pdf").
 const viewerOrigin = "http://127.0.0.1:5173";
 const crossOriginSource = "http://127.0.0.1:4175";
 const fixtures = {
-    PDF: { filename: "mixed-financial-docs.pdf", count: 28, aspect: 8.5 / 11,
+    PDF: { filename: "mixed-financial-docs.pdf", count: 31, aspect: 8.5 / 11,
         points: ([[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.3628, 8.2124]] as const)
             .map(([x, y]) => ({ x: x / 8.5, y: y / 11 })) },
-    PNG: { filename: "receipt.png", count: 11, aspect: 1743 / 878,
+    PNG: { filename: "receipt.png", count: 12, aspect: 1743 / 878,
         points: [{ x: 775 / 1743, y: 73 / 878 }, { x: 973 / 1743, y: 72 / 878 },
             { x: 973 / 1743, y: 111 / 878 }, { x: 775 / 1743, y: 112 / 878 }] },
 };
@@ -70,7 +70,7 @@ async function rasterDigest(page: Page): Promise<string> {
 
 async function selectGrounded(page: Page, sample: keyof typeof fixtures): Promise<void> {
     if (sample === "PDF") {
-        await page.getByRole("button", { name: "Expand AmountDue", exact: true }).click();
+        await expandField(page, "AmountDue");
         const row = page.locator('[data-field-id="/contents/0/fields/AmountDue/valueObject/Amount"]');
         await expect(row.locator(".cu-field-value")).toHaveText("610");
         await row.getByRole("button", { name: "Amount", exact: true }).click();
@@ -97,10 +97,10 @@ for (const sample of ["PDF", "PNG"] as const) {
                 await ready(page);
                 await expect(page.locator("[data-field-depth='0']")).toHaveCount(fixture.count);
                 if (sample === "PDF") {
-                    await expect(page.locator(".cu-source-heading")).toContainText("PDF · 4 pages");
+                    await expect(page.getByLabel("Source information")).toContainText("PDF · 4 pages");
                     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
                 } else {
-                    await expect(page.locator(".cu-source-heading")).toContainText("1743 × 878 px");
+                    await expect(page.getByLabel("Source information")).toContainText("1743 × 878 px");
                     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveCount(0);
                 }
                 const box = await page.getByTestId("rendered-page").boundingBox();
@@ -175,7 +175,7 @@ test("HTTP errors, empty responses and rejected source URL schemes surface error
         await page.getByRole("textbox", { name: "URL override" }).fill(failure.url);
         await page.getByRole("button", { name: "Load PDF", exact: true }).click();
         await expect(page.getByRole("alert")).toContainText(failure.text);
-        await expect(page.locator("[data-field-depth='0']")).toHaveCount(28);
+        await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
         await expect(page.locator(".cu-page-badge").first()).toBeDisabled();
         await page.getByRole("textbox", { name: "URL override" }).fill("");
         await page.getByRole("button", { name: "Load PDF", exact: true }).click();
@@ -227,7 +227,7 @@ test("cross-origin sources require CORS, omit credentials and keep PDF/HEIF asse
         .fill(`${crossOriginSource}/cors/example.heic?requestId=${heifRequestId}`);
     await page.getByRole("button", { name: "Load HEIF", exact: true }).click();
     await ready(page);
-    await expect(page.locator(".cu-source-heading")).toContainText("1280 × 854 px");
+    await expect(page.getByLabel("Source information")).toContainText("1280 × 854 px");
     await expectAnonymousCrossOriginRequest(heifRequestId);
     expect(assetRequests.some(url => url.includes("/heif/"))).toBe(true);
     expect(assetRequests.every(url => new URL(url).origin === viewerOrigin)).toBe(true);
@@ -265,14 +265,14 @@ for (const action of ["replace", "unmount"] as const) {
             await page.getByRole("button", { name: "Load PDF", exact: true }).click();
             await held.started;
             await expect(page.getByRole("heading", { name: "Loading source..." })).toBeVisible();
-            await expect(page.locator("[data-field-depth='0']")).toHaveCount(28);
+            await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
             if (action === "replace") {
                 await page.getByRole("combobox", { name: "Source input", exact: true }).selectOption("File");
                 await page.getByRole("button", { name: "Load PNG", exact: true }).click();
                 await ready(page);
                 const raster = await rasterDigest(page);
                 await held.release();
-                await expect(page.locator(".cu-source-heading")).toContainText("1743 × 878 px");
+                await expect(page.getByLabel("Source information")).toContainText("1743 × 878 px");
                 expect(await rasterDigest(page)).toBe(raster);
                 await selectGrounded(page, "PNG");
             } else {
@@ -298,7 +298,7 @@ for (const action of ["replace", "unmount"] as const) {
                 await page.getByRole("button", { name: "Load PNG", exact: true }).click();
                 await ready(page);
                 await held.release();
-                await expect(page.locator(".cu-source-heading")).toContainText("1743 × 878 px");
+                await expect(page.getByLabel("Source information")).toContainText("1743 × 878 px");
                 await selectGrounded(page, "PNG");
             } else {
                 await page.getByRole("button", { name: "Unmount viewer", exact: true }).click();
@@ -326,7 +326,7 @@ for (const action of ["replace", "unmount"] as const) {
                 const raster = await rasterDigest(page);
                 await page.evaluate(() => window.cuReleaseImageDecode());
                 await expect.poll(async () => (await alive(page)).bitmaps).toBe(0);
-                await expect(page.locator(".cu-source-heading")).toContainText("PDF · 4 pages");
+                await expect(page.getByLabel("Source information")).toContainText("PDF · 4 pages");
                 expect(await rasterDigest(page)).toBe(raster);
                 await selectGrounded(page, "PDF");
             } else {

@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { parseCuResult } from "../model/parseCuResult";
 import { ParagraphsPane } from "./ParagraphsPane";
-import { TablesPane } from "./TablesPane";
 import { MetadataPane } from "./MetadataPane";
 import { CopyButton } from "./CopyButton";
 import { SourceThumbnail } from "./SourceThumbnail";
@@ -34,7 +33,7 @@ describe("dedicated result panes", () => {
         expect(screen.getByText("title")).toBeTruthy();
         expect(screen.getByText("Page 1")).toBeTruthy();
         const paragraph = screen.getByRole("button", { name: "Select Paragraph 1" });
-        fireEvent.mouseEnter(paragraph);
+        fireEvent.pointerMove(paragraph);
         expect(onHover).toHaveBeenCalledWith(content.paragraphs[0]?.field);
         fireEvent.mouseLeave(paragraph);
         expect(onLeave).toHaveBeenCalledWith(content.paragraphs[0]?.field);
@@ -43,24 +42,6 @@ describe("dedicated result panes", () => {
         fireEvent.click(paragraph);
         expect(onSelect).toHaveBeenCalledWith(content.paragraphs[0]?.field);
         expect(screen.getByText("No source region")).toBeTruthy();
-    });
-
-    it("renders native table headers and merged spans and reports layout errors explicitly", () => {
-        const content = parseCuResult({
-            apiVersion: "2025-11-01",
-            contents: [{ kind: "document", tables: [{ rowCount: 1, columnCount: 2,
-                cells: [{ rowIndex: 0, columnIndex: 0, columnSpan: 2, kind: "columnHeader", content: "Merged header" }] }] }],
-        }).contents[0];
-        if (!content?.tables) throw new Error("Expected tables.");
-        const onSelect = vi.fn();
-        const view = render(<TablesPane tables={content.tables} index={0} onTableChange={vi.fn()} selected={null} onSelect={onSelect} />);
-        expect(screen.getByRole("columnheader").getAttribute("colspan")).toBe("2");
-        fireEvent.click(screen.getByRole("button", { name: "Select Table 1, row 1, column 1" }));
-        expect(onSelect).toHaveBeenCalledWith(content.tables[0]?.cells[0]?.field);
-        view.rerender(<TablesPane tables={content.tables.map(table => ({ ...table, rows: [], layoutError: "Invalid grid" }))}
-            index={0} onTableChange={vi.fn()} selected={null} onSelect={onSelect} />);
-        expect(screen.getByRole("alert").textContent).toBe("Invalid grid");
-        expect(screen.queryByRole("table")).toBeNull();
     });
 
     it("associates all returned figure descriptions with unique targets across viewers", () => {

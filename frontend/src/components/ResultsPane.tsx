@@ -1,16 +1,24 @@
-import { lazy, Suspense, useId, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CuApiVersion, CuContent, CuField, CuParseIssue } from "../model/types";
-import { displayValue, fieldColor, fieldDisplayName, fieldLabel, formatConfidence, primaryRegion } from "../interaction/interaction";
+import { fieldLabel, fieldRegions } from "../interaction/interaction";
+import { defaultReviewSettings, copyValue, isFieldGroup } from "../interaction/reviewFields";
+import { unavailableSourcePageMessage } from "../source/source";
+import type { ValueWorkflow } from "../interaction/useValueWorkflow";
+import type { TableFieldLocation } from "../interaction/tableFields";
+import type { useReviewPreferences } from "../interaction/useReviewPreferences";
 import { availableResultTabs } from "../model/resultViews";
 import type { ResultView } from "../model/resultViews";
-import { unavailableSourcePageMessage } from "../source/source";
 import type { LoadedSource } from "../source/source";
 import { ResultTabs } from "./ResultTabs";
+import { FieldsPane, initialFieldsReview } from "./FieldsPane";
+import type { FieldsReviewState } from "./FieldsPane";
+import { ActionMenu } from "./ActionMenu";
+import { ValueDetails } from "./ValueActions";
+import { revealFieldTarget } from "../interaction/fieldNavigation";
 
 const MarkdownPane = lazy(() => import("./MarkdownPane").then(module => ({ default: module.MarkdownPane })));
 const JsonPane = lazy(() => import("./JsonPane").then(module => ({ default: module.JsonPane })));
 const ParagraphsPane = lazy(() => import("./ParagraphsPane").then(module => ({ default: module.ParagraphsPane })));
-const TablesPane = lazy(() => import("./TablesPane").then(module => ({ default: module.TablesPane })));
 const FiguresPane = lazy(() => import("./FiguresPane").then(module => ({ default: module.FiguresPane })));
 const SignaturesPane = lazy(() => import("./SignaturesPane").then(module => ({ default: module.SignaturesPane })));
 const MetadataPane = lazy(() => import("./MetadataPane").then(module => ({ default: module.MetadataPane })));
@@ -30,6 +38,7 @@ interface ResultsPaneProps {
     selected: CuField | null;
     hovered: CuField | null;
     sourceReady: boolean;
+    pageNumber?: number;
     isPageAvailable: (pageNumber: number) => boolean;
     contents: CuContent[];
     contentIndex: number;
@@ -38,94 +47,138 @@ interface ResultsPaneProps {
     onLeave: (field: CuField) => void;
     onSelect: (field: CuField) => void;
     onClear: () => void;
+    workflow: ValueWorkflow;
+    preferences?: ReturnType<typeof useReviewPreferences>;
+    selectionRequest?: number | null;
+    sourceSelection?: boolean;
+    sourceTableSelection?: boolean;
+    tableLocation?: TableFieldLocation | null;
+    tableScope?: TableFieldLocation | null;
+    onShowAllFields?: () => void;
+    onLocate?: (field: CuField, regionIndex: number) => void;
+    onDismissPreview?: () => void;
 }
 
 export function ResultsPane(props: ResultsPaneProps) {
-    const [expanded, setExpanded] = useState<Set<string>>(new Set());
+    const [review, setReview] = useState(() => initialFieldsReview(props.content?.fields ?? [], props.preferences?.order ?? {}));
+    const [localSettings, setLocalSettings] = useState({ ...defaultReviewSettings });
     const { hideMissing, view } = props;
-    const [tableChoice, setTableChoice] = useState<{ tables: CuContent["tables"]; index: number } | null>(null);
+    const settings = props.preferences?.settings ?? localSettings;
+    const restoringFocus = useRef(false);
+    const panel = useRef<HTMLDivElement>(null);
+    const scrollPositions = useMemo(() => new Map<string, { top: number; left: number }>(), [props.workflow.context]);
+    const tableScroll = useMemo(() => new Map<string, number>(), [props.workflow.context]);
+    const copyContext = useMemo(() => ({}), [props.workflow.context, props.workflow.generation]);
+    const fieldsReveal = useRef<number | null>(null);
+    const tableViewRequest = useRef<number | null>(null);
+    const skipFieldsRestore = useRef<number | null>(null);
+    const scopeSnapshot = useRef<{
+        expanded: FieldsReviewState["expanded"]; focused: string | null;
+        position: { top: number; left: number }; arrays: Map<string, number>;
+    } | null>(null);
+    const pendingScopeRestore = useRef<typeof scopeSnapshot.current>(null);
+    const fieldsContext = useRef(props.workflow.context);
+    if (fieldsContext.current !== props.workflow.context) {
+        fieldsContext.current = props.workflow.context; fieldsReveal.current = null;
+        tableViewRequest.current = null; skipFieldsRestore.current = null;
+        scopeSnapshot.current = null; pendingScopeRestore.current = null;
+    }
+    if (props.tableScope && !scopeSnapshot.current) {
+        pendingScopeRestore.current = null;
+        const scroll = panel.current?.querySelector<HTMLElement>(".cu-fields-scroll");
+        const arrays = new Map(tableScroll);
+        panel.current?.querySelectorAll<HTMLElement>("[data-array-id]").forEach(element => {
+            if (element.dataset.arrayId) arrays.set(element.dataset.arrayId, element.scrollLeft);
+        });
+        scopeSnapshot.current = { expanded: new Set(review.expanded), focused: review.focused, arrays,
+            position: scroll ? { top: scroll.scrollTop, left: scroll.scrollLeft } :
+                scrollPositions.get("fields:0") ?? { top: 0, left: 0 } };
+    } else if (!props.tableScope && scopeSnapshot.current) {
+        const snapshot = scopeSnapshot.current;
+        scopeSnapshot.current = null;
+        tableScroll.clear();
+        snapshot.arrays.forEach((value, key) => tableScroll.set(key, value));
+        scrollPositions.set("fields:0", snapshot.position);
+        pendingScopeRestore.current = props.sourceSelection ? null : snapshot;
+        // Restore base expansion before Fields can consume a fresh source-selection request.
+        setReview({ ...review, expanded: snapshot.expanded, focused: snapshot.focused });
+    }
     const tabBaseId = useId();
     const tabs = useMemo(() => availableResultTabs(props.content, props.result, props.apiVersion),
         [props.content, props.result, props.apiVersion]);
     const activeTab = tabs.find(tab => tab.id === view);
-    const tableIndex = tableChoice?.tables === props.content?.tables ? tableChoice?.index ?? 0 : 0;
-    const visibleFields = (props.content?.fields ?? []).filter(field => !hideMissing || field.hasValue);
-    const renderField = (field: CuField, depth: number) => {
-        if (hideMissing && !field.hasValue) return null;
-        const group = field.children.length > 0;
-        const closed = !expanded.has(field.id);
-        const color = fieldColor(field, props.content?.fields ?? []);
-        const region = primaryRegion(field);
-        const displayName = fieldDisplayName(field);
-        const pageAvailable = region ? props.isPageAvailable(region.pageNumber) : false;
-        const selected = props.selected?.id === field.id || (group && closed && props.selected?.id.startsWith(`${field.id}/`));
-        const children = field.children.filter(child => !hideMissing || child.hasValue);
-        const valueId = `${tabBaseId}-value-${encodeURIComponent(field.id)}`;
-        const confidenceId = `${tabBaseId}-confidence-${encodeURIComponent(field.id)}`;
-        const childrenId = `${tabBaseId}-children-${encodeURIComponent(field.id)}`;
-        const description = props.previewId && props.hovered?.id === field.id && props.sourceReady && region && pageAvailable ?
-            `${props.previewId}-content` : [group ? undefined : valueId, field.confidence === undefined ? undefined : confidenceId].filter(Boolean).join(" ") || undefined;
-        return <div className={depth === 0 ? "cu-field-block" : "cu-nested-field-block"} key={field.id}>
-            <div
-                className={`cu-field${group ? " is-group" : ""}${depth > 0 ? " is-nested" : ""}${selected ? " is-selected" : ""}${props.hovered?.id === field.id ? " is-hovered" : ""}`}
-                style={{ paddingLeft: `${depth === 0 ? 14 : 36 + Math.min(depth - 1, 7) * 16}px` }}
-                data-field-id={field.id}
-                data-field-depth={depth}
-                data-field-type={field.type}
-                onMouseEnter={() => props.onHover(field)}
-                onMouseLeave={() => props.onLeave(field)}
-                onFocus={event => {
-                    if (!event.currentTarget.contains(event.relatedTarget)) props.onHover(field, false);
-                }}
-                onBlur={event => {
-                    if (!event.currentTarget.contains(event.relatedTarget)) props.onLeave(field);
-                }}
-            >
-                <div className="cu-field-heading">
-                    {depth === 0 && <span className="cu-dot" aria-hidden="true"
-                        style={{ background: region ? color : "transparent", borderColor: region ? color : "#0078d4" }} />}
-                    <button type="button" className="cu-field-name" aria-pressed={props.selected?.id === field.id}
-                        aria-describedby={description}
-                        title={region ? fieldLabel(field) : `${fieldLabel(field)} · No source region`}
-                        onClick={() => props.onSelect(field)}>{displayName}</button>
-                    {depth === 0 && region && <button
-                        type="button" className="cu-page-badge" disabled={!props.sourceReady || !pageAvailable}
-                        aria-label={`Locate ${displayName} on page ${region.pageNumber}`}
-                        title={!props.sourceReady ? "Source is not ready for navigation." :
-                            !pageAvailable ? unavailableSourcePageMessage(region.pageNumber) : undefined}
-                        onClick={() => props.onSelect(field)}
-                    >p.{region.pageNumber}</button>}
-                    <span className="cu-field-spacer" />
-                    {field.confidence !== undefined && <span className="cu-confidence" title="Confidence supplied by the service">
-                        {formatConfidence(field.confidence)}
-                    </span>}
-                    {field.confidence !== undefined && <span id={confidenceId} className="cu-visually-hidden">
-                        Confidence {formatConfidence(field.confidence)}
-                    </span>}
-                    {group && <button
-                        type="button" className="cu-expand" aria-label={`${closed ? "Expand" : "Collapse"} ${displayName}`}
-                        aria-expanded={!closed}
-                        aria-controls={closed ? undefined : childrenId}
-                        onClick={() => setExpanded(current => {
-                            const next = new Set(current);
-                            if (closed) next.add(field.id);
-                            else next.delete(field.id);
-                            return next;
-                        })}
-                    ><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                        <path d={closed ? "M4 6 8 10 12 6" : "M4 10 8 6 12 10"} fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg></button>}
-                </div>
-                {!group && <button type="button" className={`cu-field-value${!field.hasValue ? " is-missing" : ""}`}
-                    aria-label={`Select value of ${fieldLabel(field)}`} aria-describedby={description}
-                    aria-pressed={props.selected?.id === field.id} onClick={() => props.onSelect(field)}>
-                    <span id={valueId}>{displayValue(field)}</span>
-                </button>}
-            </div>
-            {group && !closed && <div id={childrenId}>{children.length ? children.map(child => renderField(child, depth + 1)) :
-                <div className="cu-hidden-child-note">No returned values. Turn off Hide missing fields to inspect missing entries.</div>}</div>}
-        </div>;
+    useEffect(() => {
+        setReview(initialFieldsReview(props.content?.fields ?? [], props.preferences?.order ?? {}));
+    }, [props.workflow.context]);
+    const restoreFieldFocus = (field: CuField, trigger?: HTMLElement): void => {
+        const controls = [...(panel.current?.querySelectorAll<HTMLElement>("[data-review-focus]") ?? [])];
+        const direct = trigger?.isConnected ? trigger : controls.find(item => item.dataset.reviewFocus === field.id);
+        const element = direct ?? controls.filter(item => field.id.startsWith(`${item.dataset.reviewFocus}/`)).at(-1) ??
+            panel.current?.querySelector<HTMLInputElement>('input[type="search"]');
+        restoringFocus.current = true;
+        element?.focus({ preventScroll: true });
+        const viewport = !direct && element?.closest<HTMLElement>(".cu-fields-scroll");
+        if (viewport && element) revealFieldTarget(element, viewport);
+        restoringFocus.current = false;
     };
+    const closeMenu = (restore: boolean): void => {
+        if (restore && props.workflow.menu) restoreFieldFocus(props.workflow.menu.field, props.workflow.menu.trigger);
+        props.workflow.closeMenu();
+    };
+    const openMenu = (field: CuField, trigger: HTMLElement): void => {
+        if (props.onDismissPreview) props.onDismissPreview(); else props.onLeave(field);
+        props.workflow.openMenu(field, trigger);
+    };
+    const changeView = (next: ResultView): void => {
+        panel.current?.querySelectorAll<HTMLElement>(".cu-fields-scroll, .cu-rich-result-scroll, .cu-table-scroll").forEach((element, index) => {
+            scrollPositions.set(`${view}:${index}`, { top: element.scrollTop, left: element.scrollLeft });
+        });
+        panel.current?.querySelectorAll<HTMLElement>("[data-array-id]").forEach(element => {
+            if (element.dataset.arrayId) tableScroll.set(element.dataset.arrayId, element.scrollLeft);
+        });
+        props.onViewChange(next);
+    };
+    useLayoutEffect(() => {
+        const request = props.selectionRequest;
+        if (!props.sourceTableSelection || !props.tableLocation || !request || request === tableViewRequest.current) return;
+        tableViewRequest.current = request;
+        if (view !== "fields") {
+            skipFieldsRestore.current = request;
+            changeView("fields");
+        }
+    }, [props.selectionRequest, props.sourceTableSelection, props.tableLocation, view]);
+    useLayoutEffect(() => {
+        const element = panel.current;
+        if (!element || !view) return;
+        if (view === "fields" && skipFieldsRestore.current === props.selectionRequest && skipFieldsRestore.current !== null) {
+            skipFieldsRestore.current = null;
+            return;
+        }
+        let observer: MutationObserver | undefined;
+        const restore = (): boolean => {
+            const targets = element.querySelectorAll<HTMLElement>(".cu-fields-scroll, .cu-rich-result-scroll, .cu-table-scroll");
+            targets.forEach((scroll, index) => {
+                const position = scrollPositions.get(`${view}:${index}`);
+                if (position) { scroll.scrollTop = position.top; scroll.scrollLeft = position.left; }
+            });
+            if (targets.length) observer?.disconnect();
+            return targets.length > 0;
+        };
+        if (!restore()) {
+            observer = new MutationObserver(restore);
+            observer.observe(element, { childList: true, subtree: true });
+        }
+        return () => observer?.disconnect();
+    }, [view, scrollPositions]);
+    useLayoutEffect(() => {
+        const snapshot = pendingScopeRestore.current, scroll = panel.current?.querySelector<HTMLElement>(".cu-fields-scroll");
+        if (!snapshot || props.tableScope || !scroll) return;
+        pendingScopeRestore.current = null;
+        scroll.scrollTop = snapshot.position.top; scroll.scrollLeft = snapshot.position.left;
+        scroll.querySelectorAll<HTMLElement>("[data-array-id]").forEach(element => {
+            if (element.dataset.arrayId) element.scrollLeft = snapshot.arrays.get(element.dataset.arrayId) ?? 0;
+        });
+    });
     const panelId = `${tabBaseId}-panel`;
     const contentSelector = props.contents.length > 1 && <label className="cu-content-selector">Content
         <select aria-label="Result content" value={props.contentIndex} onChange={event => props.onContentChange(Number(event.target.value))}>
@@ -136,7 +189,7 @@ export function ResultsPane(props: ResultsPaneProps) {
     </label>;
     return <section className="cu-fields-pane" aria-label="Extraction results">
         {contentSelector}
-        <ResultTabs tabs={tabs} view={view} baseId={tabBaseId} panelId={panelId} onViewChange={props.onViewChange} />
+        <ResultTabs tabs={tabs} view={view} baseId={tabBaseId} panelId={panelId} onViewChange={changeView} />
         <span className="cu-visually-hidden" role="status">{props.selected ? `Pinned: ${fieldLabel(props.selected)}` : "No field selected"}</span>
         <div
             id={panelId}
@@ -145,6 +198,13 @@ export function ResultsPane(props: ResultsPaneProps) {
             aria-label={view ? undefined : "Result status"}
             tabIndex={0}
             className="cu-result-panel"
+            ref={panel}
+            onScrollCapture={event => {
+                if (!(event.target instanceof HTMLElement)) return;
+                const elements = [...event.currentTarget.querySelectorAll(".cu-fields-scroll, .cu-rich-result-scroll, .cu-table-scroll")];
+                const index = elements.indexOf(event.target);
+                if (index >= 0) scrollPositions.set(`${view}:${index}`, { top: event.target.scrollTop, left: event.target.scrollLeft });
+            }}
         >
             {props.error && <div className="cu-state cu-error" role="alert">
                 <h2>Result could not be read</h2><p>{props.error}</p>
@@ -155,21 +215,23 @@ export function ResultsPane(props: ResultsPaneProps) {
             {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} result warnings</summary>
                 <ul>{props.issues.map((issue, index) => <li key={index}><strong>{issue.code}</strong>: {issue.message} <code>{issue.path}</code></li>)}</ul>
             </details>}
-            {view === "fields" && <>
-                <div className="cu-fields-options">
-                    <span>Hide missing fields</span>
-                    <button type="button" role="switch" aria-label="Hide missing fields" aria-checked={hideMissing}
-                        className="cu-hide-missing-switch" disabled={!props.content || Boolean(props.error)}
-                        onClick={() => {
-                            const next = !hideMissing;
-                            props.onHideMissingChange(next);
-                            if (next && ((props.selected && !props.selected.hasValue) || (props.hovered && !props.hovered.hasValue))) props.onClear();
-                        }}
-                    ><span /></button>
-                </div>
-                {visibleFields.length ? <div className="cu-fields-scroll">{visibleFields.map(field => renderField(field, 0))}</div> :
-                    <div className="cu-state"><h2>No returned fields</h2><p>Turn off Hide missing fields to inspect missing values.</p></div>}
-            </>}
+            {view === "fields" && props.content && <FieldsPane fields={props.content.fields} settings={settings}
+                onSettings={props.preferences?.changeSettings ?? setLocalSettings}
+                order={props.preferences?.order ?? {}} onOrder={props.preferences?.changeOrder ?? (() => {})}
+                orderReadOnly={props.preferences?.orderReadOnly ?? true}
+                review={review} setReview={setReview} hideMissing={hideMissing} onHideMissing={next => {
+                    props.onHideMissingChange(next);
+                    if (next && props.selected && !props.selected.hasValue && !isFieldGroup(props.selected)) props.onClear();
+                    else if (next && props.hovered && !props.hovered.hasValue) props.onDismissPreview?.();
+                }}
+                selected={props.selected} hovered={props.hovered} workflow={props.workflow} menuId={`${tabBaseId}-value-menu`}
+                onMenu={openMenu} onHover={props.onHover} onLeave={props.onLeave} onSelect={props.onSelect}
+                sourceReady={props.sourceReady} pageNumber={props.pageNumber ?? 1} isPageAvailable={props.isPageAvailable}
+                restoringFocus={restoringFocus} tableScroll={tableScroll} selectionRequest={props.selectionRequest ?? null} handledReveal={fieldsReveal}
+                sourceSelection={(props.sourceSelection || props.sourceTableSelection) ?? false} tableLocation={props.tableLocation ?? null}
+                tableSelection={props.sourceTableSelection ?? false} tableScope={props.tableScope ?? null}
+                onShowAllFields={props.onShowAllFields}
+                orderControlled={props.preferences?.controlled ?? false} preferenceError={Boolean(props.preferences?.storageError)} />}
             {view === "markdown" && <Suspense fallback={<div className="cu-state" role="status">Loading Markdown view…</div>}>
                 <MarkdownPane markdown={props.content?.markdown} />
             </Suspense>}
@@ -181,27 +243,50 @@ export function ResultsPane(props: ResultsPaneProps) {
                 {view === "paragraphs" && <ParagraphsPane paragraphs={props.content?.paragraphs ?? []}
                     selected={props.selected} hovered={props.hovered} previewId={props.previewId}
                     onHover={props.onHover} onLeave={props.onLeave} onSelect={props.onSelect} />}
-                {view === "tables" && <TablesPane tables={props.content?.tables ?? []}
-                    index={tableIndex} onTableChange={index => {
-                        const table = props.content?.tables?.[index];
-                        if (!table) throw new Error("The chosen table does not exist.");
-                        setTableChoice({ tables: props.content?.tables, index });
-                        props.onSelect(table.field);
-                    }} selected={props.selected} onSelect={props.onSelect} />}
                 {view === "figures" && props.content && <FiguresPane figures={props.content.figures ?? []}
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
                 {view === "signatures" && props.content && <SignaturesPane signatures={props.content.signatures ?? []}
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
-                {view === "metadata" && <MetadataPane metadata={props.content?.metadata ?? {}} />}
+                {view === "metadata" && <MetadataPane metadata={props.content?.metadata ?? {}} copyContext={copyContext} />}
             </Suspense>}
         </div>
-        <footer className="cu-results-footer">
-            {view === "fields" && "Field colors link to source regions. Confidence is supplied by CU, not an accuracy judgment."}
+        <ValueDetails workflow={props.workflow} threshold={settings.threshold} onClose={() => {
+            if (props.workflow.inspected) restoreFieldFocus(props.workflow.inspected);
+            props.workflow.closeDetails();
+        }} />
+        {props.workflow.feedback && <div className={`cu-copy-feedback${props.workflow.feedback.status === "error" ? " cu-inline-error" : ""}`}
+            role={props.workflow.feedback.status === "error" ? "alert" : "status"}>
+            {props.workflow.feedback.message}
+            {props.workflow.feedback.status === "error" && <pre tabIndex={0}>{copyValue(props.workflow.feedback.field)}</pre>}
+        </div>}
+        {props.workflow.menu && <ActionMenu id={`${tabBaseId}-value-menu`} label="Value actions" kind="value"
+            anchor={props.workflow.menu.trigger} onClose={closeMenu}
+            actions={[
+                ...(fieldRegions(props.workflow.menu.field).length ?
+                    [...new Set(fieldRegions(props.workflow.menu.field).map(region => region.pageNumber))].map(pageNumber => ({
+                        label: `Locate on page ${pageNumber}`,
+                        icon: "locate" as const,
+                        disabled: !props.sourceReady || !props.isPageAvailable(pageNumber),
+                        title: !props.sourceReady ? "Source is not ready for navigation." :
+                            !props.isPageAvailable(pageNumber) ? unavailableSourcePageMessage(pageNumber) : undefined,
+                        run: () => {
+                            const field = props.workflow.menu?.field;
+                            if (field) {
+                                const index = fieldRegions(field).findIndex(region => region.pageNumber === pageNumber);
+                                if (props.onLocate) props.onLocate(field, index); else props.onSelect(field);
+                            }
+                        },
+                    })) : [{ label: "No source region", icon: "locate" as const, disabled: true, run: () => {} }]),
+                { label: "View full value and confidence", icon: "info", run: () => { if (props.workflow.menu) props.workflow.inspect(props.workflow.menu.field); } },
+                { label: "Copy value", icon: "copy", disabled: !props.workflow.menu.field.hasValue,
+                    run: () => { if (props.workflow.menu) void props.workflow.copy(props.workflow.menu.field); } },
+            ]} />}
+        {view !== "fields" && <footer className="cu-results-footer">
             {view === "markdown" && "Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered."}
             {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
-            {["paragraphs", "tables", "figures", "signatures"].includes(view ?? "") &&
+            {["paragraphs", "figures", "signatures"].includes(view ?? "") &&
                 "Select a returned item to locate its source. All regions on the active source page are highlighted; region controls reach other pages."}
             {view === "metadata" && "Returned string metadata. Values and property order are preserved."}
-        </footer>
+        </footer>}
     </section>;
 }

@@ -2,15 +2,24 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { ready, selectResultView } from "./viewerAssertions";
 
-const labels = ["Fields", "Markdown", "Paragraphs", "Tables", "Figures", "Signatures", "Metadata", "Result"];
+const labels = ["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Metadata", "Result"];
 
 async function setResultsWidth(page: Page, width: number): Promise<void> {
-    await page.locator(".cu-viewer").evaluate((element, width) => {
+    await page.locator(".cu-viewer").evaluate(async (element, width) => {
         const pane = element.querySelector(".cu-fields-pane");
         const bar = element.querySelector(".cu-result-tabs");
         if (!(element instanceof HTMLElement) || !pane || !bar) throw new Error("Result layout is unavailable.");
         const borders = pane.getBoundingClientRect().width - bar.getBoundingClientRect().width;
-        element.style.gridTemplateColumns = `minmax(400px, 1fr) ${width + borders}px`;
+        const style = getComputedStyle(bar);
+        const padding = Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
+        await new Promise<void>(resolve => {
+            const observer = new ResizeObserver(() => {
+                observer.disconnect();
+                requestAnimationFrame(() => resolve());
+            });
+            observer.observe(bar);
+            element.style.gridTemplateColumns = `minmax(570px, 1fr) 8px ${Math.max(440, width + borders + padding)}px`;
+        });
     }, width);
 }
 
@@ -95,9 +104,9 @@ test("keyboard operates overflow items, dismissal and every tab with correct foc
     await expect(pane.getByRole("menu")).toHaveCount(0);
     await expect(pane.getByRole("tabpanel")).toBeFocused();
     await more.press("ArrowDown");
-    await pane.getByRole("menuitem", { name: "Tables", exact: true }).press("Space");
-    await expect(pane.getByRole("tab", { name: "Tables", exact: true })).toBeFocused();
-    await expect(pane.getByRole("table")).toHaveCount(1);
+    await pane.getByRole("menuitem", { name: "Metadata", exact: true }).press("Space");
+    await expect(pane.getByRole("tab", { name: "Metadata", exact: true })).toBeFocused();
+    await expect(pane.getByRole("table", { name: "Returned metadata", exact: true })).toHaveCount(1);
 });
 
 test("container resizing uses the exact fit threshold without a window resize and retains selection", async ({ page }) => {
@@ -110,6 +119,7 @@ test("container resizing uses the exact fit threshold without a window resize an
         const gap = Number.parseFloat(getComputedStyle(element).columnGap);
         return tabs.reduce((width, tab) => width + tab.getBoundingClientRect().width, 0) + gap * (tabs.length - 1);
     });
+
     await pane.getByRole("button", { name: "More result views" }).click();
     await setResultsWidth(page, requiredWidth);
     await expect(pane.getByRole("tab")).toHaveText(labels);
@@ -122,6 +132,21 @@ test("container resizing uses the exact fit threshold without a window resize an
     expect(await pane.getByRole("tab").count()).toBeLessThan(labels.length);
     await expect(metadata).toHaveAttribute("aria-selected", "true");
     await expect(metadata).toBeFocused();
+});
+
+test("the active replacement tab does not overlap More and remains genuinely clickable", async ({ page }) => {
+    const pane = page.getByRole("region", { name: "Extraction results" });
+    await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
+    const result = pane.getByRole("tab", { name: "Result", exact: true });
+    await result.click();
+    const tab = await result.boundingBox();
+    const more = pane.getByRole("button", { name: "More result views", exact: true });
+    if (await more.isVisible()) {
+        const bounds = await more.boundingBox();
+        if (!tab || !bounds) throw new Error("Result replacement-tab bounds are unavailable.");
+        expect(tab.x + tab.width).toBeLessThanOrEqual(bounds.x);
+    }
+    await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
 });
 
 test("viewport widths keep visible controls in one row without horizontal tab scrolling", async ({ page }) => {

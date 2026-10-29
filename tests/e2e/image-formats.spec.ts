@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { checkPolygon, ready } from "./viewerAssertions";
+import { checkPolygon, ready, rotateSource } from "./viewerAssertions";
 import { alive, holdRequest, trackSourceResources } from "./sourceResources";
 
 const hostUrl = `/@fs/${resolve("tests", "e2e", "source-inputs.html").replaceAll("\\", "/")}`;
@@ -52,16 +52,16 @@ for (const dpr of [1, 2]) {
                 await page.getByLabel("Choose source file").setInputFiles({
                     name: `receipt.${extension}`, mimeType: "application/octet-stream", buffer: readFileSync(source),
                 });
-                await expect(page.locator(".cu-source-heading")).toContainText(`receipt.${extension}`);
+                await expect(page.getByLabel("Source information")).toContainText(`receipt.${extension}`);
                 await ready(page);
-                await expect(page.locator(".cu-source-heading")).toContainText("1743 × 878 px");
-                await expect(page.locator("[data-field-depth='0']")).toHaveCount(11);
+                await expect(page.getByLabel("Source information")).toContainText("1743 × 878 px");
+                await expect(page.locator("[data-field-depth='0']")).toHaveCount(12);
                 await expect.poll(async () => (await alive(page)).bitmaps).toBe(1);
                 await page.getByRole("button", { name: "MerchantName", exact: true }).click();
                 await page.locator(".prototype-banner").hover();
                 for (let rotation = 0; rotation < 360; rotation += 90) {
                     await checkPolygon(page, receiptPoints, rotation);
-                    await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+                    await rotateSource(page);
                     await ready(page);
                 }
                 await expect(page.locator('[data-field-id="/contents/0/fields/MerchantName"] .cu-field-value')).toHaveText("Contoso");
@@ -95,9 +95,9 @@ for (const dpr of [1, 2]) {
                     name: "synthetic-exif-grounding.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(result)),
                 });
                 await page.getByLabel("Choose source file").setInputFiles(resolve(imageDirectory, `orientation-${orientation}.jpg`));
-                await expect(page.locator(".cu-source-heading")).toContainText(`orientation-${orientation}.jpg`);
+                await expect(page.getByLabel("Source information")).toContainText(`orientation-${orientation}.jpg`);
                 await ready(page);
-                await expect(page.locator(".cu-source-heading")).toContainText(`${width} × ${height} px`);
+                await expect(page.getByLabel("Source information")).toContainText(`${width} × ${height} px`);
                 await page.getByRole("button", { name: "SyntheticCorner", exact: true }).click();
                 await page.locator(".prototype-banner").hover();
                 let order = orders[orientation - 1];
@@ -117,7 +117,7 @@ for (const dpr of [1, 2]) {
                         expected.forEach((channel, component) => expect(Math.abs((color[component] ?? -1000) - channel)).toBeLessThanOrEqual(5));
                     }
                     order = [order[2] ?? -1, order[0] ?? -1, order[3] ?? -1, order[1] ?? -1];
-                    await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+                    await rotateSource(page);
                     await ready(page);
                 }
             }
@@ -134,7 +134,7 @@ test("packaged HEIF/HEIC decoding is lazy, keeps caller bytes and shares source 
         await page.getByRole("combobox", { name: "Source input", exact: true }).selectOption(kind);
         await page.getByRole("button", { name: "Load HEIF", exact: true }).click();
         await ready(page);
-        await expect(page.locator(".cu-source-heading")).toContainText("1280 × 854 px");
+        await expect(page.getByLabel("Source information")).toContainText("1280 × 854 px");
         await page.getByRole("button", { name: "SyntheticRegion", exact: true }).click();
         await page.getByRole("heading", { name: "Public-source input test host" }).hover();
         await checkPolygon(page, heifPoints, 0);
@@ -154,13 +154,13 @@ test("packaged HEIF/HEIC decoding is lazy, keeps caller bytes and shares source 
     await ready(page);
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles(resolve(imageDirectory, "example.synthetic.cu.json"));
     await page.getByLabel("Choose source file").setInputFiles({ name: "example.heif", mimeType: "image/heif", buffer: heifBytes });
-    await expect(page.locator(".cu-source-heading")).toContainText("example.heif");
+    await expect(page.getByLabel("Source information")).toContainText("example.heif");
     await ready(page);
     await page.getByRole("button", { name: "SyntheticRegion", exact: true }).click();
     await page.locator(".prototype-banner").hover();
     for (let rotation = 0; rotation < 360; rotation += 90) {
         await checkPolygon(page, heifPoints, rotation);
-        await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+        await rotateSource(page);
         await ready(page);
     }
 });
@@ -169,7 +169,7 @@ test("packaged HEIF decoder matches the reviewed cross-browser RGBA corpus", asy
     await page.goto("/");
     await ready(page);
     const baselineWorkers = (await alive(page)).workers;
-    const moduleUrl = `/@fs/${resolve("src", "internal", "heifSource.ts").replaceAll("\\", "/")}`;
+    const moduleUrl = `/@fs/${resolve("frontend", "src", "source", "heifSource.ts").replaceAll("\\", "/")}`;
     for (const [name, width, height, sha256] of heifCodecFixtures) {
         const sourceUrl = `/@fs/${resolve(imageDirectory, "heic-rs", `${name}.heic`).replaceAll("\\", "/")}`;
         const actual = await page.evaluate(async ({ moduleUrl, sourceUrl }) => {
@@ -208,7 +208,7 @@ test("HEIF decoding succeeds under actual same-origin WASM-only worker CSP", asy
     expect(response?.headers()["content-security-policy"]).toBe(policy);
     await page.getByRole("button", { name: "Load HEIF", exact: true }).click();
     await ready(page);
-    await expect(page.locator(".cu-source-heading")).toContainText("1280 × 854 px");
+    await expect(page.getByLabel("Source information")).toContainText("1280 × 854 px");
     await release(page);
 });
 
@@ -271,7 +271,7 @@ for (const action of ["replace", "unmount"] as const) {
                 await page.getByRole("button", { name: "Load PNG", exact: true }).click();
                 await ready(page);
                 await held.release();
-                await expect(page.locator(".cu-source-heading")).toContainText("1743 × 878 px");
+                await expect(page.getByLabel("Source information")).toContainText("1743 × 878 px");
                 await expect(page.locator(".cu-field-value").first()).toHaveText("Contoso");
             } else {
                 await page.getByRole("button", { name: "Unmount viewer", exact: true }).click();

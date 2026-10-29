@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { checkPolygon, ready } from "./viewerAssertions";
+import { checkPolygon, ready, rotateSource } from "./viewerAssertions";
 import { alive, trackSourceResources } from "./sourceResources";
 
 async function upload(page: Page, result: unknown): Promise<void> {
@@ -21,11 +21,11 @@ test.beforeEach(async ({ page, context }) => {
     await ready(page);
 });
 
-test("real paragraphs and native table cells navigate and retain source transforms and selection", async ({ page }) => {
+test("real paragraphs and source tables navigate existing results without resetting source transforms", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
     await page.getByRole("button", { name: "Zoom in", exact: true }).click();
     await ready(page);
-    await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+    await rotateSource(page);
     await ready(page);
     const zoom = await page.getByLabel("Zoom percentage").textContent();
     await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
@@ -42,24 +42,18 @@ test("real paragraphs and native table cells navigate and retain source transfor
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
 
-    await pane.getByRole("tab", { name: "Tables", exact: true }).click();
-    await expect(pane.getByRole("table")).toHaveCount(1);
-    await expect(pane.locator(".cu-table-navigation")).toContainText("1 of 9");
-    await expect(pane.getByRole("columnheader", { name: /SALESPERSON/ }).first()).toBeVisible();
-    const cell = pane.getByRole("button", { name: "Select Table 1, row 1, column 1", exact: true });
-    await cell.press("Space");
+    const table = page.getByTestId("source-tables").getByRole("button", { name: "Locate Table 9 in results", exact: true });
+    await table.press("Space");
     await ready(page);
-    await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
-    await checkPolygon(page, [
-        { x: 0.4973 / 8.5, y: 4.5658 / 11 }, { x: 1.809 / 8.5, y: 4.5659 / 11 },
-        { x: 1.809 / 8.5, y: 4.837 / 11 }, { x: 0.497 / 8.5, y: 4.837 / 11 },
-    ], 90);
+    await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
+    await expect(pane.getByRole("tab", { name: "Fields", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(pane.locator(".cu-fields-review-footer")).toContainText("no corresponding extracted fields");
+    await expect(pane.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
-    await pane.getByRole("tab", { name: "Tables", exact: true }).click();
-    await expect(cell).toHaveAttribute("aria-pressed", "true");
-    await expect(pane.getByRole("status")).toHaveText("Pinned: Table 1, row 1, column 1");
+    await pane.getByRole("tab", { name: "Fields", exact: true }).click();
+    await expect(pane.locator(".cu-fields-review-footer")).toContainText("no corresponding extracted fields");
 });
 
 test.describe("source thumbnails at DPR 2", () => {
@@ -123,7 +117,7 @@ test.describe("source thumbnails at DPR 2", () => {
     });
 });
 
-test("multi-region details reach all pages, native merged cells preserve structure and invalid grids fail explicitly", async ({ page }) => {
+test("multi-region details reach all pages and raw merged/invalid native tables remain inspectable", async ({ page }) => {
     await upload(page, {
         apiVersion: "2026-06-01-preview",
         contents: [{
@@ -141,6 +135,7 @@ test("multi-region details reach all pages, native merged cells preserve structu
         }],
     });
     const pane = page.getByRole("region", { name: "Extraction results" });
+    await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
     await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).click();
     await ready(page);
     await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCount(2);
@@ -160,13 +155,11 @@ test("multi-region details reach all pages, native merged cells preserve structu
         return data.some((value, index) => index % 4 !== 3 && value < 200);
     })).toBe(true);
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
-    await pane.getByRole("tab", { name: "Tables", exact: true }).click();
-    await expect(pane.getByRole("columnheader").first()).toHaveAttribute("colspan", "2");
-    await expect(pane.getByRole("table").getByRole("row")).toHaveCount(2);
-    await pane.getByRole("button", { name: "Select Table 1, row 2, column 1", exact: true }).press("Enter");
-    await ready(page);
+    await pane.getByRole("tab", { name: "Fields", exact: true }).click();
+    await expect(pane.getByRole("heading", { name: "No extracted fields", exact: true })).toBeVisible();
+    await expect(pane.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
-    await expect(page.getByTestId("source-overlay")).toBeVisible();
+    await expect(page.getByTestId("source-overlay")).toHaveCount(0);
     await upload(page, {
         apiVersion: "2025-11-01", contents: [{ kind: "document", tables: [{
             rowCount: 1, columnCount: 2, cells: [
@@ -175,8 +168,9 @@ test("multi-region details reach all pages, native merged cells preserve structu
             ],
         }] }],
     });
-    await expect(pane.getByRole("alert")).toContainText("spans overlap");
-    await expect(pane.getByRole("table")).toHaveCount(0);
+    await pane.locator(".cu-issues summary").click();
+    await expect(pane.locator(".cu-issues")).toContainText("spans overlap");
+    await expect(pane.getByRole("table", { name: /Returned table/ })).toHaveCount(0);
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(page.getByTestId("rendered-page")).toBeVisible();

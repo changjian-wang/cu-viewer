@@ -4,9 +4,38 @@ import type { Locator, Page } from "@playwright/test";
 const SOURCE_READY_TIMEOUT_MS = 15000;
 
 export async function ready(page: Page): Promise<void> {
-    await expect(page.getByRole("button", { name: "Zoom in", exact: true })).toBeEnabled({ timeout: SOURCE_READY_TIMEOUT_MS });
+    await expect(page.getByRole("group", { name: "Source viewport", exact: true }))
+        .toHaveAttribute("aria-disabled", "false", { timeout: SOURCE_READY_TIMEOUT_MS });
     await expect(page.getByTestId("rendered-page")).toBeVisible({ timeout: SOURCE_READY_TIMEOUT_MS });
     await expect(page.getByRole("alert")).toHaveCount(0);
+}
+
+export async function fitSource(page: Page, mode: "page" | "width"): Promise<void> {
+    await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption(mode);
+    await ready(page);
+}
+
+export async function locateGroup(page: Page, fieldId: string): Promise<void> {
+    const row = page.locator(`.cu-fields-table > tbody > tr[data-field-id="${fieldId}"]`);
+    await row.hover();
+    await row.locator(".cu-page-badge").click();
+}
+
+export async function expandField(page: Page, name: string): Promise<void> {
+    const button = page.getByRole("button", { name, exact: true });
+    await expect(button).toHaveAttribute("aria-expanded", /^(true|false)$/);
+    if (await button.getAttribute("aria-expanded") === "false") await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "true");
+}
+
+export async function rotateSource(page: Page): Promise<void> {
+    const rotate = page.getByRole("button", { name: "Rotate 90°", exact: true });
+    if (await rotate.isVisible()) await rotate.click();
+    else {
+        await page.getByRole("button", { name: "More document actions", exact: true }).click();
+        await page.getByRole("menuitem", { name: "Rotate 90°", exact: true }).click();
+    }
+    await ready(page);
 }
 
 export async function selectResultView(pane: Locator, name: string): Promise<void> {

@@ -39,3 +39,28 @@ export function croppedRotatedPdf(): Buffer {
         stream(second),
     ]);
 }
+
+export function reviewPdf(): Buffer {
+    const line = (value: string, x: number, y: number): string =>
+        `BT /F1 12 Tf ${x * 72} ${792 - (y + 0.18) * 72} Td (${value}) Tj ET`;
+    const first = [
+        line("CU Viewer synthetic review fixture", 0.7, 0.5),
+        line("INV-100", 6, 1),
+        line("Microsoft Corp", 0.7, 1.8),
+        line("123 Other St", 0.7, 2.2),
+        line("Redmond", 0.7, 2.6),
+        line("Zero / boundary / no confidence", 0.7, 3.2),
+        line("Multiple source regions", 0.7, 4),
+        line("Line items", 0.7, 5),
+        line("Page-bottom value", 0.7, 10.5),
+    ].join("\n");
+    const second = line("Second page value", 0.7, 1.8);
+    return buildPdf([
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 6 0 R >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 7 0 R >>",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        stream(first), stream(second),
+    ]);
+}

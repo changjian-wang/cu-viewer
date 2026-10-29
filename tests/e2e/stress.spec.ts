@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { checkPolygon, ready } from "./viewerAssertions";
+import { checkPolygon, ready, fitSource, rotateSource } from "./viewerAssertions";
 import { alive, holdRequest, trackSourceResources } from "./sourceResources";
 
 const rounds = 100;
@@ -75,9 +75,9 @@ async function pin(page: Page, sample: "PDF" | "PNG"): Promise<void> {
 
 async function loadHostSample(page: Page, sample: "PDF" | "PNG"): Promise<void> {
     await page.getByRole("button", { name: `Load ${sample}`, exact: true }).click();
-    await expect(page.locator(".cu-source-heading")).toContainText(sample === "PDF" ? "PDF · 4 pages" : "1743 × 878 px");
+    await expect(page.getByLabel("Source information")).toContainText(sample === "PDF" ? "PDF · 4 pages" : "1743 × 878 px");
     await ready(page);
-    await expect(page.locator("[data-field-depth='0']")).toHaveCount(sample === "PDF" ? 28 : 11);
+    await expect(page.locator("[data-field-depth='0']")).toHaveCount(sample === "PDF" ? 31 : 12);
 }
 
 async function releaseHost(page: Page): Promise<void> {
@@ -105,14 +105,17 @@ test("100 PDF page/transform rounds preserve selection, primary geometry, resour
             await expect(number).toHaveValue("4");
             await page.locator(amountRow).hover();
             await ready(page);
+            await expect(number).toHaveValue("4");
+            await page.locator(amountRow).getByRole("button", { name: "Amount", exact: true }).click();
+            await ready(page);
             await neutral(page);
             await expect(number).toHaveValue("1");
             await expect(page.locator(amountRow).getByRole("button", { name: "Amount", exact: true })).toHaveAttribute("aria-pressed", "true");
 
-            await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+            await rotateSource(page);
             await ready(page);
             const rotation = (index + 1) * 90 % 360;
-            await page.getByRole("button", { name: index % 2 ? "Fit page" : "Fit width", exact: true }).click();
+            await fitSource(page, index % 2 ? "page" : "width");
             await ready(page);
             await checkPolygon(page, amountPoints, rotation);
             await page.getByRole("button", { name: "Zoom in", exact: true }).click();
@@ -133,7 +136,7 @@ test("100 PDF page/transform rounds preserve selection, primary geometry, resour
             expect(after.x - before.x).toBeCloseTo(37, 0);
             expect(after.y - before.y).toBeCloseTo(21, 0);
             await checkPolygon(page, amountPoints, rotation);
-            await page.getByRole("button", { name: "Fit page", exact: true }).click();
+            await fitSource(page, "page");
             await ready(page);
             await checkPolygon(page, amountPoints, rotation);
             await expect.poll(() => alive(page)).toEqual({ workers: 1, bitmaps: 0, urls: 0 });
@@ -145,7 +148,7 @@ test("100 PDF page/transform rounds preserve selection, primary geometry, resour
     await neutral(page);
     if (process.platform === "win32" && verifyProductScreenshots) await expect(page).toHaveScreenshot("pdf-pinned.png", { fullPage: true });
     await page.getByRole("button", { name: "Receipt PNG", exact: true }).click();
-    await expect(page.locator(".cu-source-heading")).toContainText("receipt.png");
+    await expect(page.getByLabel("Source information")).toContainText("receipt.png");
     await ready(page);
     await pin(page, "PNG");
     await expect.poll(() => alive(page)).toEqual({ workers: 0, bitmaps: 1, urls: 0 });
@@ -232,13 +235,13 @@ test("100 pending HTTP loads cancel on replacement or unmount without accepting 
                 await page.getByRole("button", { name: "Load PDF", exact: true }).click();
                 await held.started;
                 await expect(page.getByRole("heading", { name: "Loading source..." })).toBeVisible();
-                await expect(page.locator("[data-field-depth='0']")).toHaveCount(28);
+                await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
                 if (index % 2 === 0) {
                     await page.getByRole("combobox", { name: "Source input", exact: true }).selectOption("File");
                     await loadHostSample(page, "PNG");
                     await held.release();
                     await pin(page, "PNG");
-                    await expect(page.locator(".cu-source-heading")).toContainText("1743 × 878 px");
+                    await expect(page.getByLabel("Source information")).toContainText("1743 × 878 px");
                     replacements++;
                 } else {
                     await page.getByRole("button", { name: "Unmount viewer", exact: true }).click();

@@ -55,12 +55,12 @@ afterEach(() => {
 
 describe("responsive result tabs", () => {
     it("shows all tabs at the exact fit threshold and reserves the menu width below it", () => {
-        availableWidth = 668;
+        availableWidth = 584;
         render(<TestTabs />);
         expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(RESULT_TABS.map(tab => tab.label));
         expect(screen.queryByRole("button", { name: "More result views" })).toBeNull();
-        resize(667);
-        expect(screen.getAllByRole("tab")).toHaveLength(7);
+        resize(583);
+        expect(screen.getAllByRole("tab")).toHaveLength(6);
         expect(screen.getByRole("button", { name: "More result views" }).getAttribute("aria-expanded")).toBe("false");
         fireEvent.click(screen.getByRole("button", { name: "More result views" }));
         expect(screen.getAllByRole("menuitem").map(item => item.textContent)).toEqual(["Result"]);
@@ -73,8 +73,8 @@ describe("responsive result tabs", () => {
         fireEvent.click(more);
         expect(more.getAttribute("aria-expanded")).toBe("true");
         expect(screen.getAllByRole("menuitem").map(item => item.textContent))
-            .toEqual(["Tables", "Figures", "Signatures", "Metadata", "Result"]);
-        expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Tables" }));
+            .toEqual(["Figures", "Signatures", "Metadata", "Result"]);
+        expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Figures" }));
         fireEvent.click(screen.getByRole("menuitem", { name: "Metadata" }));
         expect(screen.queryByRole("menu")).toBeNull();
         expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Fields", "Markdown", "Metadata"]);
@@ -85,7 +85,7 @@ describe("responsive result tabs", () => {
         expect(screen.getByRole("tabpanel").getAttribute("aria-labelledby")).toBe(metadata.id);
         fireEvent.click(more);
         expect(screen.getAllByRole("menuitem").map(item => item.textContent))
-            .toEqual(["Paragraphs", "Tables", "Figures", "Signatures", "Result"]);
+            .toEqual(["Paragraphs", "Figures", "Signatures", "Result"]);
     });
 
     it("keeps every view reachable through arrows, Home and End with a single tab stop", () => {
@@ -105,15 +105,15 @@ describe("responsive result tabs", () => {
         render(<TestTabs />);
         const more = screen.getByRole("button", { name: "More result views" });
         fireEvent.keyDown(more, { key: "ArrowDown" });
-        const tables = screen.getByRole("menuitem", { name: "Tables" });
-        expect(document.activeElement).toBe(tables);
-        fireEvent.keyDown(tables, { key: "ArrowDown" });
-        expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Figures" }));
+        const figures = screen.getByRole("menuitem", { name: "Figures" });
+        expect(document.activeElement).toBe(figures);
+        fireEvent.keyDown(figures, { key: "ArrowDown" });
+        expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Signatures" }));
         fireEvent.keyDown(document.activeElement!, { key: "End" });
         expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Result" }));
         fireEvent.keyDown(document.activeElement!, { key: "Home" });
-        expect(document.activeElement).toBe(tables);
-        fireEvent.keyDown(tables, { key: "ArrowUp" });
+        expect(document.activeElement).toBe(figures);
+        fireEvent.keyDown(figures, { key: "ArrowUp" });
         expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Result" }));
         expect(screen.getByRole("tab", { name: "Fields" }).getAttribute("aria-selected")).toBe("true");
         fireEvent.keyDown(document.activeElement!, { key: "Escape" });
@@ -123,7 +123,7 @@ describe("responsive result tabs", () => {
         expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Result" }));
         act(() => more.focus());
         fireEvent.keyDown(more, { key: "ArrowDown" });
-        expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Tables" }));
+        expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Figures" }));
         act(() => more.focus());
         fireEvent.keyDown(more, { key: "Escape" });
         expect(screen.queryByRole("menu")).toBeNull();
@@ -154,7 +154,7 @@ describe("responsive result tabs", () => {
         resize(668);
         expect(screen.queryByRole("menu")).toBeNull();
         expect(screen.queryByRole("button", { name: "More result views" })).toBeNull();
-        expect(screen.getAllByRole("tab")).toHaveLength(8);
+        expect(screen.getAllByRole("tab")).toHaveLength(7);
         expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Metadata" }));
         expect(screen.getByRole("tabpanel").textContent).toBe("metadata");
     });

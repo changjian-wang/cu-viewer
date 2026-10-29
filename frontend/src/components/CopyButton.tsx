@@ -1,28 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 
-export function CopyButton({ value, label }: { value: string; label: string }) {
-    const current = useRef(value);
+export function CopyButton({ value, label, context }: { value: string; label: string; context?: object | undefined }) {
+    const current = useRef({ value, context });
+    const generation = useRef(0);
     const mounted = useRef(false);
-    const [state, setState] = useState<{ value: string; status: "copying" | "copied" | "error"; error?: string } | null>(null);
-    current.current = value;
+    const [state, setState] = useState<{ request: number; status: "copying" | "copied" | "error"; error?: string } | null>(null);
+    if (current.current.value !== value || current.current.context !== context) {
+        generation.current++;
+        current.current = { value, context };
+    }
     useEffect(() => {
         mounted.current = true;
-        return () => { mounted.current = false; };
+        return () => { mounted.current = false; generation.current++; };
     }, []);
-    const active = state?.value === value ? state : null;
+    const active = state?.request === generation.current ? state : null;
     const copying = active?.status === "copying";
     const copy = async (): Promise<void> => {
         if (copying) return;
         const copiedValue = value;
-        setState({ value, status: "copying" });
+        const request = ++generation.current;
+        const valid = (): boolean => mounted.current && request === generation.current &&
+            current.current.value === copiedValue && current.current.context === context;
+        setState({ request, status: "copying" });
         try {
             if (!navigator.clipboard?.writeText) throw new Error("Clipboard access is unavailable in this host.");
             await navigator.clipboard.writeText(copiedValue);
-            if (mounted.current && current.current === copiedValue) setState({ value: copiedValue, status: "copied" });
+            if (valid()) setState({ request, status: "copied" });
         } catch (error) {
-            if (mounted.current && current.current === copiedValue) {
-                setState({ value: copiedValue, status: "error", error: error instanceof Error ? error.message : String(error) });
-            }
+            if (valid()) setState({ request, status: "error", error: error instanceof Error ? error.message : String(error) });
+            else console.warn("An obsolete Viewer copy attempt failed.", error);
         }
     };
     return <span className="cu-copy-control">
