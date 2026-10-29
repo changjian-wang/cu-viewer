@@ -225,7 +225,9 @@
 .cu-search-box { display: flex; align-items: center; gap: 8px; border: 1px solid #dce3eb; border-radius: 5px; padding: 6px 10px; }
 .cu-search-box .cu-icon { width: 15px; height: 15px; color: #667487; }
 .cu-search-box input { min-width: 0; width: 100%; border: 0; padding: 0; outline: 0; font-size: 12px; background: transparent; }
-.cu-search-box:focus-within { outline: 2px solid #376fac; outline-offset: 1px; }
+.cu-viewer .cu-search-box input:focus-visible { outline: none; }
+.cu-search-box:hover { border-color: #bac7d6; }
+.cu-search-box:focus-within { border-color: var(--cu-focus); outline: 2px solid var(--cu-focus); outline-offset: -2px; }
 .cu-review-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; }
 .cu-filter-button { background: white; border: 1px solid var(--cu-border); border-radius: 4px; font-size: 11px !important; padding: 4px 6px; white-space: nowrap; }
 .cu-filter-button span { background: #f0f3f7; padding: 0 4px; border-radius: 3px; }

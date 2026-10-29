@@ -35,6 +35,53 @@ test.beforeEach(async ({ page }) => {
     await ready(page);
 });
 
+for (const focus of ["pointer", "keyboard"] as const) {
+    test(`search has one stable focus boundary with ${focus} focus`, async ({ page }) => {
+        const search = page.getByRole("searchbox", { name: "Search fields or values", exact: true });
+        const box = page.locator(".cu-search-box");
+        const boxBounds = await box.boundingBox();
+        const inputBounds = await search.boundingBox();
+        expect(boxBounds).not.toBeNull();
+        expect(inputBounds).not.toBeNull();
+        await expect(box).toHaveCSS("border-color", "rgb(220, 227, 235)");
+        await expect(box).toHaveCSS("border-top-width", "1px");
+        await expect(box).toHaveCSS("outline-style", "none");
+
+        if (focus === "pointer") await search.click();
+        else await tabTo(page, search);
+
+        await expect(search).toBeFocused();
+        await expect(search).toHaveCSS("outline-style", "none");
+        await expect(search).toHaveCSS("border-top-width", "0px");
+        await expect(search).toHaveCSS("box-shadow", "none");
+        await expect(box).toHaveCSS("border-color", "rgb(55, 111, 172)");
+        await expect(box).toHaveCSS("border-top-width", "1px");
+        await expect(box).toHaveCSS("border-radius", "5px");
+        await expect(box).toHaveCSS("outline", "rgb(55, 111, 172) solid 2px");
+        await expect(box).toHaveCSS("outline-offset", "-2px");
+        await expect(box).toHaveCSS("box-shadow", "none");
+        expect(await box.boundingBox()).toEqual(boxBounds);
+        expect(await search.boundingBox()).toEqual(inputBounds);
+
+        await search.fill("no-such-value");
+        await expect(page.getByRole("heading", { name: "No matching fields", exact: true })).toBeVisible();
+        await search.fill("");
+        await page.mouse.move(0, 0);
+        await search.press("Shift+Tab");
+        const columns = page.getByRole("button", { name: "3 columns", exact: true });
+        await expect(columns).toBeFocused();
+        await expect(columns).toHaveCSS("outline-style", "solid");
+        await expect(columns).toHaveCSS("outline-width", "2px");
+        await expect(box).toHaveCSS("outline-style", "none");
+        await expect(box).toHaveCSS("border-color", "rgb(220, 227, 235)");
+
+        await box.hover();
+        await expect(box).toHaveCSS("border-color", "rgb(186, 199, 214)");
+        expect(await box.boundingBox()).toEqual(boxBounds);
+        expect(await search.boundingBox()).toEqual(inputBounds);
+    });
+}
+
 test("desktop keyboard reaches source controls, pans, validates pages and retains focus after rendering", async ({ page }) => {
     const viewport = page.getByRole("group", { name: "Source viewport", exact: true });
     await tabTo(page, viewport);
