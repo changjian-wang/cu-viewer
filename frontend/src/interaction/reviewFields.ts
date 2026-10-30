@@ -70,7 +70,7 @@ export function sourceCategoryDisabledReason(category: SourceHighlightCategory, 
         return "Enable Show table highlights in settings.";
     }
     if ((category === "lowField" || category === "lowTable") && !settings.highlightLow) {
-        return "Enable Highlight low confidences in settings.";
+        return "Enable Show low confidence highlight in settings.";
     }
     if (category === "unavailable" && !settings.showFields && !settings.showTables) {
         return "Enable field or table highlights in settings.";

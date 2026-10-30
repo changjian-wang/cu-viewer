@@ -15,18 +15,21 @@ function source(render: LoadedSource["render"]): LoadedSource {
     };
 }
 
-function Harness({ source, onRenderReady, pageNumber = 1 }: {
+function Harness({ source, onRenderReady, pageNumber = 1, zoom = 1, rotation = 0, loading = false, error = null }: {
     source: LoadedSource | null; onRenderReady: (ready: boolean) => void; pageNumber?: number;
+    zoom?: number; rotation?: number; loading?: boolean; error?: string | null;
 }) {
     const rendering = useSourceRendering({
         source, page: source?.pages.find(page => page.pageNumber === pageNumber),
-        pageNumber, zoom: 1, rotation: 0, available, loading: false, error: null, onRenderReady,
+        pageNumber, zoom, rotation, available, loading, error, onRenderReady,
     });
-    return <div ref={rendering.renderedPage} data-testid="frame" data-ready={rendering.ready}
-        style={{ width: rendering.size?.width, height: rendering.size?.height }}>
+    return <><div ref={rendering.renderedPage} data-testid="frame" data-ready={rendering.ready}
+        data-preview={rendering.hasPreview} data-layers={rendering.layersReady}
+        style={{ width: rendering.size?.width, height: rendering.size?.height, visibility: rendering.hasPreview ? "visible" : "hidden" }}>
         <canvas ref={rendering.canvas} data-testid="canvas" />
+    </div>
         {rendering.renderError && <span role="alert">{rendering.renderError}</span>}
-    </div>;
+    </>;
 }
 
 beforeEach(() => {
@@ -42,6 +45,109 @@ afterEach(() => {
 });
 
 describe("source rendering ownership", () => {
+    it("keeps the previous painted raster during zoom while aborting obsolete work and waiting for current layers", async () => {
+        const jobs: { signal: AbortSignal; canvas: HTMLCanvasElement; finish: () => void }[] = [];
+        const loaded = source((_page, canvas, zoom, _rotation, signal) => {
+            canvas.width = 200 * zoom;
+            canvas.height = 100 * zoom;
+            return new Promise(resolve => {
+                jobs.push({ signal, canvas, finish: () => resolve({ width: 100 * zoom, height: 50 * zoom }) });
+            });
+        });
+        const onRenderReady = vi.fn();
+        const { rerender } = render(<Harness source={loaded} onRenderReady={onRenderReady} />);
+        await waitFor(() => expect(jobs).toHaveLength(1));
+        expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("false");
+        await act(async () => { jobs[0]!.finish(); await Promise.resolve(); });
+        await waitFor(() => expect(screen.getByTestId("frame").getAttribute("data-ready")).toBe("true"));
+        expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("true");
+        expect(screen.getByTestId("canvas").getAttribute("width")).toBe("200");
+        rerender(<Harness source={loaded} zoom={2} onRenderReady={onRenderReady} />);
+        await waitFor(() => expect(jobs).toHaveLength(2));
+        expect(screen.getByTestId("frame").getAttribute("data-ready")).toBe("false");
+        expect(screen.getByTestId("frame").getAttribute("data-layers")).toBe("false");
+        expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("true");
+        expect(screen.getByTestId("frame").style.visibility).toBe("visible");
+        expect(screen.getByTestId("canvas").getAttribute("width")).toBe("200");
+        expect(onRenderReady).toHaveBeenLastCalledWith(false);
+        rerender(<Harness source={loaded} zoom={3} onRenderReady={onRenderReady} />);
+        await waitFor(() => expect(jobs).toHaveLength(3));
+        expect(jobs[1]!.signal.aborted).toBe(true);
+        await act(async () => { jobs[1]!.finish(); await Promise.resolve(); });
+        expect(drawImage).toHaveBeenCalledOnce();
+        expect(screen.getByTestId("canvas").getAttribute("width")).toBe("200");
+        expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("true");
+        expect(jobs[1]!.canvas.width).toBe(0);
+        await act(async () => { jobs[2]!.finish(); await Promise.resolve(); });
+        await waitFor(() => expect(screen.getByTestId("frame").getAttribute("data-ready")).toBe("true"));
+        expect(screen.getByTestId("frame").getAttribute("data-layers")).toBe("true");
+        expect(screen.getByTestId("canvas").getAttribute("width")).toBe("600");
+        expect(drawImage).toHaveBeenCalledTimes(2);
+        expect(onRenderReady).toHaveBeenLastCalledWith(true);
+        expect(jobs.every(job => job.canvas.width === 0 && job.canvas.height === 0)).toBe(true);
+    });
+
+    it.each(["source", "page", "rotation"] as const)("never retains an incompatible %s preview", async change => {
+        let first = true;
+        const loaded = source((_page, canvas) => {
+            canvas.width = 200; canvas.height = 100;
+            if (!first) return new Promise(() => {});
+            first = false;
+            return Promise.resolve({ width: 100, height: 50 });
+        });
+        loaded.pages.push({ pageNumber: 2, width: 100, height: 50 });
+        const replacement = source(() => new Promise(() => {}));
+        const onRenderReady = vi.fn();
+        const { rerender } = render(<Harness source={loaded} onRenderReady={onRenderReady} />);
+        await waitFor(() => expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("true"));
+        rerender(<Harness source={change === "source" ? replacement : loaded}
+            pageNumber={change === "page" ? 2 : 1} rotation={change === "rotation" ? 90 : 0} onRenderReady={onRenderReady} />);
+        expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("false");
+        expect(screen.getByTestId("frame").style.visibility).toBe("hidden");
+        expect(screen.getByTestId("frame").getAttribute("data-ready")).toBe("false");
+        expect(onRenderReady).toHaveBeenLastCalledWith(false);
+        expect(drawImage).toHaveBeenCalledOnce();
+    });
+
+    it.each(["loading", "error"] as const)("hides an existing preview during explicit source %s", async state => {
+        const loaded = source((_page, canvas) => {
+            canvas.width = 200; canvas.height = 100;
+            return Promise.resolve({ width: 100, height: 50 });
+        });
+        const onRenderReady = vi.fn();
+        const { rerender } = render(<Harness source={loaded} onRenderReady={onRenderReady} />);
+        await waitFor(() => expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("true"));
+        rerender(<Harness source={loaded} loading={state === "loading"} error={state === "error" ? "Source failed" : null}
+            onRenderReady={onRenderReady} />);
+        expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("false");
+        expect(screen.getByTestId("frame").getAttribute("data-ready")).toBe("false");
+        expect(screen.getByTestId("frame").style.visibility).toBe("hidden");
+    });
+
+    it("surfaces a failed zoom and does not resurrect its retained raster on retry", async () => {
+        let calls = 0;
+        const loaded = source((_page, canvas) => {
+            calls++;
+            if (calls === 2) return Promise.reject(new Error("Zoom render failed"));
+            if (calls > 2) return new Promise(() => {});
+            canvas.width = 200; canvas.height = 100;
+            return Promise.resolve({ width: 100, height: 50 });
+        });
+        const onRenderReady = vi.fn();
+        const { rerender } = render(<Harness source={loaded} onRenderReady={onRenderReady} />);
+        await waitFor(() => expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("true"));
+        rerender(<Harness source={loaded} zoom={2} onRenderReady={onRenderReady} />);
+        expect((await screen.findByRole("alert")).textContent).toBe("Zoom render failed");
+        expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("false");
+        expect(onRenderReady).toHaveBeenLastCalledWith(false);
+        rerender(<Harness source={loaded} zoom={3} onRenderReady={onRenderReady} />);
+        await waitFor(() => expect(calls).toBe(3));
+        expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("false");
+        expect(screen.getByTestId("frame").getAttribute("data-ready")).toBe("false");
+        expect(drawImage).toHaveBeenCalledOnce();
+        expect(onRenderReady.mock.calls.filter(([ready]) => ready)).toHaveLength(1);
+    });
+
     it("commits the rendered raster and releases its scratch canvas", async () => {
         const onRenderReady = vi.fn();
         let scratch: HTMLCanvasElement | undefined;

@@ -80,7 +80,7 @@ describe("approved review semantics", () => {
         expect(sourceCategoryDisabledReason("table", fieldsOff)).toBeNull();
         expect(sourceCategoryDisabledReason("unavailable", fieldsOff)).toBeNull();
         expect(sourceCategoryDisabledReason("table", { ...defaultReviewSettings, showTables: false })).toContain("Show table highlights");
-        expect(sourceCategoryDisabledReason("lowTable", { ...defaultReviewSettings, highlightLow: false })).toContain("Highlight low confidences");
+        expect(sourceCategoryDisabledReason("lowTable", { ...defaultReviewSettings, highlightLow: false })).toContain("Show low confidence highlight");
         expect(sourceCategoryDisabledReason("unavailable", { ...fieldsOff, showTables: false })).toContain("field or table");
         expect(fieldsOff.sourceCategories).toEqual(defaultSourceCategories);
     });

@@ -29,12 +29,7 @@ export async function expandField(page: Page, name: string): Promise<void> {
 }
 
 export async function rotateSource(page: Page): Promise<void> {
-    const rotate = page.getByRole("button", { name: "Rotate 90°", exact: true });
-    if (await rotate.isVisible()) await rotate.click();
-    else {
-        await page.getByRole("button", { name: "More document actions", exact: true }).click();
-        await page.getByRole("menuitem", { name: "Rotate 90°", exact: true }).click();
-    }
+    await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
     await ready(page);
 }
 

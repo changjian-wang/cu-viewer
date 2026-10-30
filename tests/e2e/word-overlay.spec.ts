@@ -87,7 +87,7 @@ test("unextracted OCR does not tint the page and annotation/settings changes nev
     await expect(page.getByTestId("word-overlay")).toHaveCount(0);
     await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
     await page.getByRole("switch", { name: "Show field highlights" }).uncheck();
-    await page.getByRole("switch", { name: "Highlight low confidences" }).uncheck();
+    await page.getByRole("switch", { name: "Show low confidence highlight" }).uncheck();
     await page.getByRole("button", { name: "Close highlighting settings", exact: true }).click();
     expect(await source.evaluate(canvas => {
         if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Expected the unchanged source canvas.");

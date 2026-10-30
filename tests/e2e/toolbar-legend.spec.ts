@@ -21,7 +21,7 @@ async function expectToolbarLayout(page: Page): Promise<boolean> {
     const layout = await toolbar.evaluate(element => {
         const bounds = element.getBoundingClientRect();
         const pane = element.closest(".cu-source-pane")!.getBoundingClientRect();
-        const slots = [".cu-file-name", ".cu-document-controls", ".cu-toolbar-legend", ".cu-source-actions"].map(selector => {
+        const slots = [".cu-file-name", ".cu-toolbar-legend", ".cu-source-actions"].map(selector => {
             const child = element.querySelector(selector);
             if (!child) throw new Error(`The toolbar slot ${selector} is missing.`);
             const rect = child.getBoundingClientRect();
@@ -101,7 +101,7 @@ for (const viewport of [{ width: 1030, height: 760 }, { width: 1280, height: 540
     });
 }
 
-test("UI-54 Legend, More and settings remain exclusive with keyboard and outside dismissal", async ({ page }) => {
+test("UI-54 Legend and settings remain exclusive with keyboard and outside dismissal", async ({ page }) => {
     await page.goto("/");
     await ready(page);
     await trigger(page).focus();
@@ -117,7 +117,7 @@ test("UI-54 Legend, More and settings remain exclusive with keyboard and outside
     await dialog(page).getByRole("button", { name: "Confidence unavailable", exact: true }).focus();
     await page.keyboard.press("Tab");
     await expect(dialog(page)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "More document actions", exact: true })).toBeFocused();
+    await expect(page.getByRole("button", { name: "Highlighting settings", exact: true })).toBeFocused();
     await trigger(page).click();
     await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
     const settings = page.getByRole("dialog", { name: "Highlighting", exact: true });
@@ -127,10 +127,8 @@ test("UI-54 Legend, More and settings remain exclusive with keyboard and outside
     await expect(settings.getByRole("spinbutton", { name: "Confidence threshold", exact: true })).toBeFocused();
     await trigger(page).click();
     await expect(settings).toHaveCount(0);
-    await page.getByRole("button", { name: "More document actions", exact: true }).click();
-    await expect(dialog(page)).toHaveCount(0);
-    await expect(page.getByRole("menu", { name: "Document actions", exact: true })).toBeVisible();
-    await trigger(page).click();
+    await expect(dialog(page)).toBeVisible();
+    await expect(page.getByRole("button", { name: "More document actions", exact: true })).toHaveCount(0);
     await expect(page.getByRole("menu", { name: "Document actions", exact: true })).toHaveCount(0);
     await page.locator(".prototype-banner").click({ position: { x: 8, y: 8 } });
     await expect(dialog(page)).toHaveCount(0);
@@ -146,14 +144,14 @@ test("UI-54 the five explanatory colors survive threshold and visibility changes
         await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
         const settings = page.getByRole("dialog", { name: "Highlighting", exact: true });
         await settings.getByRole("spinbutton", { name: "Confidence threshold", exact: true }).fill(threshold);
-        for (const name of ["Show field highlights", "Show table highlights", "Highlight low confidences"]) {
+        for (const name of ["Show field highlights", "Show table highlights", "Show low confidence highlight"]) {
             await settings.getByRole("switch", { name, exact: true }).uncheck();
         }
         await page.keyboard.press("Escape");
         const preferences = await page.evaluate(() => JSON.stringify(Object.entries(localStorage)));
         await trigger(page).click();
         await expectPalette(dialog(page));
-        await expect(dialog(page).getByText("All scored values while low-confidence emphasis is off", { exact: true })).toHaveCount(2);
+        await expect(dialog(page).getByText("All scored values while low-confidence highlight is off", { exact: true })).toHaveCount(2);
         await expect(dialog(page).getByText("Below threshold", { exact: true })).toHaveCount(2);
         await expect(dialog(page).getByText("No score was supplied", { exact: true })).toBeVisible();
         await page.keyboard.press("Escape");
@@ -278,7 +276,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 2100, height: 100
         await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
         const settings = page.getByRole("dialog", { name: "Highlighting", exact: true });
         await expect(settings.getByRole("spinbutton")).toHaveValue("0.70");
-        for (const name of ["Show field highlights", "Show table highlights", "Highlight low confidences"]) {
+        for (const name of ["Show field highlights", "Show table highlights", "Show low confidence highlight"]) {
             await expect(settings.getByRole("switch", { name, exact: true })).toBeChecked();
         }
     });
@@ -318,12 +316,12 @@ test("UI-56 master settings disable their categories with reasons while preservi
     await expect(sourceRegion(page, categorySources[2].id)).toHaveAttribute("fill", "none");
     await expect(sourceRegion(page, categorySources[3].id)).toHaveAttribute("fill", "#FFE8EC");
     await openSettings();
-    await settings.getByRole("switch", { name: "Highlight low confidences", exact: true }).uncheck();
+    await settings.getByRole("switch", { name: "Show low confidence highlight", exact: true }).uncheck();
     await page.keyboard.press("Escape");
     await trigger(page).click();
     await expect(categoryButton(dialog(page), "lowField")).toBeDisabled();
     await expect(categoryButton(dialog(page), "lowTable")).toBeDisabled();
-    await expect(categoryButton(dialog(page), "lowTable")).toContainText("Enable Highlight low confidences in settings.");
+    await expect(categoryButton(dialog(page), "lowTable")).toContainText("Enable Show low confidence highlight in settings.");
     await expect(sourceRegion(page, categorySources[2].id)).toHaveAttribute("fill", "#E8F5E9");
     await expect(sourceRegion(page, categorySources[3].id)).toHaveAttribute("fill", "none");
 });

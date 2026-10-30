@@ -30,13 +30,12 @@ export function HighlightSettings({ anchor, settings, onChange, onClose }: {
             <span id={`${id}-range`}>0 to 1</span>
         </div>
         {error && <p id={`${id}-error`} className="cu-input-error" role="alert">{error}</p>}
-        <p id={`${id}-hint`} className="cu-setting-hint">Values below <strong>{formatThreshold(settings.threshold)}</strong> receive low-confidence emphasis.</p>
+        <p id={`${id}-hint`} className="cu-setting-hint">Values below <strong>{formatThreshold(settings.threshold)}</strong> receive low-confidence highlight.</p>
         <div className="cu-settings-section cu-highlight-options"><h3>Options</h3>{([
-            ["showFields", "Show field highlights"], ["showTables", "Show table highlights"], ["highlightLow", "Highlight low confidences"],
+            ["showFields", "Show field highlights"], ["showTables", "Show table highlights"], ["highlightLow", "Show low confidence highlight"],
         ] as const).map(([key, label]) => <label key={key} className="cu-switch-row">
             <input type="checkbox" role="switch" checked={settings[key]} onChange={event => onChange({ ...settings, [key]: event.target.checked })} />
             <span className="cu-switch-track" aria-hidden="true" /><span>{label}</span>
         </label>)}</div>
-        <p className="cu-panel-footnote">Highlighting never changes the extracted data.</p>
     </section>;
 }

@@ -115,7 +115,7 @@ test("UI-35 source decoration adds only a 1px non-interactive edge around unchan
     await polygon.click();
     await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveAttribute("points", points);
     await expect(polygon).toHaveAttribute("points", points);
-    await page.getByRole("button", { name: "Clear selection", exact: true }).click();
+    await page.getByRole("group", { name: "Source viewport", exact: true }).press("Escape");
     const first = page.getByTestId("result-overlay").locator("polygon").first();
     const second = page.getByTestId("result-overlay").locator("polygon").nth(1);
     await first.focus();

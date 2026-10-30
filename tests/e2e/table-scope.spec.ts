@@ -177,7 +177,7 @@ test("UI-41 scoped tab round trips keep the range, and clear restores base expan
     await page.getByRole("tab", { name: "Fields", exact: true }).click();
     await expect(showAll(page)).toBeVisible();
     await expect(roots(page)).toHaveCount(4);
-    await page.getByRole("button", { name: "Clear selection", exact: true }).click();
+    await page.getByRole("group", { name: "Source viewport", exact: true }).press("Escape");
     await expect(showAll(page)).toHaveCount(0);
     await expect(roots(page)).toHaveCount(31);
     await expect(page.locator(".cu-fields-scroll")).toHaveJSProperty("scrollTop", 100);
