@@ -51,7 +51,7 @@ for (const reset of ["clear", "same-field select", "details close", "document ro
             await clipboard(page); await loadReviewFixture(page);
             await openValueMenu(page, recipientId);
             await page.getByRole("menuitem", { name: "Copy value", exact: true }).click();
-            if (reset === "clear") await page.getByRole("button", { name: "Clear selection", exact: true }).click();
+            if (reset === "clear") await page.getByRole("group", { name: "Source viewport", exact: true }).press("Escape");
             else if (reset === "same-field select") {
                 await page.locator(fieldRow(recipientId)).getByRole("button", { name: "CustomerAddressRecipient", exact: true }).click();
                 await page.locator(fieldRow(recipientId)).getByRole("button", { name: "CustomerAddressRecipient", exact: true }).click();
@@ -108,8 +108,8 @@ test("UI-04/05 highlighting validation and category precedence preserve real sou
     await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/Zero"]')).toHaveAttribute("fill", "#E8F5E9");
     await threshold.fill("0.70");
     await page.getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
-    await page.getByRole("switch", { name: "Highlight low confidences", exact: true }).uncheck();
-    await page.getByRole("switch", { name: "Highlight low confidences", exact: true }).check();
+    await page.getByRole("switch", { name: "Show low confidence highlight", exact: true }).uncheck();
+    await page.getByRole("switch", { name: "Show low confidence highlight", exact: true }).check();
     await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/Zero"]')).toHaveAttribute("fill", "none");
     await page.getByRole("button", { name: "Close highlighting settings", exact: true }).click();
     await page.getByRole("button", { name: "Zero", exact: true }).click();
@@ -181,7 +181,7 @@ test("UI-45 confidence threshold and highlight changes never recolor the value t
     await page.getByRole("button", { name: "Close highlighting settings", exact: true }).click();
     await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(155, 28, 28)");
     await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
-    await page.getByRole("switch", { name: "Highlight low confidences", exact: true }).uncheck();
+    await page.getByRole("switch", { name: "Show low confidence highlight", exact: true }).uncheck();
     await page.getByRole("button", { name: "Close highlighting settings", exact: true }).click();
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(30, 58, 42)");
     await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(30, 58, 42)");

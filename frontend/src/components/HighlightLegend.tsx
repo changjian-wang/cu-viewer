@@ -23,7 +23,7 @@ function LegendItems({ settings, onChange, compact = false }: {
             const pressed = categories[category];
             const reason = sourceCategoryDisabledReason(category, settings);
             const explanation = !settings.highlightLow && (category === "field" || category === "table") ?
-                "All scored values while low-confidence emphasis is off" : description;
+                "All scored values while low-confidence highlight is off" : description;
             const action = `${pressed ? "Hide" : "Show"} this category of source highlights.`;
             const hint = `${explanation}. ${reason ?? action}`;
             return <li key={category} className="cu-legend-item" title={`${label} - ${hint}`}>

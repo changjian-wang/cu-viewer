@@ -18,12 +18,15 @@ export function useSourceRendering({ source, page, pageNumber, zoom, rotation, a
     onRenderReady }: SourceRenderingOptions) {
     const canvas = useRef<HTMLCanvasElement>(null);
     const renderedPage = useRef<HTMLDivElement>(null);
-    const [rendered, setRendered] = useState<{ key: string; source: LoadedSource; dpr: number; size: PageSize } | null>(null);
+    const [rendered, setRendered] = useState<{
+        key: string; source: LoadedSource; page: SourcePage; rotation: number; dpr: number; size: PageSize;
+    } | null>(null);
     const [renderError, setRenderError] = useState<string | null>(null);
     const renderKey = `${pageNumber}:${zoom}:${rotation}`;
     const dpr = window.devicePixelRatio;
-    const ready = Boolean(rendered?.key === renderKey && rendered.source === source && rendered.dpr === dpr &&
+    const hasPreview = Boolean(rendered && rendered.source === source && rendered.page === page && rendered.rotation === rotation &&
         !loading && !error && !renderError);
+    const ready = Boolean(hasPreview && rendered?.key === renderKey && rendered.dpr === dpr);
     const [layerFrame, setLayerFrame] = useState<{ raster: typeof rendered; size: PageSize } | null>(null);
 
     // Read the actual paper frame only after its new CSS dimensions commit.
@@ -39,7 +42,7 @@ export function useSourceRendering({ source, page, pageNumber, zoom, rotation, a
 
     useEffect(() => {
         const controller = new AbortController();
-        setRendered(null);
+        setRendered(previous => previous?.source === source && previous.page === page && previous.rotation === rotation ? previous : null);
         setRenderError(null);
         onRenderReady(false);
         if (!source || !page) {
@@ -55,10 +58,11 @@ export function useSourceRendering({ source, page, pageNumber, zoom, rotation, a
             const context = visible.getContext("2d");
             if (!context) throw new Error("Visible canvas rendering is unavailable.");
             context.drawImage(scratch, 0, 0);
-            setRendered({ key: renderKey, source, dpr, size });
+            setRendered({ key: renderKey, source, page, rotation, dpr, size });
             onRenderReady(true);
         }).catch((failure: unknown) => {
             if (controller.signal.aborted) return;
+            setRendered(null);
             setRenderError(failure instanceof Error ? failure.message : String(failure));
             onRenderReady(false);
         }).finally(() => {
@@ -68,6 +72,6 @@ export function useSourceRendering({ source, page, pageNumber, zoom, rotation, a
         return () => controller.abort();
     }, [source, pageNumber, zoom, rotation, renderKey, dpr, page, onRenderReady]);
 
-    return { canvas, renderedPage, renderKey, dpr, ready, renderError, layerFrame, layersReady, projectionSize,
+    return { canvas, renderedPage, renderKey, dpr, ready, hasPreview, renderError, layerFrame, layersReady, projectionSize,
         size: ready ? rendered?.size : undefined };
 }

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createPageGeometry, GeometryError, getFitZoom, getRasterSize, projectRegion, transformPoint, validateRegion } from "./geometry";
+import { createPageGeometry, GeometryError, getFitZoom, getRasterSize, getScrollablePageLayout, projectRegion, transformPoint, validateRegion } from "./geometry";
 import { parseCuResult } from "../model/parseCuResult";
 import type { CuPage, CuPoint, CuRegion } from "../model/types";
 
@@ -148,6 +148,66 @@ describe("real CU fixture transformation matrix", () => {
             width: Math.ceil(geometry.displaySize.width * testCase.dpr),
             height: Math.ceil(geometry.displaySize.height * testCase.dpr),
         });
+    });
+});
+
+describe("scroll-safe page placement", () => {
+    it("keeps the existing centered horizontal inset and top inset without a positioned camera", () => {
+        expect(getScrollablePageLayout({ width: 200, height: 400 }, { width: 800, height: 600 }, null)).toEqual({
+            paper: { x: 300, y: 30 }, scroll: { x: 0, y: 0 }, stage: { width: 800, height: 600 },
+        });
+    });
+
+    it("represents the reported negative zoom offset as native scroll, not a clipped page", () => {
+        expect(getScrollablePageLayout({ width: 1224, height: 1584 }, { width: 555, height: 678 },
+            { x: -327, y: -445.5 })).toEqual({
+            paper: { x: 0, y: 0.5 }, scroll: { x: 327, y: 446 }, stage: { width: 1288, height: 1644 },
+        });
+    });
+
+    it.each([{ x: -900, y: -800 }, { x: 900, y: 800 }, { x: -37, y: 21 }, { x: 37, y: -21 },
+        { x: -327.123456, y: 445.56789 }])(
+        "keeps every page edge and requested camera position reachable at $x,$y", position => {
+            for (const display of [{ width: 200, height: 100 }, { width: 1224, height: 1584 }]) {
+                for (const viewport of [{ width: 570, height: 540 }, { width: 1040, height: 900 }]) {
+                    const layout = getScrollablePageLayout(display, viewport, position, 120);
+                    expect(layout.paper.x).toBeGreaterThanOrEqual(0);
+                    expect(layout.paper.y).toBeGreaterThanOrEqual(0);
+                    expect(layout.paper.x + display.width).toBeLessThanOrEqual(layout.stage.width);
+                    expect(layout.paper.y + display.height + 120).toBeLessThanOrEqual(layout.stage.height);
+                    expect(layout.scroll.x).toBeLessThanOrEqual(layout.stage.width - viewport.width);
+                    expect(layout.scroll.y).toBeLessThanOrEqual(layout.stage.height - viewport.height);
+                    expect(layout.paper.x - layout.scroll.x).toBe(position.x);
+                    expect(layout.paper.y - layout.scroll.y).toBe(position.y);
+                }
+            }
+        });
+
+    it("does not shift an explicit camera when native scrollbars change available space", () => {
+        const position = { x: 42, y: -51 }, display = { width: 800, height: 1000 };
+        const before = getScrollablePageLayout(display, { width: 570, height: 700 }, position);
+        const after = getScrollablePageLayout(display, { width: 555, height: 685 }, position);
+        expect(after.paper).toEqual(before.paper);
+        expect(after.scroll).toEqual(before.scroll);
+    });
+
+    it("keeps required scroll space independent from disappearing cross-axis scrollbars", () => {
+        const display = { width: 528, height: 408 }, frame = { width: 1039.359375, height: 719 };
+        const position = { x: 61.7744, y: -4.8334 };
+        const withBars = getScrollablePageLayout(display, { width: 1024.359375, height: 704 }, position, 0, frame);
+        const withoutBars = getScrollablePageLayout(display, frame, position, 0, frame);
+        expect(withBars.stage.height).toBe(724);
+        expect(withoutBars.stage.height).toBe(724);
+        expect(withBars.paper).toEqual(withoutBars.paper);
+        expect(withBars.scroll).toEqual(withoutBars.scroll);
+    });
+
+    it("supports the empty initial source frame and rejects invalid layout coordinates", () => {
+        expect(getScrollablePageLayout({ width: 0, height: 0 }, { width: 570, height: 700 }, null).stage)
+            .toEqual({ width: 570, height: 700 });
+        expect(() => getScrollablePageLayout({ width: -1, height: 10 }, sourceSize, null)).toThrow(GeometryError);
+        expect(() => getScrollablePageLayout(sourceSize, sourceSize, { x: NaN, y: 0 })).toThrow(GeometryError);
+        expect(() => getScrollablePageLayout(sourceSize, sourceSize, null, -1)).toThrow(GeometryError);
     });
 });
 

@@ -222,7 +222,6 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             onLeave={leavePreview} onSelect={(field, index) => selectField(field, index, "source")} onClear={clearSelection}
             onSelectTable={selectTable}
             settings={preferences.settings} onSettings={preferences.changeSettings}
-            onResetLayout={() => preferences.changeSettings({ ...preferences.settings, paneRatio: 0.58, fieldRatio: 0.46 })}
             onPage={pageNumber => {
                 keepPreview();
                 setReveal(null);

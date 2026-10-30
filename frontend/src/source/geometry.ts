@@ -188,6 +188,24 @@ export function getFitZoom(source: PageSize, available: PageSize, angle: number,
     return zoom;
 }
 
+export function getScrollablePageLayout(display: PageSize, viewport: PageSize, position: CuPoint | null, reserve = 0, frame = viewport) {
+    const size = pageSize(viewport);
+    const extent = pageSize(frame);
+    if ([display.width, display.height, reserve].some(value => !Number.isFinite(value) || value < 0)) {
+        throw new GeometryError("invalid-page-layout", "Display dimensions and reserved space must be finite and nonnegative.");
+    }
+    const target = position ?? { x: Math.max(32, (size.width - display.width) / 2), y: 30 };
+    point(target);
+    // Keep native scroll integral and retain subpixel camera precision in the paper position.
+    const scroll = { x: Math.ceil(Math.max(0, -target.x)), y: Math.ceil(Math.max(0, -target.y)) };
+    const paper = { x: target.x + scroll.x, y: target.y + scroll.y };
+    const stage = pageSize({
+        width: Math.max(display.width + 64, size.width, paper.x + display.width + 32, scroll.x ? extent.width + scroll.x : size.width),
+        height: Math.max(display.height + 60 + reserve, size.height, paper.y + display.height + 30 + reserve, scroll.y ? extent.height + scroll.y : size.height),
+    });
+    return { paper, scroll, stage };
+}
+
 export function getRasterSize(display: PageSize, devicePixelRatio: number): PageSize {
     const size = pageSize(display);
     if (!positive(devicePixelRatio)) throw new GeometryError("invalid-pixel-ratio", "Device pixel ratio must be finite and positive.");

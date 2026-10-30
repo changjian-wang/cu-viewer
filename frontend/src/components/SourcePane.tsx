@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { PageSize } from "../source/geometry";
-import { createPageGeometry, getFitZoom, getRevealOffset, pointInPolygon, projectRegion, transformPoint, wheelZoomFactor } from "../source/geometry";
+import { createPageGeometry, getFitZoom, getRevealOffset, getScrollablePageLayout, pointInPolygon, projectRegion, transformPoint, wheelZoomFactor } from "../source/geometry";
 import type { LoadedSource } from "../source/source";
 import { hasSourcePage, unavailableSourcePageMessage } from "../source/source";
 import type { CuContent, CuField, CuPoint, CuRegion } from "../model/types";
@@ -13,7 +14,7 @@ import { SOURCE_POPOVER_GAP, sourceOutlines, sourcePopoverPoints, sourceSelectio
 import { SourcePopover } from "./SourcePopover";
 import { useSourceRendering } from "../source/useSourceRendering";
 import { SourceToolbar } from "./SourceToolbar";
-import { ViewerIcon } from "./ViewerIcon";
+import { SourceDocumentControls } from "./SourceDocumentControls";
 
 interface SourcePaneProps {
     source: LoadedSource | null;
@@ -46,7 +47,6 @@ interface SourcePaneProps {
     onRenderReady: (ready: boolean) => void;
     settings: ReviewSettings;
     onSettings: (settings: ReviewSettings) => void;
-    onResetLayout: () => void;
 }
 
 interface ProjectedOutline extends SourceOutline { polygon: CuPoint[] }
@@ -59,16 +59,21 @@ interface ProjectedTable {
 
 export function SourcePane(props: SourcePaneProps) {
     const container = useRef<HTMLDivElement>(null), toolbar = useRef<HTMLElement>(null);
+    const documentControls = useRef<HTMLDivElement>(null);
     const pendingFocus = useRef<HTMLElement | null>(null);
     const handledReveal = useRef<number | null>(null);
     const previousView = useRef<{ pageNumber: number; zoom: number; source: LoadedSource | null } | null>(null);
-    const zoomAnchor = useRef<{ point: CuPoint; client: CuPoint } | null>(null);
+    const zoomAnchor = useRef<{ point: CuPoint; client: CuPoint; page: LoadedSource["pages"][number];
+        rotation: number; request: number | null } | null>(null);
     const sourceId = useId();
-    const [available, setAvailable] = useState<PageSize>({ width: 800, height: 650 });
+    const [available, setAvailable] = useState<PageSize & { frame: PageSize }>({
+        width: 800, height: 650, frame: { width: 864, height: 710 },
+    });
     const [fit, setFit] = useState<"page" | "width" | null>("page");
     const [manualZoom, setManualZoom] = useState(1);
     const [rotation, setRotation] = useState(0);
-    const [pan, setPan] = useState<CuPoint>({ x: 0, y: 0 });
+    const [pan, setPan] = useState<CuPoint | null>(null);
+    const pendingPanScroll = useRef(false);
     const [reserve, setReserve] = useState(0);
     const [popupSize, setPopupSize] = useState<(PageSize & { fieldId: string }) | null>(null);
     const [navigationError, setNavigationError] = useState<string | null>(null);
@@ -77,13 +82,46 @@ export function SourcePane(props: SourcePaneProps) {
     const zoom = page && fit ? getFitZoom(page, available, rotation, fit) : manualZoom;
     const fitPageZoom = page ? getFitZoom(page, available, rotation, "page") : 1;
     const minZoom = Math.min(0.25, fitPageZoom, zoom), maxZoom = Math.max(3, fitPageZoom, zoom);
-    const { canvas, renderedPage, renderKey, dpr, ready, renderError, layerFrame, layersReady, projectionSize, size } =
+    const { canvas, renderedPage, renderKey, dpr, ready, hasPreview, renderError, layerFrame, layersReady, projectionSize, size } =
         useSourceRendering({ source: props.source, page, pageNumber: props.pageNumber, zoom, rotation, available,
             loading: props.loading, error: props.error, onRenderReady: props.onRenderReady });
     const display = size ?? (page ? {
         width: (rotation % 180 ? page.height : page.width) * zoom,
         height: (rotation % 180 ? page.width : page.height) * zoom,
     } : { width: 0, height: 0 });
+    const layout = getScrollablePageLayout(display, { width: available.width + 64, height: available.height + 60 }, pan, reserve, available.frame);
+    const paperPosition = useCallback((): CuPoint | null => {
+        const viewport = container.current, paper = renderedPage.current;
+        if (!viewport || !paper) return null;
+        const bounds = viewport.getBoundingClientRect(), frame = paper.getBoundingClientRect();
+        return { x: frame.x - bounds.x - viewport.clientLeft, y: frame.y - bounds.y - viewport.clientTop };
+    }, [renderedPage]);
+    const movePaper = useCallback((position: CuPoint): void => {
+        pendingPanScroll.current = true;
+        setManualZoom(zoom); setFit(null); setPan(position);
+    }, [zoom]);
+    const shiftPaper = useCallback((offset: CuPoint): void => {
+        const current = paperPosition();
+        if (current) movePaper({ x: current.x + offset.x, y: current.y + offset.y });
+    }, [paperPosition, movePaper]);
+    useLayoutEffect(() => {
+        const viewport = container.current;
+        if (!viewport) return;
+        // ResizeObserver cannot settle scrollbar changes during synchronous anchor corrections.
+        const bounds = viewport.getBoundingClientRect();
+        const width = bounds.width - viewport.offsetWidth + viewport.clientWidth - 64;
+        const height = bounds.height - viewport.offsetHeight + viewport.clientHeight - 60;
+        if (width > 0 && height > 0 && (Math.abs(width - available.width) > 0.01 || Math.abs(height - available.height) > 0.01 ||
+            Math.abs(bounds.width - available.frame.width) > 0.01 || Math.abs(bounds.height - available.frame.height) > 0.01)) {
+            if (zoomAnchor.current) pendingPanScroll.current = true;
+            setAvailable({ width, height, frame: { width: bounds.width, height: bounds.height } });
+            return;
+        }
+        if (!pendingPanScroll.current) return;
+        pendingPanScroll.current = false;
+        viewport.scrollLeft = layout.scroll.x;
+        viewport.scrollTop = layout.scroll.y;
+    });
     const group = props.active ? isFieldGroup(props.active) : false;
     const pinnedGroup = props.pinned ? isFieldGroup(props.pinned) : false;
     const wholeTable = props.content?.tables?.some(table => table.id === props.active?.id);
@@ -95,7 +133,8 @@ export function SourcePane(props: SourcePaneProps) {
     const captureControlFocus = (requested?: HTMLElement): void => {
         const target = requested ?? container.current?.ownerDocument.activeElement;
         if (target instanceof HTMLElement && container.current?.parentElement?.contains(target) &&
-            (toolbar.current?.contains(target) || target.closest(".cu-region-controls"))) pendingFocus.current = target;
+            (toolbar.current?.contains(target) || documentControls.current?.contains(target) ||
+                target.closest(".cu-region-controls"))) pendingFocus.current = target;
     };
     useLayoutEffect(() => {
         const previous = previousView.current;
@@ -119,13 +158,17 @@ export function SourcePane(props: SourcePaneProps) {
         if (!element) return;
         const observer = new ResizeObserver(entries => {
             const bounds = entries[0]?.contentRect;
-            if (bounds && bounds.width > 64 && bounds.height > 60) setAvailable({ width: bounds.width - 64, height: bounds.height - 60 });
+            if (bounds && bounds.width > 64 && bounds.height > 60) {
+                const frame = element.getBoundingClientRect();
+                setAvailable({ width: bounds.width - 64, height: bounds.height - 60,
+                    frame: { width: frame.width, height: frame.height } });
+            }
         });
         observer.observe(element);
         return () => observer.disconnect();
     }, []);
     useEffect(() => {
-        zoomAnchor.current = null; setPan({ x: 0, y: 0 }); setReserve(0); container.current?.scrollTo(0, 0);
+        zoomAnchor.current = null; pendingPanScroll.current = false; setPan(null); setReserve(0); container.current?.scrollTo(0, 0);
     }, [props.pageNumber]);
     useEffect(() => { if (!props.hasSelection) setReserve(0); }, [props.hasSelection]);
     useEffect(captureControlFocus, [props.source, props.pageNumber, zoom, rotation, renderKey, dpr]);
@@ -197,23 +240,20 @@ export function SourcePane(props: SourcePaneProps) {
             }
             const height = showCard ? popupSize?.height ?? 0 : 0;
             const space = height ? height + SOURCE_POPOVER_GAP + 8 : 8;
-            const nextReserve = Math.max(0, bottom + space - display.height - 30 + pan.y);
-            if (Math.abs(nextReserve - reserve) > 0.01) { setReserve(nextReserve); return; }
+            const nextReserve = Math.max(0, bottom + space - display.height - 30);
+            if (Math.abs(nextReserve - reserve) > 0.01) {
+                setManualZoom(zoom); setFit(null); setReserve(nextReserve); return;
+            }
             const bounds = viewport.getBoundingClientRect(), frame = paper.getBoundingClientRect();
             const x = frame.x - bounds.x - viewport.clientLeft, y = frame.y - bounds.y - viewport.clientTop;
             const startY = bottom - top + space + 8 > viewport.clientHeight && height ? bottom : top - 8;
             const offset = getRevealOffset([{ x: x + left - 8, y: y + startY },
                 { x: x + right + 8, y: y + bottom + space }], { width: viewport.clientWidth, height: viewport.clientHeight });
-            const previous = { x: viewport.scrollLeft, y: viewport.scrollTop };
-            viewport.scrollLeft -= offset.x; viewport.scrollTop -= offset.y;
-            const remaining = { x: offset.x + viewport.scrollLeft - previous.x, y: offset.y + viewport.scrollTop - previous.y };
-            if (Math.abs(remaining.x) > 0.01 || Math.abs(remaining.y) > 0.01) setPan(current => ({
-                x: current.x + remaining.x, y: current.y + remaining.y,
-            }));
+            if (Math.abs(offset.x) > 0.01 || Math.abs(offset.y) > 0.01) shiftPaper(offset);
             handledReveal.current = request;
             setNavigationError(null);
         } catch (error) { handledReveal.current = request; setNavigationError(error instanceof Error ? error.message : String(error)); }
-    }, [props.revealRequest, props.preview, props.active, ready, activePolygons, cardPolygon, showCard, popupSize, display.height, pan.y, reserve]);
+    }, [props.revealRequest, props.preview, props.active, ready, activePolygons, cardPolygon, showCard, popupSize, display.height, zoom, reserve, shiftPaper]);
     const zoomRef = useRef(zoom);
     zoomRef.current = zoom;
     const applyZoom = (value: number, client?: CuPoint): void => {
@@ -227,7 +267,8 @@ export function SourcePane(props: SourcePaneProps) {
             const anchor = client ?? { x: bounds.x + viewport.clientWidth / 2, y: bounds.y + viewport.clientHeight / 2 };
             const currentGeometry = createPageGeometry(page, rotation % 180 ? { width: frame.height, height: frame.width } : frame,
                 { zoom: 1, rotation, pan: { x: 0, y: 0 } });
-            zoomAnchor.current = { point: transformPoint(currentGeometry.inverse, { x: anchor.x - frame.x, y: anchor.y - frame.y }), client: anchor };
+            zoomAnchor.current = { point: transformPoint(currentGeometry.inverse, { x: anchor.x - frame.x, y: anchor.y - frame.y }),
+                client: anchor, page, rotation, request: props.revealRequest };
             zoomRef.current = next;
             handledReveal.current = props.revealRequest;
             props.onDismissPreview(); setReserve(0); setFit(null); setManualZoom(next); setNavigationError(null);
@@ -239,7 +280,7 @@ export function SourcePane(props: SourcePaneProps) {
         const viewport = container.current;
         if (!viewport) return;
         const wheel = (event: WheelEvent): void => {
-            if (!event.ctrlKey && !event.metaKey) return;
+            if (!event.ctrlKey && !event.metaKey) { zoomAnchor.current = null; return; }
             event.preventDefault();
             try { zoomHandler.current(zoomRef.current * wheelZoomFactor(event.deltaY, event.deltaMode, viewport.clientHeight),
                 { x: event.clientX, y: event.clientY }); }
@@ -248,18 +289,43 @@ export function SourcePane(props: SourcePaneProps) {
         viewport.addEventListener("wheel", wheel, { passive: false });
         return () => viewport.removeEventListener("wheel", wheel);
     }, []);
-    useLayoutEffect(() => {
+    const maintainZoomAnchor = useCallback((): boolean => {
         const anchor = zoomAnchor.current, paper = renderedPage.current;
-        if (!anchor || !paper || !page) return;
+        if (!anchor || !paper || !page || pendingPanScroll.current) return false;
+        if (anchor.page !== page || anchor.rotation !== rotation || anchor.request !== props.revealRequest) {
+            zoomAnchor.current = null; return false;
+        }
         const frame = paper.getBoundingClientRect();
-        if (frame.width <= 0 || frame.height <= 0) return;
+        if (frame.width <= 0 || frame.height <= 0) return false;
         const nextGeometry = createPageGeometry(page, rotation % 180 ? { width: frame.height, height: frame.width } : frame,
             { zoom: 1, rotation, pan: { x: 0, y: 0 } });
         const point = transformPoint(nextGeometry.matrix, anchor.point);
         const dx = anchor.client.x - frame.x - point.x, dy = anchor.client.y - frame.y - point.y;
-        if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) setPan(current => ({ x: current.x + dx, y: current.y + dy }));
-        if (ready) zoomAnchor.current = null;
-    }, [zoom, fit, ready, display.width, display.height, page, rotation, pan, reserve, available]);
+        const aligned = Math.abs(dx) <= 0.001 && Math.abs(dy) <= 0.001;
+        if (!aligned) shiftPaper({ x: dx, y: dy });
+        return aligned;
+    }, [page, rotation, props.revealRequest, renderedPage, shiftPaper]);
+    useLayoutEffect(() => { maintainZoomAnchor(); },
+        [maintainZoomAnchor, zoom, fit, ready, display.width, display.height, pan, reserve, available]);
+    // Native scrolling can outlive the rendered zoom frame.
+    useEffect(() => {
+        const anchor = zoomAnchor.current, viewport = container.current;
+        const view = viewport?.ownerDocument.defaultView;
+        if (!ready || !anchor || !viewport || !view) return;
+        let frameId = 0, stableFrames = 0, previous = "";
+        const settle = (): void => {
+            if (zoomAnchor.current !== anchor) return;
+            const aligned = maintainZoomAnchor(), frame = renderedPage.current?.getBoundingClientRect();
+            if (!frame) return;
+            const state = `${viewport.scrollLeft},${viewport.scrollTop},${frame.x},${frame.y},${frame.width},${frame.height}`;
+            stableFrames = aligned && state === previous ? stableFrames + 1 : 0;
+            previous = state;
+            if (stableFrames >= 4) zoomAnchor.current = null;
+            else frameId = view.requestAnimationFrame(settle);
+        };
+        frameId = view.requestAnimationFrame(settle);
+        return () => view.cancelAnimationFrame(frameId);
+    }, [ready, zoom, maintainZoomAnchor, renderedPage]);
     const hit = (clientX: number, clientY: number): ProjectedOutline | ProjectedTable | undefined => {
         const frame = renderedPage.current?.getBoundingClientRect();
         if (!frame) return undefined;
@@ -274,20 +340,29 @@ export function SourcePane(props: SourcePaneProps) {
     };
     const resetView = (): void => {
         zoomAnchor.current = null; handledReveal.current = props.revealRequest;
-        props.onDismissPreview(); setReserve(0); setPan({ x: 0, y: 0 }); container.current?.scrollTo(0, 0);
+        props.onDismissPreview(); pendingPanScroll.current = false; setReserve(0); setPan(null); container.current?.scrollTo(0, 0);
     };
     const region = props.regions[props.regionIndex];
     const unavailable = props.source && region && !hasSourcePage(props.source.pages, region.pageNumber);
     const sourcePages = [...new Set(props.pinnedRegions.map(region => region.pageNumber))].sort((a, b) => a - b);
     const error = props.error ?? renderError;
-    return <section className="cu-source-pane" aria-label="Source document" aria-busy={!ready && !error}>
-        <SourceToolbar source={props.source} pageNumber={props.pageNumber} zoom={zoom} ready={ready} fit={fit}
-            minZoom={minZoom} maxZoom={maxZoom}
+    const pinnedLabel = props.pinned ? fieldLabel(props.pinned) : "";
+    const groupFields = pinnedGroup && props.pinned ? leafFields([props.pinned]).length : 0;
+    const groupSummary = `${groupFields} fields · ${selectedPolygons.pinned.length} regions on p.${props.pageNumber}`;
+    const locationSummary = `${selectedPolygons.pinned.length} ${selectedPolygons.pinned.length === 1 ? "region" : "regions"} on p.${props.pageNumber} · Location ${props.pinnedRegionIndex + 1} of ${props.pinnedRegions.length}`;
+    const sourceStatus = props.active && !region ? `${props.active.name}: no source region` :
+        unavailable ? `Source page ${region.pageNumber} is unavailable in this file.` :
+            props.active && region?.pageNumber !== props.pageNumber ? `Selected source is on page ${region?.pageNumber}` : null;
+    const sourceStyle: CSSProperties & { "--cu-source-viewport-height": string } = {
+        "--cu-source-viewport-height": `${available.height + 60}px`,
+    };
+    const fitDocument = (value: "page" | "width"): void => { resetView(); setFit(value); };
+    const rotateDocument = (): void => { resetView(); setRotation(value => (value + 90) % 360); };
+    return <section className="cu-source-pane" aria-label="Source document" aria-busy={!ready && !error} style={sourceStyle}>
+        <SourceToolbar source={props.source}
             summaryId={`${sourceId}-summary`}
-            toolbarRef={toolbar} settings={props.settings} onSettings={props.onSettings} onPage={props.onPage}
-            onZoom={value => applyZoom(value)} onFit={value => { resetView(); setFit(value); }}
-            onRotate={() => { resetView(); setRotation(value => (value + 90) % 360); }}
-            onResetLayout={props.onResetLayout} onControlFocus={captureControlFocus} />
+            toolbarRef={toolbar} settings={props.settings} onSettings={props.onSettings}
+            onControlFocus={captureControlFocus} />
         <span id={`${sourceId}-pan-help`} className="cu-visually-hidden">Ctrl or Command with scroll zooms at the pointer. Ordinary scroll moves the viewport. Drag or use arrow keys to pan; click a source region to select it.</span>
         <div className="cu-document-container" ref={container} role="group" aria-label="Source viewport"
             aria-describedby={`${sourceId}-summary ${sourceId}-pan-help`} aria-disabled={!ready} tabIndex={ready ? 0 : -1}
@@ -295,20 +370,25 @@ export function SourcePane(props: SourcePaneProps) {
             onKeyDown={event => {
                 if (event.key === "Escape" && drag.current) {
                     event.preventDefault(); event.stopPropagation();
-                    setPan(drag.current.pan); drag.current = null; return;
+                    if (drag.current.moved) movePaper(drag.current.pan);
+                    drag.current = null; return;
                 }
                 if (!ready || event.target !== event.currentTarget) return;
+                if (!["Control", "Meta", "Shift", "Alt"].includes(event.key)) zoomAnchor.current = null;
                 const offset = event.key === "ArrowLeft" ? { x: -40, y: 0 } : event.key === "ArrowRight" ? { x: 40, y: 0 } :
                     event.key === "ArrowUp" ? { x: 0, y: -40 } : event.key === "ArrowDown" ? { x: 0, y: 40 } : undefined;
                 if (offset) {
                     event.preventDefault(); props.onDismissPreview(); handledReveal.current = props.revealRequest;
-                    setPan(current => ({ x: current.x + offset.x, y: current.y + offset.y }));
+                    shiftPaper(offset);
                 }
             }}
             onPointerDown={event => {
                 if (!ready || event.button !== 0 || (event.target instanceof Element && event.target.closest(".cu-source-popover"))) return;
+                zoomAnchor.current = null;
+                const current = paperPosition();
+                if (!current) return;
                 event.preventDefault(); event.currentTarget.focus({ preventScroll: true });
-                drag.current = { client: { x: event.clientX, y: event.clientY }, pan, moved: false, target: hit(event.clientX, event.clientY) };
+                drag.current = { client: { x: event.clientX, y: event.clientY }, pan: current, moved: false, target: hit(event.clientX, event.clientY) };
                 event.currentTarget.setPointerCapture(event.pointerId);
             }}
             onPointerMove={event => {
@@ -317,7 +397,7 @@ export function SourcePane(props: SourcePaneProps) {
                     if (Math.hypot(dx, dy) > 4) drag.current.moved = true;
                     if (drag.current.moved) {
                         props.onDismissPreview(); handledReveal.current = props.revealRequest;
-                        setPan({ x: drag.current.pan.x + dx, y: drag.current.pan.y + dy });
+                        movePaper({ x: drag.current.pan.x + dx, y: drag.current.pan.y + dy });
                     }
                     return;
                 }
@@ -336,16 +416,17 @@ export function SourcePane(props: SourcePaneProps) {
                     else props.onClear();
                 }
             }}
+            onScroll={() => { maintainZoomAnchor(); }}
             onPointerLeave={() => { if (props.preview && props.active && !drag.current) props.onLeave(props.active); }}
             onPointerCancel={() => { drag.current = null; }} onLostPointerCapture={() => { drag.current = null; }}
         >
             <div className="cu-document-stage" style={{
-                minWidth: Math.max(display.width + 64, available.width + 64),
-                minHeight: Math.max(display.height + 60 + reserve, available.height + 60), paddingBottom: 30 + reserve,
+                minWidth: layout.stage.width, minHeight: layout.stage.height,
             }}>
                 <div className="cu-rendered-page" ref={renderedPage} data-testid="rendered-page"
-                    style={{ width: display.width, height: display.height, visibility: ready ? "visible" : "hidden",
-                        transform: `translate(${pan.x}px, ${pan.y}px)` }}>
+                    style={{ width: display.width, height: display.height, visibility: hasPreview ? "visible" : "hidden",
+                        left: Math.floor(layout.paper.x), top: Math.floor(layout.paper.y),
+                        transform: `translate(${layout.paper.x % 1}px, ${layout.paper.y % 1}px)` }}>
                     <canvas ref={canvas} role="img" aria-label={`Rendered source page ${props.pageNumber}`} data-testid="source-canvas" />
                     {layersReady && background.tables.length > 0 && <svg className="cu-overlay cu-source-tables" data-testid="source-tables"
                         width={layerFrame?.size.width} height={layerFrame?.size.height} role="group" aria-label="Source tables" focusable="false">
@@ -414,36 +495,44 @@ export function SourcePane(props: SourcePaneProps) {
                 </div>
             </div>
             {layersReady && showCard && props.active && cardPolygon && <SourcePopover id={props.previewId} field={props.active}
-                settings={props.settings} points={cardPolygon} pan={pan} viewport={container} paper={renderedPage}
+                settings={props.settings} points={cardPolygon} pan={pan ?? layout.paper} viewport={container} paper={renderedPage}
                 onMeasure={measureCard} onEnter={props.onPreviewEnter} onLeave={props.onPreviewLeave} />}
-            {(!ready || error) && <div className={`cu-source-state cu-state${error ? " cu-error" : ""}`} role={error ? "alert" : "status"}>
+            {(!hasPreview || error) && <div className={`cu-source-state cu-state${error ? " cu-error" : ""}`} role={error ? "alert" : "status"}>
                 <h2>{error ? "Source could not be displayed" : "Loading source..."}</h2><p>{error ?? "Valid field data stays available."}</p>
             </div>}
         </div>
-        <footer className="cu-preview-dock">
-            {pinnedGroup && props.pinned ? <div className="cu-group-source-controls"><strong>{fieldLabel(props.pinned)}</strong>
-                <span>{leafFields([props.pinned]).length} fields · {selectedPolygons.pinned.length} regions on p.{props.pageNumber}</span>
+        <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}
+            minZoom={minZoom} maxZoom={maxZoom} ready={ready} fit={fit} controlsRef={documentControls}
+            onPage={props.onPage} onZoom={value => applyZoom(value)}
+            onFit={fitDocument} onRotate={rotateDocument} onControlFocus={captureControlFocus}>
+            {pinnedGroup && props.pinned ? <div className="cu-group-source-controls">
+                <strong title={pinnedLabel}>{pinnedLabel}</strong>
+                <span title={groupSummary}>
+                    <span id={`${sourceId}-group-status`} className="cu-visually-hidden">{groupSummary}</span>
+                    <span aria-hidden="true">{groupFields} fields</span>
+                </span>
                 {sourcePages.length > 1 && <select aria-label="Selected group source page" value={props.pageNumber}
+                    aria-describedby={`${sourceId}-group-status`} title={`${pinnedLabel}: ${groupSummary}`}
                     onChange={event => props.onRegion(props.pinnedRegions.findIndex(region => region.pageNumber === Number(event.target.value)))}>
                     {!sourcePages.includes(props.pageNumber) && <option value={props.pageNumber} disabled>Page {props.pageNumber} (no group source)</option>}
                     {sourcePages.map(pageNumber => <option key={pageNumber} value={pageNumber}
                         disabled={!hasSourcePage(props.source?.pages, pageNumber)}>Page {pageNumber}</option>)}
                 </select>}</div> :
-                props.pinned && props.pinnedRegions.length > 1 ? <aside className="cu-region-controls" aria-label="Source region navigation">
-                    <span>{fieldLabel(props.pinned)}</span>
+                props.pinned && props.pinnedRegions.length > 1 ? <aside className="cu-region-controls" aria-label="Source region navigation"
+                    aria-describedby={`${sourceId}-location-status`}>
+                    <span title={pinnedLabel}>{pinnedLabel}</span>
                     <button type="button" aria-label="Previous source region" disabled={props.pinnedRegionIndex === 0}
+                        aria-describedby={`${sourceId}-location-status`} title="Previous source region"
                         onClick={() => { captureControlFocus(); props.onRegion(props.pinnedRegionIndex - 1); }}>‹</button>
-                    <span title="All field regions on this page stay selected. Arrows change the source location.">
-                        {selectedPolygons.pinned.length} {selectedPolygons.pinned.length === 1 ? "region" : "regions"} on p.{props.pageNumber}
-                        {" · "}Location {props.pinnedRegionIndex + 1} of {props.pinnedRegions.length}</span>
+                    <span title={`${locationSummary}. All field regions on this page stay selected. Arrows change the source location.`}>
+                        <span id={`${sourceId}-location-status`} className="cu-visually-hidden">{locationSummary}</span>
+                        <span aria-hidden="true">{props.pinnedRegionIndex + 1} / {props.pinnedRegions.length}</span>
+                    </span>
                     <button type="button" aria-label="Next source region" disabled={props.pinnedRegionIndex >= props.pinnedRegions.length - 1}
+                        aria-describedby={`${sourceId}-location-status`} title="Next source region"
                         onClick={() => { captureControlFocus(); props.onRegion(props.pinnedRegionIndex + 1); }}>›</button>
-                </aside> : <span className="cu-preview-hint">{props.active && !region ? `${props.active.name}: no source region` :
-                    unavailable ? `Source page ${region.pageNumber} is unavailable in this file.` :
-                        props.active && region?.pageNumber !== props.pageNumber ? `Selected source is on page ${region?.pageNumber}` :
-                            "Ctrl / Cmd + scroll to zoom · Drag to pan"}</span>}
-            <button type="button" className="cu-icon-button" aria-label="Clear selection" onClick={props.onClear}><ViewerIcon name="close" /></button>
-        </footer>
+                </aside> : sourceStatus && <span className="cu-preview-hint" title={sourceStatus}>{sourceStatus}</span>}
+        </SourceDocumentControls>
         {unavailable && <div className="cu-inline-error" role="alert">Source region: {unavailableSourcePageMessage(region.pageNumber)}</div>}
         {background.error && <div className="cu-inline-error" role="alert">Source outlines: {background.error}</div>}
         {selectedPolygons.error && <div className="cu-inline-error" role="alert">Source selection: {selectedPolygons.error}</div>}
