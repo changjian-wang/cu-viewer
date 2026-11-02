@@ -11,12 +11,19 @@
 - 已确认下一版优先服务 CU 开发者、技术实施及技术测试人员，保持只读，不加入字段纠错、人工审核状态或修改保存。
 - 本轮按已确认原型规划 UI 改造，包括 Fields 内的字段／值检索与同级展示排序；保持既有调用兼容，不迁入 toolkit、不发布版本，不新增跨文档批量浏览、全文检索或对比。
 - Viewer 只负责渲染，不调用 Analyze、不依赖 CU SDK，不认证、不上传、不管理 analyzer、不轮询 LRO。
-- CLI 负责取得源文件和原始结果，并调用独立 Viewer 包；Viewer 项目提供预构建页面、只读本地服务、浏览器启动及生命周期，不反向依赖 cu-cli。
+- Python cu-cli 负责取得源文件和原始结果，并调用独立 Viewer 包；Viewer Python 包提供预构建页面、只读本地服务、浏览器启动及生命周期，不反向依赖 cu-cli。
 - 原始需求已约定 `cu analyze sample.pdf --view`：分析完成后将源文件及原始结果交给浏览器 Viewer。不带 `--view` 时不自动打开 Viewer。
 - 后续已确认 `cu analyze sample.pdf --view --result sample.result.json`：只读取已有源文件和 JSON，跳过分析、登录和服务调用。无效或缺失的结果必须报错，不得回退到重新分析。
 - 已确认首版每次查看一份本地 PDF/图片；现有批量和 URL 分析保持原样，不新增这些输入与 `--view` 的组合。
 - 保持组件与 CLI 职责分离，Viewer 可以独立开发、运行演示和测试。
-- Viewer 独立发行和更新，cu-cli 通过兼容依赖自动安装它，不内嵌资源副本。普通用户不需要开发环境；缺失/损坏安装通过原安装渠道修复，不在 `--view` 时自动下载。
+- Python Viewer 独立发行和更新，Python cu-cli 通过兼容依赖自动安装它，不内嵌资源副本。普通用户不需要开发环境；缺失/损坏安装通过原安装渠道修复，不在 `--view` 时自动下载。
+
+### Go azd 扩展集成
+
+- Go 扩展复用 `frontend/app` 的生产构建及现有确定性 ZIP/清单导出格式；构建产物随 Go 扩展源码保存，由 `go:embed` 嵌入。此交付方式不改变上述 Python 分发约定。
+- 首版入口为 `azd ai cu analyze sample_invoice.pdf --analyzer prebuilt-invoice --view`，仅支持一份本地 PDF/当前支持的图片；不扩展批量、目录、URL，也不移植 Python 的离线 `--result` 入口。
+- Go 宿主接收同一次分析的完整原始 JSON，不重复调用 CU，不依赖默认 Markdown 输出，也不改变现有控制台和保存文件的输出规则。不带 `--view` 时行为保持不变。
+- Go 宿主负责只读本地服务、会话数据和指定源文件、默认浏览器启动及 `Ctrl+C` 清理。仅监听 `127.0.0.1` 的系统分配端口，不开放工作目录。运行时不需要 Node.js/Python，不下载或更新 Viewer。
 
 ## 组件输入
 

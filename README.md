@@ -1,6 +1,6 @@
 # CU Viewer
 
-面向 CU 开发者、技术实施和测试人员的只读本地结果查看器，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。以独立 Python wheel 交付，cu-cli 是其中一个入口；同一 React/TypeScript 组件也可嵌入其他宿主。
+面向 CU 开发者、技术实施和测试人员的只读本地结果查看器，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。以独立 Python wheel 交付，cu-cli 是其中一个入口；同一生产页面也可作为静态资源嵌入 Go azd 扩展，同一 React/TypeScript 组件也可嵌入其他宿主。
 
 组件只负责渲染：不调用 Analyze、不认证、不上传、不管理 analyzer 或轮询 LRO，也不依赖 CU SDK。宿主负责取得源文件和分析结果。
 
@@ -16,7 +16,7 @@
 | 位置 | 职责 |
 | --- | --- |
 | [frontend/src](frontend/src) | 共用查看组件；model 负责解析，source 负责文档渲染与几何，interaction 负责选择与导航，components 负责界面。单元测试与模块相邻。 |
-| [frontend/app](frontend/app) | 打入 wheel 的正式浏览器入口，不含演示样本。 |
+| [frontend/app](frontend/app) | Python/Go CLI 共用的正式浏览器入口，不含演示样本。 |
 | [frontend/demo](frontend/demo) | 本地开发、演示和浏览器测试宿主，不进入 wheel。 |
 | [frontend/tooling](frontend/tooling) | 前端构建时的 PDF/HEIF 资源插件。 |
 | [python](python) | 独立包、公开 Python API、输入校验、资源校验、本地 HTTP 服务和启动/退出生命周期。 |
@@ -271,6 +271,18 @@ npm run build:python
 生产入口是 [frontend/app](frontend/app)，不带演示样本。[导出器](scripts/export_cli_viewer.py)默认只为[独立 Python 包](python)生成资源，以固定顺序、时间戳和权限生成 ZIP/清单；它们是已忽略的构建输入，不提交到 toolkit。`npm run build:python` 生成 wheel 和源码包，并从源码包重建 wheel；缺少/损坏资源时构建明确失败。
 
 Viewer 自己负责归档校验、只读本地服务、浏览器打开及 Ctrl+C 清理，不解压到用户目录。CLI 在分析前调用 `prepare_viewer(source)`，完成后调用返回对象的 `show(result)`，不接触 ZIP 或资源字典。运行时无需 Node/Vite。
+
+### 构建 Go 宿主资源（维护者）
+
+Go azd Content Understanding 扩展复用同一生产页面和导出格式，不依赖 Python 启动器。假设本仓库与 `azure-dev` 位于同一父目录，在本仓库执行：
+
+```powershell name="为Go扩展导出静态资源"
+npm run export:cli -- ..\azure-dev\cli\azd\extensions\azure.ai.content-understanding\internal\viewer\resources\viewer
+```
+
+构建使用 Node.js 和 Python；导出的 ZIP 与 SHA-256 清单明确保存在 Go 扩展源码仓库，由 `go:embed` 编入可执行文件。普通 Go 构建和安装后的使用不需要 Node.js/Python，也不会运行时下载资源。资源更新应同时提交归档、清单及对应源代码版本记录，保留全部许可证。
+
+Go 宿主提供页面同目录下的 `session.json`（`source`、`name`、`result`）和指定源文件；`source` 必须属于同源、同会话路径，`result` 是同一次分析的完整 JSON。`azd ai cu analyze <本地文件> --view` 在分析成功后打开浏览器，并保持本地服务直到 `Ctrl+C`；批量、目录、URL 和离线 `--result` 不属于本轮 Go 集成。现有 Python 分发和 API 保持不变。
 
 导出回归为 `python -m pytest tests\test_export_cli_viewer.py`，独立启动器测试为 `python -m pytest -c python\pyproject.toml python\tests`，使用已有 pytest 环境。
 
