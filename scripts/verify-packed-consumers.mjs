@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,15 +38,66 @@ for (const path of [
 }
 writeFileSync(join(artifacts, "pack-report.json"), JSON.stringify(packed, null, 2) + "\n");
 const hosts = join(workspace, "hosts");
-execFileSync(process.execPath, [join(repository, "scripts", "prepare-packed-consumers.mjs"), join(artifacts, pack.filename), hosts], {
-    cwd: repository, stdio: "inherit",
-});
-const inventory = JSON.parse(readFileSync(join(hosts, "consumers.json"), "utf8"));
-for (const profile of inventory.profiles) {
+const profiles = [
+    { name: "react18", react: "18.3.1", reactTypes: "18.3.31", domTypes: "18.3.7", port: 4391 },
+    { name: "react19", react: "19.3.0", reactTypes: "19.3.0", domTypes: "19.3.0", port: 4392 },
+].map(profile => ({ ...profile, directory: join(hosts, profile.name) }));
+const demo = readFileSync(join(repository, "frontend", "demo", "App.tsx"), "utf8");
+assert.ok(demo.includes('from "../src"'), "The demo public-entry import is not the expected source.");
+const app = demo.replaceAll('"../src"', '"cu-viewer"')
+    .replaceAll('"../../tests/fixtures/', '"./fixtures/');
+const main = readFileSync(join(repository, "frontend", "demo", "main.tsx"), "utf8")
+    .replace('import "./styles.css";', 'import "./styles.css";\nimport "cu-viewer/styles.css";');
+for (const profile of profiles) {
+    const directory = profile.directory;
+    mkdirSync(join(directory, "fixtures"), { recursive: true });
+    copyFileSync(join(artifacts, pack.filename), join(directory, "cu-viewer.tgz"));
+    writeFileSync(join(directory, "package.json"), JSON.stringify({
+        name: `cu-viewer-${profile.name}-isolated-consumer`,
+        private: true,
+        type: "module",
+        scripts: { typecheck: "tsc --noEmit", build: "vite build", dev: "vite", preview: "vite preview" },
+        dependencies: { "cu-viewer": "file:cu-viewer.tgz", react: profile.react, "react-dom": profile.react },
+        devDependencies: {
+            "@types/react": profile.reactTypes, "@types/react-dom": profile.domTypes,
+            "@types/node": "22.20.5", typescript: "6.0.3", vite: "8.3.2",
+        },
+    }, null, 2) + "\n");
+    writeFileSync(join(directory, "tsconfig.json"), JSON.stringify({
+        compilerOptions: {
+            target: "ES2022", lib: ["ES2022", "DOM", "DOM.Iterable"],
+            module: "ESNext", moduleResolution: "Bundler", jsx: "react-jsx",
+            strict: true, noUncheckedIndexedAccess: true, exactOptionalPropertyTypes: true,
+            verbatimModuleSyntax: true, isolatedModules: true, noEmit: true, types: ["vite/client"],
+        },
+        include: ["App.tsx", "main.tsx"],
+    }, null, 2) + "\n");
+    writeFileSync(join(directory, "vite.config.ts"), [
+        'import { defineConfig } from "vite";',
+        'import { viewerAssets } from "cu-viewer/vite";',
+        "export default defineConfig({",
+        "    root: import.meta.dirname,",
+        "    plugins: [viewerAssets()],",
+        `    server: { host: "127.0.0.1", port: ${profile.port}, strictPort: true, fs: { allow: [import.meta.dirname] } },`,
+        `    preview: { host: "127.0.0.1", port: ${profile.port}, strictPort: true },`,
+        "});", "",
+    ].join("\n"));
+    writeFileSync(join(directory, "App.tsx"), app);
+    writeFileSync(join(directory, "main.tsx"), main);
+    for (const name of ["styles.css", "index.html"]) {
+        copyFileSync(join(repository, "frontend", "demo", name), join(directory, name));
+    }
+    for (const name of ["mixed-financial-docs.pdf", "mixed-financial-docs.cu.json", "receipt.png", "receipt.cu.json", "LICENSE.txt"]) {
+        copyFileSync(join(repository, "tests", "fixtures", name), join(directory, "fixtures", name));
+    }
+    for (const name of ["example.heic", "example.synthetic.cu.json"]) {
+        copyFileSync(join(repository, "tests", "fixtures", "images", name), join(directory, "fixtures", name));
+    }
     npm(["install", "--ignore-scripts", "--no-audit", "--no-fund"], profile.directory);
     npm(["run", "typecheck"], profile.directory);
     npm(["run", "build"], profile.directory);
 }
+writeFileSync(join(hosts, "consumers.json"), JSON.stringify({ profiles }, null, 2) + "\n");
 for (const mode of ["production", "development"]) {
     npm(["run", "test:consumer"], repository, {
         ...process.env,
@@ -57,7 +108,7 @@ for (const mode of ["production", "development"]) {
 writeFileSync(join(workspace, "verification.json"), JSON.stringify({
     status: "passed",
     tarball: join(artifacts, pack.filename),
-    profiles: inventory.profiles,
+    profiles,
     modes: ["production", "development"],
     browsers: ["chrome", "edge"],
     packageBrowserRuns: 32,

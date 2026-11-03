@@ -7,7 +7,7 @@ export default defineConfig({
     base: "./",
     plugins: [pdfAssets("assets/pdfjs"), heifAssets("assets/heif")],
     build: {
-        outDir: "../../dist-cli",
+        outDir: "../../dist-app",
         emptyOutDir: true,
     },
 });

@@ -1,8 +1,8 @@
 # CU Viewer
 
-面向 CU 开发者、技术实施和测试人员的只读本地结果查看器，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。以独立 Python wheel 交付，cu-cli 是其中一个入口；同一生产页面也可作为静态资源嵌入 Go azd 扩展，同一 React/TypeScript 组件也可嵌入其他宿主。
+面向 CU 开发者、技术实施和测试人员的只读本地结果查看器，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。Go、Python 及后续 C# 等宿主统一从 CU Viewer Release 获取兼容静态资源并本地托管，不再各自内嵌前端副本；TypeScript 宿主也可通过 npm package 集成同一 React 组件。
 
-组件只负责渲染：不调用 Analyze、不认证、不上传、不管理 analyzer 或轮询 LRO，也不依赖 CU SDK。宿主负责取得源文件和分析结果。
+本仓库只维护前端组件、演示和 Release/npm 交付，不再发行 Python 宿主、命令或 API。组件只负责渲染：不调用 Analyze、不认证、不上传、不管理 analyzer 或轮询 LRO，也不依赖 CU SDK。各语言 CLI 自己负责取得源文件和结果、下载缓存、只读本地服务、浏览器启动和退出生命周期。
 
 ## 文档入口
 
@@ -16,10 +16,9 @@
 | 位置 | 职责 |
 | --- | --- |
 | [frontend/src](frontend/src) | 共用查看组件；model 负责解析，source 负责文档渲染与几何，interaction 负责选择与导航，components 负责界面。单元测试与模块相邻。 |
-| [frontend/app](frontend/app) | Python/Go CLI 共用的正式浏览器入口，不含演示样本。 |
-| [frontend/demo](frontend/demo) | 本地开发、演示和浏览器测试宿主，不进入 wheel。 |
+| [frontend/app](frontend/app) | 多语言宿主共用的 Release 浏览器入口，不含演示样本。 |
+| [frontend/demo](frontend/demo) | 本地开发、演示和浏览器测试宿主，不进入 Release 静态资源。 |
 | [frontend/tooling](frontend/tooling) | 前端构建时的 PDF/HEIF 资源插件。 |
-| [python](python) | 独立包、公开 Python API、输入校验、资源校验、本地 HTTP 服务和启动/退出生命周期。 |
 | [scripts](scripts) | 跨语言打包导出、资源生成与交付验证。 |
 | [tests](tests) | 共享样本、端到端/安装包测试与导出器回归。 |
 
@@ -41,7 +40,7 @@ npm run dev
 
 ## cu-cli 入口
 
-工作区内的 CLI 接入分支 `feat/cu-result-viewer` 已实现以下用法；该分支仍使用更名前的 Viewer 包名和模块名，本次未修改相邻 toolkit，接入 `cu-viewer` 前需同步更新其依赖和导入。不代表已发布的 CLI 版本具有这些选项：
+以下是 Python cu-cli 已确认的命令契约；工作区历史接入分支 `feat/cu-result-viewer` 仍依赖已退出本仓库的 Python 宿主。本次没有修改相邻 toolkit，也没有替它完成原生下载/缓存/托管迁移，不能将旧接入或公开 CLI 视为已兼容新的 Release 交付：
 
 ```powershell name="cu-cli 查看结果"
 cu analyze sample.pdf --view
@@ -50,32 +49,26 @@ cu analyze sample.pdf --view --result sample.result.json
 
 第一种按原有流程分析，完成后打开 Viewer；第二种只读取已有源文件和 JSON，跳过分析、登录和服务调用。不带 `--view` 时保持现有 CLI 行为，不自动打开。首版每次查看一份本地 PDF/图片，服务前台运行至 Ctrl+C；关闭标签页不会结束服务。资源分发和限制见 [CLI 交接契约](docs/dev-plan.md#cli-handoff)。
 
-### 独立安装与更新
+### 原生宿主与资源更新
 
-Viewer 独立发行 Python 包 `cu-viewer`，包含预构建页面和标准库启动器，不依赖 cu-cli、CU SDK 或 Node。cu-cli 接入时应只声明兼容依赖并调用启动接口，不保存 Viewer 资源副本。正式发布并完成 CLI 接入后，安装新版 cu-cli 会自动安装兼容 Viewer；也可在同一安装环境中单独升级 Viewer，而不重新发布 CLI。
+Go、Python、C# 等 CLI 使用各自语言实现同一 Release/会话契约，不依赖本仓库的 Python 包，也不保存前端资源副本。Go azd 扩展的运行时下载已在相邻仓库本地验证；Python/C# 等宿主须在各自 CLI 仓库实现或迁移，本轮不宣称它们已经接入。
 
-当前候选版本为 `0.1.0b1`，尚未上传包索引，不能把公开旧版 CLI 当成已具备该依赖。普通用户使用正式 wheel，不需要构建环境；若包缺失/损坏，用原安装渠道修复独立 Viewer 包，不要求用户构建资源，也不自动下载安装。
+首次查看时，宿主先下载并验证兼容 Release，再开始任何分析。已有有效缓存直接离线复用，不自动检查更新。缓存缺失或损坏时明确报告准备过程；下载失败、没有兼容 Release 或缓存无法安全写入时，非零退出，不打开空白页、不开始分析。状态写入 stderr，不污染原始结果输出。文档、结果和 Azure 凭据不会发给资源下载地址。
 
-项目包名和命令统一为 `cu-viewer`，Python 模块为 `cu_viewer`。旧包名、模块名和命令不提供兼容别名，已有宿主需同步更新引用；React 组件名称和公开接口保持不变。
+资源更新不要求重新安装宿主；有效缓存不自动检查更新。已实现的 Go 显式入口是：
 
-正式发布后，pip 用户可在 cu-cli 所在的同一 Python 环境中独立升级兼容版本：
-
-```powershell name="正式发布后的Viewer独立更新（目前尚未发布）"
-python -m pip install --upgrade "cu-viewer>=0.1.0b1,<0.2.0"
+```powershell name="显式更新兼容Viewer资源"
+azd ai cu viewer update
 ```
 
-不要在无关 Python 环境中运行更新；pipx 等隔离安装使用对应应用环境的包管理方式。
-
-独立 Viewer 安装后也可以直接运行，不需要 cu-cli：
-
-```powershell name="独立查看已有结果"
-python -m cu_viewer sample.pdf --result sample.result.json
-```
+各宿主使用私有的系统用户缓存，只保存校验后的静态资源及活动版本记录，不保存文档和分析结果。失败更新不替换已有有效版本。旧的 `python -m cu_viewer`、独立 `cu-viewer` 命令和 Python API 已移除；已有 Python CLI 不能只修改包名继续调用它们。当前没有公开 Viewer Release，首次公网获取须待另行授权发布，不能把本地下载测试说成已经可供用户使用。
 
 <a id="embedding"></a>
 ## 嵌入 React
 
 包目前为私有候选，未发布到 npm。先构建并生成本地 tgz，再由宿主安装该产物及其自己的 React/React DOM：
+
+这是 TypeScript 版 cu-cli 等组件宿主的保留交付方式，不要求其他语言通过 npm 或 Python wheel 获取前端资源。
 
 ```powershell name="生成私有安装包"
 npm run build
@@ -260,39 +253,47 @@ npm run verify:consumer
 
 独立验证器构建 tgz，在仓库外安装 React 18/19 各自依赖并检查开发/生产、类型、资源和 CSP，不使用源码别名或共享 node_modules。默认 E2E 不包含该独立矩阵。几何、性能和压力测试沿用现有工程阈值，不将其扩展为产品 SLA。
 
-### 构建独立 Viewer 发行包（维护者）
+消费者验证使用 npm `11.21.1`（CI 已固定）。本机 npm `10.9.9` 在 Vite 可选 peer 依赖图上触发 `edgesOut` 内部错误；不是通过忽略 peer 依赖绕过。无需修改项目依赖或全局 npm，可选用：
 
-维护者需要 Node.js、Python 3.10+ 和 Python `build` 工具，在仓库根目录执行：
-
-```powershell name="构建独立Viewer的wheel和源码包"
-npm run build:python
+```powershell name="使用兼容npm验证组件消费者"
+npm exec --yes --package=npm@11.21.1 -- npm run verify:consumer
 ```
 
-生产入口是 [frontend/app](frontend/app)，不带演示样本。[导出器](scripts/export_cli_viewer.py)默认只为[独立 Python 包](python)生成资源，以固定顺序、时间戳和权限生成 ZIP/清单；它们是已忽略的构建输入，不提交到 toolkit。`npm run build:python` 生成 wheel 和源码包，并从源码包重建 wheel；缺少/损坏资源时构建明确失败。
+### 构建统一 Release 资源（维护者）
 
-Viewer 自己负责归档校验、只读本地服务、浏览器打开及 Ctrl+C 清理，不解压到用户目录。CLI 在分析前调用 `prepare_viewer(source)`，完成后调用返回对象的 `show(result)`，不接触 ZIP 或资源字典。运行时无需 Node/Vite。
+需要 Node.js、Bash 4+、Info-ZIP `zip`/`unzip`、`jq`，以及 GNU coreutils/findutils（含 `sha256sum`、`sort -z`、`realpath`、`cp --parents`）。推荐 Linux CI；Windows 在已补齐这些工具的 Git Bash 中运行。不需要 Python、PowerShell 或 .NET：
 
-### 构建 Go 宿主资源（维护者）
-
-Go azd Content Understanding 扩展复用同一生产页面和导出格式，不依赖 Python 启动器。假设本仓库与 `azure-dev` 位于同一父目录，在本仓库执行：
-
-```powershell name="为Go扩展导出静态资源"
-npm run export:cli -- ..\azure-dev\cli\azd\extensions\azure.ai.content-understanding\internal\viewer\resources\viewer
+```bash name="生成本地Viewer发布候选"
+npm run package:release -- --viewer-version 0.1.0-preview.1
 ```
 
-构建使用 Node.js 和 Python；导出的 ZIP 与 SHA-256 清单明确保存在 Go 扩展源码仓库，由 `go:embed` 编入可执行文件。普通 Go 构建和安装后的使用不需要 Node.js/Python，也不会运行时下载资源。资源更新应同时提交归档、清单及对应源代码版本记录，保留全部许可证。
+产物直接位于已忽略的 `dist-viewer`，只有 `viewer.zip` 和 `manifest.json`，不输出到任何语言包的资源目录。[Bash 打包脚本](scripts/package-release.sh)保留固定顺序／时间戳／文件权限、许可证、资源大小和完整性检查，并在写入前拒绝缺失 Worker、字体、解码器或懒加载面板的不完整构建。已有产物被修改或目录中存在未知文件时拒绝覆盖；缺失工具明确失败，不自动安装或回退到 Python/PowerShell。
 
-Go 宿主提供页面同目录下的 `session.json`（`source`、`name`、`result`）和指定源文件；`source` 必须属于同源、同会话路径，`result` 是同一次分析的完整 JSON。`azd ai cu analyze <本地文件> --view` 在分析成功后打开浏览器，并保持本地服务直到 `Ctrl+C`；批量、目录、URL 和离线 `--result` 不属于本轮 Go 集成。现有 Python 分发和 API 保持不变。
+ZIP 压缩实现切换到 Info-ZIP，容器字节/SHA-256 可能变化，但解码后的资源和 schema 2/protocol 1 契约不变。固定工具链下重复导出保持确定性，不受源文件时间、权限或时区影响；以新清单记录的摘要为准，不沿用旧 ZIP 摘要或替换已经发布的同版本资源。
 
-导出回归为 `python -m pytest tests\test_export_cli_viewer.py`，独立启动器测试为 `python -m pytest -c python\pyproject.toml python\tests`，使用已有 pytest 环境。
+schema 2 清单包含 `viewerVersion`、`protocolVersion: 1`、归档及逐文件大小/SHA-256。默认版本来自 [package.json](package.json)，也可通过上述参数指定合法 SemVer，且必须与 GitHub Release 的 `v<版本>` 标签对应。维护者审核后在同一 Release 中发布这两个文件；本命令只生成本地候选，不提交、上传或发布。
 
-`npm run test:cli` 是独立的 Chrome/Edge 安装包检查，不纳入默认演示 E2E。设置 `CU_CLI_PYTHON` / `CU_CLI_PACKAGE_ROOT` 为安装了三个本地 wheel 的测试环境；`CU_VIEWER_PYTHON` / `CU_VIEWER_PACKAGE_ROOT` 指向只装 Viewer 的隔离环境。测试不使用源码别名，并从 Python 子进程 PATH 排除 Node。
+各原生宿主应按 SemVer 查找协议兼容、同时包含两份资源的非草稿 Release，验证后以原子活动记录启用缓存；损坏缓存明确报告并重新获取，失败更新保留旧活动版本。宿主运行不依赖 Node/npm/gh；Go 不依赖 Python。此处定义多语言契约，不代表本仓库实现了新的语言宿主。
 
-仅验证独立 Viewer wheel 时，只需设置后一组环境变量，再运行：
+宿主提供页面同目录下的 `session.json`（`source`、`name`、`result`）和指定源文件；`source` 必须属于同源、同会话路径，`result` 是同一次分析的完整 JSON。仅监听 loopback，校验 Host/Origin，按 CSP 提供已校验资源，不开放文件目录。分析后查看失败保留输出，不重新分析。`azd ai cu analyze <本地文件> --view` 首版只接受单一本地文件，不扩展批量、目录、URL 或 Python 的离线 `--result` 入口。
 
-```powershell name="独立Viewer安装包浏览器验证"
-node .\node_modules\@playwright\test\cli.js test --config playwright.cli.config.ts --grep "independent Viewer wheel"
-```
+### 脚本与验证边界
+
+`build:viewer` 是通用页面构建，`package:release` 是唯一 Release 打包入口；它只生成本地候选，不创建或上传 GitHub Release。原 `export:viewer` 已更名，不保留重复入口。不再构建 Python wheel/sdist，不在本仓库维护各语言 CLI 的本地服务实现和安装包测试。
+
+| 脚本 | 保留原因 |
+| --- | --- |
+| [package-release.sh](scripts/package-release.sh) | `npm run package:release`：使用 Bash、Info-ZIP、jq 和 SHA-256 工具生成跨语言共用的 Release ZIP/清单，不上传发布。 |
+| [verify-packed-consumers.mjs](scripts/verify-packed-consumers.mjs) | `npm run verify:consumer`：构建实际 npm tgz，在隔离的 React 18/19 宿主中安装、类型检查、构建，并验证开发/生产的 Chrome/Edge；保留 TypeScript/npm 集成门禁。 |
+| [verify-rich-result-build.mjs](scripts/verify-rich-result-build.mjs) | `npm run verify:bundle` 调用：检查 npm/演示入口不超过 500,000 字节、详情懒加载分包和 HEIF 解码器摘要；性能验证也复用它。 |
+
+图片测试样本已经固定并纳入仓库，开发期生成器已删除；回归直接读取现有样本。保留所有图片、许可、来源说明和哈希，不在构建/测试时重新生成。
+
+HEIC 重建脚本及其 npm/定时 CI 入口已删除，不再自动重编译或复现解码器。运行与打包直接使用已审核的预编译资源；保留源码/锁文件、许可证/SBOM，以及构建哈希检查和浏览器解码回归。
+
+打包回归为 `npm run test:release`，使用 Node.js 内置测试运行器直接验证 Bash 脚本，从打包子进程 PATH 排除 Python/PowerShell，并独立解码 ZIP 核对清单、内容、排序、时间和权限。可设置 `CU_VIEWER_TEST_EXPORT` 为真实 Release 资源目录，额外验证完整归档及清单。CI 的独立 Ubuntu Release 作业构建资源、执行回归并上传候选，不自动创建 GitHub Release。
+
+前端行为继续由组件单测、演示 E2E 和实际 npm 消费者矩阵覆盖。Go/Python/C# 的下载、缓存、服务和安装生命周期测试归各自 CLI 仓库；已删除的独立 Python 宿主测试不再列为当前验收入口。
 
 [视觉参考](tests/e2e/visual.spec.ts-snapshots)用于保持已批准的项目外观，不是逐像素复制 Studio。普通运行不自动更新参考；外观意图变化先评审。样本来源、许可、哈希和预期值见[样本清单](tests/fixtures/manifest.json)，计划及验证摘要见[英文开发计划](docs/dev-plan.md#verification)。
 
@@ -305,6 +306,6 @@ node .\node_modules\@playwright\test\cli.js test --config playwright.cli.config.
 
 ## 许可证与分发
 
-主项目为 [MIT](LICENSE)。PDF.js 和其他前端依赖的通知见 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)；当前 HEIF 为 MIT OR Apache-2.0 的 `heic-rs` WASM。[codec 构建说明](codecs/heic-rs-wasm/README.md)、[包内许可/SBOM](assets/heif)及[样本原许可](tests/fixtures/LICENSE.txt)保留在各自目录。
+主项目为 [MIT](LICENSE)。PDF.js 和其他前端依赖的通知见 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)；当前 HEIF 为 MIT OR Apache-2.0 的 `heic-rs` WASM。[codec 来源说明](codecs/heic-rs-wasm/README.md)、[包内许可/SBOM](assets/heif)及[样本原许可](tests/fixtures/LICENSE.txt)保留在各自目录。
 
-正常 npm 构建不需要 Rust；重建 codec 使用 `npm run verify:heif-codec`。分发时保留第三方许可和通知；包当前为私有候选，不自动公开发布。
+正常 npm 构建不需要 Rust 或 PowerShell。未来解码器更新需要单独审核源码、生成资源、许可/SBOM 和浏览器回归，不能只替换二进制或放宽预期摘要。分发时保留第三方许可和通知；包当前为私有候选，不自动公开发布。

@@ -22,7 +22,7 @@
     "classification": "Public example documents; no customer files submitted."
   },
   "imageFixtures": {
-    "generator": "../../scripts/generate-image-fixtures.mjs",
+    "generationNote": "Fixed, checked-in image fixtures; regression tests consume them directly without regeneration.",
     "derivedSource": "receipt.png; original full canvas flattened onto white, no new Analyze JSON.",
     "heifProvenance": {
       "repository": "https://github.com/strukturag/libheif",

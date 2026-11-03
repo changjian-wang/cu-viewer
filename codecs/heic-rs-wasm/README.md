@@ -1,13 +1,16 @@
-# HEIC decoder build
+# HEIC decoder source and prebuilt resources
 
-This wrapper pins `heic-rs 0.1.4` and `wasm-bindgen 0.2.129`. The checked-in browser assets let normal npm consumers build without Rust.
+This retained wrapper records the source used for the reviewed `heic-rs 0.1.4`
+decoder and pins `wasm-bindgen 0.2.129`. Production uses the checked-in
+[JavaScript/WASM resources, licenses and SBOM](../../assets/heif); normal Viewer,
+npm and Release builds do not need Rust or PowerShell.
 
-Rebuild from the repository root on an approved toolchain:
+The optional rebuild script, npm entry and scheduled/manual CI reproduction
+job have been retired. Source and `Cargo.lock` remain for provenance; there is
+no automatic decoder rebuild during development, testing or packaging.
 
-```powershell
-rustup target add wasm32-unknown-unknown
-cargo install wasm-bindgen-cli --version 0.2.129 --locked
-.\scripts\build-heic-codec.ps1
-```
-
-The verified build used Rust `1.94.1`. The script uses `Cargo.lock`, regenerates the classic-worker bindings in `assets\heif`, and prints the resulting SHA-256 hashes. Review generated diffs, licenses and the browser matrix before accepting an update.
+The historical reviewed build used Rust `1.94.1`. Future decoder changes require
+a separately reviewed source/resource update, license/SBOM review and browser
+regressions. Existing bundle checks still enforce the reviewed resource hashes,
+and image-format tests exercise real decoding, CSP, failures and cleanup.
+Do not silently regenerate assets or relax those checks to accept a new binary.

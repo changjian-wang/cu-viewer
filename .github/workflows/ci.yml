@@ -29,12 +29,6 @@ jobs:
       - run: npm run lint
       - run: npm run test:unit
       - run: npm run verify:bundle
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-      - run: python -m pip install build pytest
-      - run: npm run build:python
-      - run: python -m pytest -c python/pyproject.toml python/tests tests/test_export_cli_viewer.py
       - run: npm audit --omit=dev --audit-level=moderate
       - run: npm pack --ignore-scripts --dry-run
       - uses: actions/upload-artifact@v4
@@ -44,7 +38,30 @@ jobs:
           path: |
             dist
             dist-demo
-            python/dist
+          if-no-files-found: error
+
+  viewer-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Check native Bash export tools
+        run: bash scripts/package-release.sh --help
+      - run: npm run package:release
+      - run: npm run test:release
+        env:
+          CU_VIEWER_TEST_EXPORT: dist-viewer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: viewer-release-candidate
+          path: |
+            dist-viewer/viewer.zip
+            dist-viewer/manifest.json
           if-no-files-found: error
 
   browser:
@@ -110,6 +127,8 @@ jobs:
           node-version: 22.16.0
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Use npm with corrected optional peer resolution
+        run: npm install --global npm@11.21.1 --ignore-scripts --no-audit --no-fund
       - run: npm run verify:consumer
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -140,30 +159,3 @@ jobs:
           name: stress-failures
           path: test-results
           if-no-files-found: ignore
-
-  heif-codec:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    needs: core
-    runs-on: windows-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install locked Rust toolchain
-        run: |
-          rustup toolchain install 1.94.1 --profile minimal --no-self-update
-          rustup default 1.94.1
-          rustup target add wasm32-unknown-unknown
-      - name: Install locked wasm-bindgen CLI
-        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
-      - name: Reproduce packaged HEIF decoder
-        run: .\scripts\build-heic-codec.ps1
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: reproduced-heif-codec
-          path: |
-            assets/heif/heic_decoder.js
-            assets/heif/heic_decoder_bg.wasm
-          if-no-files-found: error
-      - name: Verify generated decoder is unchanged
-        run: git diff --exit-code -- assets/heif

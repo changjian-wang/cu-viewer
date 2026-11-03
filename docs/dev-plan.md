@@ -1,6 +1,6 @@
 # Development Plan: CU Viewer
 
-Updated: 2026-10-28
+Updated: 2026-11-03
 
 This is the single development plan for the rendering component and its cu-cli delivery. Product scope is defined in [requirements](requirements.md); the new UI baseline is defined in the [approved prototype requirements](ui-redesign/requirements.md). Setup, embedding, limits, and commands are maintained in the [README](../README.md). Historical drafts and detailed execution logs belong in Git history, not parallel planning documents.
 
@@ -30,11 +30,261 @@ The project supplies the browser Viewer used by cu-cli to inspect an original so
 - Supported sources are PDF, JPEG/JPG/JPE, PNG, BMP, and HEIF/HEIC.
 - The implemented UI includes source navigation and transforms, structured fields, applicable rich-result views, semantic confidence highlighting, source grounding, compact previews and table inspection. Raw OCR is retained; the redesigned default does not paint a permanent OCR word layer.
 - Current delivery is validated with Chrome/Edge, React 18/19, and Vite 8. Other build/runtime profiles are unverified, not additional tasks.
-- The independent CLI frontend implements both confirmed `--view` flows on `feat/cu-result-viewer` in the adjacent toolkit checkout. That branch still targets the former package/module names and is not updated by this repository rename; its dependency and imports must be migrated before using the renamed Viewer. This is not a claim that an existing published CLI contains the feature.
-- Viewer is independently distributed as a Python package with prebuilt resources and a standard-library launcher. cu-cli consumes its compatible dependency, not a copied ZIP or local-server implementation. The candidate `cu-viewer 0.1.0b1` is not published; release approval remains separate.
+- The historical Python CLI frontend implements both confirmed `--view` flows on `feat/cu-result-viewer` in the adjacent toolkit checkout. It still depends on the retired host package and needs native Release/cache/service migration in its own repository, not merely renamed imports. This is not a claim that an existing published CLI supports the current delivery contract.
+- Go, Python and C# CLI hosts must use the language-independent compiled Viewer Release, downloaded/validated before analysis and reused from a compatible offline cache. This repository now maintains only the frontend, Release tooling and npm component; it does not ship a Python host/API. Go's native runtime has local evidence; Python/C# CLI migration belongs in each host repository and is not completed by deleting the former package. No public Viewer resource Release is published.
 - The original productization refactor did not add customization APIs. The new UI phase below proposes optional field-order controls for the explicitly requested React integration; the existing `source`/`result` call remains compatible.
 
 The original Demo implementation phases below are complete within their recorded verification scope. The approved productization refactor has its own status table. Cleanup and packaging verification must not be confused with automatic publishing, blanket format support, or certification of every possible input.
+
+### Source commit/push authorization, 2026-11-03
+
+The user explicitly authorized committing and pushing both related repositories
+to their existing `feature/cu-analyze-view` branches on the
+`changjian-wang/cu-viewer` and `changjian-wang/azure-dev` forks. This supersedes
+the earlier local-only source boundary, not the separate release/install/UI
+approval boundaries. The detached single-toolbar React preview is not merged;
+no resource Release, PR or installed-extension replacement is requested.
+
+Pre-commit checks passed: all 46 resource-packaging cases with the real artifact,
+TypeScript/ESLint, all 13 tested Go extension packages and affected-package vet.
+Both local branches matched their remote heads before the new commits. Source
+pushes do not themselves make first-use resource downloads operational; a
+compatible public resource Release still needs separate publication.
+
+### Frontend-only delivery and Bash export, 2026-11-03
+
+The user explicitly approved replacing the PowerShell Release exporter with
+Bash and deleting the entire former Python host. The current source boundaries
+are the React component, demo/production browser entries, npm component and
+language-independent Release pair. All native CLI download/cache/local-server/
+browser lifecycle code belongs in its own CLI repository.
+
+[package-release.sh](../scripts/package-release.sh) requires Bash 4+, Info-ZIP zip/
+unzip, jq and GNU coreutils/findutils. It preserves complete runtime and license
+inventory, sorted names, UTC 1980 timestamps, 0644 regular-file modes, size/count
+bounds, archive/per-file hashes, rejection of links/unsafe paths, verification
+of existing owned output and same-directory atomic file replacement. Missing
+tools fail explicitly; there is no Python/PowerShell fallback or automatic tool
+installation. `npm run package:release -- --viewer-version 0.1.0-preview.1` builds
+the production page and exports the pair. Fixed-toolchain repeatability is
+tested; container digests can change across compressors/toolchains and must be
+recomputed, never copied from old candidates or used to replace a published tag.
+
+The former `python/` tree, its generated wheels/caches, Python API and console
+command, installed-wheel browser suite/config and `test:cli` entry are removed.
+The exact pre-removal host was backed up in the session workspace for rollback.
+There is no replacement Python/C# implementation here, no automatic rewrite of
+the adjacent toolkit, and no claim that its old dependency/imports still work.
+The native Go implementation remains in the adjacent Go repository.
+
+CI keeps the existing Windows frontend/npm/browser jobs and adds a separate
+Ubuntu 24.04 resource-export job with real-artifact regressions and candidate
+upload. Python setup/build/pytest and wheel artifacts are removed. Tests use
+Node's built-in runner and independently decode ZIP bytes, with Python and
+PowerShell excluded from the Bash child's PATH. Native Windows jq binary mode
+prevents CRLF corruption of manifest/hash fields; literal control-character
+version checks do not mistake MSYS argument trimming for successful validation.
+
+Local validation passed using Git Bash 5.3.15, Info-ZIP 3.0 and jq 1.8.2:
+**46 exporter cases**, **750 React unit cases**, TypeScript main/worker, ESLint,
+default browser-suite discovery and both repositories' whitespace checks. The
+full npm production build/export also ran with Python/PowerShell absent from
+PATH; missing tools independently returned exit 1, empty stdout and explicit
+guidance without installing or falling back. On Linux, tests isolate only
+required executable links so `/usr/bin/python3` cannot accidentally satisfy the
+no-Python assertion. The Ubuntu workflow is configured, not claimed as remotely
+executed by these local Windows checks.
+
+The approved single-toolbar preview's **225 decoded file hashes** exactly match
+the preceding PowerShell/Python candidates. Its Bash ZIP is **3,054,189 bytes**,
+SHA-256 `68468b73ad5716d779def040391b442e2437d8ed7ceddb0ea166cf4ca344c607`.
+Go's actual-resource integration downloaded it through a local release fixture,
+reused its cache after the fixture shut down and served the same original
+PDF/result session with its existing integrity, private-path and approved-UI
+assertions unchanged. npm's dry-run inventory contains **330 files**, no Python
+host or development tools. Existing UI worktrees, approved fixtures/licenses,
+lockfiles, native Go code and installed extensions are not changed by this
+cleanup. No source was committed/pushed, no public Release was published and
+no analysis request or existing installation replacement was performed.
+
+The user subsequently approved naming the resource operation **packaging**, not
+export or publication: `package-release.sh`, `npm run package:release` and
+`npm run test:release` are the current entries. The old script/test filenames and
+`export:viewer`/`test:export` entries are removed, while `build:viewer` still
+compiles the page. CI and native-host publisher guidance use the same names;
+the archive contract and implementation are otherwise unchanged. At that
+naming-only checkpoint, the other four scripts were inspected and retained: npm consumer verification,
+bundle/lazy-chunk/decoder checks, optional codec reproduction, and manual image
+fixture regeneration. The last two are not ordinary Release packaging steps
+and were not executed just to inspect them.
+
+Naming-only validation passed: the new npm packaging entry rebuilt all 225
+resources with byte-identical ZIP and manifest output; three focused cases
+covered the new script/command paths, deterministic no-Python/PowerShell
+packaging and a real Release artifact. Bash parsing, TypeScript, ESLint and
+whitespace checks passed. This did not rerun or modify the four other tools,
+regenerate fixtures/codecs, promote UI work, commit, publish or replace an
+installed extension.
+
+After confirming the component and existing test images were finalized, the
+user explicitly authorized retiring the development-only image fixture
+generator. The generator and its active README/provenance path are removed;
+the manifest now describes fixed, checked-in fixtures instead. Original
+images, JPEG/BMP derivatives, all EXIF markers, licenses, source descriptions,
+hash records and existing regression tests remain. No replacement generator
+or new fixture/tool directory is introduced.
+
+At the fixture-generator retirement checkpoint, the four retained scripts had active responsibilities and callers:
+`package-release.sh` produces the shared resource pair;
+`verify-packed-consumers.mjs` validates actual npm consumers in its CI job;
+`verify-rich-result-build.mjs` enforces bundle/chunk/decoder checks in core and
+performance validation; and `build-heic-codec.ps1` reproduces the pinned decoder
+in the existing scheduled/manual CI job. The codec tool is optional for ordinary
+packaging, but deleting it would also retire an intentional reproducibility
+check rather than merely remove a one-time development generator. This cleanup
+does not disable those checks or execute a codec rebuild.
+
+Generator retirement validation passed: all **32 fixture/source/license files**
+retain their exact bytes, and all manifest metadata outside the retired
+generator field/new fixed-fixture note retains the same semantic digest.
+All **8 Chrome/Edge format/EXIF cases** passed at DPR 1/2, including receipt
+PNG/JPG/JPEG/JPE/BMP, all eight EXIF directions and quarter-turn grounding.
+TypeScript, ESLint and whitespace checks passed; no active reference to the
+removed generator remains. No sample/codec regeneration, commit, publication
+or installed-extension replacement was performed.
+
+The user subsequently approved removing the optional HEIC development/rebuild
+tool as well. Its PowerShell file, npm verification entry and scheduled/manual
+CI reproduction job are removed together; this intentionally retires automated
+recompilation/reproduction, not HEIC support. The three remaining scripts are
+the Release packager, actual npm-consumer verifier and bundle/resource verifier.
+Their normal build and CI gates remain.
+
+The eight reviewed runtime files (JS/WASM, licenses, notices and SBOM), Rust
+wrapper source and lockfiles are retained without regeneration. Runtime
+delivery uses those prebuilt bytes directly. Existing expected-hash checks,
+real decoder corpus/CSP/error/lifecycle tests and source provenance remain.
+The codec README now documents prebuilt-resource ownership and future review
+requirements rather than a removed rebuild command. No replacement script or
+hidden rebuild workflow is introduced.
+
+Retirement validation passed: all **8 runtime/license/SBOM files** and **3 Rust
+source/lock files** retained their exact bytes. `npm run verify:bundle` built
+the library/demo and passed the original chunk, 500,000-byte entry and decoder
+hash checks with Rust/PowerShell absent from PATH. All **14 Chrome/Edge
+HEIF/HEIC cases** passed, covering real RGBA corpus decoding, input geometry,
+WASM-only CSP, denied policy, corrupt/missing decoder recovery and worker
+cleanup. TypeScript, ESLint and whitespace checks passed. The optional
+reproduction job/command are absent while bundle and stress gates remain;
+no decoder was rebuilt or regenerated.
+
+The actual `package:release` production build and 225-resource packaging also
+passed with Rust/PowerShell absent from PATH; ZIP and manifest bytes exactly
+matched the pre-retirement output. Existing installed extensions were not
+replaced, and no source was committed or published.
+
+The following intermediate delivery sections and their dated test counts are
+historical, superseded by this frontend-only boundary; they are not current
+installation/build instructions.
+
+### Earlier unified Release tooling cleanup (superseded), 2026-11-03
+
+The user explicitly superseded the old per-language frontend packaging model:
+Go/Python/future C# hosts retrieve the same compatible Release static resource
+pair, while TypeScript cu-cli may still use the npm component. This changes
+resource ownership, not the existence of the native hosts. Historical wheel
+payload counts, no-network preparation claims and old command names below
+describe their dated implementations, not the current delivery contract.
+
+The intermediate Release exporter was `scripts/export-viewer.ps1`. `build:viewer` produces the
+sample-free page in ignored `dist-app`; `export:viewer` is the sole resource
+packaging command and emits the ZIP/manifest directly in ignored `dist-viewer`.
+No command copies frontend resources into a language package. Required runtime
+inventory validation now belongs to the Release exporter, not a Python wheel
+hook. Legacy loose-file migration is removed; unknown/modified output still
+stops before replacement.
+
+The obsolete Python resource-checking `setup.py`, frontend package-data entries,
+`build:python`/`export:cli`/`build:cli` npm commands and separate packed-consumer
+preparation script are removed. Consumer preparation is part of the existing
+verifier; real React 18/19 npm package installs and development/production
+browser checks remain. Bundle budgets, codec reproduction and fixture generation
+remain useful and are not deleted merely because they do not run in a CLI.
+
+The Python host retains `prepare_viewer`/`show`/`read_result` and loopback/CSP
+behavior, adds explicit `update_viewer()` / `cu-viewer update`, and resolves
+protocol-1 resources using only the standard library. Preparation can now
+download before analysis; valid caches make no network/update request. It uses
+bounded HTTPS downloads, strict SemVer/protocol/manifest/ZIP integrity checks,
+symlink/reparse rejection, native cross-process locks and atomic content-addressed
+snapshots; a failed update leaves the prior active pointer intact. Missing files
+inside an existing cache are reported as corruption rather than first use.
+Frontend resources, documents and results are not part of the lightweight
+wheel/sdist. An explicit source-manifest prune also prevents stale setuptools
+inventories from reintroducing former embedded resources.
+
+CI now builds the shared Release pair and the lightweight Python host separately,
+then verifies real resources and distribution inventories. Installed-host browser
+tests require a preverified offline test cache and prohibit downloads; they still
+remove Node from the subprocess PATH. The Go producer documentation uses the
+same generic output. No C# host is invented in this repository. No main React UI,
+installed extension, remote Release or publication state is changed.
+
+The local npm 10.9.9 failed inside Arborist's optional-peer resolution before
+consumer build/test execution. The same merged verifier passed using isolated
+npm 11.21.1, with no `--legacy-peer-deps`/peer checks bypass. The packed-consumer
+CI job now pins that compatible tool version; the global local npm, project
+dependency versions and package lock remain unchanged. Vite's existing runtime
+URL warnings for published PDF/HEIF assets are retained, not suppressed.
+
+Local cleanup verification (Windows, Python 3.11.9; not a remote CI run):
+
+| Surface | Result |
+| --- | --- |
+| Python host/exporter | **103 passed**, including both real-resource and distribution-inventory opt-ins; no skipped gates. Python 3.10 syntax is checked separately, not claimed as a local 3.10 runtime test. |
+| npm component | **32 Chrome/Edge cases** passed across React 18/19 and development/production with the merged verifier and npm 11.21.1; isolated installs, types and builds also passed. |
+| Installed lightweight Python host | **10 Chrome/Edge cases** passed for PDF, PNG/JPEG/BMP grounding and HEIF WASM/CSP using the same offline Release pair as Go, without Node or cu-cli in the host environment. |
+| Shared Go/Python resource pair | The generic exporter produced the approved isolated single-toolbar preview's **225 resources**; ZIP SHA-256 remains `8ee266b3af5307709124181319c53919367f877687cde24c08fdb1bf0751d8c8`. Both native consumers downloaded/verified it once and reused it with the fixture server shut down. The main React worktree was not promoted. Go's private-file and approved-UI assertions were retained. |
+| Host package boundary | Final wheel **14,216 bytes**; both wheel and sdist contain no frontend ZIP/JS/WASM. Restoring the actual old resource pair beside the sources first reproduced a stale-inventory sdist leak; the explicit manifest prune fixed it without relying only on cleaning local files. |
+| Real public failure path | Public Release count remains **0**. An actual cold Python command returned **exit 1 / stdout 0 bytes**, stderr explicitly saying no analysis started and no compatible Release, no active cache and no browser. An initially wrong API Accept header was exposed by a real HTTP 415 and fixed with a JSON-API versus static-asset regression; HTTP errors close their response and redact bodies. A transient anonymous GitHub rate-limit failure was surfaced, not counted as a download success. |
+| Static/boundary checks | TypeScript main/worker, ESLint and both repositories' whitespace checks passed. Package lock, Go checksums, core React sources, fixtures, licenses and decoder files are unchanged. The installed CU extension retains SHA-256 `e0286921d25af627ae295f89ca2a3abb343b007f55bdd2be23dba07685c020ad`; no commit, push, release, or existing installation replacement occurred. |
+
+### Earlier PowerShell-only Release export (superseded), 2026-11-03
+
+The user requested shell tooling instead of a Python exporter. Release packaging
+now uses PowerShell 7.4+ and public .NET ZIP/SHA-256 APIs directly. The former
+Python exporter and its pytest suite are removed; `npm run test:export` uses
+Node's built-in runner against the actual PowerShell entry with no Python on the
+child PATH. No runtime/package dependency is added. Native
+`npm run export:viewer -- -ViewerVersion 0.1.0-preview.1` replaces the former
+Python-style version flag. Source, license-root and destination parameters also
+allow isolated reviewed production builds without importing a Python function.
+
+Schema 2, protocol 1, complete runtime/license inventory, ordinal entry ordering,
+fixed timestamps/file attributes, strict versions/paths, prior ownership/integrity
+checks and per-file atomic replacement remain. ZIP container bytes may differ
+between the former Python compressor and .NET or different toolchains; payload
+hashes remain the contract and the new archive digest is always recalculated.
+Already published versions must not be overwritten. Regression checks cover
+PowerShell array-to-scalar version coercion and filename/dictionary-member
+collisions in addition to the prior exporter cases.
+
+CI exports/tests Release resources before setting up Python. The existing
+Python host's separate build/tests remain because its removal has not been
+authorized; this conversion does not delete or migrate that host, promote the
+isolated React UI, replace an installation, commit, push or publish.
+
+Validation passed on Windows with PowerShell 7.6.9/.NET 10.0.14 and Node 22.23.4:
+all **39 native exporter cases** (including the real artifact) and **79 separate
+Python-host cases** passed, and Go's real download/offline-serving integration
+accepted the same new archive. The complete `npm run export:viewer` pipeline
+also passed with PATH limited to Node, pwsh and System32, with no discoverable
+Python/py launcher. The approved preview's **225 decoded file hashes** exactly
+match the former Python export. Its new ZIP is **3,059,456 bytes**, SHA-256
+`7389b92fe8bb602ff32f3a0ff598226bcc7717514fde59fb93fdd2dbd1a1e8b5`;
+this digest change is the documented compressor/container transition, not a
+payload/UI change. TypeScript, ESLint, PowerShell parsing and whitespace checks
+passed. No dependency versions or lockfiles changed.
 
 ### Project rename, 2026-10-23
 
@@ -671,6 +921,24 @@ A new unit case first failed against the still-rendered inline list, then passed
 
 Live verification at **1040px** found **410px** filename space (previously approximately **108px** with inline chips), zero persistent summary nodes, a single **44px** row and **0px** page-center error. The real sample filename is fully visible; opening Legend still exposes all five original category names, including **Confidence unavailable**. The preview remains at 5189 for review; primary React/5173, product visual references, commits and PRs remain unchanged.
 
+### Runtime Viewer delivery: local implementation and validation (2026-11-03)
+
+The user approved replacing the Go frontend's embedded resource copy with an independently delivered compiled Viewer. Preparation must occur before Analyze, report first-use/download/cache failures on stderr, never open a blank browser, and retain already-produced output if opening fails after analysis. Follow-up choices were explicit: **valid cache first / manual update only** and **local implementation/testing only, no commits, push or release publication**. The public `changjian-wang/cu-viewer` repository currently has no GitHub Releases; no download URL/version was fabricated as operational.
+
+The existing exporter now emits additive `viewerVersion`/`protocolVersion: 1` fields in schema 2, using the package version or an explicit validated SemVer override. `npm run export:viewer -- --viewer-version 0.1.0-preview.1` builds the ordinary production entry and creates a deterministic, licensed ZIP/manifest pair under ignored `dist-viewer/resources/viewer`; it does not publish. Existing Python readers/APIs and archive migration safeguards remain compatible. The old manifest regression first failed on its missing version; the final combined Python/export suite passes **65/65** and Viewer main/worker TypeScript passes.
+
+The Go consumer is in `C:\github\azure-dev\cli\azd\extensions\azure.ai.content-understanding`, not the toolkit checkout. It uses its native HTTP client against the fixed public Viewer release source, semantic version/protocol checks, bounded archive validation and a per-user cache. A valid cache incurs no network check. `azd ai cu viewer update` explicitly retrieves/activates a compatible release and leaves the prior active cache unchanged on failure. Node/Python/gh and Azure authentication are not runtime prerequisites. The old embedded ZIP/manifest pair was checksum-backed up outside the repository before its removal; no embedded fallback remains.
+
+Cache snapshots are content-addressed with an atomic active-version pointer. The existing anchored private-directory/ACL/symlink-safe I/O is reused, with a bounded binary read helper that preserves the existing UTF-8 state-file rules. The already-locked semver/flock dependencies are promoted to direct references without version or checksum changes; cross-process locking prevents duplicate first-use downloads, and lock handles are closed even after cancellation. Downloads/ZIP expansion are bounded and cancelable. Unsupported source formats fail before resource fetch. Cache metadata/data corruption, missing snapshot files, protocol mismatch, checksum/path failures and unavailable releases are explicit; a missing file inside an existing snapshot is reported as an invalid cache, not incorrectly as first use. A dedicated regression exposed and corrected that distinction.
+
+The real CLI flow still prepares before its CU session/authentication and emits complete original output before Viewer Show. Preparation errors explicitly say no analysis was started; post-analysis Show failures explicitly say analysis completed and preserve stdout/saved files without a second request. Existing cancellation priority and `--view=false` behavior remain. The root help snapshot changes only by the new `viewer` entry and was regenerated with the existing opt-in tool, then strictly rechecked.
+
+Validation includes all **13 tested Go extension packages** via `go test -mod=readonly ./...`, affected-package vet, and builds of a separate local runtime binary. Focused tests cover cold success, offline reuse, explicit updates, compatibility selection, invalid/corrupt/missing caches, resource limits and unsafe entries, HTTP-body redaction, eight concurrent preparations, cancellation during a download/lock wait, permission failures and diagnostic-output failure. Existing CLI tests verify failure before authentication/analysis and exact saved-result preservation after Show errors. `go.sum` and the installed extension remain unchanged; an unrelated checksum line-ending normalization from `go mod tidy -diff` was not applied.
+
+A separate **actual 225-file current-React artifact** was wrapped with the new metadata from the isolated single-toolbar preview. The Go integration fetched it through a local HTTP release fixture, verified/cached it, closed the download server, and successfully prepared again offline with exactly three original download requests. The same Go Session then served the real licensed PDF and CU JSON with the production CSP. Browser inspection confirmed a painted source canvas, 31 top-level Fields, selected CustomerAddress, 150% zoom, one 44px toolbar, zero persistent inline chips and five retained Legend categories. The bounded integration test passed after its stop signal and released its listener/source handles; this was not a public-release download.
+
+A real new-binary cold `analyze --view --output json` invocation against the as-yet-empty public release source returned **exit 1, stdout 0 bytes**, preparation progress on stderr, an explicit **no analysis was started / no compatible release** explanation, and no active cache. It did not open a browser or enter Analyze. The SDK's `AZD_SERVER not set` warning in that direct-binary check is the known standalone-host boundary, not a successful installed-azd integration claim. Public cold-download success remains gated on a separately authorized first release. No current installed extension was replaced, no UI was promoted from the preview worktree, and no product visual references or remote GitHub state were changed.
+
 ### Required acceptance matrix
 
 | Area | Required observation and evidence |
@@ -708,16 +976,17 @@ npm run test:e2e -- 'ui-(redesign|gestures|values)\.spec\.ts$' 'accessibility\.s
 
 The browser selectors are filename regexes, not filesystem paths. Expand focused selectors to include newly extracted helpers/components as they are introduced. Each phase must exercise its actual entry paths, not just reducer state or snapshot appearance.
 
-```powershell name="Final React and asset gates"
+```bash name="Final React and asset gates"
 npm run test:unit
 npm run test:e2e -- --project=chrome --project=edge
 npm run verify:bundle
 npm run verify:consumer
 npm run verify:performance
-npm run build:python
+npm run package:release -- --viewer-version 0.1.0-preview.1
+npm run test:release
 ```
 
-The [consumer verifier](../scripts/verify-packed-consumers.mjs) prepares its isolated React 18/19 hosts; do not invoke `test:consumer` without that setup. After building and installing the Viewer wheel into an isolated environment, set `CU_VIEWER_PYTHON` and `CU_VIEWER_PACKAGE_ROOT` as required by the [installed-wheel test](../tests/e2e/cli-host.spec.ts), then run `npm run test:cli -- --grep "independent Viewer wheel"`. Full cu-cli integration additionally requires its existing compatible three-package test environment; report a blocker if only the old-name toolkit adapter is available rather than silently editing the adjacent repository or claiming CLI compatibility.
+The [consumer verifier](../scripts/verify-packed-consumers.mjs) prepares its isolated React 18/19 hosts; do not invoke `test:consumer` without that setup. Release checks use `CU_VIEWER_TEST_EXPORT` to validate the actual ZIP/manifest. Native host integration is tested in the respective CLI repository; the former installed-Python-wheel browser suite no longer belongs to this frontend repository. Do not silently edit the adjacent toolkit or claim Python CLI compatibility.
 
 Keep the existing render/performance limits and resource-integrity checks. Do not add virtualization or a new dependency unless measured results demonstrate a need. Package verification must use the newly built assets, not an old wheel or the working standalone prototype.
 
@@ -731,7 +1000,7 @@ Keep the existing render/performance limits and resource-integrity checks. Do no
 
 ## Approved productization refactor
 
-Approved on 2026-10-22. The primary users are CU developers, technical implementers, and technical testers. The product remains a read-only local Viewer, independently delivered as a Python wheel; cu-cli is a host, not a runtime dependency of the Viewer.
+Approved on 2026-10-22. The primary users are CU developers, technical implementers, and technical testers. The product remains a read-only local Viewer; cu-cli is a host, not a runtime dependency. The original Python-wheel delivery and R3/R5 evidence below are historical and superseded by the frontend-only Release boundary above.
 
 This section records the earlier refactor and its original exclusions. The later React UI migration above specifically adds field-only search, ordering and optional order props; it does not add multi-document search or comparison.
 
@@ -749,22 +1018,19 @@ frontend/
   app/              production browser entry, formerly cli/
   demo/             development-only host
   tooling/          Vite asset build plugins
-python/
-  src/cu_viewer/
-  tests/
-scripts/            cross-language packaging, fixtures and delivery verification
+scripts/            cross-language packaging and delivery verification
 tests/              shared fixtures and end-to-end/installed-package checks
 assets/             licensed runtime build inputs
-codecs/             reproducible decoder source and locks
+codecs/             retained decoder source, provenance and locks
 docs/               requirements, this plan and maintained operational guidance
 ```
 
 - Production and demo hosts use the same component. Model parsing must not depend on React components or browser-host startup.
 - Keep one npm project and the existing root verification commands; do not introduce workspaces, a new build framework, or a plugin architecture.
-- Preserve npm exports, React props, Python public names/signatures, wheel name, archive layout, session JSON, local-only serving protections, and source/result semantics.
+- Preserve npm exports, React props, archive layout, session JSON and source/result semantics. Native hosts own local-only serving protections; the former Python package/API is retired.
 - Rename the results composition to match its actual responsibility, and separate cohesive source-rendering effects from pane composition without changing source, focus, or cancellation ownership.
-- Separate Python errors, input validation, packaged-resource validation, HTTP serving and startup lifecycle. Build-time validation reuses resource validation without loading HTTP/browser startup.
-- Unit tests remain beside frontend modules or under Python tests; shared fixtures and delivery tests remain under the root tests directory.
+- Keep resource construction/validation independent of any native host, authentication or browser startup.
+- Unit tests remain beside frontend modules; shared fixtures and delivery tests remain under the root tests directory.
 - Generated outputs and caches remain ignored. Do not delete required licenses, decoder binaries, fixtures, or unrelated local environments to make the explorer look cleaner.
 
 ### Tasks and acceptance gates
@@ -887,20 +1153,19 @@ Markdown uses sanitization; the current remote-image omission policy and synchro
 | Location | Responsibility | Retention rule |
 | --- | --- | --- |
 | [frontend/src](../frontend/src) | Component, model parsing, source adapters/rendering/geometry, interaction state, result panes, styles, and colocated unit tests. | Rendering-only TypeScript; no Python or CU service dependencies. |
-| [frontend/app](../frontend/app) | Sample-free production browser entry used by the independent Python package and CLI. | Keep source and Vite configuration; rebuild its output. |
-| [python](../python) | Independent Viewer distribution, public preparation/display API, read-only service, browser launcher, and runtime/build tests. | No cu-cli/core or third-party runtime dependency; generated archive and build outputs are ignored. |
+| [frontend/app](../frontend/app) | Sample-free production browser entry shared by native CLI Release consumers. | Keep source and Vite configuration; rebuild its output. |
 | [frontend/demo](../frontend/demo) | Development host with saved sample selection and file inputs. | Keep for local development and repository browser tests; it is not the CLI production page. |
 | [assets/heif](../assets/heif) | Pinned, licensed runtime decoder assets and SBOM. | Required build inputs, not disposable build caches. |
-| [codecs/heic-rs-wasm](../codecs/heic-rs-wasm) | Reproducible wrapper, lockfile, and codec build instructions. | Keep source/locks/licenses; remove generated `target` output when cleaning. |
+| [codecs/heic-rs-wasm](../codecs/heic-rs-wasm) | Retained decoder wrapper source, lockfile and resource provenance. | Keep source/locks/licenses; no active rebuild script or reproduction job. |
 | [frontend/tooling](../frontend/tooling) | PDF/HEIF asset build plugins shared by frontend build entries. | Build-only Node/TypeScript code, not browser runtime code. |
-| [scripts](../scripts) | Fixture generation, bundle/consumer checks, and deterministic production-page export. | Keep active cross-language build and regression tools. |
+| [scripts](../scripts) | Release packaging and bundle/npm-consumer checks. | Keep active delivery tools; fixed fixture generation and optional decoder rebuilding are retired. |
 | [tests/fixtures](../tests/fixtures) | Licensed source/result pairs, derived/synthetic decoder cases, provenance, and the active Fields reference. | Keep test inputs and their original bytes; no accumulated project progress logs. |
-| [tests/e2e](../tests/e2e) | Functional, visual, lifecycle, performance, consumer, and CLI-wheel tests. | Keep tests and approved reference images, not run output or traces. |
-| [CI workflow](../.github/workflows/ci.yml) | Existing build, functional, package, performance, and scheduled stress/codec jobs. | Keep; local success does not imply the latest branch ran remotely. |
+| [tests/e2e](../tests/e2e) | Frontend functional, visual, lifecycle, performance and npm consumer tests. | Keep tests and approved reference images; native CLI/wheel suites belong in their host repositories. |
+| [CI workflow](../.github/workflows/ci.yml) | Build, functional, package, performance and scheduled stress jobs. | The optional codec reproduction job is retired; local success does not imply a remote run. |
 
-The workflow now builds the independent Viewer sdist/wheel and runs its Python/exporter tests on Python 3.10. Installed-Python-wheel browser and compatible-upgrade checks remain local; editing the workflow is not evidence of a completed remote run.
+The workflow builds/verifies the shared Release pair in a dedicated Ubuntu job. Windows frontend/npm/browser and scheduled stress jobs remain; there is no Python setup, host build, pytest step, Rust install or codec reproduction job. Editing the workflow is not evidence of a completed remote run.
 
-`dist`, `dist-demo`, `dist-cli`, test reports, Python caches, and Rust build output are rebuildable and ignored. Local `node_modules` may be retained for development but is not source or a distribution artifact. Superseded static prototype pages/images are removed; the still-used approved Fields image lives with the fixtures. There is no additional archive-document tree.
+`dist`, `dist-demo`, `dist-app`, `dist-viewer`, test reports and Rust build output are rebuildable and ignored. Local `node_modules` may be retained for development but is not source or a distribution artifact. Superseded static prototype pages/images are removed; the still-used approved Fields image lives with the fixtures. There is no additional archive-document tree or Python host tree.
 
 ## Implementation phases and acceptance criteria
 
@@ -967,14 +1232,14 @@ The tables specify direct prerequisites rather than implying dependencies from r
 
 ### Repository and ownership
 
-The standalone host is in [Azure/content-understanding-toolkit](https://github.com/Azure/content-understanding-toolkit), under `cu-cli/packages/standalone`. Implementation uses the workspace branch `feat/cu-result-viewer`, created from the inspected `origin/main` at `b3ff066960d6b517b6f1b4ee12201376369279a3`.
+The historical Python standalone integration is in [Azure/content-understanding-toolkit](https://github.com/Azure/content-understanding-toolkit), under `cu-cli/packages/standalone`, on `feat/cu-result-viewer`. It depends on the retired host package and needs a separate native-host migration. This cleanup does not implement that migration. Go owns its runtime in the adjacent azure-dev extension; future C# hosts do likewise in their own repository.
 
-- This repository owns the component, [production browser entry](../frontend/app), independent [Python package](../python), resource build, [archive exporter](../scripts/export_cli_viewer.py), local service, browser launch, and shutdown.
-- The CLI frontend owns command options, source selection, analysis and result serialization, and translation of Viewer exceptions into its existing errors. It calls the independent package; it neither reads its archive nor exposes its internals.
+- This repository owns the component, [production browser entry](../frontend/app), resource build, [Bash packager](../scripts/package-release.sh) and npm component.
+- Each CLI owns command options, source selection, analysis/result serialization, Release selection/download/cache/integrity validation, loopback service, browser startup/shutdown and its error translation. It must not depend on a Python package from this repository or keep a frontend copy.
 - The shared analysis engine and other command frontends were not changed to implement viewing.
 - Public component props remain `source` and `result`.
 
-The Python API is `prepare_viewer(source) -> PreparedViewer`, `PreparedViewer.show(result)`, and `read_result(path)` for saved JSON. Preparation validates basic source conditions and installed assets without networking or browser startup; display blocks until Ctrl+C. `ViewerInputError` distinguishes invalid local input from a `ViewerError` installation/serving failure. This API adds no React customization props.
+The language-independent browser handoff is a same-session `session.json` containing `source`, `name` and complete original `result`. Preparation validates local input and resolves compatible cached/Release assets before host authentication/analysis, without opening a browser. Native hosts distinguish input, download/cache and serving errors using their own error conventions. The former Python `prepare_viewer`/`show`/`read_result`/`update_viewer` API is not shipped and must not be used as the new integration contract.
 
 ### Confirmed command behavior
 
@@ -990,30 +1255,31 @@ cu analyze sample.pdf --view --result sample.result.json
 | No `--view` | Do not start a browser/service or require viewer assets. Preserve existing analysis, batching, URL handling, stdout, files, and reports. |
 | Unsupported viewing selection | Reject directory, batch, remote URL, or `--dry-run` combinations before analysis. The first release views one local PDF/image at a time. |
 | Invalid option combination | Require `--view` with `--result`; reject additional analysis/output options in saved-result mode. Do not overwrite the source. |
-| Missing/corrupt independent Viewer | Fail explicitly before analysis/authentication with guidance to repair the Viewer dependency in the actual CLI environment through its original installer. Do not require a development environment, silently ignore `--view`, or download software. |
+| Missing/corrupt resource cache | Report preparation/download on stderr before analysis. Reuse a verified cache offline without checking updates; download/verify a compatible Release when needed. Unavailable releases/download/cache errors fail nonzero before analysis/browser startup. |
 
 Status and the local URL go to stderr, preserving stdout data pipelines. Existing raw JSON, Markdown, result-file, and report behavior is retained in analysis-then-view mode. Source/result pairing is the caller's responsibility; the Viewer does not falsely certify that arbitrary files belong together.
 
-### Independent package delivery and updates
+### Shared Release resources and native CLI hosts
 
 ```text name="Production asset pipeline"
-src + cli + licensed runtime assets
-    -> dist-cli
+src + production app + licensed runtime assets
+    -> dist-app
     -> viewer.zip + manifest.json
-    -> independent cu-viewer sdist/wheel
-    -> package-manager installation alongside cu-cli
-    -> Viewer-owned preparation/display API
+    -> one versioned cu-viewer GitHub Release
+    -> native Go/Python/future C# download + validated offline cache
     -> loopback HTTP session
     -> browser component
+
+React library sources -> npm component -> TypeScript host
 ```
 
-The archive includes the page, CSS/JS/lazy chunks, PDF Worker/fonts/CMaps/ICC/WASM, HEIF Worker/decoder, and notices. The exporter uses Python's standard library with fixed entry order, timestamps, and permissions. The manifest records archive and per-entry sizes/SHA-256 values.
+The archive includes the page, CSS/JS/lazy chunks, PDF Worker/fonts/CMaps/ICC/WASM, HEIF Worker/decoder, and notices. The exporter uses Bash, Info-ZIP, jq and GNU tools with fixed entry order, timestamps and permissions; no Python/PowerShell is required. The manifest records archive and per-entry sizes/SHA-256 values.
 
-The independent Viewer checks the exact manifest/archive inventory and serves verified bytes from memory. It neither extracts into user directories nor runs Node/Vite at runtime. Resource paths remain local and use correct MIME/CSP headers. Its wheel/source builds reject absent/corrupt resources; the sdist contains prebuilt assets so rebuilding a user wheel does not require Node.
+Each native host checks the exact manifest/archive inventory and serves verified bytes from memory. It neither extracts into document directories nor runs Node/Vite at runtime. Resource paths remain local and use correct MIME/CSP headers. The exporter rejects an incomplete frontend build; no Python wheel/sdist or standalone host is built here.
 
-The adjacent cu-cli branch still declares the former `cu-result-viewer>=0.1.0b1,<0.2.0` dependency. Integrating the renamed package requires changing that dependency to `cu-viewer>=0.1.0b1,<0.2.0` and its Python imports to `cu_viewer`; the toolkit is outside this rename's scope. Package managers perform installation/repair/upgrades in the same environment, not the `--view` command. Runtime code does not fetch latest releases or maintain a separate cache/updater. Breaking Python API changes require a compatible CLI update.
+The adjacent Python cu-cli's old package dependency/imports cannot be repaired by renaming them to `cu_viewer`: that module is retired. Its owning project must implement/migrate native resource preparation/cache/service and preserve the confirmed command behaviors. Go's explicit update is `azd ai cu viewer update`; other hosts define their own equivalent. `--view` reuses a valid cache without checking for updates.
 
-Publish the independent package to the approved index before releasing the CLI dependency. Previous PyPI name checks applied to the former name and do not establish availability or ownership of `cu-viewer`; name checks and publication approval remain separate. Local validation installs built wheels, not an unpublished index dependency. Source repositories retain no generated Viewer ZIP; the toolkit has no Viewer resource directory. Export updates stop on unknown or modified files.
+Publish the shared resource pair before expecting successful public cold starts. There is no Python package publication prerequisite. Local validation uses local release fixtures and the native Go consumer, not a claim of public publication or completed Python/C# migration. Source repositories retain no frontend copies; export updates stop on unknown or modified files.
 
 ### Session and lifecycle
 
@@ -1032,7 +1298,7 @@ Publish the independent package to the approved index before releasing the CLI d
 | PDF | `pdfjs-dist 6.3.289` behind a private adapter; local resources and shared real-frame geometry. No public PDF.js contract or hard-coded coordinate-unit shortcut. |
 | Highlighting | Source grounding is not an editable annotation product. Evaluated highlighter/OCR-tool patterns informed the adapter/geometry choice without importing their application or service architecture. |
 | Images | One image adapter, content-based recognition, representative orientation checks, and explicit unsupported/decode errors. Licensed equivalent JPEG/BMP derivatives are not independent Analyze pairs. |
-| HEIF | Pinned `heic-rs 0.1.4` under MIT OR Apache-2.0; owned Worker, checked-in runtime assets, lockfiles, notices/SBOM, and [rebuild instructions](../codecs/heic-rs-wasm/README.md). No historical LGPL decoder is shipped. |
+| HEIF | Pinned `heic-rs 0.1.4` under MIT OR Apache-2.0; owned Worker, checked-in runtime assets, lockfiles, notices/SBOM, and [source/resource provenance](../codecs/heic-rs-wasm/README.md). Automatic rebuilding is retired; no historical LGPL decoder is shipped. |
 | OCR base | Separate Canvas 2D rasterization tied to actual CSS frame/DPR; do not replace it with an unstable translucent SVG or change source pixels to hide differences. |
 | Rich results | Mature Markdown/JSON dependencies, sanitization, safe syntax highlighting, and lazy activation. Keep existing limits/errors until an actual requirement justifies a behavior change. |
 | Evidence | [Fixture inventory](../tests/fixtures/manifest.json) retains acquisition, licenses, hashes, expected values, and real/derived/synthetic distinctions. Owner-approved [visual references](../tests/e2e/visual.spec.ts-snapshots) are regression inputs, not Studio pixel-copy requirements. |
@@ -1053,8 +1319,8 @@ Publish the independent package to the approved index before releasing the CLI d
 | Visual regression / `3.2`, `4.2a`, `4.3a` | [Product visual tests](../tests/e2e/visual.spec.ts), [detail visual tests](../tests/e2e/detail-visual.spec.ts), approved Fields fixture | Existing zero-difference comparisons; no automatic re-recording, threshold relaxation, or UI masking. |
 | Browser source URLs / `3.1`, `3.3` | [Source input tests](../tests/e2e/source-inputs.spec.ts) and controlled loopback CORS host | HTTP/HTTPS/blob policy, explicit CORS failures, anonymous cross-origin behavior, viewer-origin assets. |
 | Independent package / `3.3` | [Consumer verifier](../scripts/verify-packed-consumers.mjs), [packed-host browser checks](../tests/e2e/package-host.spec.ts) | Real tgz installs with React 18/19, development/production assets, strict CSP, no source aliases. |
-| Independent assets/runtime / `5.2` | [Exporter tests](../tests/test_export_cli_viewer.py), [Python runtime tests](../python/tests/test_runtime.py), [API/build tests](../python/tests/test_api.py), clean sdist/wheel builds | Deterministic output, shared server-independent asset validation, integrity/path errors, explicit broken-build failures, no ignored Worker, standalone installation without CLI. |
-| CLI behavior / `5.1`, `5.2` | Toolkit adapter/command tests and [installed-wheel browser checks](../tests/e2e/cli-host.spec.ts) | Single analysis or zero-call saved viewing, unchanged output, dependency failure before billing, no embedded assets, compatible Viewer-only upgrades, CSP and shutdown. |
+| Shared resources / `5.2` | [Bash packaging tests](../tests/package-release.test.mjs), real Release opt-in and native Go integration in its own repository | Deterministic complete Release without Python/PowerShell, exact inventory, hashes, versions/paths, licenses and safe replacement; consumer protocol compatibility. |
+| Native CLI behavior / `5.1`, `5.2` | Each host repository's command/cache/service/integration tests; local Go evidence recorded above | Single analysis or zero-call saved viewing where supported, unchanged output, preparation before billing, no embedded frontend, explicit update, CSP and shutdown. Python/C# migration is separate work. |
 
 ### Validation commands
 
@@ -1069,13 +1335,13 @@ npm run build
 
 ```powershell name="Targeted visual and export validation"
 npx playwright test '(^|[\\/])visual\.spec\.ts$' --project=chrome --project=edge
-python -m pytest tests\test_export_cli_viewer.py
-npm run build:cli
+npm run test:release
+npm run package:release -- --viewer-version 0.1.0-preview.1
 ```
 
 The exact visual selector above targets only the [product visual suite](../tests/e2e/visual.spec.ts), matching the recorded 18-case cleanup run. The [detail visual suite](../tests/e2e/detail-visual.spec.ts) is separate.
 
-The Python/exporter tests require pytest. `npm run build:python` builds precompiled resources, then a sdist and a wheel from that sdist. For browser checks, set `CU_CLI_PYTHON` / `CU_CLI_PACKAGE_ROOT` to the three-package CLI installation and `CU_VIEWER_PYTHON` / `CU_VIEWER_PACKAGE_ROOT` to a Viewer-only environment, then run `npm run test:cli`. No source aliases are used. Use `npm run verify:consumer` or `npm run verify:performance` when their respective surfaces change.
+Release export tests use Node's built-in runner and Bash with Python/PowerShell excluded from the child PATH. Set `CU_VIEWER_TEST_EXPORT` to the generated pair for the real-artifact inventory gate. The former Python test/build/browser entry points are removed. Use `npm run verify:consumer` or `npm run verify:performance` when their respective surfaces change; native host tests run in each CLI repository.
 
 <a id="verification"></a>
 ## Recorded verification
@@ -1107,7 +1373,7 @@ Existing timing, capacity, geometric, DPR, stress, and screenshot thresholds are
 | Cross-origin/local file exposure | Viewer URL policy plus the CLI's loopback-only capability session, Host/Origin checks, allowlisted assets and source, and no credential handoff. |
 | Unexpected billable analysis | `--result` bypasses profiles/clients with no fallback to Analyze. Before analysis, the CLI checks option/selection constraints, source existence/readability, supported extension, nonempty input, and viewer asset integrity. It does not fully validate PDF/image contents: a corrupt nonempty file with a supported extension may still be submitted and incur charges. Maintainer live-service checks require explicit authorization. |
 | Browser/font or screenshot drift | Keep approved inputs/versions and diagnose differences; do not automatically replace references or weaken checks. Retain the observed invoice font warning as a limitation, not a hidden success. |
-| Cross-package version mismatch | Declare a compatible dependency range, verify standalone Viewer and CLI installations, and test upgrading only Viewer without rebuilding the unchanged CLI wheel. Do not copy artifacts between source repositories. |
+| Host/resource version mismatch | Validate SemVer, protocol and exact inventory; test cached/offline use and explicit update without rebuilding the CLI. Keep native host tests in their repository and do not copy frontend artifacts between source repositories. |
 | License/publication assumptions | Retain MIT and all third-party/sample notices, decoder SBOM and locks. Technical validation does not itself grant publication or patent approval. |
 
 ## Build, rollout, and rollback
@@ -1115,24 +1381,25 @@ Existing timing, capacity, geometric, DPR, stress, and screenshot thresholds are
 ### Build and handoff
 
 1. Validate the component and build the sample-free CLI page using existing scripts.
-2. Generate the ignored ZIP/manifest for the independent Viewer package, and build its sdist/wheel with resource validation.
-3. Build the CLI wheel with its dependency, not Viewer assets; install the three wheels into a clean environment. Build sources exclude old working-tree output.
-4. Run the relevant command/server and installed-wheel browser tests. Reuse saved real JSON unless another paid call has been authorized.
+2. Generate the ignored language-independent Release ZIP/manifest with Bash and runtime inventory validation; verify the actual pair.
+3. Independently validate the npm component for TypeScript hosts. Native CLI projects prepare/validate the Release and cache in their own integration environment, without copying frontend resources.
+4. Run the relevant native command/cache/server/browser tests in the owning CLI repository. Reuse saved real JSON unless another paid call has been authorized.
 5. Review coordinated changes before any commit, push, installation replacement, or publication. Do not replace an existing user CLI automatically.
 
-```powershell name="Build the independent Viewer distribution"
-npm run build:python
+```bash name="Build shared Release resources"
+npm run package:release -- --viewer-version 0.1.0-preview.1
+CU_VIEWER_TEST_EXPORT="$PWD/dist-viewer" npm run test:release
 ```
 
 ### Clean source repository
 
-After validation, remove rebuildable output, generated Python-package resources and caches, leaving source, tests, approved fixtures/references, and required licensed assets. Keep the demo and production host because they exercise different contracts. Preserve unrelated/staged user changes; cleanup must not stop a separately installed Viewer session.
+After validation, remove rebuildable output and caches, leaving source, tests, approved fixtures/references, and required licensed assets. No language-package frontend resource directory should be generated. Keep the demo and production host because they exercise different contracts. Preserve unrelated/staged user changes; cleanup must not stop a separately installed Viewer session.
 
 ### Rollback
 
-- Reinstall the previous compatible independent Viewer release without rebuilding CLI. If the Python API compatibility range changes, coordinate the CLI dependency update.
+- Retain the previous verified resource snapshot on update failure; roll back to the prior compatible reviewed Release/native CLI when required. Coordinate protocol compatibility changes with the owning CLI projects.
 - Revert only the relevant reviewed changes or install the previous known-good package; never reset unrelated work.
-- Do not downgrade integrity checks or replace missing resources with an online download.
+- Do not downgrade integrity checks or use an unverified download as a fallback for invalid resources.
 - Preserve source documents and saved Analyze JSON. Reverting a Viewer package does not require reanalysis.
 
 ## Completion criteria
@@ -1141,6 +1408,6 @@ After validation, remove rebuildable output, generated Python-package resources 
 - Approved result views, grounding, source controls, previews/table inspection and keyboard behavior retain their defined semantics. The new UI phase follows its approved overlay rules, including removal of the persistent yellow OCR tint without loss of raw OCR data.
 - Invalid input, limits, unavailable grounding, decode/render failure, and missing package resources are explicit.
 - Replacements, cancellation, modal closing, and unmount release owned resources without corrupting caller input.
-- Viewer installs and opens saved results without cu-cli; an actual packaged CLI calls it for both confirmed viewing commands, preserves non-view behavior, and needs neither Node nor source-repository paths at runtime.
+- The frontend works in its demo, an actual npm consumer and a native host's shared Release session. Native CLI integrations preserve their confirmed viewing/non-view behavior and need neither Node nor source-repository paths at runtime; Python/C# migration is not declared complete here.
 - Clean-source builds include all required resources and notices; tests do not depend on obsolete prototype directories or local configuration.
 - The repository contains one complete English plan, not duplicate plans or accumulated generated reports.
