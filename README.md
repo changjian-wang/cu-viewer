@@ -61,7 +61,9 @@ Go、Python、C# 等 CLI 使用各自语言实现同一 Release/会话契约，�
 azd ai cu viewer update
 ```
 
-各宿主使用私有的系统用户缓存，只保存校验后的静态资源及活动版本记录，不保存文档和分析结果。失败更新不替换已有有效版本。旧的 `python -m cu_viewer`、独立 `cu-viewer` 命令和 Python API 已移除；已有 Python CLI 不能只修改包名继续调用它们。当前没有公开 Viewer Release，首次公网获取须待另行授权发布，不能把本地下载测试说成已经可供用户使用。
+各宿主使用私有的系统用户缓存，只保存校验后的静态资源及活动版本记录，不保存文档和分析结果。失败更新不替换已有有效版本。旧的 `python -m cu_viewer`、独立 `cu-viewer` 命令和 Python API 已移除；已有 Python CLI 不能只修改包名继续调用它们。
+
+首个资源预览 [v0.1.0-preview.1](https://github.com/changjian-wang/cu-viewer/releases/tag/v0.1.0-preview.1) 已公开发布，基于源码提交 `9b1667703502ff6dd3035c644a7b4377fb6ac054`，包含 225 项资源、schema 2 和 protocol 1；不含仍隔离的单工具栏预览。Go 宿主需要运行时资源下载版本，旧的内嵌资源扩展不会使用该 Release。首次准备需要访问 GitHub；匿名 API 限流等下载错误会在分析前明确退出，不应通过重新分析或未经校验的缓存绕过。
 
 <a id="embedding"></a>
 ## 嵌入 React

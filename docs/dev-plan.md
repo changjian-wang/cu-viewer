@@ -31,12 +31,49 @@ The project supplies the browser Viewer used by cu-cli to inspect an original so
 - The implemented UI includes source navigation and transforms, structured fields, applicable rich-result views, semantic confidence highlighting, source grounding, compact previews and table inspection. Raw OCR is retained; the redesigned default does not paint a permanent OCR word layer.
 - Current delivery is validated with Chrome/Edge, React 18/19, and Vite 8. Other build/runtime profiles are unverified, not additional tasks.
 - The historical Python CLI frontend implements both confirmed `--view` flows on `feat/cu-result-viewer` in the adjacent toolkit checkout. It still depends on the retired host package and needs native Release/cache/service migration in its own repository, not merely renamed imports. This is not a claim that an existing published CLI supports the current delivery contract.
-- Go, Python and C# CLI hosts must use the language-independent compiled Viewer Release, downloaded/validated before analysis and reused from a compatible offline cache. This repository now maintains only the frontend, Release tooling and npm component; it does not ship a Python host/API. Go's native runtime has local evidence; Python/C# CLI migration belongs in each host repository and is not completed by deleting the former package. No public Viewer resource Release is published.
+- Go, Python and C# CLI hosts must use the language-independent compiled Viewer Release, downloaded/validated before analysis and reused from a compatible offline cache. This repository now maintains only the frontend, Release tooling and npm component; it does not ship a Python host/API. The first public resource preview is `v0.1.0-preview.1`; Python/C# CLI migration still belongs in each host repository and is not completed by deleting the former package.
 - The original productization refactor did not add customization APIs. The new UI phase below proposes optional field-order controls for the explicitly requested React integration; the existing `source`/`result` call remains compatible.
 
 The original Demo implementation phases below are complete within their recorded verification scope. The approved productization refactor has its own status table. Cleanup and packaging verification must not be confused with automatic publishing, blanket format support, or certification of every possible input.
 
-### Source commit/push authorization, 2026-11-03
+### Public resource rollout and native-host validation, 2026-11-03
+
+The user explicitly approved the committed UI source (not the isolated
+single-toolbar preview), first public resource publication, backing up/stopping
+the old Viewer/replacing the local CU extension, and one real analysis of the
+existing licensed single-page invoice with `prebuilt-invoice`. No Azure resource
+creation or service-default change is authorized by this rollout.
+
+[v0.1.0-preview.1](https://github.com/changjian-wang/cu-viewer/releases/tag/v0.1.0-preview.1)
+was published as a prerelease after draft upload/download verification. Its tag
+points to `9b1667703502ff6dd3035c644a7b4377fb6ac054`; the 225 payload entries
+match a fresh production build plus licenses. Both assets were also downloaded
+anonymously from the public URLs and matched exactly:
+
+- ZIP: 3,053,701 bytes, SHA-256 `186e9609a4fa719a31f45d730415877a0d709f48477b0fd732b8b37e57e62406`.
+- Manifest: 38,636 bytes, SHA-256 `426433e9c16e0b891e8435be3b8166e826e1eadadcf5900173ac451b643a9fae`;
+  Viewer `0.1.0-preview.1`, schema 2, protocol 1.
+
+The Go host was built from `f8f13a6b2ef0c9a33b88565bd4fb456e7211cc35`
+using the existing azd developer extension. The old CU installation was fully
+backed up, and only its specifically approved running process was stopped.
+The installed runtime binary is 39,599,616 bytes, SHA-256
+`c58ef6c70326d17f2ebb3e0ba6bf2b006062718be455ec63f305f68fb153223a`;
+version remains `0.1.0-preview`. azd itself and the developer extension's five
+protected files retained their hashes. No old embedded assets were seeded into
+the new runtime cache.
+
+Actual Azure data-plane readiness passed through the installed extension after
+checking the Cognitive Services credential; no token was printed or saved,
+and no defaults were modified. The first real cold `--view` preparation then
+hit HTTP 403 with GitHub anonymous API remaining quota zero. It correctly
+returned before starting analysis, producing no saved result or active cache.
+The standard explicit update saw the same error. Go-native HTTP diagnostics
+confirmed that the public manifest download remained available; the rollout
+waits for the API's advertised reset rather than injecting a cache, using
+fixtures, evading the limit or resubmitting a billable analysis.
+
+### Earlier source commit/push authorization, 2026-11-03
 
 The user explicitly authorized committing and pushing both related repositories
 to their existing `feature/cu-analyze-view` branches on the
