@@ -69,9 +69,40 @@ and no defaults were modified. The first real cold `--view` preparation then
 hit HTTP 403 with GitHub anonymous API remaining quota zero. It correctly
 returned before starting analysis, producing no saved result or active cache.
 The standard explicit update saw the same error. Go-native HTTP diagnostics
-confirmed that the public manifest download remained available; the rollout
-waits for the API's advertised reset rather than injecting a cache, using
-fixtures, evading the limit or resubmitting a billable analysis.
+confirmed that the public manifest download remained available. After waiting
+for the API's advertised reset, the same native HTTP/2 client received API and
+manifest HTTP 200 without changing protocol/proxy/code, injecting a cache,
+using fixtures or resubmitting a billable analysis.
+
+The actual installed `azd ai cu analyze ... --analyzer prebuilt-invoice --view
+--output json --output-file ...` then completed the real public cold download
+and one successful analysis. Its 151,363-byte source retained SHA-256
+`4da941f20655cb852986df272a22f66aff47c97a18b103a1e8e44641cf581642`.
+The single successful saved response is 157,577 bytes, SHA-256
+`71580758c500e0e3d0a05daf6b258a4247726a872dc04c0116478b48c8ab4f6a`,
+status `Succeeded`, GA `2025-11-01`, one page and 31 top-level fields. The
+resource cache's manifest/archive exactly match the public Release; no saved
+result or document is in that resource cache.
+
+The Go-hosted browser session passed HEAD/GET, original PDF-byte equality and
+deep equality of its complete `session.json.result` with the saved response.
+The actual browser painted the PDF, showed all 31 fields and no alert, selected
+InvoiceId with its real value/confidence, retained the source highlight at
+150% (1224 x 1584 raster), opened the original Result JSON tree and returned to
+Fields with selection/zoom/page intact. Browser resources stayed on the local
+Go origin. The familiar PDF.js `TT: undefined function: 32` warnings remained;
+this is not a warning-free or exhaustive font-fidelity claim. A hidden internal
+browser initially prevented stable interaction; after the user made it visible,
+normal clicks/selection/zoom passed without forced or synthetic DOM clicks.
+
+The running foreground command's redirected stdout/status files had not flushed,
+so no live stdout-shape pass is claimed. The user copied the actually opened
+local session address for validation; its capability URL and the raw result
+remain in private session outputs, not this source document or Release notes.
+The saved result and server payload were independently verified and analysis
+was not repeated. The real explicit `viewer update --output json` subsequently
+succeeded, retained the same active version/pointer and did not analyze again.
+The detached Go service is intentionally retained for the user to inspect.
 
 ### Earlier source commit/push authorization, 2026-11-03
 
