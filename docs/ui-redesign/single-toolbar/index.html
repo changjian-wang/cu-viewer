@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>CU Viewer - Single toolbar prototype</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./styles.css">
+    <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+    <svg class="sr-only" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+        <symbol id="i-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
+        <symbol id="i-right" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+        <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5"/></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+        <symbol id="i-legend" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="5" rx="1"/><path d="M12 6.5h9"/><rect x="3" y="15" width="5" height="5" rx="1"/><path d="M12 17.5h9"/></symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24"><path d="m9 3-.7 2.3-2 .9-2.2-.5L2.6 8.3l1.5 1.9v2.3l-1.5 1.9 1.5 2.6 2.4-.4 1.9 1.1.6 2.3h3l.7-2.3 2-.9 2.2.5 1.5-2.6-1.5-1.9v-2.3l1.5-1.9L19 6l-2.4.4-1.9-1.1L14 3z" transform="translate(1 0)"/><circle cx="12" cy="11.5" r="3"/></symbol>
+    </svg>
+    <header class="study-heading">
+        <div><h1>CU Viewer</h1><span>Single bottom toolbar &middot; design prototype</span></div>
+        <p>Source pane only. Synthetic fixtures; no uploads, saved preferences, or CU service calls. React is unchanged.</p>
+    </header>
+    <main>
+        <form class="study-controls" aria-label="Prototype controls">
+            <fieldset><legend>Source width</legend>
+                <button type="button" data-width="1040" aria-pressed="true">Wide &middot; 1040px</button>
+                <button type="button" data-width="740" aria-pressed="false">Medium &middot; 740px</button>
+                <button type="button" data-width="570" aria-pressed="false">Narrow &middot; 570px</button>
+            </fieldset>
+            <label>Example <select id="sample" aria-label="Example document"><option value="invoice">Invoice / PDF</option><option value="receipt">Receipt / image</option></select></label>
+            <label>Selection <select id="example" aria-label="Selection example">
+                <option value="none">No selection</option><option value="single">Single field</option>
+                <option value="multiple">Multiple sources</option><option value="group">Grouped sources</option>
+                <option value="ungrounded">No source region</option>
+            </select></label>
+            <label>Height <select id="height" aria-label="Prototype height"><option value="660">660px</option><option value="360">Short / 360px</option></select></label>
+            <label class="long-name"><input id="long-name" type="checkbox">Long filename</label>
+        </form>
+        <div class="study-caption"><strong id="width-caption">1040px source pane</strong><span>One 44px toolbar. The former 57px top row is removed.</span></div>
+        <div class="preview-scroll">
+            <section class="source-pane" aria-label="Source document">
+                <p id="source-help" class="sr-only">Control or Command with scroll zooms. Ordinary scrolling moves the viewport. Escape or a blank source click clears the selection.</p>
+                <div id="viewport" class="viewport" role="group" aria-label="Source viewport" aria-describedby="source-help" tabindex="0">
+                    <div id="stage" class="stage"><div id="paper" class="paper"></div></div>
+                </div>
+                <div class="toolbar" role="group" aria-label="Document toolbar">
+                    <div class="file-status">
+                        <div class="file-line"><span id="file-icon" class="file-icon" aria-hidden="true"></span><strong id="filename"></strong></div>
+                        <div id="source-status" class="source-status" role="group" aria-label="Source selection and location" hidden>
+                            <span id="selection-name" class="selection-name"></span>
+                            <span id="group-count" hidden></span>
+                            <select id="group-page" aria-label="Selected group source page" aria-describedby="selection-description" hidden></select>
+                            <div id="region-navigation" class="region-navigation" hidden>
+                                <button type="button" class="icon-button" id="previous-region" aria-label="Previous source region" aria-describedby="selection-description"><svg class="icon" aria-hidden="true"><use href="#i-left"/></svg></button>
+                                <span id="location" aria-hidden="true"></span>
+                                <button type="button" class="icon-button" id="next-region" aria-label="Next source region" aria-describedby="selection-description"><svg class="icon" aria-hidden="true"><use href="#i-right"/></svg></button>
+                            </div>
+                            <span id="selection-description" class="sr-only"></span>
+                        </div>
+                    </div>
+                    <div class="page-controls" role="group" aria-label="Page navigation">
+                        <button id="previous-page" type="button" class="icon-button" aria-label="Previous page"><svg class="icon" aria-hidden="true"><use href="#i-left"/></svg></button>
+                        <input id="page-number" aria-label="Page number" inputmode="numeric" value="1" aria-describedby="page-error">
+                        <span id="page-total">/ 2</span>
+                        <button id="next-page" type="button" class="icon-button" aria-label="Next page"><svg class="icon" aria-hidden="true"><use href="#i-right"/></svg></button>
+                        <span id="image-navigation" hidden>Image &middot; single page</span>
+                    </div>
+                    <div class="right-controls">
+                        <div class="zoom-controls" role="group" aria-label="Zoom and rotation">
+                            <button id="zoom-out" type="button" class="icon-button" aria-label="Zoom out" title="Zoom out"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></button>
+                            <select id="zoom" aria-label="Zoom">
+                                <option value="page">Fit page</option><option value="width">Fit width</option>
+                                <option value="current"></option>
+                                <option value="0.25">25%</option><option value="0.5">50%</option><option value="0.75">75%</option>
+                                <option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option>
+                                <option value="2">200%</option><option value="3">300%</option>
+                            </select>
+                            <button id="zoom-in" type="button" class="icon-button" aria-label="Zoom in" title="Zoom in"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>
+                            <button id="rotate" type="button" class="icon-button" aria-label="Rotate 90 degrees" title="Rotate 90 degrees"><svg class="icon" aria-hidden="true"><use href="#i-rotate"/></svg></button>
+                        </div>
+                        <span class="divider" aria-hidden="true"></span>
+                        <button id="legend-button" type="button" class="icon-button legend-button" aria-label="Highlighting legend" title="Legend" aria-haspopup="dialog" aria-controls="legend-panel" aria-expanded="false">
+                            <svg class="icon" aria-hidden="true"><use href="#i-legend"/></svg><span>Legend</span>
+                        </button>
+                        <button id="settings-button" type="button" class="icon-button" aria-label="Highlighting settings" title="Highlighting settings" aria-haspopup="dialog" aria-controls="settings-panel" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></button>
+                    </div>
+                </div>
+                <p id="page-error" class="page-error" role="alert" hidden>Enter an existing page number.</p>
+                <section id="settings-panel" class="floating-panel settings-panel" role="dialog" aria-labelledby="settings-title" hidden>
+                    <header><h2 id="settings-title">Highlighting</h2><button type="button" class="icon-button" data-close aria-label="Close highlighting settings"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></header>
+                    <label class="threshold-label" for="threshold">Confidence threshold</label>
+                    <div class="threshold-control"><input id="threshold" type="number" min="0" max="1" step="0.01" value="0.70" aria-describedby="threshold-range threshold-hint threshold-error"><span id="threshold-range">0 to 1</span></div>
+                    <p id="threshold-error" class="input-error" role="alert" hidden>Enter a finite confidence threshold from 0 to 1.</p>
+                    <p id="threshold-hint" class="hint">Values below <strong>0.70</strong> receive low-confidence highlight.</p>
+                    <div class="options"><h3>Options</h3>
+                        <label class="switch-row"><input type="checkbox" role="switch" id="show-fields" checked><span class="track" aria-hidden="true"></span><span>Show field highlights</span></label>
+                        <label class="switch-row"><input type="checkbox" role="switch" id="show-tables" checked><span class="track" aria-hidden="true"></span><span>Show table highlights</span></label>
+                        <label class="switch-row"><input type="checkbox" role="switch" id="highlight-low" checked><span class="track" aria-hidden="true"></span><span>Show low confidence highlight</span></label>
+                    </div>
+                </section>
+                <section id="legend-panel" class="floating-panel legend-panel" role="dialog" aria-labelledby="legend-title" hidden>
+                    <header><h2 id="legend-title">Legend</h2><button type="button" class="icon-button" data-close aria-label="Close legend"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></header>
+                    <ul id="legend-items"></ul>
+                </section>
+            </section>
+        </div>
+        <p class="study-note">Review filename truncation, source navigation, and upward-opening panels at each width. Legend is icon-only in the narrow study; no actions are removed or moved to an overflow menu.</p>
+        <p id="prototype-error" class="prototype-error" role="alert" hidden></p>
+    </main>
+</body>
+</html>
