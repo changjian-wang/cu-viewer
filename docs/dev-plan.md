@@ -1323,7 +1323,8 @@ cu analyze sample.pdf --view --result sample.result.json
 | No `--view` | Do not start a browser/service or require viewer assets. Preserve existing analysis, batching, URL handling, stdout, files, and reports. |
 | Unsupported viewing selection | Reject directory, batch, remote URL, or `--dry-run` combinations before analysis. The first release views one local PDF/image at a time. |
 | Invalid option combination | Require `--view` with `--result`; reject additional analysis/output options in saved-result mode. Do not overwrite the source. |
-| Missing/corrupt resource cache | Report preparation/download on stderr before analysis. Reuse a verified cache offline without checking updates; download/verify a compatible Release when needed. Unavailable releases/download/cache errors fail nonzero before analysis/browser startup. |
+| Missing/corrupt resource cache | Report preparation/download on stderr before analysis. Reuse a verified cache offline without automatically upgrading; download/verify a compatible Release when needed. Unavailable releases/download/cache errors fail nonzero before analysis/browser startup. |
+| Go Viewer update notice | Check compatible release metadata at most once per 24 hours, with a three-second timeout. Notify on stderr without downloading or activating a new archive; repeat a known notice until manual update or refreshed check information. Failed checks warn and keep a valid cache usable. |
 
 Status and the local URL go to stderr, preserving stdout data pipelines. Existing raw JSON, Markdown, result-file, and report behavior is retained in analysis-then-view mode. Source/result pairing is the caller's responsibility; the Viewer does not falsely certify that arbitrary files belong together.
 
@@ -1345,7 +1346,7 @@ The archive includes the page, CSS/JS/lazy chunks, PDF Worker/fonts/CMaps/ICC/WA
 
 Each native host checks the exact manifest/archive inventory and serves verified bytes from memory. It neither extracts into document directories nor runs Node/Vite at runtime. Resource paths remain local and use correct MIME/CSP headers. The exporter rejects an incomplete frontend build; no Python wheel/sdist or standalone host is built here.
 
-The adjacent Python cu-cli's old package dependency/imports cannot be repaired by renaming them to `cu_viewer`: that module is retired. Its owning project must implement/migrate native resource preparation/cache/service and preserve the confirmed command behaviors. Go's explicit update is `azd ai cu viewer update`; other hosts define their own equivalent. `--view` reuses a valid cache without checking for updates.
+The adjacent Python cu-cli's old package dependency/imports cannot be repaired by renaming them to `cu_viewer`: that module is retired. Its owning project must implement/migrate native resource preparation/cache/service and preserve the confirmed command behaviors. Go's explicit update is `azd ai cu viewer update`; other hosts define their own equivalent. Go's `--view` keeps using a valid cache while checking for notification-only updates at most once every 24 hours. Only an explicit update downloads and activates a newer Viewer; notification checks do not upgrade resources and failures do not block valid cached viewing.
 
 Publish the shared resource pair before expecting successful public cold starts. There is no Python package publication prerequisite. Local validation uses local release fixtures and the native Go consumer, not a claim of public publication or completed Python/C# migration. Source repositories retain no frontend copies; export updates stop on unknown or modified files.
 

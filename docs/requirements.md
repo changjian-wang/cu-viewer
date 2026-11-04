@@ -22,7 +22,7 @@
 
 - Go、Python、后续 C# 等宿主统一从 CU Viewer Release 获取同一套静态资源，不在各自语言包/仓库中复制或内嵌前端副本。TypeScript 版 cu-cli 等组件宿主允许使用 npm package，保留其构建和消费者验证。
 - 每个 Release 使用合法 SemVer 标签及 `viewer.zip`/`manifest.json` 配对资源。清单 schema 2，当前 `protocolVersion: 1`；宿主校验版本、协议、路径、资源规模和归档/逐文件 SHA-256 后本地托管，不需要 Node/npm/gh。
-- 有效兼容缓存直接用，支持离线且不自动检查更新；Go 已实现 `azd ai cu viewer update`，其他 CLI 提供各自显式更新入口。旧独立 Python `cu-viewer update` 已移除。损坏/不完整缓存明确报告并重新获取，更新失败保留先前活动版本。
+- 有效兼容缓存直接用，支持离线且不自动升级。Go 的 `--view` 最多每 24 小时检查一次兼容新版本（3 秒超时），仅在 stderr 提示当前版本、新版本及 `azd ai cu viewer update`，不下载新版归档、不切换活动缓存；已知新版本在后续启动中继续提示，手动更新后清除。检查失败明确警告并继续使用有效缓存，可写的检查记录也会限制失败重试频率。其他 CLI 提供各自显式更新入口，不宣称它们已有此通知机制。旧独立 Python `cu-viewer update` 已移除。损坏/不完整缓存明确报告并重新获取，更新失败保留先前活动版本。
 - 第一次缺少资源时先准备再分析/认证，进度和错误写 stderr，不污染结果 stdout。没有兼容 Release、下载失败或缓存不可写时非零退出，不开始分析、不打开空白页，不静默忽略 `--view`。分析后查看失败保留完整结果，不重新分析。
 - 下载请求仅用于公开静态资源，不上传文档、结果或 Azure 凭据。首个 [v0.1.0-preview.1](https://github.com/changjian-wang/cu-viewer/releases/tag/v0.1.0-preview.1) 已按用户授权发布，并备份后替换本机 CU 扩展，完成真实资源下载、一次分析和本地查看验证；资源基于已提交源码，隔离 UI 预览仍未合入。后续源码/资源发布和本机安装变更继续按各自授权范围执行。
 - 本仓库只保留 React/TypeScript 前端、Bash Release 工具及 npm 组件分发。相邻 Go 扩展已本地验证此契约；原 Python 宿主及专属构建/测试已删除，Python/C# 等 CLI 的接入/迁移在各自仓库另行完成，不宣称本轮已实现。
