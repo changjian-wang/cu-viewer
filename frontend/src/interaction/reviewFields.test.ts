@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseCuResult } from "../model/parseCuResult";
 import { fieldRegions, interaction, initialInteraction } from "./interaction";
-import { appearance, collapsedValue, confidenceDescription, copyValue, defaultReviewSettings, defaultSourceCategories, fieldEntries, formatScore, leafFields,
-    formatThreshold, initialExpandedFields, inlineArrayProjection, matchingLeaves, moveField, orderedFields, parseThreshold, schemaIdentity,
-    sourceAppearance, sourceCategoryDisabledReason, sourceCategoryVisibility, validateFieldOrder, validateOrderParents } from "./reviewFields";
+import { appearance, collapsedValue, confidenceDescription, copyValue, defaultReviewSettings, fieldEntries, formatScore, leafFields,
+    formatThreshold, initialExpandedFields, inlineArrayProjection, matchingLeaves, moveField, orderedFields, orderedLeafFields, parseThreshold, schemaIdentity,
+    validateFieldOrder, validateOrderParents } from "./reviewFields";
 
 function content(fields: Record<string, unknown>, analyzerId = "test") {
     return parseCuResult({ apiVersion: "2025-11-01", analyzerId, contents: [{
@@ -46,49 +46,22 @@ describe("approved review semantics", () => {
         }
         expect(confidenceDescription({ confidence: 0.698 }, 0.699)).toBe("Confidence 0.698, below threshold 0.699");
     });
-    const categories = [
-        ["field", false, 0.7, "#E8F5E9"], ["table", true, 1, "#E8F1FF"],
-        ["lowField", false, 0, "#FCE8E6"], ["lowTable", true, 0.699, "#FFE8EC"],
-        ["unavailable", false, undefined, "#F1F3F5"],
-    ] as const;
-    it.each(categories)("independently hides the %s source category without changing right-hand appearance", category => {
-        const settings = { ...defaultReviewSettings, sourceCategories: { ...defaultSourceCategories, [category]: false } };
-        for (const [candidate, table, confidence, background] of categories) {
+    it.each([false, true])("uses only the field/table master for scored and unscored source visibility, table=%s", table => {
+        const settings = { ...defaultReviewSettings, [table ? "showTables" : "showFields"]: false };
+        for (const confidence of [0, 0.9, undefined]) {
             const field = confidence === undefined ? {} : { confidence };
-            const source = sourceAppearance(field, table, settings), value = appearance(field, table, settings);
-            expect(source.enabled).toBe(candidate !== category);
-            expect(source.background).toBe(background);
-            expect(value.enabled).toBe(true);
-            expect(value.background).toBe(background);
+            const style = appearance(field, table, settings);
+            expect(style.enabled).toBe(false);
+            expect(style.background).toBe(appearance(field, table, defaultReviewSettings).background);
+            expect(appearance(field, !table, settings).enabled).toBe(true);
         }
-        expect(defaultSourceCategories[category]).toBe(true);
     });
     it("keeps unavailable scores distinct from real zero and preserves threshold/emphasis precedence", () => {
-        const settings = { ...defaultReviewSettings, sourceCategories: { ...defaultSourceCategories, unavailable: false, lowField: false } };
-        expect(sourceAppearance({}, false, settings).enabled).toBe(false);
-        expect(sourceAppearance({ confidence: 0 }, false, { ...settings, sourceCategories: { ...settings.sourceCategories, lowField: true } }).enabled).toBe(true);
-        expect(sourceAppearance({ confidence: 0 }, false, settings).enabled).toBe(false);
-        expect(sourceAppearance({ confidence: 0 }, false, { ...settings, threshold: 0 }).enabled).toBe(true);
-        expect(sourceAppearance({ confidence: 0 }, false, { ...settings, highlightLow: false }).background).toBe("#E8F5E9");
-        expect(sourceAppearance({ confidence: 0 }, false, { ...settings, highlightLow: false }).enabled).toBe(true);
-    });
-    it("keeps master gates above category preferences with explicit disabled explanations", () => {
-        const fieldsOff = { ...defaultReviewSettings, showFields: false };
-        expect(sourceAppearance({ confidence: 0.9 }, false, fieldsOff).enabled).toBe(false);
-        expect(sourceCategoryDisabledReason("field", fieldsOff)).toContain("Show field highlights");
-        expect(sourceCategoryDisabledReason("lowField", fieldsOff)).toContain("Show field highlights");
-        expect(sourceCategoryDisabledReason("table", fieldsOff)).toBeNull();
-        expect(sourceCategoryDisabledReason("unavailable", fieldsOff)).toBeNull();
-        expect(sourceCategoryDisabledReason("table", { ...defaultReviewSettings, showTables: false })).toContain("Show table highlights");
-        expect(sourceCategoryDisabledReason("lowTable", { ...defaultReviewSettings, highlightLow: false })).toContain("Show low confidence highlight");
-        expect(sourceCategoryDisabledReason("unavailable", { ...fieldsOff, showTables: false })).toContain("field or table");
-        expect(fieldsOff.sourceCategories).toEqual(defaultSourceCategories);
-    });
-    it("defaults legacy in-memory visibility to all categories without mutating defaults", () => {
-        expect(sourceCategoryVisibility({})).toEqual(defaultSourceCategories);
-        const configured = { ...defaultSourceCategories, field: false };
-        expect(sourceCategoryVisibility({ sourceCategories: configured })).toBe(configured);
-        expect(defaultSourceCategories.field).toBe(true);
+        expect(appearance({}, false, defaultReviewSettings).background).toBe("#F1F3F5");
+        expect(appearance({ confidence: 0 }, false, defaultReviewSettings).background).toBe("#FCE8E6");
+        expect(appearance({ confidence: 0 }, false, { ...defaultReviewSettings, threshold: 0 }).background).toBe("#E8F5E9");
+        expect(appearance({ confidence: 0 }, false, { ...defaultReviewSettings, highlightLow: false }).background).toBe("#E8F5E9");
+        expect(appearance({}, false, { ...defaultReviewSettings, showFields: false }).enabled).toBe(false);
     });
     it("retains boundary precision without percentage/threshold contradictions", () => {
         expect(formatScore(0.699)).toBe("0.699");
@@ -140,6 +113,68 @@ describe("approved review semantics", () => {
         expect(cells[2]?.field.confidence).toBeUndefined();
         expect(model.issues).toContainEqual(expect.objectContaining({ code: "invalid-confidence" }));
         expect(model.original).toBe(original);
+    });
+});
+
+describe("ordered field navigation", () => {
+    it("uses current root and nested display orders without changing source fields", () => {
+        const value = content({
+            Alpha: text("alpha"), "Group/~": { type: "object", valueObject: { A: text("a"), B: text("b") } },
+            Last: text("last"),
+        });
+        const before = JSON.stringify(value.fields);
+        const included = new Set(leafFields(value.fields).map(field => field.id));
+        expect(orderedLeafFields(value.fields, {}, included).map(field => field.value)).toEqual(["alpha", "a", "b", "last"]);
+        const order = { $root: ["/Group~1~0", "/Last"], "/Group~1~0": ["/Group~1~0/B"] };
+        expect(orderedLeafFields(value.fields, order, included).map(field => field.value)).toEqual(["b", "a", "last", "alpha"]);
+        expect(JSON.stringify(value.fields)).toBe(before);
+    });
+
+    it("recalculates selected positions after sibling/group moves and Reset order", () => {
+        const value = content({
+            Alpha: text("alpha"), Group: { type: "object", valueObject: { A: text("a"), B: text("b") } },
+            Last: text("last"),
+        });
+        const entries = fieldEntries(value.fields), included = new Set(leafFields(value.fields).map(field => field.id));
+        const group = value.fields[1]!, selected = group.children[1]!;
+        const before = JSON.stringify(value.fields);
+        const moved = moveField(entries, {}, group.id, value.fields[0]!.id, "before");
+        const nested = moveField(entries, moved, selected.id, group.children[0]!.id, "before");
+        const position = (order: Parameters<typeof orderedLeafFields>[1]) =>
+            orderedLeafFields(value.fields, order, included).findIndex(field => field === selected) + 1;
+        expect(position({})).toBe(3);
+        expect(position(moved)).toBe(2);
+        expect(position(nested)).toBe(1);
+        expect(position({})).toBe(3);
+        expect(JSON.stringify(value.fields)).toBe(before);
+    });
+
+    it("uses the displayed array column order for every business row", () => {
+        const value = content({ Rows: { type: "array", valueArray: [
+            { type: "object", valueObject: { B: text("row1-b"), A: text("row1-a") } },
+            { type: "object", valueObject: { A: text("row2-a"), B: text("row2-b"), C: text("row2-c") } },
+        ] } });
+        const included = new Set(leafFields(value.fields).map(field => field.id));
+        expect(orderedLeafFields(value.fields, {}, included).map(field => field.value))
+            .toEqual(["row1-b", "row1-a", "row2-b", "row2-a", "row2-c"]);
+        const filtered = new Set([value.fields[0]!.children[1]!.children[0]!.id]);
+        expect(orderedLeafFields(value.fields, {}, filtered).map(field => field.value)).toEqual(["row2-a"]);
+        expect(orderedLeafFields(value.fields, {}, new Set())).toEqual([]);
+    });
+
+    it("retains scalar arrays and nested-array tree order without numbering containers", () => {
+        const value = content({
+            Values: { type: "array", valueArray: [text("first"), text("second")] },
+            Nested: { type: "array", valueArray: [
+                { type: "object", valueObject: { Inner: { type: "array", valueArray: [text("nested1"), text("nested2")] } } },
+            ] },
+            Missing: { type: "string" },
+        });
+        const leaves = leafFields(value.fields), included = new Set(leaves.map(field => field.id));
+        const navigation = orderedLeafFields(value.fields, {}, included);
+        expect(navigation).toHaveLength(leaves.length);
+        expect(navigation.map(field => field.value)).toEqual(leaves.map(field => field.value));
+        expect(navigation.every(field => field.children.length === 0)).toBe(true);
     });
 });
 

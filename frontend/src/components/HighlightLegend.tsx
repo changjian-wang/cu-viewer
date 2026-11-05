@@ -1,45 +1,51 @@
 import { useId, useLayoutEffect, useRef } from "react";
 import type { RefObject } from "react";
-import { appearance, sourceCategoryDisabledReason, sourceCategoryVisibility } from "../interaction/reviewFields";
+import { appearance } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import { usePanelDismiss } from "../interaction/usePanelDismiss";
 import { ViewerIcon } from "./ViewerIcon";
 
-function LegendItems({ settings, onChange, compact = false }: {
-    settings: ReviewSettings; onChange: (settings: ReviewSettings) => void; compact?: boolean;
+function LegendItems({ settings, onChange }: {
+    settings: ReviewSettings; onChange: (settings: ReviewSettings) => void;
 }) {
     const id = useId();
-    const categories = sourceCategoryVisibility(settings);
-    return <ul className={`cu-legend-items${compact ? " cu-legend-inline" : ""}`}
-        aria-label={compact ? "Highlighting legend summary" : "Highlighting legend entries"}>{([
-            ["field", false, 1, "Field value", "Field", "At or above threshold"],
-            ["table", true, 1, "Table value", "Table", "At or above threshold"],
-            ["lowField", false, 0, "Low-confidence field", "Low field", "Below threshold"],
-            ["lowTable", true, 0, "Low-confidence table value", "Low table", "Below threshold"],
-            ["unavailable", false, undefined, "Confidence unavailable", "N/A", "No score was supplied"],
-        ] as const).map(([category, table, confidence, label, shortLabel, description]) => {
-            const style = appearance(confidence === undefined ? {} : { confidence }, table,
-                { ...settings, threshold: 0.7, highlightLow: true });
-            const pressed = categories[category];
-            const reason = sourceCategoryDisabledReason(category, settings);
-            const explanation = !settings.highlightLow && (category === "field" || category === "table") ?
-                "All scored values while low-confidence highlight is off" : description;
-            const action = `${pressed ? "Hide" : "Show"} this category of source highlights.`;
-            const hint = `${explanation}. ${reason ?? action}`;
-            return <li key={category} className="cu-legend-item" title={`${label} - ${hint}`}>
-                <button type="button" className="cu-legend-category" data-legend-category={category}
-                    aria-label={label} aria-pressed={pressed} aria-describedby={`${id}-${category}`}
-                    disabled={reason !== null} onClick={() => onChange({
-                        ...settings, sourceCategories: { ...categories, [category]: !pressed },
-                    })}>
-                    <span className="cu-legend-swatch" aria-hidden="true" style={{ background: pressed ? style.background : "transparent" }} />
-                    <div className="cu-legend-label"><span className="cu-legend-name">{compact ? shortLabel : label}</span>
-                        {!compact && <span className="cu-legend-description">{explanation}</span>}
-                        {!compact && reason && <span className="cu-legend-disabled-reason">{reason}</span>}</div>
-                    <span id={`${id}-${category}`} className="cu-visually-hidden">{hint}</span>
-                </button>
-            </li>;
-        })}</ul>;
+    const groups = [
+        { setting: "showFields", label: "Show field highlights",
+            entries: [["field", false, 1, "Field value", "At or above threshold"]] },
+        { setting: "showTables", label: "Show table highlights",
+            entries: [["table", true, 1, "Table value", "At or above threshold"]] },
+        { setting: "highlightLow", label: "Show low confidence highlight", entries: [
+            ["lowField", false, 0, "Low-confidence field", "Below threshold"],
+            ["lowTable", true, 0, "Low-confidence table value", "Below threshold"],
+        ] },
+    ] as const;
+    return <ul className="cu-legend-items" aria-label="Highlighting legend entries">{groups.map(({ setting, label, entries }) =>
+        <li key={label} className={`cu-legend-group${setting === "highlightLow" ? " cu-legend-low-group" : ""}`}
+            data-setting={setting} aria-labelledby={setting === "highlightLow" ? `${id}-low-heading` : undefined}>
+            {setting === "highlightLow" && <h3 className="cu-legend-group-title" id={`${id}-low-heading`}>
+                Low confidence <span>Fields &amp; tables</span>
+            </h3>}
+            <div className="cu-legend-group-entries" id={`${id}-${setting}`}>
+                {entries.map(([category, table, confidence, name, description]) => {
+                    const style = appearance({ confidence }, table,
+                        { ...settings, threshold: 0.7, highlightLow: true });
+                    const explanation = !settings.highlightLow && (category === "field" || category === "table") ?
+                        "All scored values while low-confidence highlight is off" : description;
+                    return <div key={category} className="cu-legend-item" data-legend-category={category}
+                        title={`${name} - ${explanation}`}>
+                        <span className="cu-legend-swatch" aria-hidden="true" style={{ background: style.background }} />
+                        <div className="cu-legend-label"><span className="cu-legend-name">{name}</span>
+                            <span className="cu-legend-description">{explanation}</span></div>
+                    </div>;
+                })}
+            </div>
+            <label className="cu-switch-row cu-legend-switch">
+                <input type="checkbox" role="switch" aria-label={label} aria-describedby={`${id}-${setting}`}
+                    checked={settings[setting]} onChange={event => onChange({ ...settings, [setting]: event.target.checked })} />
+                <span className="cu-switch-track" aria-hidden="true" />
+            </label>
+        </li>
+    )}</ul>;
 }
 
 function LegendPanel({ id, anchor, settings, onChange, onClose }: {
@@ -51,7 +57,7 @@ function LegendPanel({ id, anchor, settings, onChange, onClose }: {
     useLayoutEffect(() => { panel.current?.querySelector("button")?.focus({ preventScroll: true }); }, []);
     return <section id={id} ref={panel} className="cu-legend-panel" role="dialog" aria-labelledby={`${id}-title`}
         onKeyDown={onKeyDown} onBlur={event => {
-            if (!event.currentTarget.contains(event.relatedTarget) && event.relatedTarget !== anchor) onClose(false);
+            if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget) && event.relatedTarget !== anchor) onClose(false);
         }}>
         <div className="cu-legend-heading"><h2 id={`${id}-title`}>Legend</h2><button type="button" className="cu-icon-button"
             aria-label="Close legend" onClick={() => onClose(true)}><ViewerIcon name="close" /></button></div>
@@ -72,6 +78,5 @@ export function HighlightLegend({ id, buttonRef, settings, onChange, open, onTog
             {open && buttonRef.current && <LegendPanel id={id} anchor={buttonRef.current}
                 settings={settings} onChange={onChange} onClose={onClose} />}
         </div>
-        <LegendItems settings={settings} onChange={onChange} compact />
     </div>;
 }

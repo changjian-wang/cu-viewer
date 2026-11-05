@@ -99,7 +99,7 @@ test("source table regions locate right-hand data without table icons or a modal
     await expect(page.getByTestId("table-markers")).toHaveCount(0);
     await expect(page.getByRole("tooltip", { name: "Table preview" })).toHaveCount(0);
     await table.press("Enter");
-    await expect(page.locator(".cu-fields-review-footer")).toContainText("related fields located in Fields");
+    await expect(page.locator(".cu-fields-status")).toContainText("related fields located in Fields");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByRole("tab", { name: "Fields", exact: true })).toHaveAttribute("aria-selected", "true");
     await page.evaluate(async () => { await document.fonts.ready; });

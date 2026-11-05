@@ -66,13 +66,13 @@ describe("Studio source preview content", () => {
                     table ? "rgb(30, 64, 175)" : "rgb(30, 58, 42)");
         });
     }
-    it("shows only paragraph Content and escapes returned markup", () => {
+    it("keeps paragraph Content on the shared value-text style and escapes returned markup", () => {
         setup({ ...field, detailView: "paragraphs", value: "<script>bad()</script>" });
         const popup = screen.getByRole("tooltip", { name: "Paragraph preview" });
         expect(popup.textContent).toBe("Content<script>bad()</script>");
         expect(popup.querySelector("script")).toBeNull();
         expect(screen.queryByText("Confidence")).toBeNull();
         expect(screen.queryByText("Value")).toBeNull();
-        expect(popup.querySelector<HTMLElement>(".cu-flyover-value dd")?.style.color).toBe("rgb(155, 28, 28)");
+        expect(popup.querySelector<HTMLElement>(".cu-flyover-value dd")?.style.color).toBe("");
     });
 });

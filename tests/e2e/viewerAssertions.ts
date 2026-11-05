@@ -33,6 +33,19 @@ export async function rotateSource(page: Page): Promise<void> {
     await ready(page);
 }
 
+export async function openFieldsSettings(scope: Page | Locator): Promise<Locator> {
+    const panel = scope.getByRole("dialog", { name: "Fields settings", exact: true });
+    if (!await panel.isVisible()) await scope.getByRole("button", { name: "Fields settings", exact: true }).click();
+    await expect(panel).toBeVisible();
+    return panel;
+}
+
+export async function setShowConfidence(page: Page, show: boolean): Promise<void> {
+    const panel = await openFieldsSettings(page);
+    await panel.getByRole("checkbox", { name: "Show Confidence", exact: true }).setChecked(show);
+    await panel.getByRole("button", { name: "Close fields settings", exact: true }).click();
+}
+
 export async function selectResultView(pane: Locator, name: string): Promise<void> {
     const tab = pane.getByRole("tab", { name, exact: true });
     if (await tab.isVisible()) await tab.click();

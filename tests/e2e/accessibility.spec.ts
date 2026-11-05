@@ -67,11 +67,11 @@ for (const focus of ["pointer", "keyboard"] as const) {
         await expect(page.getByRole("heading", { name: "No matching fields", exact: true })).toBeVisible();
         await search.fill("");
         await page.mouse.move(0, 0);
-        await search.press("Shift+Tab");
-        const columns = page.getByRole("button", { name: "3 columns", exact: true });
-        await expect(columns).toBeFocused();
-        await expect(columns).toHaveCSS("outline-style", "solid");
-        await expect(columns).toHaveCSS("outline-width", "2px");
+        await search.press("Tab");
+        const navigation = page.getByRole("button", { name: "Previous field", exact: true });
+        await expect(navigation).toBeFocused();
+        await expect(navigation).toHaveCSS("outline-style", "solid");
+        await expect(navigation).toHaveCSS("outline-width", "2px");
         await expect(box).toHaveCSS("outline-style", "none");
         await expect(box).toHaveCSS("border-color", "rgb(220, 227, 235)");
 

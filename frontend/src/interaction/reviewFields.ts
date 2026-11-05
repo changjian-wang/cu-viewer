@@ -4,18 +4,11 @@ import { displayValue, flattenFields, formatConfidence as formatScore, isFieldGr
 
 export { formatScore, isFieldGroup };
 
-export const defaultSourceCategories = {
-    field: true, table: true, lowField: true, lowTable: true, unavailable: true,
-} as const;
-export type SourceHighlightCategory = keyof typeof defaultSourceCategories;
-export type SourceCategoryVisibility = Readonly<Record<SourceHighlightCategory, boolean>>;
-
 export interface ReviewSettings {
     threshold: number;
     showFields: boolean;
     showTables: boolean;
     highlightLow: boolean;
-    sourceCategories: SourceCategoryVisibility;
     columns: 2 | 3;
     paneRatio: number;
     fieldRatio: number;
@@ -23,14 +16,8 @@ export interface ReviewSettings {
 
 export const defaultReviewSettings: Readonly<ReviewSettings> = {
     threshold: 0.7, showFields: true, showTables: true, highlightLow: true,
-    sourceCategories: defaultSourceCategories,
     columns: 2, paneRatio: 0.58, fieldRatio: 0.46,
 };
-
-export function sourceCategoryVisibility(settings: { sourceCategories?: SourceCategoryVisibility }): SourceCategoryVisibility {
-    // Older in-memory preference snapshots can predate category visibility.
-    return settings.sourceCategories === undefined ? defaultSourceCategories : settings.sourceCategories;
-}
 
 export function leafFields(fields: readonly CuField[]): CuField[] {
     return flattenFields([...fields]).filter(field => field.children.length === 0);
@@ -53,29 +40,6 @@ export function appearance(field: Pick<CuField, "confidence">, table: boolean, s
         background: unavailable ? "#F1F3F5" : low ? table ? "#FFE8EC" : "#FCE8E6" : table ? "#E8F1FF" : "#E8F5E9",
         color: unavailable ? "#374151" : low ? "#9B1C1C" : table ? "#1E40AF" : "#1E3A2A",
     };
-}
-
-export function sourceAppearance(field: Pick<CuField, "confidence">, table: boolean, settings: ReviewSettings) {
-    const style = appearance(field, table, settings);
-    const category: SourceHighlightCategory = style.unavailable ? "unavailable" :
-        style.low ? table ? "lowTable" : "lowField" : table ? "table" : "field";
-    return { ...style, enabled: style.enabled && sourceCategoryVisibility(settings)[category] };
-}
-
-export function sourceCategoryDisabledReason(category: SourceHighlightCategory, settings: ReviewSettings): string | null {
-    if ((category === "field" || category === "lowField") && !settings.showFields) {
-        return "Enable Show field highlights in settings.";
-    }
-    if ((category === "table" || category === "lowTable") && !settings.showTables) {
-        return "Enable Show table highlights in settings.";
-    }
-    if ((category === "lowField" || category === "lowTable") && !settings.highlightLow) {
-        return "Enable Show low confidence highlight in settings.";
-    }
-    if (category === "unavailable" && !settings.showFields && !settings.showTables) {
-        return "Enable field or table highlights in settings.";
-    }
-    return null;
 }
 
 export function parseThreshold(text: string): number {
@@ -189,6 +153,37 @@ export function orderedFields(fields: readonly CuField[], parent: string, order:
     const rank = new Map((order[parent] ?? []).map((path, index) => [path, index]));
     const path = (field: CuField): string => `${parent === "$root" ? "" : parent}/${segment(field.name)}`;
     return [...fields].sort((a, b) => (rank.get(path(a)) ?? rank.size) - (rank.get(path(b)) ?? rank.size));
+}
+
+export function orderedLeafFields(fields: readonly CuField[], order: ViewerFieldOrder,
+    included: ReadonlySet<string>): CuField[] {
+    const result: CuField[] = [];
+    const stack = orderedFields(fields, "$root", order).map(field => ({
+        field, path: `/${segment(field.name)}`, inArray: false,
+    })).reverse();
+    while (stack.length) {
+        const entry = stack.pop();
+        if (!entry) break;
+        const field = entry.field;
+        if (!field.children.length) {
+            if (included.has(field.id)) result.push(field);
+            continue;
+        }
+        const projection = field.type === "array" ? inlineArrayProjection(field) : null;
+        if (projection) {
+            for (const row of projection.rows) for (const column of projection.columns) {
+                const child = row.cells.get(column.key);
+                if (child && included.has(child.id)) result.push(child);
+            }
+            continue;
+        }
+        const inArray = entry.inArray || field.type === "array";
+        const children = inArray ? field.children : orderedFields(field.children, entry.path, order);
+        stack.push(...children.map(field => ({
+            field, path: `${entry.path}/${segment(field.name)}`, inArray,
+        })).reverse());
+    }
+    return result;
 }
 
 export function initialExpandedFields(fields: readonly CuField[], order: ViewerFieldOrder = {}, rowBudget = 40): Set<string> {

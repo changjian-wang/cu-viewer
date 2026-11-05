@@ -68,7 +68,7 @@ test("all eight views retain OCR data without a permanent yellow layer or source
     }
     await originalWords(page);
     await selectResultView(page.getByRole("region", { name: "Extraction results" }), "Fields");
-    await page.getByRole("switch", { name: "Hide missing fields" }).click();
+    await expect(page.getByRole("switch", { name: "Hide missing fields" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Field", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("word-overlay")).toHaveCount(0);
 });
@@ -85,10 +85,10 @@ test("unextracted OCR does not tint the page and annotation/settings changes nev
     await upload(page, input);
     await expect(page.getByTestId("result-overlay")).toHaveCount(0);
     await expect(page.getByTestId("word-overlay")).toHaveCount(0);
-    await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     await page.getByRole("switch", { name: "Show field highlights" }).uncheck();
     await page.getByRole("switch", { name: "Show low confidence highlight" }).uncheck();
-    await page.getByRole("button", { name: "Close highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Close legend", exact: true }).click();
     expect(await source.evaluate(canvas => {
         if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Expected the unchanged source canvas.");
         return canvas.toDataURL();

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import { fieldRow, line1Id, loadReviewFixture, recipientId } from "./uiRedesignFixtures";
-import { expandField, ready } from "./viewerAssertions";
+import { expandField, ready, setShowConfidence } from "./viewerAssertions";
 
 const billingId = "/contents/0/fields/BillingAddress";
 const productId = "/contents/0/fields/LineItems/valueArray/0/valueObject/ProductCode";
@@ -156,7 +156,7 @@ test("UI-32 source selection opens hidden ancestors without stealing focus or ch
     await page.getByRole("searchbox", { name: "Search fields or values" }).fill("INV-100");
     await selectSource(page, recipientId);
     await expect(page.getByRole("searchbox", { name: "Search fields or values" })).toHaveValue("INV-100");
-    await expect(page.locator(".cu-fields-review-footer")).toContainText("1 selected fields are hidden by filters.");
+    await expect(page.locator(".cu-fields-status")).toContainText("1 selected fields are hidden by filters.");
     await expectNoPulse(page.locator(".cu-fields-scroll"));
     await page.getByRole("searchbox", { name: "Search fields or values" }).fill("");
     await expectNoPulse(row);
@@ -248,7 +248,7 @@ for (const columns of [2, 3]) {
     test(`UI-42 ordinary source and right-side selections use one clear background in ${columns} columns`, async ({ page }) => {
         await page.goto("/");
         await ready(page);
-        await page.getByRole("button", { name: `${columns} columns`, exact: true }).click();
+        await setShowConfidence(page, columns === 3);
         const row = page.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/CustomerAddress"]');
         const before = await row.evaluate(element => ({
             height: element.getBoundingClientRect().height,

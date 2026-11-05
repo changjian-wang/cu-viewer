@@ -5,7 +5,7 @@ import { parseCuResult } from "../model/parseCuResult";
 import type { ContentUnderstandingResultViewerProps, ViewerFieldOrder } from "../index";
 import { useReviewPreferences } from "./useReviewPreferences";
 import { preferenceKey, readPreferences, writePreferences } from "./reviewPreferences";
-import { defaultReviewSettings, defaultSourceCategories, schemaIdentity } from "./reviewFields";
+import { defaultReviewSettings, schemaIdentity } from "./reviewFields";
 
 const content = parseCuResult({ apiVersion: "2025-11-01", contents: [{ kind: "document",
     fields: { A: { type: "string", valueString: "A" }, B: { type: "string", valueString: "B" } } }] }).contents[0]!;
@@ -52,19 +52,24 @@ describe("controlled and browser-owned field order", () => {
         expect(result.current.settings.columns).toBe(2);
         expect(readPreferences(localStorage, schema)?.settings.columns).toBe(2);
     });
-    it("persists category choices through master changes and remounts until an explicit reset", () => {
+    it("loads legacy category masks without hidden filters and persists only the remaining settings", () => {
+        const text = JSON.stringify({ format: "cu-viewer-review", version: 1, schema,
+            settings: { ...defaultReviewSettings, threshold: 0.699, showTables: false,
+                sourceCategories: { field: false, table: false, lowField: false, lowTable: false, unavailable: false } },
+            order: { $root: ["/B", "/A"] } });
+        localStorage.setItem(preferenceKey(schema), text);
         const first = renderHook(() => useReviewPreferences(base, content, "2025-11-01", undefined));
-        act(() => first.result.current.changeSettings({ ...first.result.current.settings,
-            sourceCategories: { ...defaultSourceCategories, lowField: false, unavailable: false } }));
+        expect(first.result.current.settings).toEqual({ ...defaultReviewSettings, threshold: 0.699, showTables: false });
+        expect(first.result.current.order).toEqual({ $root: ["/B", "/A"] });
+        expect(localStorage.getItem(preferenceKey(schema))).toBe(text);
         act(() => first.result.current.changeSettings({ ...first.result.current.settings, showFields: false }));
         act(() => first.result.current.changeSettings({ ...first.result.current.settings, showFields: true }));
-        expect(readPreferences(localStorage, schema)?.settings.sourceCategories.lowField).toBe(false);
+        expect(localStorage.getItem(preferenceKey(schema))).not.toContain("sourceCategories");
         first.unmount();
         const second = renderHook(() => useReviewPreferences(base, content, "2025-11-01", undefined));
-        expect(second.result.current.settings.sourceCategories.unavailable).toBe(false);
-        expect(second.result.current.settings.showFields).toBe(true);
+        expect(second.result.current.settings).toEqual({ ...defaultReviewSettings, threshold: 0.699, showTables: false });
         act(() => second.result.current.reset());
-        expect(second.result.current.settings.sourceCategories).toEqual(defaultSourceCategories);
+        expect(second.result.current.settings).toEqual(defaultReviewSettings);
     });
     it("blocks malformed stored categories until reset rather than silently replacing them", () => {
         const text = JSON.stringify({ format: "cu-viewer-review", version: 1, schema,
@@ -72,11 +77,10 @@ describe("controlled and browser-owned field order", () => {
         localStorage.setItem(preferenceKey(schema), text);
         const { result } = renderHook(() => useReviewPreferences(base, content, "2025-11-01", undefined));
         expect(result.current.error).toContain("source highlight categories");
-        act(() => result.current.changeSettings({ ...result.current.settings,
-            sourceCategories: { ...defaultSourceCategories, field: false } }));
+        act(() => result.current.changeSettings({ ...result.current.settings, showFields: false }));
         expect(localStorage.getItem(preferenceKey(schema))).toBe(text);
         act(() => result.current.reset());
         expect(result.current.error).toBeNull();
-        expect(readPreferences(localStorage, schema)?.settings.sourceCategories).toEqual(defaultSourceCategories);
+        expect(readPreferences(localStorage, schema)?.settings).toEqual(defaultReviewSettings);
     });
 });

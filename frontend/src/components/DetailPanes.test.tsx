@@ -44,6 +44,37 @@ describe("dedicated result panes", () => {
         expect(screen.getByText("No source region")).toBeTruthy();
     });
 
+    it("reveals source-selected paragraphs once per request without moving focus or reacting to hover", () => {
+        const paragraphs = parseCuResult({
+            apiVersion: "2025-11-01", contents: [{ kind: "document",
+                paragraphs: [{ content: "Source selected paragraph" }, { content: "Hovered paragraph" }] }],
+        }).contents[0]?.paragraphs;
+        if (!paragraphs?.[0] || !paragraphs[1]) throw new Error("Expected source-selection paragraph fixtures.");
+        vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(400);
+        vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(100);
+        vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+            return this.matches(".cu-rich-result-scroll") ? new DOMRect(0, 0, 400, 100) : new DOMRect(0, 250, 400, 30);
+        });
+        const props = {
+            paragraphs, selected: paragraphs[0].field, hovered: null, previewId: "paragraph-preview",
+            onHover: vi.fn(), onLeave: vi.fn(), onSelect: vi.fn(), sourceSelection: true, selectionRequest: 1,
+        };
+        const focus = document.activeElement;
+        const { container, rerender } = render(<ParagraphsPane {...props} />);
+        const viewport = container.querySelector<HTMLElement>(".cu-rich-result-scroll");
+        if (!viewport) throw new Error("Expected a paragraph viewport.");
+        expect(viewport.scrollTop).toBe(224);
+        expect(document.activeElement).toBe(focus);
+        viewport.scrollTop = 0;
+        rerender(<ParagraphsPane {...props} hovered={paragraphs[1].field} />);
+        expect(viewport.scrollTop).toBe(0);
+        rerender(<ParagraphsPane {...props} selectionRequest={2} />);
+        expect(viewport.scrollTop).toBe(224);
+        viewport.scrollTop = 0;
+        rerender(<ParagraphsPane {...props} sourceSelection={false} selectionRequest={3} />);
+        expect(viewport.scrollTop).toBe(0);
+    });
+
     it("associates all returned figure descriptions with unique targets across viewers", () => {
         const content = parseCuResult({
             apiVersion: "2026-06-01-preview",

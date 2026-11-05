@@ -36,7 +36,6 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     } | null>(null);
     const [state, dispatch] = useReducer(interaction, initialInteraction);
     const [requestedView, setView] = useState<ResultView | undefined>("fields");
-    const [hideMissing, setHideMissing] = useState(false);
     const preferences = useReviewPreferences(props, content, parsed.model?.apiVersion, parsed.model?.analyzerId);
     const context = useMemo(() => ({}), [props.source, props.result, content]);
     const workflow = useValueWorkflow(context);
@@ -45,8 +44,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     useEffect(() => {
         if (view !== requestedView) setView(view);
     }, [view, requestedView]);
-    const outlines = useMemo(() => sourceOutlines(content, view, state.pageNumber, hideMissing, preferences.settings),
-        [content, view, state.pageNumber, hideMissing, preferences.settings]);
+    const outlines = useMemo(() => sourceOutlines(content, view, state.pageNumber, false, preferences.settings),
+        [content, view, state.pageNumber, preferences.settings]);
     const previewId = useId();
     const viewer = useRef<HTMLDivElement>(null);
     const previewClose = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -243,7 +242,6 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         <ResultsPane
             result={props.result}
             view={view} onViewChange={next => { setView(next); dismissPreview(); }}
-            hideMissing={hideMissing} onHideMissingChange={setHideMissing}
             workflow={workflow} preferences={preferences} selectionRequest={revealRequest}
             sourceSelection={reveal?.origin === "source"} sourceTableSelection={reveal?.origin === "source-table"}
             tableLocation={tableLocation} tableScope={tableLocation?.focused ? tableLocation : null}

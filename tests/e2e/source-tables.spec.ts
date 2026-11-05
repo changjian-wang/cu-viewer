@@ -9,7 +9,7 @@ test.use({ viewport: { width: 1253, height: 888 }, launchOptions: { ignoreDefaul
 
 const tableTarget = (page: Page, number: number): Locator => page.getByRole("group", { name: "Source tables", exact: true })
     .getByRole("button", { name: `Locate Table ${number} in results`, exact: true }).first();
-const message = (page: Page): Locator => page.locator(".cu-fields-review-footer").getByRole("status");
+const message = (page: Page): Locator => page.locator(".cu-fields-status");
 const row = (page: Page, name: string): Locator => page.locator(`.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/${name}"]`);
 
 async function clickBlankTable(page: Page, number: number): Promise<void> {
@@ -174,7 +174,7 @@ test("UI-38 filters remain unchanged and explain matched fields hidden by the cu
     await page.getByRole("searchbox", { name: "Search fields or values", exact: true }).fill("Existing selection");
     await tableTarget(page, 2).press("Enter");
     await expect(page.getByRole("searchbox", { name: "Search fields or values", exact: true })).toHaveValue("Existing selection");
-    await expect(page.locator(".cu-fields-review-footer")).toContainText("2 selected fields are hidden by filters");
+    await expect(page.locator(".cu-fields-status")).toContainText("2 selected fields are hidden by filters");
     await expect(row(page, "Pinned")).toHaveCount(0);
     await noAdditionalTables(page);
 });

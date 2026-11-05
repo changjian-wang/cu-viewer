@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { checkPolygon, expandField, ready, fitSource, rotateSource, locateGroup } from "./viewerAssertions";
+import { checkPolygon, expandField, ready, fitSource, rotateSource, locateGroup, setShowConfidence } from "./viewerAssertions";
 import { croppedRotatedPdf, standardFontPdf } from "./pdfFixtures";
 
 const amountId = "/contents/0/fields/AmountDue/valueObject/Amount";
@@ -315,7 +315,7 @@ test("Fields matches the approved compact grouping and confidence palette withou
     const clear = pane.getByRole("button", { name: "Clear", exact: true });
 
     await expect(clear).toHaveCount(0);
-    await expect(page.getByRole("switch", { name: "Hide missing fields" })).not.toBeChecked();
+    await expect(page.getByRole("switch", { name: "Hide missing fields" })).toHaveCount(0);
     await expect(group.getByRole("button", { name: "Collapse AmountDue", exact: true })).toHaveAttribute("aria-expanded", "true");
     await expect(page.locator(amountRow)).toBeVisible();
     await group.getByRole("button", { name: "Collapse AmountDue", exact: true }).click();
@@ -516,29 +516,25 @@ test("a structured group can navigate all grounded descendants across PDF pages"
         .toHaveText("Pinned: Rows / Item 2 / Label");
 });
 
-test("Hide missing fields changes only presentation and clears a filtered-out selection", async ({ page }) => {
+test("missing fields remain visible and selectable without a hidden-fields switch", async ({ page }) => {
     await page.goto("/");
     await ready(page);
     const missing = page.locator('[data-field-id="/contents/0/fields/PaymentTerm"]');
     const address = page.locator('[data-field-id="/contents/0/fields/BillingAddress"]');
-    const toggle = page.getByRole("switch", { name: "Hide missing fields" });
+    await expect(page.getByRole("switch", { name: "Hide missing fields" })).toHaveCount(0);
     await expect(missing).toBeVisible();
     await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
     await expect(address.locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(252, 232, 230)");
-    await toggle.click();
-    await expect(toggle).toBeChecked();
-    await expect(missing).toHaveCount(0);
-    await expect(page.locator("[data-field-depth='0']")).toHaveCount(27);
-    await toggle.click();
+    await setShowConfidence(page, true);
     await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
     await expect(missing.locator(".cu-field-value")).toHaveText("Not returned");
     await expect(missing.getByRole("button", { name: "PaymentTerm", exact: true })).toHaveAccessibleDescription(/Confidence 0\.84/);
     await missing.getByRole("button", { name: "PaymentTerm", exact: true }).click();
     await leave(page);
     await expect(missing.getByRole("button", { name: "PaymentTerm", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await toggle.click();
-    await expect(missing).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "Extraction results" }).getByRole("status")).toHaveText("No field selected");
+    await setShowConfidence(page, false);
+    await expect(missing).toBeVisible();
+    await expect(missing.getByRole("button", { name: "PaymentTerm", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
     await expect(address.locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(252, 232, 230)");
     await expect(page.locator('[data-field-id="/contents/0/fields/CountryRegion"] .cu-field-value')).toHaveText("USA");

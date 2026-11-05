@@ -265,14 +265,15 @@ test("UI-43 rotated and zoomed images retain each exact source polygon and compl
     await expectCompleteSelection(page, id, 3);
 });
 
-test("UI-44 another field inside the new envelope prevents merging even when missing fields are hidden", async ({ page }) => {
+test("UI-44 a missing neighbor still prevents merging when search hides its Fields row", async ({ page }) => {
     await loadSynthetic(page);
     const id = fieldId("Obstructed");
     await page.getByRole("button", { name: "Obstructed", exact: true }).click();
     await expectCompleteSelection(page, id, 2, 2);
     await expect(sourceParts(page, fieldId("HiddenNeighbor"))).toHaveCount(1);
-    await page.getByRole("switch", { name: "Hide missing fields", exact: true }).check();
-    await expect(sourceParts(page, fieldId("HiddenNeighbor"))).toHaveCount(0);
+    await page.getByRole("searchbox", { name: "Search fields or values", exact: true }).fill("Obstructed");
+    await expect(page.getByRole("button", { name: "HiddenNeighbor", exact: true })).toHaveCount(0);
+    await expect(sourceParts(page, fieldId("HiddenNeighbor"))).toHaveCount(1);
     await expectCompleteSelection(page, id, 2, 2);
     await expect(page.getByTestId("source-overlay").locator('polygon[data-selection-frame="merged"]')).toHaveCount(0);
 });
@@ -394,9 +395,9 @@ test("UI-46 temporary frames retain collision, hidden-field, column and separate
         await expectCompleteSelection(page, fieldId("Wrapped"), 3);
         expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(before);
     }
-    await page.getByRole("switch", { name: "Hide missing fields", exact: true }).check();
+    await page.getByRole("searchbox", { name: "Search fields or values", exact: true }).fill("Obstructed");
     await page.getByRole("button", { name: "Obstructed", exact: true }).hover();
-    await expect(sourceParts(page, fieldId("HiddenNeighbor"))).toHaveCount(0);
+    await expect(sourceParts(page, fieldId("HiddenNeighbor"))).toHaveCount(1);
     await expectCompleteSelection(page, fieldId("Obstructed"), 2, 2, "preview-overlay");
     await expectCompleteSelection(page, fieldId("Wrapped"), 3);
 });

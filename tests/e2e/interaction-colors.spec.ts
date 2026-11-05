@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import { fieldRow, line1Id, loadReviewFixture, recipientId } from "./uiRedesignFixtures";
-import { expandField, locateGroup, ready } from "./viewerAssertions";
+import { expandField, locateGroup, ready, setShowConfidence } from "./viewerAssertions";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -37,7 +37,7 @@ async function expectReadable(score: Locator): Promise<void> {
 test("UI-48/51 source hover and pin have distinct violet outlines with linked Fields and unchanged confidence colors", async ({ page }) => {
     await page.goto("/");
     await ready(page);
-    await page.getByRole("button", { name: "3 columns", exact: true }).click();
+    await setShowConfidence(page, true);
     const billing = "/contents/0/fields/BillingAddress", shipping = "/contents/0/fields/ShippingAddress";
     const chip = row(page, billing).locator(".cu-value-chip");
     const beforeChip = await chip.evaluate(element => ({
@@ -139,7 +139,7 @@ test("UI-48 array-cell hover and whole-group selection preserve neighbors, opaqu
 test("UI-48 related ranges stay pale while hover and the actual current value remain distinguishable", async ({ page }) => {
     await page.goto("/");
     await ready(page);
-    await page.getByRole("button", { name: "3 columns", exact: true }).click();
+    await setShowConfidence(page, true);
     await page.getByTestId("source-tables").locator('[data-table-id="/contents/0/tables/2"]').press("Enter");
     const group = "/contents/0/fields/AmountDue", amount = `${group}/valueObject/Amount`, currency = `${group}/valueObject/CurrencyCode`;
     await expect(row(page, group)).toHaveCSS("background-color", related);
@@ -157,7 +157,7 @@ test("UI-48 related ranges stay pale while hover and the actual current value re
 
 test("UI-48 right-side hover uses the same linked preview palette without selecting", async ({ page }) => {
     await loadReviewFixture(page);
-    await page.getByRole("button", { name: "3 columns", exact: true }).click();
+    await setShowConfidence(page, true);
     const target = row(page, recipientId);
     await target.locator(".cu-field-name").hover();
     await expect(target).toHaveCSS("background-color", hover);

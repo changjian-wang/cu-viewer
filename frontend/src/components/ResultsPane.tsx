@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CuApiVersion, CuContent, CuField, CuParseIssue } from "../model/types";
 import { fieldLabel, fieldRegions } from "../interaction/interaction";
-import { defaultReviewSettings, copyValue, isFieldGroup } from "../interaction/reviewFields";
+import { defaultReviewSettings, copyValue } from "../interaction/reviewFields";
 import { unavailableSourcePageMessage } from "../source/source";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
 import type { TableFieldLocation } from "../interaction/tableFields";
@@ -27,8 +27,6 @@ interface ResultsPaneProps {
     result: unknown;
     view: ResultView | undefined;
     onViewChange: (view: ResultView) => void;
-    hideMissing: boolean;
-    onHideMissingChange: (hideMissing: boolean) => void;
     previewId: string | undefined;
     source?: LoadedSource | null | undefined;
     apiVersion?: CuApiVersion | undefined;
@@ -62,7 +60,7 @@ interface ResultsPaneProps {
 export function ResultsPane(props: ResultsPaneProps) {
     const [review, setReview] = useState(() => initialFieldsReview(props.content?.fields ?? [], props.preferences?.order ?? {}));
     const [localSettings, setLocalSettings] = useState({ ...defaultReviewSettings });
-    const { hideMissing, view } = props;
+    const { view } = props;
     const settings = props.preferences?.settings ?? localSettings;
     const restoringFocus = useRef(false);
     const panel = useRef<HTMLDivElement>(null);
@@ -70,6 +68,7 @@ export function ResultsPane(props: ResultsPaneProps) {
     const tableScroll = useMemo(() => new Map<string, number>(), [props.workflow.context]);
     const copyContext = useMemo(() => ({}), [props.workflow.context, props.workflow.generation]);
     const fieldsReveal = useRef<number | null>(null);
+    const paragraphsReveal = useRef<number | null>(null);
     const tableViewRequest = useRef<number | null>(null);
     const skipFieldsRestore = useRef<number | null>(null);
     const scopeSnapshot = useRef<{
@@ -80,6 +79,7 @@ export function ResultsPane(props: ResultsPaneProps) {
     const fieldsContext = useRef(props.workflow.context);
     if (fieldsContext.current !== props.workflow.context) {
         fieldsContext.current = props.workflow.context; fieldsReveal.current = null;
+        paragraphsReveal.current = null;
         tableViewRequest.current = null; skipFieldsRestore.current = null;
         scopeSnapshot.current = null; pendingScopeRestore.current = null;
     }
@@ -219,11 +219,7 @@ export function ResultsPane(props: ResultsPaneProps) {
                 onSettings={props.preferences?.changeSettings ?? setLocalSettings}
                 order={props.preferences?.order ?? {}} onOrder={props.preferences?.changeOrder ?? (() => {})}
                 orderReadOnly={props.preferences?.orderReadOnly ?? true}
-                review={review} setReview={setReview} hideMissing={hideMissing} onHideMissing={next => {
-                    props.onHideMissingChange(next);
-                    if (next && props.selected && !props.selected.hasValue && !isFieldGroup(props.selected)) props.onClear();
-                    else if (next && props.hovered && !props.hovered.hasValue) props.onDismissPreview?.();
-                }}
+                review={review} setReview={setReview}
                 selected={props.selected} hovered={props.hovered} workflow={props.workflow} menuId={`${tabBaseId}-value-menu`}
                 onMenu={openMenu} onHover={props.onHover} onLeave={props.onLeave} onSelect={props.onSelect}
                 sourceReady={props.sourceReady} pageNumber={props.pageNumber ?? 1} isPageAvailable={props.isPageAvailable}
@@ -231,7 +227,7 @@ export function ResultsPane(props: ResultsPaneProps) {
                 sourceSelection={(props.sourceSelection || props.sourceTableSelection) ?? false} tableLocation={props.tableLocation ?? null}
                 tableSelection={props.sourceTableSelection ?? false} tableScope={props.tableScope ?? null}
                 onShowAllFields={props.onShowAllFields}
-                orderControlled={props.preferences?.controlled ?? false} preferenceError={Boolean(props.preferences?.storageError)} />}
+                preferenceError={Boolean(props.preferences?.storageError)} />}
             {view === "markdown" && <Suspense fallback={<div className="cu-state" role="status">Loading Markdown view…</div>}>
                 <MarkdownPane markdown={props.content?.markdown} />
             </Suspense>}
@@ -242,6 +238,8 @@ export function ResultsPane(props: ResultsPaneProps) {
                 fallback={<div className="cu-state" role="status">Loading {activeTab?.label} view…</div>}>
                 {view === "paragraphs" && <ParagraphsPane paragraphs={props.content?.paragraphs ?? []}
                     selected={props.selected} hovered={props.hovered} previewId={props.previewId}
+                    selectionRequest={props.selectionRequest ?? null} sourceSelection={props.sourceSelection ?? false}
+                    handledReveal={paragraphsReveal}
                     onHover={props.onHover} onLeave={props.onLeave} onSelect={props.onSelect} />}
                 {view === "figures" && props.content && <FiguresPane figures={props.content.figures ?? []}
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
@@ -249,16 +247,16 @@ export function ResultsPane(props: ResultsPaneProps) {
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
                 {view === "metadata" && <MetadataPane metadata={props.content?.metadata ?? {}} copyContext={copyContext} />}
             </Suspense>}
+            <ValueDetails workflow={props.workflow} threshold={settings.threshold} onClose={() => {
+                if (props.workflow.inspected) restoreFieldFocus(props.workflow.inspected);
+                props.workflow.closeDetails();
+            }} />
+            {props.workflow.feedback && <div className={`cu-copy-feedback${props.workflow.feedback.status === "error" ? " cu-inline-error" : ""}`}
+                role={props.workflow.feedback.status === "error" ? "alert" : "status"}>
+                {props.workflow.feedback.message}
+                {props.workflow.feedback.status === "error" && <pre tabIndex={0}>{copyValue(props.workflow.feedback.field)}</pre>}
+            </div>}
         </div>
-        <ValueDetails workflow={props.workflow} threshold={settings.threshold} onClose={() => {
-            if (props.workflow.inspected) restoreFieldFocus(props.workflow.inspected);
-            props.workflow.closeDetails();
-        }} />
-        {props.workflow.feedback && <div className={`cu-copy-feedback${props.workflow.feedback.status === "error" ? " cu-inline-error" : ""}`}
-            role={props.workflow.feedback.status === "error" ? "alert" : "status"}>
-            {props.workflow.feedback.message}
-            {props.workflow.feedback.status === "error" && <pre tabIndex={0}>{copyValue(props.workflow.feedback.field)}</pre>}
-        </div>}
         {props.workflow.menu && <ActionMenu id={`${tabBaseId}-value-menu`} label="Value actions" kind="value"
             anchor={props.workflow.menu.trigger} onClose={closeMenu}
             actions={[

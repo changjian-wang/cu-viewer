@@ -17,8 +17,10 @@ function setup(threshold = 0.7) {
 }
 
 describe("prototype-aligned highlighting controls", () => {
-    it("keeps the focused numeric threshold and switches without a duplicate legend or footer reassurance", () => {
+    it("keeps only the focused numeric threshold without duplicate Legend options", () => {
         setup(0.699);
+        expect(screen.getByRole("dialog", { name: "Source settings" }).querySelector("h2")?.textContent).toBe("Settings");
+        expect(screen.queryByRole("heading", { name: "Highlighting" })).toBeNull();
         const threshold = screen.getByRole<HTMLInputElement>("spinbutton", { name: "Confidence threshold" });
         expect(threshold.value).toBe("0.699");
         expect(threshold.min).toBe("0");
@@ -27,8 +29,8 @@ describe("prototype-aligned highlighting controls", () => {
         expect(document.activeElement).toBe(threshold);
         expect(screen.getByText("0.699", { selector: "strong" })).toBeTruthy();
         expect(document.querySelector(".cu-setting-hint")?.textContent).toBe("Values below 0.699 receive low-confidence highlight.");
-        expect(screen.getAllByRole("switch")).toHaveLength(3);
-        expect(screen.getByRole("switch", { name: "Show low confidence highlight" })).toBeTruthy();
+        expect(screen.queryAllByRole("switch")).toHaveLength(0);
+        expect(screen.queryByText("Options")).toBeNull();
         expect(screen.queryByRole("switch", { name: "Highlight low confidences" })).toBeNull();
         expect(screen.queryByText("Legend")).toBeNull();
         expect(document.querySelectorAll(".cu-legend-swatch")).toHaveLength(0);
@@ -51,19 +53,11 @@ describe("prototype-aligned highlighting controls", () => {
         expect(threshold.getAttribute("aria-invalid")).toBe("false");
     });
 
-    it("retains accessible switch labels and reports each independent flag", () => {
-        const { onChange } = setup();
-        for (const [label, key] of [
-            ["Show field highlights", "showFields"], ["Show table highlights", "showTables"], ["Show low confidence highlight", "highlightLow"],
-        ] as const) {
-            fireEvent.click(screen.getByRole("switch", { name: label }));
-            expect(onChange).toHaveBeenLastCalledWith({ ...defaultReviewSettings, [key]: false });
-        }
-    });
-
     it("closes with focus restoration on Escape and without restoration on outside pointer input", () => {
         const { onClose } = setup();
         fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+        expect(onClose).toHaveBeenLastCalledWith(true);
+        fireEvent.click(screen.getByRole("button", { name: "Close source settings" }));
         expect(onClose).toHaveBeenLastCalledWith(true);
         fireEvent.pointerDown(document.body);
         expect(onClose).toHaveBeenLastCalledWith(false);

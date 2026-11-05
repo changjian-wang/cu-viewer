@@ -47,13 +47,13 @@ test("real paragraphs and source tables navigate existing results without resett
     await ready(page);
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
     await expect(pane.getByRole("tab", { name: "Fields", exact: true })).toHaveAttribute("aria-selected", "true");
-    await expect(pane.locator(".cu-fields-review-footer")).toContainText("no corresponding extracted fields");
+    await expect(pane.locator(".cu-fields-status")).toContainText("no corresponding extracted fields");
     await expect(pane.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
-    await expect(pane.locator(".cu-fields-review-footer")).toContainText("no corresponding extracted fields");
+    await expect(pane.locator(".cu-fields-status")).toContainText("no corresponding extracted fields");
 });
 
 test.describe("source thumbnails at DPR 2", () => {

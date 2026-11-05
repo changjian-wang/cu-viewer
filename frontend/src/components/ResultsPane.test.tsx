@@ -10,17 +10,15 @@ import type { ResultView } from "../model/resultViews";
 import { useValueWorkflow } from "../interaction/useValueWorkflow";
 import { matchTableFields } from "../interaction/tableFields";
 
-function TestPane(props: Omit<Parameters<typeof ResultsPane>[0], "view" | "onViewChange" | "hideMissing" | "onHideMissingChange" | "previewId" | "workflow">) {
+function TestPane(props: Omit<Parameters<typeof ResultsPane>[0], "view" | "onViewChange" | "previewId" | "workflow">) {
     const [requested, setView] = useState<ResultView | undefined>("fields");
-    const [hideMissing, setHideMissing] = useState(true);
     const workflow = useValueWorkflow(props.content ?? props);
     const tabs = availableResultTabs(props.content, props.result, props.apiVersion);
     const view = (tabs.find(tab => tab.id === requested) ?? tabs[0])?.id;
     useEffect(() => {
         if (view !== requested) setView(view);
     }, [view, requested]);
-    return <ResultsPane {...props} view={view} onViewChange={setView} hideMissing={hideMissing}
-        onHideMissingChange={setHideMissing} previewId="test-preview" workflow={workflow} />;
+    return <ResultsPane {...props} view={view} onViewChange={setView} previewId="test-preview" workflow={workflow} />;
 }
 
 function region(pageNumber: number): CuRegion {
@@ -80,7 +78,10 @@ function renderPane(content: CuContent, selected: CuField | null = null,
     // These interaction cases start folded; the default expansion policy has separate coverage.
     const collapse = screen.queryByRole("button", { name: "Collapse Rows" });
     if (collapse) fireEvent.click(collapse);
-    return { ...view, onSelect, rerenderContent: (next: CuContent) => view.rerender(<TestPane {...props} content={next} />) };
+    return { ...view, onSelect,
+        rerenderContent: (next: CuContent) => view.rerender(<TestPane {...props} content={next} />),
+        rerenderSelected: (selected: CuField | null) => view.rerender(<TestPane {...props} selected={selected} />),
+    };
 }
 
 // Cold chunk loading has browser/resource gates; these tests exercise real view composition.
@@ -101,6 +102,83 @@ afterEach(() => {
 });
 
 describe("structured Fields presentation", () => {
+    it("uses the selected field's position for numbering and cyclic navigation", () => {
+        const { content, firstLabel, second } = structuredContent();
+        const secondLabel = second.children[0]!;
+        const { container, onSelect, rerenderSelected } = renderPane(content);
+        const position = container.querySelector(".cu-field-navigation > span");
+        expect(position?.textContent).toBe("— / 2 fields");
+        expect(screen.getByRole<HTMLButtonElement>("button", { name: "Previous field" }).title).toBe("Previous field");
+        expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next field" }).title).toBe("Next field");
+        fireEvent.click(screen.getByRole("button", { name: "Next field" }));
+        expect(onSelect).toHaveBeenLastCalledWith(firstLabel);
+        rerenderSelected(firstLabel);
+        expect(position?.textContent).toBe("1 / 2 fields");
+        fireEvent.click(screen.getByRole("button", { name: "Next field" }));
+        expect(onSelect).toHaveBeenLastCalledWith(secondLabel);
+        rerenderSelected(secondLabel);
+        expect(position?.textContent).toBe("2 / 2 fields");
+        fireEvent.click(screen.getByRole("button", { name: "Next field" }));
+        expect(onSelect).toHaveBeenLastCalledWith(firstLabel);
+        rerenderSelected(firstLabel);
+        fireEvent.click(screen.getByRole("button", { name: "Previous field" }));
+        expect(onSelect).toHaveBeenLastCalledWith(secondLabel);
+        rerenderSelected(null);
+        fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Second" } });
+        expect(position?.textContent).toBe("— / 1 fields");
+        rerenderSelected(secondLabel);
+        expect(position?.textContent).toBe("1 / 1 fields");
+        fireEvent.change(screen.getByRole("searchbox"), { target: { value: "not a field" } });
+        expect(position?.textContent).toBe("— / 0 fields");
+        expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next field" }).disabled).toBe(true);
+        expect(screen.getByRole<HTMLButtonElement>("button", { name: "Previous field" }).disabled).toBe(true);
+        expect(screen.getByRole<HTMLButtonElement>("button", { name: "Previous field" }).title).toBe("No matching fields");
+        expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next field" }).title).toBe("No matching fields");
+    });
+
+    it("moves field navigation into the bottom toolbar and preserves missing fields and unavailable confidence", () => {
+        const original = { apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 100, height: 100 }],
+            fields: {
+                Zero: { type: "integer", valueInteger: 0, confidence: 0 },
+                Unknown: { type: "string", valueString: "Without score" },
+                Missing: { type: "string" },
+            },
+        }] };
+        const before = JSON.stringify(original);
+        const content = parseCuResult(original).contents[0];
+        if (!content) throw new Error("Expected fields with scored, unscored and missing values.");
+        const { container } = renderPane(content);
+        const toolbar = screen.getByRole("group", { name: "Fields toolbar" });
+        const summary = container.querySelector(".cu-field-navigation > span");
+        expect(summary?.textContent).toBe("— / 3 fields");
+        expect(summary?.previousElementSibling?.getAttribute("aria-label")).toBe("Previous field");
+        expect(summary?.nextElementSibling?.getAttribute("aria-label")).toBe("Next field");
+        expect(summary?.textContent).not.toContain("not returned");
+        expect(container.querySelector(".cu-fields-controls")).toBeNull();
+        expect(toolbar.contains(screen.getByRole("searchbox", { name: "Search fields or values" }))).toBe(true);
+        expect(screen.getByRole("searchbox", { name: "Search fields or values" }).getAttribute("placeholder"))
+            .toBe("Search field names or values...");
+        expect(screen.queryByRole("button", { name: "Reset order" })).toBeNull();
+        expect(toolbar.querySelector(".cu-fields-toolbar-actions")?.children).toHaveLength(1);
+        expect(screen.queryByRole("switch", { name: "Hide missing fields" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "2 columns" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "3 columns" })).toBeNull();
+        expect(screen.getByRole("button", { name: "Missing" })).toBeTruthy();
+        expect(container.querySelector('[data-field-id="/contents/0/fields/Missing"] .cu-field-value')?.textContent).toBe("Not returned");
+        expect(screen.queryByRole("columnheader", { name: "Confidence" })).toBeNull();
+        fireEvent.click(screen.getByRole("button", { name: "Fields settings" }));
+        expect(screen.getByRole("dialog", { name: "Fields settings" })
+            .contains(screen.getByRole("button", { name: "Reset order" }))).toBe(true);
+        fireEvent.click(screen.getByRole("checkbox", { name: "Show Confidence" }));
+        expect(screen.getByRole("columnheader", { name: "Confidence" })).toBeTruthy();
+        expect(container.querySelector('[data-field-id="/contents/0/fields/Unknown"] .cu-confidence')?.textContent).toBe("N/A");
+        expect(container.querySelector('[data-field-id="/contents/0/fields/Zero"] .cu-confidence')?.textContent).toBe("0.00");
+        fireEvent.click(screen.getByRole("checkbox", { name: "Show Confidence" }));
+        expect(screen.queryByRole("columnheader", { name: "Confidence" })).toBeNull();
+        expect(JSON.stringify(original)).toBe(before);
+    });
+
     it("restores pre-scope expansion and both scroll positions without modifying the content", () => {
         const content = parseCuResult({ apiVersion: "2025-11-01", contents: [{
             kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 100, height: 100 }],
@@ -136,7 +214,7 @@ describe("structured Fields presentation", () => {
         expect(JSON.stringify(content)).toBe(original);
     });
 
-    it("keeps explicit search and confidence-filter edits when leaving a temporary related range", () => {
+    it("keeps explicit search edits when leaving a temporary related range", () => {
         const content = parseCuResult({ apiVersion: "2025-11-01", contents: [{
             kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 100, height: 100 }],
             fields: { Amount: { type: "number", valueNumber: 10, confidence: 0.2, source: "D(1,20,20,10,5)" },
@@ -150,13 +228,12 @@ describe("structured Fields presentation", () => {
             onShowAllFields: vi.fn() };
         const view = render(<TestPane {...props} selected={null} />);
         fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Amount" } });
-        fireEvent.click(screen.getByRole("button", { name: /Low confidence/ }));
         view.rerender(<TestPane {...props} selected={table} tableScope={location} tableLocation={location} />);
         expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("Amount");
         fireEvent.change(screen.getByRole("searchbox"), { target: { value: "10" } });
         view.rerender(<TestPane {...props} selected={table} tableScope={null} tableLocation={location} />);
         expect(screen.getByRole<HTMLInputElement>("searchbox").value).toBe("10");
-        expect(screen.getByRole("button", { name: /Low confidence/ }).getAttribute("aria-pressed")).toBe("true");
+        expect(screen.queryByRole("button", { name: /Low confidence/ })).toBeNull();
     });
 
     it("locates existing Fields once per source-table request without adding native tables", () => {
@@ -221,7 +298,7 @@ describe("structured Fields presentation", () => {
         fireEvent.click(screen.getByRole("button", { name: "Expand Rows" }));
         expect(screen.queryByRole("button", { name: "View selected value" })).toBeNull();
         const navigation = container.querySelector(".cu-field-navigation");
-        expect(navigation?.querySelector("span")?.textContent).toBe("2 / 2 fields");
+        expect(navigation?.querySelector("span")?.textContent).toBe("1 / 2 fields");
         expect(navigation?.querySelectorAll("button")).toHaveLength(2);
         expect(screen.getByRole<HTMLButtonElement>("button", { name: "Previous field" }).disabled).toBe(false);
         expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next field" }).disabled).toBe(false);
@@ -314,9 +391,11 @@ describe("structured Fields presentation", () => {
         const { container } = renderPane(content, rows);
         expect(screen.queryByRole("button", { name: "View selected value" })).toBeNull();
         expect(container.querySelectorAll(".cu-field-navigation button")).toHaveLength(2);
+        expect(container.querySelector(".cu-field-navigation > span")?.textContent).toBe("— / 2 fields");
         expect(container.querySelector(".cu-group-selection-count")).toBeNull();
         expect(container.querySelector(".is-group-selected")).toBeTruthy();
-        fireEvent.click(screen.getByRole("button", { name: "3 columns" }));
+        fireEvent.click(screen.getByRole("button", { name: "Fields settings" }));
+        fireEvent.click(screen.getByRole("checkbox", { name: "Show Confidence" }));
         expect(container.querySelector(".is-group-selected .cu-confidence")?.textContent).toBe("");
     });
 

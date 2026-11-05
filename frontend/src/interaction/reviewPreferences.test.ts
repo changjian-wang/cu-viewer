@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultReviewSettings, defaultSourceCategories } from "./reviewFields";
+import { defaultReviewSettings } from "./reviewFields";
 import { preferenceKey, readPreferences, validateSettings, writePreferences } from "./reviewPreferences";
 
 function storage() {
@@ -26,27 +26,37 @@ describe("versioned Viewer preferences", () => {
         expect(() => writePreferences({ setItem: () => { throw new Error("full"); } }, "schema",
             { settings: { ...defaultReviewSettings }, order: {} })).toThrow("full");
     });
-    it("loads existing version-one records with all categories on and no precision or order changes", () => {
+    it("loads existing version-one records without precision or order changes", () => {
         const store = storage();
         const text = JSON.stringify({ format: "cu-viewer-review", version: 1, schema: "schema",
             settings: { threshold: 0.341, showFields: true, showTables: false, highlightLow: true, columns: 3, paneRatio: 0.58, fieldRatio: 0.46 },
             order: { $root: ["/A"] } });
         store.setItem(preferenceKey("schema"), text);
         const loaded = readPreferences(store, "schema");
-        expect(loaded?.settings.sourceCategories).toEqual(defaultSourceCategories);
+        expect(loaded?.settings.showTables).toBe(false);
         expect(loaded?.settings.threshold).toBe(0.341);
         expect(loaded?.order).toEqual({ $root: ["/A"] });
         expect(store.getItem(preferenceKey("schema"))).toBe(text);
     });
-    it("round-trips an independent category mask and clones validated visibility", () => {
-        const store = storage(), sourceCategories = { ...defaultSourceCategories, field: false, unavailable: false };
-        writePreferences(store, "schema", { settings: { ...defaultReviewSettings, sourceCategories }, order: {} });
-        expect(readPreferences(store, "schema")?.settings.sourceCategories).toEqual(sourceCategories);
-        expect(validateSettings({ sourceCategories }).sourceCategories).not.toBe(sourceCategories);
-        expect(defaultSourceCategories.field).toBe(true);
+    const legacyCategories = { field: false, table: false, lowField: false, lowTable: false, unavailable: false };
+    it("accepts valid legacy masks without retaining hidden filters or rewriting the stored record", () => {
+        const store = storage();
+        const text = JSON.stringify({ format: "cu-viewer-review", version: 1, schema: "schema",
+            settings: { ...defaultReviewSettings, threshold: 0.699, showTables: false, sourceCategories: legacyCategories },
+            order: { $root: ["/B", "/A"] } });
+        store.setItem(preferenceKey("schema"), text);
+        const loaded = readPreferences(store, "schema");
+        expect(loaded?.settings).toEqual({ ...defaultReviewSettings, threshold: 0.699, showTables: false });
+        expect(loaded?.order).toEqual({ $root: ["/B", "/A"] });
+        expect(store.getItem(preferenceKey("schema"))).toBe(text);
+        expect(validateSettings({ sourceCategories: legacyCategories })).toEqual(defaultReviewSettings);
+        if (!loaded) throw new Error("The valid legacy preferences were not read.");
+        writePreferences(store, "schema", { ...loaded, settings: { ...loaded.settings, showFields: false } });
+        expect(store.getItem(preferenceKey("schema"))).not.toContain("sourceCategories");
+        expect(readPreferences(store, "schema")?.order).toEqual(loaded.order);
     });
-    it.each([null, [], false, "hidden", { field: false }, { ...defaultSourceCategories, field: "false" },
-        { ...defaultSourceCategories, extra: true }])("rejects malformed category visibility %j without overwriting it", sourceCategories => {
+    it.each([null, [], false, "hidden", { field: false }, { ...legacyCategories, field: "false" },
+        { ...legacyCategories, extra: true }])("rejects malformed legacy categories %j without overwriting them", sourceCategories => {
         const store = storage();
         const text = JSON.stringify({ format: "cu-viewer-review", version: 1, schema: "schema",
             settings: { ...defaultReviewSettings, sourceCategories }, order: {} });

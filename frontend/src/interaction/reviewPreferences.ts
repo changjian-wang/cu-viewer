@@ -1,5 +1,5 @@
 import type { ViewerFieldOrder } from "../index";
-import { defaultReviewSettings, defaultSourceCategories, validateFieldOrder } from "./reviewFields";
+import { defaultReviewSettings, validateFieldOrder } from "./reviewFields";
 import type { ReviewSettings } from "./reviewFields";
 
 export interface ReviewPreferences {
@@ -23,14 +23,21 @@ export function validateSettings(value: unknown): ReviewSettings {
         !Number.isFinite(settings.fieldRatio) || settings.fieldRatio < 0.25 || settings.fieldRatio > 0.7) {
         throw new Error("Viewer preferences contain invalid highlighting or layout settings.");
     }
-    const categories = settings.sourceCategories;
-    if (!categories || typeof categories !== "object" || Array.isArray(categories) ||
-        Object.keys(categories).length !== Object.keys(defaultSourceCategories).length ||
-        Object.keys(defaultSourceCategories).some(key => !Object.hasOwn(categories, key)) ||
-        Object.values(categories).some(value => typeof value !== "boolean")) {
-        throw new Error("Viewer preferences contain invalid source highlight categories.");
+    // Validate legacy masks, but do not retain filters that no longer have controls.
+    if ("sourceCategories" in value) {
+        const categories = value.sourceCategories;
+        const keys = ["field", "table", "lowField", "lowTable", "unavailable"];
+        if (!categories || typeof categories !== "object" || Array.isArray(categories) ||
+            Object.keys(categories).length !== keys.length || keys.some(key => !Object.hasOwn(categories, key)) ||
+            Object.values(categories).some(value => typeof value !== "boolean")) {
+            throw new Error("Viewer preferences contain invalid source highlight categories.");
+        }
     }
-    return { ...settings, sourceCategories: { ...categories } };
+    return {
+        threshold: settings.threshold, showFields: settings.showFields, showTables: settings.showTables,
+        highlightLow: settings.highlightLow, columns: settings.columns, paneRatio: settings.paneRatio,
+        fieldRatio: settings.fieldRatio,
+    };
 }
 
 export function readPreferences(storage: Pick<Storage, "getItem">, schema: string): ReviewPreferences | null {

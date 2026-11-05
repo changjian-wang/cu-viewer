@@ -10,7 +10,7 @@ import { leafFields } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ResultView } from "../model/resultViews";
 import type { SourceOutline } from "../source/sourceOverlays";
-import { SOURCE_POPOVER_GAP, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
+import { isValueSourceField, SOURCE_POPOVER_GAP, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
 import { SourcePopover } from "./SourcePopover";
 import { useSourceRendering } from "../source/useSourceRendering";
 import { SourceToolbar } from "./SourceToolbar";
@@ -127,7 +127,7 @@ export function SourcePane(props: SourcePaneProps) {
     const wholeTable = props.content?.tables?.some(table => table.id === props.active?.id);
     const showCard = Boolean(props.active && !group && !wholeTable &&
         (!props.active.detailView || props.active.detailView === "paragraphs"));
-    const valuePreview = Boolean(props.preview && props.view === "fields" && props.active && !group && !props.active.detailView);
+    const valuePreview = props.preview && isValueSourceField(props.view, props.active);
     const previewInSelection = Boolean(props.pinned && props.active && (props.pinned.id === props.active.id ||
         (pinnedGroup && props.active.id.startsWith(`${props.pinned.id}/`))));
     const captureControlFocus = (requested?: HTMLElement): void => {
@@ -201,9 +201,9 @@ export function SourcePane(props: SourcePaneProps) {
             const preview = props.preview ? project(props.active, props.regions) : [];
             const pageGeometry = geometry.value;
             const framesFor = (field: CuField | null, regions: typeof pinned) => {
-                const merge = props.view === "fields" && field && !isFieldGroup(field) && !field.detailView && regions.length > 1;
+                const merge = isValueSourceField(props.view, field) && regions.length > 1;
                 return merge && pageGeometry ? sourceSelectionFrames(regions,
-                    sourceOutlines(props.content, "fields", props.pageNumber, false)
+                    sourceOutlines(props.content, props.view, props.pageNumber, false)
                         .filter(outline => outline.field.id !== field.id)
                         .map(outline => projectRegion(outline.region, pageGeometry).polygon)) :
                     regions.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
@@ -359,10 +359,6 @@ export function SourcePane(props: SourcePaneProps) {
     const fitDocument = (value: "page" | "width"): void => { resetView(); setFit(value); };
     const rotateDocument = (): void => { resetView(); setRotation(value => (value + 90) % 360); };
     return <section className="cu-source-pane" aria-label="Source document" aria-busy={!ready && !error} style={sourceStyle}>
-        <SourceToolbar source={props.source}
-            summaryId={`${sourceId}-summary`}
-            toolbarRef={toolbar} settings={props.settings} onSettings={props.onSettings}
-            onControlFocus={captureControlFocus} />
         <span id={`${sourceId}-pan-help`} className="cu-visually-hidden">Ctrl or Command with scroll zooms at the pointer. Ordinary scroll moves the viewport. Drag or use arrow keys to pan; click a source region to select it.</span>
         <div className="cu-document-container" ref={container} role="group" aria-label="Source viewport"
             aria-describedby={`${sourceId}-summary ${sourceId}-pan-help`} aria-disabled={!ready} tabIndex={ready ? 0 : -1}
@@ -501,10 +497,8 @@ export function SourcePane(props: SourcePaneProps) {
                 <h2>{error ? "Source could not be displayed" : "Loading source..."}</h2><p>{error ?? "Valid field data stays available."}</p>
             </div>}
         </div>
-        <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}
-            minZoom={minZoom} maxZoom={maxZoom} ready={ready} fit={fit} controlsRef={documentControls}
-            onPage={props.onPage} onZoom={value => applyZoom(value)}
-            onFit={fitDocument} onRotate={rotateDocument} onControlFocus={captureControlFocus}>
+        <SourceToolbar source={props.source} summaryId={`${sourceId}-summary`} toolbarRef={toolbar}
+            settings={props.settings} onSettings={props.onSettings} onControlFocus={captureControlFocus} selection={<>
             {pinnedGroup && props.pinned ? <div className="cu-group-source-controls">
                 <strong title={pinnedLabel}>{pinnedLabel}</strong>
                 <span title={groupSummary}>
@@ -532,7 +526,12 @@ export function SourcePane(props: SourcePaneProps) {
                         aria-describedby={`${sourceId}-location-status`} title="Next source region"
                         onClick={() => { captureControlFocus(); props.onRegion(props.pinnedRegionIndex + 1); }}>›</button>
                 </aside> : sourceStatus && <span className="cu-preview-hint" title={sourceStatus}>{sourceStatus}</span>}
-        </SourceDocumentControls>
+            </>}>
+            <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}
+                minZoom={minZoom} maxZoom={maxZoom} ready={ready} fit={fit} controlsRef={documentControls}
+                onPage={props.onPage} onZoom={value => applyZoom(value)}
+                onFit={fitDocument} onRotate={rotateDocument} onControlFocus={captureControlFocus} />
+        </SourceToolbar>
         {unavailable && <div className="cu-inline-error" role="alert">Source region: {unavailableSourcePageMessage(region.pageNumber)}</div>}
         {background.error && <div className="cu-inline-error" role="alert">Source outlines: {background.error}</div>}
         {selectedPolygons.error && <div className="cu-inline-error" role="alert">Source selection: {selectedPolygons.error}</div>}

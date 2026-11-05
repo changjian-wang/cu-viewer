@@ -18,6 +18,12 @@ function props(): Parameters<typeof SourceDocumentControls>[0] {
 }
 
 describe("bottom document controls", () => {
+    it("leaves the shared file and selection area to its parent toolbar when no slot is supplied", () => {
+        render(<SourceDocumentControls {...props()} />);
+        expect(screen.queryByRole("group", { name: "Source selection and location" })).toBeNull();
+        expect(screen.getByRole("group", { name: "Document navigation and zoom" })).toBeTruthy();
+    });
+
     it("hosts selection controls in the existing row and captures their focus without changing their actions", () => {
         const callbacks = props(), navigate = vi.fn();
         render(<SourceDocumentControls {...callbacks}>
@@ -49,6 +55,70 @@ describe("bottom document controls", () => {
         fireEvent.change(input, { target: { value: "1" } });
         fireEvent.blur(input);
         expect(callbacks.onPage).toHaveBeenLastCalledWith(1);
+    });
+
+    it("cycles page-action callbacks and tooltips at both boundaries without navigating on hover", () => {
+        const callbacks = props(), source = callbacks.source;
+        if (!source) throw new Error("A source fixture is required.");
+        const threePageSource = { ...source, pages: [...source.pages, { pageNumber: 3, width: 612, height: 792 }] };
+        const { rerender } = render(<SourceDocumentControls {...callbacks} source={threePageSource} pageNumber={2} />);
+        const previous = screen.getByRole<HTMLButtonElement>("button", { name: "Previous page" });
+        const next = screen.getByRole<HTMLButtonElement>("button", { name: "Next page" });
+        expect(previous.title).toBe("Previous page");
+        expect(next.title).toBe("Next page");
+        expect(previous.disabled).toBe(false);
+        expect(next.disabled).toBe(false);
+        fireEvent.mouseOver(previous);
+        fireEvent.mouseOver(next);
+        expect(callbacks.onPage).not.toHaveBeenCalled();
+        fireEvent.click(previous);
+        expect(callbacks.onPage).toHaveBeenLastCalledWith(1);
+        fireEvent.click(next);
+        expect(callbacks.onPage).toHaveBeenLastCalledWith(3);
+        rerender(<SourceDocumentControls {...callbacks} source={threePageSource} pageNumber={1} />);
+        expect(previous.title).toBe("Previous page (last page)");
+        expect(previous.disabled).toBe(false);
+        expect(next.title).toBe("Next page");
+        fireEvent.click(previous);
+        expect(callbacks.onPage).toHaveBeenLastCalledWith(3);
+        rerender(<SourceDocumentControls {...callbacks} source={threePageSource} pageNumber={3} />);
+        expect(previous.title).toBe("Previous page");
+        expect(next.title).toBe("Next page (first page)");
+        expect(next.disabled).toBe(false);
+        fireEvent.click(next);
+        expect(callbacks.onPage).toHaveBeenLastCalledWith(1);
+        rerender(<SourceDocumentControls {...callbacks} source={threePageSource} pageNumber={3} ready={false} />);
+        expect(previous.title).toBe("Source not ready");
+        expect(next.title).toBe("Source not ready");
+        expect(previous.disabled).toBe(true);
+        expect(next.disabled).toBe(true);
+        fireEvent.click(previous);
+        fireEvent.click(next);
+        expect(callbacks.onPage).toHaveBeenCalledTimes(4);
+    });
+
+    it("keeps single-page PDF arrows disabled and page-number input strictly within range", () => {
+        const callbacks = props(), source = callbacks.source;
+        if (!source) throw new Error("A source fixture is required.");
+        render(<SourceDocumentControls {...callbacks} source={{ ...source, pages: source.pages.slice(0, 1) }} />);
+        for (const name of ["Previous page", "Next page"]) {
+            const button = screen.getByRole<HTMLButtonElement>("button", { name });
+            expect(button.disabled).toBe(true);
+            expect(button.title).toBe("Single-page document");
+            fireEvent.click(button);
+        }
+        expect(callbacks.onPage).not.toHaveBeenCalled();
+        const input = screen.getByRole("textbox", { name: "Page number" });
+        for (const value of ["0", "2"]) {
+            fireEvent.change(input, { target: { value } });
+            fireEvent.keyDown(input, { key: "Enter" });
+            expect(screen.getByRole("alert").textContent).toBe("Enter an existing page number.");
+            expect(callbacks.onPage).not.toHaveBeenCalled();
+        }
+        fireEvent.change(input, { target: { value: "1" } });
+        fireEvent.keyDown(input, { key: "Enter" });
+        expect(callbacks.onPage).toHaveBeenLastCalledWith(1);
+        expect(screen.queryByRole("alert")).toBeNull();
     });
 
     it("retains zoom, fit and rotation callbacks", () => {

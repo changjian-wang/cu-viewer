@@ -1,6 +1,6 @@
 # Development Plan: CU Viewer
 
-Updated: 2026-11-03
+Updated: 2026-11-05
 
 This is the single development plan for the rendering component and its cu-cli delivery. Product scope is defined in [requirements](requirements.md); the new UI baseline is defined in the [approved prototype requirements](ui-redesign/requirements.md). Setup, embedding, limits, and commands are maintained in the [README](../README.md). Historical drafts and detailed execution logs belong in Git history, not parallel planning documents.
 
@@ -988,6 +988,96 @@ Runtime changes are only the removal of SourceToolbar's summary import and rende
 A new unit case first failed against the still-rendered inline list, then passed after removing it. Final targeted units passed **48/48**. Main/worker TypeScript, targeted ESLint, library/demo builds and bundle checks passed (**169369 / 361612 bytes**, below 500000). The added Testing Library role queries use supported anchored-name matchers rather than Playwright-only options. Final Chrome/Edge cases passed **26/26 in 2 minutes**, including the exact real Fields comparison, Source's 57px height gain, all five actual widths, selection/long names/table scope, upward panels, full five colors/categories and their saved/legacy preferences. Browser assertions require zero inline nodes at every width, a visible Legend button and at least 400px filename space at Source width 1040px.
 
 Live verification at **1040px** found **410px** filename space (previously approximately **108px** with inline chips), zero persistent summary nodes, a single **44px** row and **0px** page-center error. The real sample filename is fully visible; opening Legend still exposes all five original category names, including **Confidence unavailable**. The preview remains at 5189 for review; primary React/5173, product visual references, commits and PRs remain unchanged.
+
+### Main React single-bottom-toolbar UI (2026-11-05)
+
+The user explicitly requested modifying the React UI and reviewing the result. The existing current-React study is now applied to the primary working tree and the live 5173 demo, without importing the rejected synthetic study. SourceToolbar composes the existing selection/navigation slot and SourceDocumentControls in one 44px footer. Filename summaries, description IDs, focus restoration, source geometry, pan/zoom, saved settings and public props remain unchanged. The five persistent Legend chips are removed, while the readable Legend button and the complete five-category panel remain.
+
+Settings and Legend open upward within the measured Source viewport. Page-validation errors are anchored above the footer and do not increase row height. Source widths 570/740/900/901/1040px retain centered page navigation, at least 16px before zoom, and directly hit-testable controls at least 24px. The demo's file selectors and the Fields/Result UI are outside this layout change.
+
+Validation passed: 37 targeted unit cases, main/worker TypeScript, affected-file ESLint, library/demo/production builds and the existing 500000-byte entry budget (169003-byte library and 361340-byte demo). Final Chrome/Edge acceptance passed 80/80, including actual narrow/wide layout, filename/status, short-window upward popups, page and threshold errors, five-category gates and saved/legacy preferences, fit/rotation/focus, PDF/image 1px wheel anchors and native drag/clear. Live 1440x1000 inspection found one footer, no Source header, a 44px toolbar, 876px reading height inside a 920px Source pane, and 0.008px page-center error.
+
+The original Source-related product screenshots are deliberately not refreshed during this visual-review request. No commit, push, Release or installed native-host resource replacement is included; the separate 5189 study remains untouched.
+
+### Combined passive Legend and highlight switches (2026-11-05)
+
+The user explicitly confirmed that Legend and Options should be one area: five colors remain explanatory, only the original three switches are interactive, and no five-color toggle replacement is wanted. The field and table color descriptions each share a row with their corresponding switch. Both low-confidence descriptions share the third switch, while unavailable confidence remains a separate passive explanation. The Options heading, color buttons, category focus/pressed states and independent runtime category filters are removed.
+
+The original `showFields`, `showTables`, `highlightLow`, threshold and layout/order behavior remain. Valid legacy v1 `sourceCategories` masks are validated but not retained in runtime state, so hidden colors without recovery controls cannot persist. Reading does not rewrite storage; the next user preference change writes only the active settings. Malformed legacy records still surface errors and require explicit reset. Passive text/color clicks do not mutate preferences or dismiss the panel; keyboard order includes only close and the three switches.
+
+Validation passed 141 targeted unit cases, main/worker TypeScript, affected-file ESLint, component/demo/production builds and the existing entry budget (167992-byte library, 360587-byte demo). Chrome/Edge coverage passed 68 distinct related cases: 66 initially passed, and the two legacy-mask cases passed after correcting a test expectation for the real 0.5 score at a restored 0.341 threshold. Tests verify all five colors, inert color/text clicks, unchanged source geometry/pixels/pins, three-switch control and recovery, v1 compatibility, saved settings, short-window hit testing, focus and exact threshold behavior.
+
+The live 5173 page is left with the combined Legend open for user review. The Go extension's committed static files, installed/native previews, frozen HTML and product screenshot baselines are not changed. No commit, push or resource publication is included.
+
+### Fields controls moved to a symmetric bottom toolbar (2026-11-05)
+
+The user requested a first working React version of the right-side layout. The ordinary Fields top controls are removed; result tabs remain above the table. One 44px footer contains search on the left, matching/total field count and previous/next navigation centered on the entire results pane, and Reset order plus Settings on the right. Settings opens upward with a Show Confidence checkbox and the existing Low confidence filter. The checkbox reuses `columns: 2 | 3`; saved three-column preferences and exact score formatting remain compatible.
+
+Hide missing and the two/three-column buttons are removed. Missing field values remain present and searchable, with no leftover hidden-field state in the main component. Query and low-confidence filtering remain independent of source highlighting. Related-table scope, Show all, hidden-selection feedback, controlled-order restrictions, full-value details and error notifications are retained. Field details and copy feedback occupy the content area above the footer rather than pushing the bottom controls out of alignment.
+
+Validation passed 30 affected unit tests, main/worker TypeScript, all changed TypeScript ESLint targets, library/demo/production builds and the 500000-byte entry budget (169357-byte library and 361695-byte demo). Final Chrome/Edge acceptance passed 62/62, covering the 440px minimum results width, symmetric bottom positions, centered counts, direct hit testing, upward Settings, Confidence persistence, missing values, query/filter/navigation, Reset order, F2 details/tab/focus, source geometry safeguards and related-table scope restoration.
+
+This is a visual-review iteration, not a release. The main 5173 React page is refreshed for review; frozen HTML, product screenshot baselines, Git commits and the Go extension's embedded static copy are not changed.
+
+### Remove redundant Fields settings and demo footer (2026-11-05)
+
+The user requested removing the screenshot's Low confidence filter/help/preferences block and the demo's bottom source/HEIF notice. Fields Settings now contains only Show Confidence and its close control. The transient score-filter state, count, callback, styling and test helper are removed so there is no hidden score filter without a recovery entry point. Search, scope, navigation, Confidence preference, Reset order and Source highlight/threshold semantics remain unchanged.
+
+The demo footer and its 26px layout row are removed, not visually hidden. Both 44px toolbars now reach the bottom of the page, and the source/results use the released space. Validation passed 30 affected unit tests, main/worker TypeScript, targeted ESLint, library/demo/production builds and entry budgets (168195-byte library, 360575-byte demo). Chrome/Edge verified 32 related cases, including final corrected assertions for row-summary search (eight matching values and the original first business row).
+
+Live 1440x1000 inspection found no footer notices, no score-filter button or helper paragraphs in Fields Settings, one Show Confidence checkbox, and both toolbars at y=956 with height 44px. This remains an uncommitted React visual-review change; product screenshot baselines and the Go extension's embedded resources are unchanged.
+
+### Current field position and ordered navigation (2026-11-05)
+
+The user confirmed that the first number represents the current field, not the matching-field count. The centered bottom group is now Previous field, a read-only current position/total, then Next field. An unselected field, a selected container or a selection outside the current matching range shows a dash; search and associated-table scopes number their matching leaves continuously, and zero matches disables navigation. Existing cyclic navigation is retained.
+
+Position and navigation share one ordered leaf sequence. Root/nested sibling and group moves, keyboard moves, external controlled order and Reset order recalculate the same selected field's index without storing a separate cursor or rewriting caller JSON. Inline arrays navigate original business rows in their common displayed column order, including heterogeneous object key orders; empty placeholders are not numbered. Collapsed descendants remain navigable, and hover does not change the current position.
+
+Validation passed 77 related unit tests, main/worker TypeScript, targeted ESLint, library/demo/production builds and entry budgets (169008-byte library, 361222-byte demo; limit 500000 bytes). Final related Chrome/Edge acceptance passed 58 cases: consecutive/cyclic positions, filtered and zero-match numbering, actual root/nested drags, Reset/reload, controlled/read-only host order, unchanged caller JSON, table scopes, keyboard moves, hover/pin separation, details and 440px-minimum symmetric toolbars. The controlled fixture's InvoiceId moves from 1 to 2, then Reset returns its original JSON position 15 rather than the host's initial override.
+
+The existing 5173 page is verified live with the rendered PDF, dynamic field positions and both 44px toolbars at y=956 in a 1440x1000 viewport. This is an uncommitted React iteration; product screenshot baselines and the Go extension's static payload are unchanged.
+
+### Reset order in Fields Settings (2026-11-05)
+
+The user requested moving Reset order into the right-side Settings. The bottom toolbar now keeps only the settings gear in its action area; the upward dialog places Reset order below Show Confidence. The original reset callback, selected-field numbering, read-only/table-scope restrictions and Confidence preference remain unchanged. Search does not disable reset or get cleared by it; activating reset keeps the dialog open and focused, while Escape/close still returns to the gear.
+
+Validation passed 28 related unit tests, 28 Chrome/Edge cases, main/worker TypeScript, targeted ESLint, component/demo/production builds and bundle budgets (169192-byte library, 361335-byte demo, below 500000 bytes). Cases cover keyboard activation, root/nested reorder and reset, query/pin preservation, disabled reasons, controlled order, scope restoration, Confidence persistence, upward dialog bounds and the 440px minimum pane. Live inspection confirms one bottom action, one checkbox plus Reset order in Settings, aligned 44px toolbars and the popup contained above the footer.
+
+The existing 5173 page is left with Fields Settings open for review. This remains an uncommitted React change; the Go static resources and product screenshot baselines are unchanged.
+
+### Unified Settings titles and contextual names (2026-11-05)
+
+The user approved Settings as the visible title on both sides, with Source settings and Fields settings as the respective gear tooltips. The source dialog and close control use the same contextual accessible naming pattern as Fields, avoiding ambiguity when both visible headings are Settings. Confidence threshold, Show Confidence, Reset order, all callbacks, source geometry and preference keys/values are unchanged; internal component names and CSS classes are not renamed.
+
+Validation passed 27 related unit tests, 22 Chrome/Edge cases, main/worker TypeScript, targeted ESLint and component/demo/production builds. Entry budgets passed at 169141 bytes for the library and 361297 bytes for the demo, below 500000 bytes. Browser cases verify both headings and contextual names, focus restoration, Legend exclusivity, short-window bounds, exact threshold precision/errors, original source pixels and expansion-state preservation. Live inspection confirms Settings, Source settings and Fields settings without editing any preferences.
+
+The existing 5173 page is left with the renamed Source settings panel open. No commit, push, Go static-resource update, frozen HTML change or screenshot-baseline refresh is included.
+
+### Native page and field navigation tooltips (2026-11-05)
+
+The user approved native hover hints for the page and field arrows. Enabled controls use Previous page/Next page and Previous field/Next field. Page boundaries explain Already on first page/Already on last page, source readiness explains Source not ready, and empty field matches explain No matching fields. Existing aria-labels, disabled conditions, callbacks, cyclic field navigation and toolbar dimensions remain unchanged; no tooltip component or dependency is added.
+
+Validation passed 28 related unit tests, 12 Chrome/Edge cases, main/worker TypeScript, targeted ESLint and component/demo/production builds. Entry budgets passed at 169465-byte library and 361559-byte demo entries, below 500000 bytes. Browser cases hover all four native-title controls without navigation, verify first/last page states and field wrap/empty matches, and retain centered 44px toolbars at the 440px minimum results width.
+
+The live 5173 preview confirms the first-page explanation, Next page and both field hints while retaining page 1 and the unselected 77-field range. This is an uncommitted React change; Go static resources, frozen HTML and screenshot baselines are not updated.
+
+### Cyclic source page arrows (2026-11-05)
+
+The user approved matching the field navigator's cyclic behavior for multi-page source arrows: Previous on page 1 opens the last page, and Next on the last page returns to page 1. Boundary titles explicitly say Previous page (last page) and Next page (first page). Single-page PDF arrows remain disabled with Single-page document, loading/unavailable sources remain disabled, and image navigation retains its single-page presentation. Page-number input validation and other keyboard, positioning and zoom paths are unchanged.
+
+Validation passed 31 related unit tests, 20 Chrome/Edge cases, main/worker TypeScript, targeted ESLint and component/demo/production builds; entry budgets passed at 169523 bytes for the library and 361595 bytes for the demo, below 500000 bytes. Tests verify exact cyclic destinations, Enter/click focus, repeated wrap with the same selected field and 150% manual zoom, a real generated single-page PDF, strict invalid-input feedback, unchanged field navigation and 440px-minimum toolbar alignment. Packed-consumer boundary/focus expectations are updated to the now-enabled Next button; the full isolated React 18/19 consumer matrix is not rerun in this iteration.
+
+The live 5173 page independently completed 1 -> 4 -> 1 with both contextual boundary titles and an unchanged field position. It is left on page 1. This is an uncommitted React change; Go static resources, frozen HTML and screenshot baselines remain unchanged.
+
+### Paragraphs source interaction parity with Fields (2026-11-05)
+
+The user approved using the Fields interaction and visual rules for Paragraphs PDF hover, click, selection and clearing. Both value-source views now share the 1.8px solid hover outline and obstruction-safe current-page selection-frame logic. Paragraph merging considers other actual paragraph sources, while original polygons still provide fills and hit testing. Groups, Figures, Signatures and other views retain their existing behavior.
+
+Paragraph previews keep only real Content and their contextual accessible name, but use the same fixed value-text color and card styling as Fields; no field Confidence or Gauge is fabricated. Explicit source selection safely reveals the matching paragraph within its own list and reuses field-location emphasis without moving source focus. A parent-held consumed-request ref preserves tab-restored scrolling; hover, right-side selection and tab return do not replay an old source reveal.
+
+Validation passed 81 related unit tests, 34 distinct Chrome/Edge cases plus four merged-gap rechecks, main/worker TypeScript, targeted ESLint and component/demo/production builds. Entry budgets passed at 167789-byte library and 361747-byte demo entries, below 500000 bytes. Real PDF cases compare Fields/Paragraphs frames and preview styles at DPR 1/2 and rotations 0/90, preserve raster bytes, verify source-linked paragraph scrolling/focus, retain Content-only previews and prove merged gaps and obstructed regions do not become fabricated hits. Fields regression cases retain full multi-fragment, collision, keyboard, zoom and pin behavior.
+
+Live inspection of the saved PDF confirms Paragraphs hover is solid at 1.8px without changing the source page, clicking pins the real paragraph and selects its matching right-side card, and preview labels remain Content only. The 5173 page is left on Paragraphs with the first real paragraph selected. This remains an uncommitted React iteration; Go static resources, frozen HTML and product screenshot baselines are unchanged.
 
 ### Runtime Viewer delivery: local implementation and validation (2026-11-03)
 

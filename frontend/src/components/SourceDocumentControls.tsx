@@ -22,14 +22,18 @@ export function SourceDocumentControls({ source, pageNumber, zoom, minZoom, maxZ
         }
         edited.current = false; setError(null); onControlFocus(); onPage(Number(text));
     };
+    const pageCount = source?.pages.length ?? 0;
+    const pageDisabledReason = !ready || pageCount === 0 ? "Source not ready" :
+        pageCount === 1 ? "Single-page document" : null;
     const percentage = Math.round(zoom * 100);
     return <>
         <div className="cu-document-controls cu-source-view-toolbar" role="group" aria-label="Document navigation and zoom"
             ref={controlsRef} onClickCapture={() => onControlFocus()}>
-            <div className="cu-document-status" role="group" aria-label="Source selection and location">{children}</div>
+            {children !== undefined && <div className="cu-document-status" role="group" aria-label="Source selection and location">{children}</div>}
             <div className="cu-page-controls">{source?.kind === "image" ? <span>Image · single page</span> : <>
-                <button type="button" className="cu-icon-button" aria-label="Previous page" disabled={!ready || pageNumber <= 1}
-                    onClick={() => onPage(pageNumber - 1)}><ViewerIcon name="left" /></button>
+                <button type="button" className="cu-icon-button" aria-label="Previous page" disabled={pageDisabledReason !== null}
+                    title={pageDisabledReason ?? (pageNumber <= 1 ? "Previous page (last page)" : "Previous page")}
+                    onClick={() => onPage(pageNumber <= 1 ? pageCount : pageNumber - 1)}><ViewerIcon name="left" /></button>
                 <input aria-label="Page number" value={text} disabled={!ready} aria-invalid={Boolean(error)}
                     onChange={event => { edited.current = true; setText(event.target.value); }}
                     onKeyDown={event => { if (event.key === "Enter") applyPage(); }}
@@ -39,8 +43,9 @@ export function SourceDocumentControls({ source, pageNumber, zoom, minZoom, maxZ
                         if (event.relatedTarget instanceof HTMLElement) onControlFocus(event.relatedTarget);
                     }} />
                 <span>/ {source?.pages.length ?? "--"}</span>
-                <button type="button" className="cu-icon-button" aria-label="Next page" disabled={!ready || pageNumber >= (source?.pages.length ?? 0)}
-                    onClick={() => onPage(pageNumber + 1)}><ViewerIcon name="right" /></button>
+                <button type="button" className="cu-icon-button" aria-label="Next page" disabled={pageDisabledReason !== null}
+                    title={pageDisabledReason ?? (pageNumber >= pageCount ? "Next page (first page)" : "Next page")}
+                    onClick={() => onPage(pageNumber >= pageCount ? 1 : pageNumber + 1)}><ViewerIcon name="right" /></button>
             </>}</div>
             <div className="cu-view-controls">
                 <button type="button" className="cu-icon-button" aria-label="Zoom out" disabled={!ready || zoom <= minZoom}

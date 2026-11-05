@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
-import { ready } from "./viewerAssertions";
+import { openFieldsSettings, ready, setShowConfidence } from "./viewerAssertions";
 
 test.use({ viewport: { width: 1253, height: 888 }, reducedMotion: "reduce",
     launchOptions: { ignoreDefaultArgs: ["--hide-scrollbars"] } });
@@ -36,7 +36,8 @@ test("UI-41 related fields gather without saved-order changes and Show all resto
         "/contents/0/fields/AmountDue", "/contents/0/fields/BalanceForward",
         "/contents/0/fields/TaxDetails", "/contents/0/fields/TotalAmount",
     ].includes(id ?? "")));
-    await expect(page.locator(".cu-field-navigation > span")).toHaveText("12 / 77 fields");
+    await expect(page.locator(".cu-field-navigation > span")).toHaveText("— / 12 fields");
+    await expect(page.locator(".cu-field-navigation > span")).toHaveAttribute("title", /12 matching fields out of 77 total/);
     await expect(page.getByRole("table", { name: "TaxDetails values", exact: true })).toBeVisible();
     expect(await roots(page).evaluateAll(elements => elements.every(element =>
         getComputedStyle(element).backgroundColor === "rgb(248, 245, 255)" &&
@@ -44,7 +45,11 @@ test("UI-41 related fields gather without saved-order changes and Show all resto
         getComputedStyle(element.querySelector("td")!).boxShadow === "none"))).toBe(true);
     await page.getByRole("button", { name: "AmountDue", exact: true }).focus();
     await expect(page.getByRole("button", { name: "Reorder AmountDue", exact: true })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Reset order", exact: true })).toBeDisabled();
+    const scopedSettings = await openFieldsSettings(page);
+    await expect(scopedSettings.getByRole("button", { name: "Reset order", exact: true })).toBeDisabled();
+    await expect(scopedSettings.getByRole("button", { name: "Reset order", exact: true }))
+        .toHaveAttribute("title", "Show all fields before reordering.");
+    await scopedSettings.getByRole("button", { name: "Close fields settings", exact: true }).click();
     await page.getByRole("button", { name: "AmountDue", exact: true }).press("Alt+ArrowUp");
     expect(await savedPreferences(page)).toBe(preferences);
     await table(page, 1).press("Enter");
@@ -57,12 +62,22 @@ test("UI-41 related fields gather without saved-order changes and Show all resto
     await expect(page.locator(".cu-fields-scroll")).toHaveJSProperty("scrollTop", scroll);
     await expect(array).toHaveJSProperty("scrollLeft", 250);
     await expect(page.getByRole("button", { name: "Expand TaxDetails", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Reset order", exact: true })).toBeEnabled();
+    const settings = await openFieldsSettings(page);
+    await expect(settings.getByRole("button", { name: "Reset order", exact: true })).toBeEnabled();
+    await settings.getByRole("button", { name: "Close fields settings", exact: true }).click();
     expect(await savedPreferences(page)).toBe(preferences);
 });
 
 test("UI-41 selecting and inspecting related values keeps the scope and distinguishes the current value", async ({ page }) => {
     await table(page, 3).press("Enter");
+    const position = page.locator(".cu-field-navigation > span");
+    await expect(position).toHaveText("— / 12 fields");
+    await page.getByRole("button", { name: "Next field", exact: true }).click();
+    await expect(position).toHaveText("1 / 12 fields");
+    await page.getByRole("button", { name: "Next field", exact: true }).click();
+    await expect(position).toHaveText("2 / 12 fields");
+    await page.getByRole("button", { name: "Previous field", exact: true }).click();
+    await expect(position).toHaveText("1 / 12 fields");
     await amount(page, "AmountDue").click();
     await expect(showAll(page)).toBeVisible();
     await expect(roots(page)).toHaveCount(4);
@@ -110,25 +125,24 @@ test("UI-41 source table emphasis uses background frames rather than momentarily
     await expect(group).toHaveCSS("outline-style", "none");
 });
 
-test("UI-41 scoped review intersects existing search and filters without clearing explicit user edits", async ({ page }) => {
+test("UI-41 scoped review intersects existing search without clearing explicit user edits", async ({ page }) => {
     const query = page.getByRole("searchbox", { name: "Search fields or values", exact: true });
     await query.fill("Amount");
-    await page.getByRole("button", { name: /Low confidence/ }).click();
     await table(page, 3).press("Enter");
     await expect(showAll(page)).toBeVisible();
     await expect(query).toHaveValue("Amount");
-    await expect(page.getByRole("button", { name: /Low confidence/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: "Fields settings", exact: true })).toHaveAttribute("title", "Fields settings");
     await query.fill("BalanceForward");
     await expect(roots(page)).toHaveCount(1);
     await showAll(page).click();
     await expect(query).toHaveValue("BalanceForward");
-    await expect(page.getByRole("button", { name: /Low confidence/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: "Fields settings", exact: true })).toHaveAttribute("title", "Fields settings");
     await expect(roots(page).first()).toHaveAttribute("data-field-id", "/contents/0/fields/BalanceForward");
     await query.fill("INV-100");
     await table(page, 3).press("Enter");
     await expect(showAll(page)).toBeVisible();
     await expect(page.getByRole("heading", { name: "No matching fields", exact: true })).toBeVisible();
-    await expect(page.locator(".cu-fields-review-footer")).toContainText("hidden by filters");
+    await expect(page.locator(".cu-fields-status")).toContainText("hidden by filters");
     await expect(query).toHaveValue("INV-100");
 });
 
@@ -207,14 +221,14 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1030, height: 760
         await page.setViewportSize(viewport);
         await table(page, 3).press("Enter");
         for (const columns of [2, 3]) {
-            await page.getByRole("button", { name: `${columns} columns`, exact: true }).click();
+            await setShowConfidence(page, columns === 3);
             await expect(showAll(page)).toBeVisible();
             const geometry = await page.locator(".cu-fields-pane").evaluate(element => ({
-                controls: element.querySelector(".cu-fields-controls")!.getBoundingClientRect().bottom - element.getBoundingClientRect().top,
+                controls: element.querySelector(".cu-fields-review-footer")!.getBoundingClientRect().height,
                 overflow: element.scrollWidth - element.clientWidth,
-                headingOverflow: element.querySelector(".cu-result-heading")!.scrollWidth - element.querySelector(".cu-result-heading")!.clientWidth,
+                headingOverflow: element.querySelector(".cu-table-scope")!.scrollWidth - element.querySelector(".cu-table-scope")!.clientWidth,
             }));
-            expect(geometry.controls).toBeLessThanOrEqual(150);
+            expect(geometry.controls).toBe(44);
             expect(geometry.overflow).toBeLessThanOrEqual(1);
             expect(geometry.headingOverflow).toBeLessThanOrEqual(1);
         }

@@ -1,10 +1,10 @@
-import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, KeyboardEvent, ReactNode, SetStateAction } from "react";
 import type { ViewerFieldOrder } from "../index";
 import { displayValue, fieldDisplayName, fieldLabel, fieldRegions } from "../interaction/interaction";
 import { emphasizeFieldTarget, revealFieldTarget } from "../interaction/fieldNavigation";
-import { appearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup, isLowConfidence,
-    isTableValue, leafFields, matchingLeaves, moveField, orderedFields, visibleFieldIds } from "../interaction/reviewFields";
+import { appearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
+    isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, visibleFieldIds } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
 import { tableFieldIds } from "../interaction/tableFields";
@@ -13,16 +13,16 @@ import type { CuField } from "../model/types";
 import { ResizeHandle } from "./ResizeHandle";
 import { ValueMenuTrigger } from "./ValueActions";
 import { ViewerIcon } from "./ViewerIcon";
+import { FieldsSettings } from "./FieldsSettings";
 
 export interface FieldsReviewState {
     expanded: Set<string>;
     query: string;
-    lowOnly: boolean;
     focused: string | null;
 }
 
 export const initialFieldsReview = (fields: readonly CuField[] = [], order: ViewerFieldOrder = {}): FieldsReviewState =>
-    ({ expanded: initialExpandedFields(fields, order), query: "", lowOnly: false, focused: null });
+    ({ expanded: initialExpandedFields(fields, order), query: "", focused: null });
 
 interface FieldsPaneProps {
     fields: readonly CuField[];
@@ -33,8 +33,6 @@ interface FieldsPaneProps {
     orderReadOnly: boolean;
     review: FieldsReviewState;
     setReview: Dispatch<SetStateAction<FieldsReviewState>>;
-    hideMissing: boolean;
-    onHideMissing: (value: boolean) => void;
     selected: CuField | null;
     hovered: CuField | null;
     workflow: ValueWorkflow;
@@ -55,7 +53,6 @@ interface FieldsPaneProps {
     tableScope: TableFieldLocation | null;
     onShowAllFields?: (() => void) | undefined;
     handledReveal: { current: number | null };
-    orderControlled: boolean;
     preferenceError: boolean;
 }
 
@@ -82,20 +79,27 @@ export function FieldsPane(props: FieldsPaneProps) {
     const [dropTarget, setDropTarget] = useState<{ id: string; placement: "before" | "after" } | null>(null);
     const [size, setSize] = useState({ width: 440, height: 0 });
     const [notice, setNotice] = useState<string | null>(null);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const settingsButton = useRef<HTMLButtonElement>(null);
+    const closeSettings = (restore: boolean): void => {
+        if (restore) settingsButton.current?.focus({ preventScroll: true });
+        setSettingsOpen(false);
+    };
+    useEffect(() => { setSettingsOpen(false); }, [props.workflow.context]);
     const entries = useMemo(() => fieldEntries(fields), [fields]);
     const byId = useMemo(() => new Map(entries.map(entry => [entry.field.id, entry])), [entries]);
     const leaves = useMemo(() => leafFields(fields), [fields]);
     const matches = useMemo(() => {
-        const found = matchingLeaves(fields, review.query, review.lowOnly, props.hideMissing, settings.threshold, scopeIds ?? undefined);
+        const found = matchingLeaves(fields, review.query, false, false, settings.threshold, scopeIds ?? undefined);
         return scopeIds ? new Set([...found].filter(id => scopeIds.has(id))) : found;
-    }, [fields, review.query, review.lowOnly, props.hideMissing, settings.threshold, scopeIds]);
+    }, [fields, review.query, settings.threshold, scopeIds]);
+    const navigation = useMemo(() => orderedLeafFields(fields, props.order, matches), [fields, props.order, matches]);
+    const currentIndex = navigation.findIndex(field => field.id === props.selected?.id);
     const visible = useMemo(() => visibleFieldIds(fields, matches), [fields, matches]);
-    const filtering = Boolean(review.query.trim() || review.lowOnly);
-    const missing = leaves.filter(field => !field.hasValue).length;
-    const lowCount = leaves.filter(field => isLowConfidence(field, settings.threshold)).length;
+    const filtering = Boolean(review.query.trim());
     const reorderReason = props.orderReadOnly ? "Field order is read-only. Check the configuration; controlled order requires onFieldOrderChange." :
         props.tableScope ? "Show all fields before reordering." :
-            filtering || (props.hideMissing && missing > 0) ? "Clear search and filters to reorder fields." : null;
+            filtering ? "Clear search and filters to reorder fields." : null;
     const columnWidth = size.width * (settings.columns === 3 ? 0.83 : 1);
     const selectedGroup = props.selected && isFieldGroup(props.selected) ? props.selected : null;
     const hiddenGroupCount = props.tableLocation ? props.tableLocation.match.fields.filter(field => !visible.has(field.id)).length :
@@ -208,18 +212,8 @@ export function FieldsPane(props: FieldsPaneProps) {
         }
     };
     const chooseNext = (direction: number): void => {
-        const navigation: CuField[] = [];
-        const visit = (siblings: readonly CuField[], parent: string, inArray: boolean): void => {
-            for (const field of inArray ? siblings : orderedFields(siblings, parent, props.order)) {
-                const entry = byId.get(field.id)!;
-                if (field.children.length) visit(field.children, entry.path, inArray || field.type === "array");
-                else if (matches.has(field.id)) navigation.push(field);
-            }
-        };
-        visit(fields, "$root", false);
-        const index = navigation.findIndex(field => field.id === props.selected?.id);
-        const field = navigation[index < 0 ? direction > 0 ? 0 : navigation.length - 1 :
-            (index + direction + navigation.length) % navigation.length];
+        const field = navigation[currentIndex < 0 ? direction > 0 ? 0 : navigation.length - 1 :
+            (currentIndex + direction + navigation.length) % navigation.length];
         if (!field) return;
         pendingFocus.current = { id: field.id, force: true };
         props.setReview(current => ({ ...current, focused: field.id, expanded: new Set([...current.expanded,
@@ -398,32 +392,14 @@ export function FieldsPane(props: FieldsPaneProps) {
     };
     const rows = renderRows(fields, 0, "$root", false);
     return <>
-        <div className="cu-fields-controls">
-            <div className="cu-result-heading">{props.tableScope ? <div className="cu-table-scope" role="status">
+        {props.tableScope && <div className="cu-table-scope" role="status">
                 <span title="Only related fields are shown. Existing search and filters still apply.">{props.tableScope.table.name} · Related fields only</span>
                 <button type="button" className="cu-text-button" aria-label="Show all fields" disabled={!props.onShowAllFields}
                     title={props.onShowAllFields ? undefined : "Scope exit is unavailable in this host."} onClick={() => {
                     props.onShowAllFields?.();
                     viewport.current?.closest(".cu-result-panel")?.querySelector<HTMLInputElement>('input[type="search"]')?.focus({ preventScroll: true });
                 }}>Show all</button>
-            </div> : <span>{leaves.length} fields / {missing} not returned</span>}
-                <div className="cu-layout-switch" aria-label="Fields columns">{([2, 3] as const).map(columns =>
-                    <button key={columns} type="button" aria-pressed={settings.columns === columns}
-                        onClick={() => props.onSettings({ ...settings, columns })}>{columns} columns</button>)}</div></div>
-            <label className="cu-search-box"><ViewerIcon name="search" /><input type="search" aria-label="Search fields or values"
-                placeholder="Search fields or values..." value={review.query}
-                onChange={event => props.setReview(current => ({ ...current, query: event.target.value }))} /></label>
-            <div className="cu-review-toolbar">
-                <button type="button" className="cu-filter-button" aria-pressed={review.lowOnly}
-                    onClick={() => props.setReview(current => ({ ...current, lowOnly: !current.lowOnly }))}>Low confidence <span>{lowCount}</span></button>
-                <label className="cu-missing-toggle"><input type="checkbox" role="switch" aria-label="Hide missing fields"
-                    checked={props.hideMissing} aria-checked={props.hideMissing} onChange={event => props.onHideMissing(event.target.checked)} />Hide missing</label>
-                <div className="cu-field-navigation"><span>{matches.size} / {leaves.length} fields</span>
-                    <button type="button" className="cu-icon-button" aria-label="Previous field" disabled={!matches.size} onClick={() => chooseNext(-1)}><ViewerIcon name="left" /></button>
-                    <button type="button" className="cu-icon-button" aria-label="Next field" disabled={!matches.size} onClick={() => chooseNext(1)}><ViewerIcon name="right" /></button>
-                </div>
-            </div>
-        </div>
+        </div>}
         <div className="cu-fields-scroll" ref={viewport}>
             <table className="cu-fields-table" role="treegrid" aria-label="Extracted fields">
                 <colgroup><col style={{ width: `${settings.fieldRatio * (settings.columns === 3 ? 83 : 100)}%` }} /><col />
@@ -439,17 +415,48 @@ export function FieldsPane(props: FieldsPaneProps) {
                 <p>This content has no extracted fields. Original table data remains available in Result.</p></div> :
             matches.size === 0 && <div className="cu-state"><h2>No matching fields</h2><p>No values match the current search and filters.</p>
                 <button type="button" onClick={() => {
-                    props.setReview(current => ({ ...current, query: "", lowOnly: false })); props.onHideMissing(false);
+                    props.setReview(current => ({ ...current, query: "" }));
                 }}>Clear filters</button></div>}
         </div>
-        <footer className="cu-fields-review-footer"><div><span role={tableMessage ? "status" : undefined}>{props.preferenceError ?
-            "Preferences were not saved. See the warning above." : tableMessage ??
-                (props.orderControlled ? "Field order is managed by the host." : "Preferences stay in this browser.")}</span>
-            <span>{hiddenGroupCount ? `${hiddenGroupCount} selected fields are hidden by filters. ` : ""}
-                {notice ?? reorderReason ?? "Up / Down: browse · Enter: locate · F2: details · Alt+Up/Down: reorder"}</span></div>
-            <button type="button" className="cu-text-button" disabled={props.orderReadOnly || Boolean(props.tableScope)}
-                title={props.tableScope ? "Show all fields before reordering." : undefined}
-                onClick={() => props.onOrder({})}><ViewerIcon name="reset" />Reset order</button>
+        {(tableMessage || hiddenGroupCount > 0 || notice || props.preferenceError) && <div className="cu-fields-status"
+            role="status">
+            {props.preferenceError ? "Preferences were not saved. See the warning above." : tableMessage}
+            {hiddenGroupCount > 0 && <span>{hiddenGroupCount} selected fields are hidden by filters.</span>}
+            {notice && <span>{notice}</span>}
+        </div>}
+        <footer className="cu-fields-review-footer" role="group" aria-label="Fields toolbar" onKeyDown={event => {
+            if (event.key === "Escape" && settingsOpen) {
+                event.preventDefault(); event.stopPropagation(); closeSettings(true);
+            }
+        }}>
+            <label className="cu-search-box" title="Search field names or values"><ViewerIcon name="search" />
+                <input type="search" aria-label="Search fields or values" placeholder="Search field names or values..." value={review.query}
+                    onChange={event => props.setReview(current => ({ ...current, query: event.target.value }))} /></label>
+            <div className="cu-field-navigation" role="group" aria-label="Field navigation">
+                <button type="button" className="cu-icon-button" aria-label="Previous field" disabled={!navigation.length}
+                    title={navigation.length ? "Previous field" : "No matching fields"}
+                    onClick={() => chooseNext(-1)}><ViewerIcon name="left" /></button>
+                <span aria-label="Current field position" aria-live="polite"
+                    title={`${navigation.length} matching fields out of ${leaves.length} total.${
+                        currentIndex < 0 ? " No single field selected in this navigation range." : ""}`}>
+                    {currentIndex < 0 ? "—" : currentIndex + 1} / {navigation.length} fields
+                </span>
+                <button type="button" className="cu-icon-button" aria-label="Next field" disabled={!navigation.length}
+                    title={navigation.length ? "Next field" : "No matching fields"}
+                    onClick={() => chooseNext(1)}><ViewerIcon name="right" /></button>
+            </div>
+            <div className="cu-fields-toolbar-actions">
+                <button type="button" className="cu-icon-button cu-fields-settings-trigger"
+                    ref={settingsButton} aria-label="Fields settings" aria-haspopup="dialog" aria-expanded={settingsOpen}
+                    aria-controls={settingsOpen ? `${id}-settings` : undefined}
+                    title="Fields settings"
+                    onClick={() => setSettingsOpen(current => !current)}><ViewerIcon name="settings" /></button>
+            </div>
+            {settingsOpen && settingsButton.current && <FieldsSettings id={`${id}-settings`} anchor={settingsButton.current}
+                settings={settings} onSettings={props.onSettings}
+                onResetOrder={() => props.onOrder({})}
+                resetOrderDisabledReason={props.orderReadOnly || props.tableScope ? reorderReason : null}
+                onClose={closeSettings} />}
         </footer>
     </>;
 }

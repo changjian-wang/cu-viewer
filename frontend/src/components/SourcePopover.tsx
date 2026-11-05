@@ -76,7 +76,7 @@ export function SourcePopover(props: SourcePopoverProps) {
             </strong>}
             <dl id={`${props.id}-content`} className="cu-flyover-body">
                 <div className="cu-flyover-value"><dt className="cu-visually-hidden">{paragraph ? "Content" : "Value"}</dt>
-                    <dd style={paragraph ? { color: style.color } : undefined}>{displayValue(props.field)}</dd></div>
+                    <dd>{displayValue(props.field)}</dd></div>
                 {!paragraph && <div className="cu-flyover-confidence" title={confidenceDescription(props.field, settings.threshold)}
                     style={{ color: style.color, background: style.background }}>
                     <dt className="cu-visually-hidden">Confidence</dt><dd>{props.field.confidence !== undefined ?

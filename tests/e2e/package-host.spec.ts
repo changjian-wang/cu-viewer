@@ -170,7 +170,7 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
         .getByRole("button", { name: "Locate Table 3 in results", exact: true });
     await expect(page.getByTestId("table-markers")).toHaveCount(0);
     await tableTarget.press("Enter");
-    await expect(pane.locator(".cu-fields-review-footer")).toContainText("related fields located in Fields");
+    await expect(pane.locator(".cu-fields-status")).toContainText("related fields located in Fields");
     await expect(pane.locator('[data-field-id="/contents/0/fields/AmountDue"]')).toHaveClass(/is-selected/);
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.locator('[role="tab"][aria-selected="true"]')).toHaveText("Fields");
@@ -215,8 +215,9 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
     await page.keyboard.press("Enter");
     await ready(page);
     await expect(number).toHaveValue("4");
-    await expect(nextPage).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Previous page", exact: true })).toBeFocused();
+    await expect(nextPage).toBeEnabled();
+    await expect(nextPage).toHaveAttribute("title", "Next page (first page)");
+    await expect(nextPage).toBeFocused();
 
     await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
     await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).hover();

@@ -2,7 +2,7 @@
 import { createRef, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { defaultReviewSettings, defaultSourceCategories } from "../interaction/reviewFields";
+import { defaultReviewSettings } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { LoadedSource } from "../source/source";
 import { SourceToolbar } from "./SourceToolbar";
@@ -21,11 +21,11 @@ function toolbarProps(settings: ReviewSettings = defaultReviewSettings): Paramet
 function setup(settings: ReviewSettings = defaultReviewSettings, ready = false) {
     const props = toolbarProps(settings), outerKeyDown = vi.fn(), onFit = vi.fn(), onRotate = vi.fn();
     const view = render(<div className="cu-viewer" onKeyDown={outerKeyDown}>
-        <section className="cu-source-pane"><SourceToolbar {...props} />
+        <section className="cu-source-pane"><SourceToolbar {...props}>
             <SourceDocumentControls source={props.source} pageNumber={1} zoom={1} minZoom={0.25} maxZoom={3}
                 ready={ready} fit="page" controlsRef={createRef<HTMLDivElement>()}
                 onPage={vi.fn()} onZoom={vi.fn()} onFit={onFit} onRotate={onRotate} onControlFocus={props.onControlFocus} />
-        </section>
+        </SourceToolbar></section>
         <button type="button">Outside</button>
     </div>);
     return { ...view, props, outerKeyDown, onFit, onRotate };
@@ -80,6 +80,21 @@ describe("source file information", () => {
 });
 
 describe("direct document controls without overflow", () => {
+    it("composes one bottom toolbar without persistent legend chips or duplicate status groups", () => {
+        const { container, props } = setup();
+        const toolbar = screen.getByRole("group", { name: "Source document toolbar" });
+        expect(toolbar.tagName).toBe("FOOTER");
+        expect(toolbar).toBe(props.toolbarRef.current);
+        expect(container.querySelector(".cu-source-pane > header")).toBeNull();
+        expect(container.querySelectorAll(".cu-source-toolbar")).toHaveLength(1);
+        expect(within(toolbar).getByRole("group", { name: "Document navigation and zoom" })).toBeTruthy();
+        expect(within(toolbar).getAllByRole("group", { name: "Source selection and location" })).toHaveLength(1);
+        expect(screen.queryByRole("list", { name: "Highlighting legend summary" })).toBeNull();
+        expect(container.querySelector(".cu-legend-inline")).toBeNull();
+        openLegend();
+        expect(screen.getByRole("dialog", { name: "Legend" }).querySelectorAll(".cu-legend-swatch")).toHaveLength(4);
+    });
+
     it.each([false, true])("omits More and layout reset while source readiness is %s", ready => {
         setup(defaultReviewSettings, ready);
         expect(screen.queryByRole("button", { name: "More document actions" })).toBeNull();
@@ -103,7 +118,7 @@ describe("direct document controls without overflow", () => {
 });
 
 const palette = ["rgb(232, 245, 233)", "rgb(232, 241, 255)", "rgb(252, 232, 230)",
-    "rgb(255, 232, 236)", "rgb(241, 243, 245)"];
+    "rgb(255, 232, 236)"];
 
 function openLegend() {
     const trigger = screen.getByRole("button", { name: "Highlighting legend" });
@@ -112,22 +127,72 @@ function openLegend() {
 }
 
 describe("responsive source-toolbar legend", () => {
+    it("integrates the three accessible switches with their color descriptions and changes one flag at a time", () => {
+        const { props } = setup({ ...defaultReviewSettings, threshold: 0.699 });
+        const { panel } = openLegend();
+        const entries = within(panel).getByRole("list", { name: "Highlighting legend entries" });
+        expect(within(entries).getAllByRole("switch")).toHaveLength(3);
+        expect(within(panel).queryByText("Options")).toBeNull();
+        expect(panel.querySelector(".cu-highlight-options")).toBeNull();
+        expect(panel.querySelector('[data-setting="showFields"] [data-legend-category="field"]')).toBeTruthy();
+        expect(panel.querySelector('[data-setting="showTables"] [data-legend-category="table"]')).toBeTruthy();
+        expect(panel.querySelectorAll('[data-setting="highlightLow"] .cu-legend-swatch')).toHaveLength(2);
+        const lowGroup = panel.querySelector<HTMLElement>(".cu-legend-low-group");
+        if (!lowGroup) throw new Error("The shared low-confidence group is missing.");
+        expect(within(lowGroup).getByRole("heading", { name: "Low confidence Fields & tables" })).toBeTruthy();
+        expect(within(lowGroup).getAllByRole("switch")).toHaveLength(1);
+        expect(lowGroup.querySelectorAll(".cu-legend-item")).toHaveLength(2);
+        for (const [label, key] of [
+            ["Show field highlights", "showFields"], ["Show table highlights", "showTables"], ["Show low confidence highlight", "highlightLow"],
+        ] as const) {
+            fireEvent.click(within(entries).getByRole("switch", { name: label }));
+            expect(props.onSettings).toHaveBeenLastCalledWith({ ...props.settings, [key]: false });
+        }
+        expect(screen.getByRole("dialog", { name: "Legend" })).toBe(panel);
+        fireEvent.click(screen.getByRole("button", { name: "Source settings" }));
+        const settings = screen.getByRole("dialog", { name: "Source settings" });
+        expect(within(settings).queryAllByRole("switch")).toHaveLength(0);
+        expect(within(settings).getByRole<HTMLInputElement>("spinbutton").value).toBe("0.699");
+    });
+
+    it("keeps switch focus and passive colors while toggling source visibility", () => {
+        const props = toolbarProps();
+        function Controlled() {
+            const [settings, setSettings] = useState<ReviewSettings>({ ...defaultReviewSettings });
+            return <SourceToolbar {...props} settings={settings} onSettings={setSettings} />;
+        }
+        render(<Controlled />);
+        const { panel, trigger } = openLegend();
+        const fields = within(panel).getByRole("switch", { name: "Show field highlights" });
+        fields.focus();
+        fireEvent.click(fields);
+        expect(document.activeElement).toBe(fields);
+        expect(within(panel).getByRole<HTMLInputElement>("switch", { name: "Show field highlights" }).checked).toBe(false);
+        expect([...panel.querySelectorAll<HTMLElement>(".cu-legend-swatch")].map(swatch => swatch.style.backgroundColor)).toEqual(palette);
+        fireEvent.click(fields);
+        expect(within(panel).getByRole<HTMLInputElement>("switch", { name: "Show field highlights" }).checked).toBe(true);
+        fireEvent.keyDown(fields, { key: "Escape" });
+        expect(screen.queryByRole("dialog")).toBeNull();
+        expect(document.activeElement).toBe(trigger);
+    });
+
     it("provides complete semantic labels independently of a loaded source", () => {
         const { props } = setup();
         const { panel, trigger } = openLegend();
         expect(trigger.getAttribute("aria-expanded")).toBe("true");
         expect(trigger.getAttribute("aria-controls")).toBe(panel.id);
-        expect(within(panel).getAllByRole("listitem")).toHaveLength(5);
+        expect(panel.querySelectorAll(".cu-legend-item")).toHaveLength(4);
         for (const label of ["Field value", "Table value", "Low-confidence field",
-            "Low-confidence table value", "Confidence unavailable"]) expect(within(panel).getByText(label)).toBeTruthy();
+            "Low-confidence table value"]) expect(within(panel).getByText(label)).toBeTruthy();
         expect(within(panel).getAllByText("At or above threshold")).toHaveLength(2);
         expect(within(panel).getAllByText("Below threshold")).toHaveLength(2);
-        expect(within(panel).getByText("No score was supplied")).toBeTruthy();
+        expect(within(panel).queryByText("Confidence unavailable")).toBeNull();
+        expect(within(panel).queryByText("No score was supplied")).toBeNull();
         expect(document.activeElement).toBe(within(panel).getByRole("button", { name: "Close legend" }));
         expect(props.onSettings).not.toHaveBeenCalled();
     });
 
-    it.each([0, 0.341, 1])("retains all five legend colors at threshold %s with visibility flags off", threshold => {
+    it.each([0, 0.341, 1])("retains all four legend colors at threshold %s with visibility flags off", threshold => {
         const { props } = setup({ ...defaultReviewSettings, threshold, showFields: false, showTables: false, highlightLow: false });
         const { panel } = openLegend();
         const colors = [...panel.querySelectorAll<HTMLElement>(".cu-legend-swatch")].map(swatch => swatch.style.backgroundColor);
@@ -137,51 +202,34 @@ describe("responsive source-toolbar legend", () => {
         expect(props.onSettings).not.toHaveBeenCalled();
     });
 
-    it("toggles one category at a time in the complete legend without changing masters or losing focus", () => {
-        const props = toolbarProps(), onSettings = vi.fn();
-        function Controlled() {
-            const [settings, setSettings] = useState<ReviewSettings>({ ...defaultReviewSettings });
-            return <div className="cu-viewer"><section className="cu-source-pane"><SourceToolbar {...props} settings={settings}
-                onSettings={next => { onSettings(next); setSettings(next); }} /></section></div>;
-        }
-        render(<Controlled />);
+    it("keeps all four color descriptions inert, unfocusable and outside switch labels", () => {
+        const { props } = setup();
         const { panel } = openLegend();
-        for (const [category, label] of [["field", "Field value"], ["table", "Table value"],
-            ["lowField", "Low-confidence field"], ["lowTable", "Low-confidence table value"],
-            ["unavailable", "Confidence unavailable"]] as const) {
-            const button = within(panel).getByRole("button", { name: label });
-            button.focus();
-            fireEvent.click(button);
-            expect(button.getAttribute("aria-pressed")).toBe("false");
-            expect(button.querySelector<HTMLElement>(".cu-legend-swatch")?.style.backgroundColor).toBe("transparent");
-            expect(onSettings).toHaveBeenLastCalledWith({
-                ...defaultReviewSettings, sourceCategories: { ...defaultSourceCategories, [category]: false },
-            });
-            expect(document.activeElement).toBe(button);
-            expect(within(panel).getAllByRole("button", { pressed: false })).toHaveLength(1);
-            fireEvent.click(button);
-            expect(button.getAttribute("aria-pressed")).toBe("true");
-            expect(onSettings).toHaveBeenLastCalledWith(defaultReviewSettings);
+        const focused = document.activeElement;
+        for (const entry of panel.querySelectorAll<HTMLElement>(".cu-legend-item")) {
+            expect(entry.querySelector("button, input, a, [tabindex], [aria-pressed]")).toBeNull();
+            expect(entry.closest("button, label")).toBeNull();
+            expect(entry.querySelector(".cu-legend-swatch")?.getAttribute("aria-hidden")).toBe("true");
+            fireEvent.click(entry);
+            fireEvent.click(entry.querySelector(".cu-legend-swatch")!);
+            expect(document.activeElement).toBe(focused);
         }
+        expect(within(panel).getAllByRole("button")).toHaveLength(1);
+        expect(within(panel).getAllByRole("switch")).toHaveLength(3);
+        expect(props.onSettings).not.toHaveBeenCalled();
+        fireEvent.blur(within(panel).getByRole("button", { name: "Close legend" }), { relatedTarget: null });
+        expect(screen.getByRole("dialog", { name: "Legend" })).toBe(panel);
     });
 
-    it.each([
-        ["field", "Field value", { showFields: false }, "Show field highlights"],
-        ["lowField", "Low-confidence field", { showFields: false }, "Show field highlights"],
-        ["table", "Table value", { showTables: false }, "Show table highlights"],
-        ["lowTable", "Low-confidence table value", { showTables: false }, "Show table highlights"],
-        ["lowField", "Low-confidence field", { highlightLow: false }, "Show low confidence highlight"],
-        ["lowTable", "Low-confidence table value", { highlightLow: false }, "Show low confidence highlight"],
-        ["unavailable", "Confidence unavailable", { showFields: false, showTables: false }, "field or table"],
-    ] as const)("keeps %s disabled under its master with an explicit reason", (_category, label, flags, reason) => {
-        const { props } = setup({ ...defaultReviewSettings, ...flags });
+    it("leaves all three switches available for recovery when every highlight option is off", () => {
+        const { props } = setup({ ...defaultReviewSettings, showFields: false, showTables: false, highlightLow: false });
         const { panel } = openLegend();
-        const button = within(panel).getByRole<HTMLButtonElement>("button", { name: label });
-        expect(button.disabled).toBe(true);
-        expect(button.getAttribute("aria-pressed")).toBe("true");
-        expect(button.textContent).toContain(reason);
-        fireEvent.click(button);
-        expect(props.onSettings).not.toHaveBeenCalled();
+        for (const control of within(panel).getAllByRole<HTMLInputElement>("switch")) {
+            expect(control.checked).toBe(false);
+            expect(control.disabled).toBe(false);
+        }
+        fireEvent.click(within(panel).getByRole("switch", { name: "Show field highlights" }));
+        expect(props.onSettings).toHaveBeenLastCalledWith({ ...props.settings, showFields: true });
     });
 
     it.each(["Escape", "close button", "trigger Escape"])("closes via %s and restores only Legend focus", method => {
@@ -202,17 +250,20 @@ describe("responsive source-toolbar legend", () => {
     it("keeps Legend and settings mutually exclusive without a document overflow menu", () => {
         setup();
         openLegend();
-        const settings = screen.getByRole("button", { name: "Highlighting settings" });
+        const settings = screen.getByRole("button", { name: "Source settings" });
+        expect(settings.getAttribute("title")).toBe("Source settings");
         fireEvent.pointerDown(settings); fireEvent.click(settings);
-        const panel = screen.getByRole("dialog", { name: "Highlighting" });
+        const panel = screen.getByRole("dialog", { name: "Source settings" });
+        expect(within(panel).getByRole("heading", { name: "Settings" })).toBeTruthy();
         expect(screen.queryByRole("dialog", { name: "Legend" })).toBeNull();
-        expect(within(panel).getAllByRole("switch")).toHaveLength(3);
+        expect(within(panel).queryAllByRole("switch")).toHaveLength(0);
         expect(within(panel).queryByText("Legend")).toBeNull();
         expect(document.activeElement).toBe(within(panel).getByRole("spinbutton"));
         const trigger = screen.getByRole("button", { name: "Highlighting legend" });
         fireEvent.pointerDown(trigger); fireEvent.click(trigger);
-        expect(screen.queryByRole("dialog", { name: "Highlighting" })).toBeNull();
+        expect(screen.queryByRole("dialog", { name: "Source settings" })).toBeNull();
         expect(screen.getByRole("dialog", { name: "Legend" })).toBeTruthy();
+        expect(within(screen.getByRole("dialog", { name: "Legend" })).getAllByRole("switch")).toHaveLength(3);
         expect(screen.queryByRole("button", { name: "More document actions" })).toBeNull();
     });
 
@@ -225,7 +276,7 @@ describe("responsive source-toolbar legend", () => {
         expect(document.activeElement).toBe(outside);
         fireEvent.click(trigger);
         const close = screen.getByRole("button", { name: "Close legend" });
-        const settings = screen.getByRole("button", { name: "Highlighting settings" });
+        const settings = screen.getByRole("button", { name: "Source settings" });
         fireEvent.blur(close, { relatedTarget: settings }); settings.focus();
         expect(screen.queryByRole("dialog")).toBeNull();
         expect(document.activeElement).toBe(settings);

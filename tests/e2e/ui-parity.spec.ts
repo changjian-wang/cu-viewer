@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { fieldRow, loadReviewFixture, openValueMenu, recipientId, reviewFixture } from "./uiRedesignFixtures";
-import { locateGroup, ready } from "./viewerAssertions";
+import { locateGroup, ready, setShowConfidence } from "./viewerAssertions";
 import { standardFontPdf } from "./pdfFixtures";
 
 const arrayId = "/contents/0/fields/LineItems";
@@ -13,34 +13,34 @@ test.use({ reducedMotion: "reduce", deviceScaleFactor: 1 });
 test("BUG-006 settings and legend share the requested highlight terminology", async ({ page }) => {
     await page.goto("/");
     await ready(page);
-    const settingsTrigger = page.getByRole("button", { name: "Highlighting settings", exact: true });
+    const settingsTrigger = page.getByRole("button", { name: "Source settings", exact: true });
     await settingsTrigger.click();
-    const settings = page.getByRole("dialog", { name: "Highlighting", exact: true });
+    const settings = page.getByRole("dialog", { name: "Source settings", exact: true });
     const threshold = settings.getByRole("spinbutton", { name: "Confidence threshold", exact: true });
     const value = await threshold.inputValue();
     await expect(settings.locator(".cu-setting-hint")).toHaveText(`Values below ${value} receive low-confidence highlight.`);
     await expect(threshold).toHaveAccessibleDescription(/receive low-confidence highlight\./);
-    await expect(settings.getByRole("switch")).toHaveCount(3);
-    const low = settings.getByRole("switch", { name: "Show low confidence highlight", exact: true });
+    await expect(settings.getByRole("switch")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    const legendTrigger = page.getByRole("button", { name: "Highlighting legend", exact: true });
+    await legendTrigger.click();
+    const legend = page.getByRole("dialog", { name: "Legend", exact: true });
+    await expect(legend.getByRole("switch")).toHaveCount(3);
+    const low = legend.getByRole("switch", { name: "Show low confidence highlight", exact: true });
     await expect(settings.getByRole("switch", { name: "Highlight low confidences", exact: true })).toHaveCount(0);
     await expect(low).toBeChecked();
     await low.uncheck();
-    await expect(threshold).toHaveValue(value);
-    await expect(settings.getByRole("switch", { name: "Show field highlights", exact: true })).toBeChecked();
-    await expect(settings.getByRole("switch", { name: "Show table highlights", exact: true })).toBeChecked();
-    await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
-    const legend = page.getByRole("dialog", { name: "Legend", exact: true });
+    await expect(legend.getByRole("switch", { name: "Show field highlights", exact: true })).toBeChecked();
+    await expect(legend.getByRole("switch", { name: "Show table highlights", exact: true })).toBeChecked();
     await expect(legend.getByText("All scored values while low-confidence highlight is off", { exact: true })).toHaveCount(2);
-    for (const name of ["Low-confidence field", "Low-confidence table value"]) {
-        const category = legend.getByRole("button", { name, exact: true });
-        await expect(category).toBeDisabled();
-        await expect(category).toHaveAccessibleDescription(/Enable Show low confidence highlight in settings\./);
-    }
+    for (const name of ["Low-confidence field", "Low-confidence table value"]) await expect(legend.getByText(name, { exact: true })).toBeVisible();
+    await expect(legend.getByRole("button")).toHaveCount(1);
+    await expect(legend.getByText("Options", { exact: true })).toHaveCount(0);
     await expect(legend).not.toContainText("emphasis");
-    await page.keyboard.press("Escape");
-    await settingsTrigger.click();
     await low.check();
+    await page.keyboard.press("Escape");
+    await expect(legendTrigger).toBeFocused();
+    await settingsTrigger.click();
     await expect(threshold).toHaveValue(value);
     await page.keyboard.press("Escape");
     await expect(settingsTrigger).toBeFocused();
@@ -103,7 +103,7 @@ for (const sample of ["PDF", "Receipt PNG"]) {
             await ready(page);
         }
         const splitter = page.getByRole("separator", { name: "Source and results width", exact: true });
-        for (const width of [570, 740, 1040]) {
+        for (const width of [570, 740, 900, 901, 1040]) {
             const pane = await page.locator(".cu-source-pane").boundingBox(), handle = await splitter.boundingBox();
             if (!pane || !handle) throw new Error("The Source resize handle is unavailable.");
             await page.mouse.move(handle.x + handle.width / 2, handle.y + 30);
@@ -121,32 +121,51 @@ for (const sample of ["PDF", "Receipt PNG"]) {
                     const box = node.getBoundingClientRect();
                     return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, height: box.height };
                 };
-                const bar = element.querySelector(".cu-source-view-toolbar")!;
+                const bar = element.querySelector(".cu-source-toolbar")!;
                 return { left: bounds.left, right: bounds.right, bottom: bounds.bottom, width: bounds.width, height: bounds.height,
-                    header: rect(".cu-source-toolbar"),
-                    bar: rect(".cu-source-view-toolbar"), navigation: rect(".cu-page-controls"),
+                    bar: rect(".cu-source-toolbar"), navigation: rect(".cu-page-controls"),
                     zoom: rect(".cu-view-controls"), viewport: rect(".cu-document-container"),
-                    status: rect(".cu-document-status"), overflow: bar.scrollWidth - bar.clientWidth };
+                    identity: rect(".cu-source-identity"), utilities: rect(".cu-source-utilities"),
+                    overflow: bar.scrollWidth - bar.clientWidth,
+                    controls: [...bar.querySelectorAll("button, input, select")].map(control => {
+                        const box = control.getBoundingClientRect();
+                        const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+                        return { width: box.width, height: box.height,
+                            inside: box.left >= bar.getBoundingClientRect().left && box.right <= bar.getBoundingClientRect().right &&
+                                box.top >= bar.getBoundingClientRect().top && box.bottom <= bar.getBoundingClientRect().bottom,
+                            hit: hit === control || control.contains(hit) };
+                    }) };
             });
             expect(Math.abs(geometry.width - width)).toBeLessThanOrEqual(1);
             expect(geometry.bar.height).toBe(44);
             expect(Math.abs((geometry.navigation.left + geometry.navigation.right) / 2 -
                 (geometry.left + geometry.right) / 2)).toBeLessThanOrEqual(1);
             expect(geometry.zoom.left - geometry.navigation.right).toBeGreaterThanOrEqual(16);
-            expect(Math.abs(geometry.right - geometry.zoom.right - (width <= 740 ? 10 : 16))).toBeLessThanOrEqual(1);
+            expect(Math.abs(geometry.right - geometry.utilities.right - (width <= 900 ? 10 : 16))).toBeLessThanOrEqual(1);
             expect(geometry.bar.top - geometry.viewport.bottom).toBeGreaterThanOrEqual(0);
             expect(Math.abs(geometry.bar.bottom - geometry.bottom)).toBeLessThanOrEqual(1);
-            expect(Math.abs(geometry.viewport.height - (geometry.height - geometry.header.height - geometry.bar.height))).toBeLessThanOrEqual(1);
-            expect(geometry.status.left).toBeGreaterThanOrEqual(geometry.left);
-            expect(geometry.status.right).toBeLessThanOrEqual(geometry.navigation.left + 1);
-            expect(geometry.status.top).toBeGreaterThanOrEqual(geometry.bar.top);
-            expect(geometry.status.bottom).toBeLessThanOrEqual(geometry.bar.bottom);
+            expect(Math.abs(geometry.viewport.top - geometry.bar.top + geometry.viewport.height)).toBeLessThanOrEqual(1);
+            expect(Math.abs(geometry.viewport.height - (geometry.height - geometry.bar.height))).toBeLessThanOrEqual(1);
+            expect(geometry.identity.left).toBeGreaterThanOrEqual(geometry.left);
+            expect(geometry.identity.right).toBeLessThanOrEqual(geometry.navigation.left + 1);
+            expect(geometry.identity.top).toBeGreaterThanOrEqual(geometry.bar.top);
+            expect(geometry.identity.bottom).toBeLessThanOrEqual(geometry.bar.bottom);
             expect(geometry.overflow).toBeLessThanOrEqual(1);
-            await expect(page.locator(".cu-source-toolbar .cu-page-controls, .cu-source-toolbar .cu-view-controls")).toHaveCount(0);
+            for (const control of geometry.controls) {
+                expect(control.width).toBeGreaterThanOrEqual(24);
+                expect(control.height).toBeGreaterThanOrEqual(24);
+                expect(control.inside).toBe(true);
+                expect(control.hit).toBe(true);
+            }
+            await expect(page.locator(".cu-source-toolbar")).toHaveCount(1);
+            await expect(page.locator(".cu-source-pane > header")).toHaveCount(0);
+            await expect(page.locator(".cu-source-toolbar .cu-page-controls, .cu-source-toolbar .cu-view-controls")).toHaveCount(2);
             await expect(page.getByRole("button", { name: "Clear selection", exact: true })).toHaveCount(0);
             await expect(page.locator(".cu-document-status button")).toHaveCount(0);
             if (sample === "PDF") {
-                await page.getByRole("button", { name: "Next page", exact: true }).click();
+                const next = page.getByRole("button", { name: "Next page", exact: true });
+                const navigation = await next.isEnabled() ? next : page.getByRole("button", { name: "Previous page", exact: true });
+                await navigation.click();
                 await ready(page);
             } else await expect(page.getByText("Image \u00b7 single page", { exact: true })).toBeVisible();
             const input = page.getByRole("textbox", { name: "Page number", exact: true });
@@ -185,7 +204,9 @@ for (const width of [1030, 1800]) {
         const initial = await viewport.boundingBox();
         const initialZoom = await page.getByLabel("Zoom percentage").textContent();
         if (!initial || !initialZoom) throw new Error("The fitted source viewport is unavailable.");
-        const status = page.getByRole("group", { name: "Source selection and location", exact: true });
+        const status = page.locator(".cu-document-status");
+        await expect(status).toHaveAttribute("role", "group");
+        await expect(status).toHaveAttribute("aria-label", "Source selection and location");
         const stable = async (): Promise<void> => {
             await ready(page);
             await expect(status.getByRole("button", { name: "Clear selection", exact: true })).toHaveCount(0);
@@ -305,12 +326,12 @@ for (const pageError of [false, true]) {
             await pageInput.press("Enter");
             await expect(page.getByRole("alert")).toHaveText("Enter an existing page number.");
         }
-        for (const [trigger, name] of [["Highlighting settings", "Highlighting"], ["Highlighting legend", "Legend"]] as const) {
+        for (const [trigger, name] of [["Source settings", "Source settings"], ["Highlighting legend", "Legend"]] as const) {
             await page.getByRole("button", { name: trigger, exact: true }).click();
             const panel = page.getByRole("dialog", { name, exact: true });
-            if (name === "Highlighting") await panel.getByRole("spinbutton", { name: "Confidence threshold", exact: true }).fill("");
+            if (name === "Source settings") await panel.getByRole("spinbutton", { name: "Confidence threshold", exact: true }).fill("");
             await expect.poll(async () => {
-                const popup = await panel.boundingBox(), controls = await page.locator(".cu-source-view-toolbar").boundingBox();
+                const popup = await panel.boundingBox(), controls = await page.locator(".cu-source-toolbar").boundingBox();
                 if (!popup || !controls) throw new Error("Source panel bounds are unavailable.");
                 return controls.y - popup.y - popup.height;
             }).toBeGreaterThanOrEqual(7);
@@ -422,7 +443,7 @@ for (const [sample, name, details] of [
                 .getAttribute("aria-describedby"))?.split(/\s+/)).toContain(summaryId);
             const layout = await page.locator(".cu-source-toolbar").evaluate(element => {
                 const bounds = element.getBoundingClientRect();
-                const slots = [".cu-file-name", ".cu-toolbar-legend", ".cu-source-actions"].map(selector => {
+                const slots = [".cu-source-identity", ".cu-page-controls", ".cu-view-controls", ".cu-source-utilities"].map(selector => {
                     const child = element.querySelector(selector);
                     if (!child) throw new Error(`The toolbar slot ${selector} is missing.`);
                     const rect = child.getBoundingClientRect();
@@ -431,7 +452,7 @@ for (const [sample, name, details] of [
                 return { left: bounds.left, right: bounds.right, height: bounds.height,
                     overflow: element.scrollWidth - element.clientWidth, slots };
             });
-            expect(layout.height).toBe(57);
+            expect(layout.height).toBe(44);
             expect(layout.overflow).toBeLessThanOrEqual(1);
             for (const [index, slot] of layout.slots.entries()) {
                 expect(slot.left).toBeGreaterThanOrEqual(layout.left);
@@ -563,25 +584,27 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1440, height: 100
         await loadReviewFixture(page);
         await expect(page.getByRole("button", { name: "View selected value", exact: true })).toHaveCount(0);
         for (const columns of [2, 3]) {
-            await page.getByRole("button", { name: `${columns} columns`, exact: true }).click();
+            await setShowConfidence(page, columns === 3);
             await expect(page.locator(".cu-field-navigation > button")).toHaveCount(2);
             await expect(page.getByRole("button", { name: "Previous field", exact: true })).toBeEnabled();
             await expect(page.getByRole("button", { name: "Next field", exact: true })).toBeEnabled();
             const layout = await page.locator(".cu-fields-pane").evaluate(element => ({
-                controlsHeight: element.querySelector(".cu-fields-controls")!.getBoundingClientRect().bottom - element.getBoundingClientRect().top,
+                controlsHeight: element.querySelector(".cu-fields-review-footer")!.getBoundingClientRect().height,
                 overflow: element.scrollWidth - element.clientWidth,
-                toolbarOverflow: element.querySelector(".cu-review-toolbar")!.scrollWidth - element.querySelector(".cu-review-toolbar")!.clientWidth,
+                toolbarOverflow: element.querySelector(".cu-fields-review-footer")!.scrollWidth - element.querySelector(".cu-fields-review-footer")!.clientWidth,
             }));
-            expect(layout.controlsHeight).toBeLessThanOrEqual(150);
+            expect(layout.controlsHeight).toBe(44);
             expect(layout.overflow).toBeLessThanOrEqual(1);
             expect(layout.toolbarOverflow).toBeLessThanOrEqual(1);
         }
-        await expect(page.getByRole("button", { name: "Previous page", exact: true })).toHaveCSS("width", "30px");
-        await expect(page.getByRole("button", { name: "Next page", exact: true })).toHaveCSS("height", "30px");
-        await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
-        const panel = page.getByRole("dialog", { name: "Highlighting", exact: true });
+        const controlSize = await page.locator(".cu-source-pane").evaluate(element =>
+            element.getBoundingClientRect().width <= 900 ? "26px" : "30px");
+        await expect(page.getByRole("button", { name: "Previous page", exact: true })).toHaveCSS("width", controlSize);
+        await expect(page.getByRole("button", { name: "Next page", exact: true })).toHaveCSS("height", controlSize);
+        await page.getByRole("button", { name: "Source settings", exact: true }).click();
+        const panel = page.getByRole("dialog", { name: "Source settings", exact: true });
         await expect(panel).toHaveCSS("width", "326px");
-        await expect(panel.getByRole("heading", { name: "Highlighting", exact: true })).toHaveCSS("font-size", "18px");
+        await expect(panel.getByRole("heading", { name: "Settings", exact: true })).toHaveCSS("font-size", "18px");
         const threshold = panel.getByRole("spinbutton", { name: "Confidence threshold", exact: true });
         await expect(threshold).toHaveValue("0.70");
         await expect(threshold).toHaveCSS("width", "116px");
@@ -594,25 +617,29 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1440, height: 100
         await expect(threshold).toHaveJSProperty("valueAsNumber", 0.71);
         await threshold.press("ArrowDown");
         await expect(threshold).toHaveJSProperty("valueAsNumber", 0.7);
-        await expect(panel.locator(".cu-switch-row").first()).toHaveCSS("font-size", "11px");
         await expect(panel.getByText("Highlighting never changes the extracted data.", { exact: true })).toHaveCount(0);
         await expect(panel.locator(".cu-panel-footnote")).toHaveCount(0);
-        expect(await panel.evaluate(element => element.lastElementChild?.classList.contains("cu-highlight-options"))).toBe(true);
-        await expect(panel.locator(".cu-switch-track")).toHaveCount(3);
-        await expect(panel.locator(".cu-switch-track").first()).toHaveCSS("width", "35px");
-        await expect(panel.locator(".cu-switch-track").first()).toHaveCSS("height", "21px");
+        await expect(panel.locator(".cu-highlight-options")).toHaveCount(0);
+        await expect(panel.getByRole("switch")).toHaveCount(0);
         await expect(panel.locator(".cu-legend-swatch")).toHaveCount(0);
-        expect(await panel.locator(".cu-switch-track").first().evaluate(element =>
-            getComputedStyle(element, "::after").transitionDuration)).toBe("0s");
         const bounds = await panel.boundingBox(), pane = await page.locator(".cu-source-pane").boundingBox();
-        if (!bounds || !pane) throw new Error("Highlighting panel is not laid out.");
-        expect(bounds.y).toBe(pane.y + 50);
-        expect(bounds.y + bounds.height).toBeLessThanOrEqual(pane.y + pane.height);
+        const toolbar = await page.locator(".cu-source-toolbar").boundingBox();
+        if (!bounds || !pane || !toolbar) throw new Error("Source settings panel is not laid out.");
+        expect(bounds.y).toBeGreaterThanOrEqual(pane.y);
+        expect(bounds.y + bounds.height).toBeLessThanOrEqual(toolbar.y - 7);
         await page.keyboard.press("Escape");
-        await expect(page.getByRole("button", { name: "Highlighting settings", exact: true })).toBeFocused();
+        await expect(page.getByRole("button", { name: "Source settings", exact: true })).toBeFocused();
         await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
         const legend = page.getByRole("dialog", { name: "Legend", exact: true });
-        await expect(legend.locator(".cu-legend-swatch")).toHaveCount(5);
+        const entries = legend.getByRole("list", { name: "Highlighting legend entries", exact: true });
+        await expect(entries.getByRole("switch")).toHaveCount(3);
+        await expect(legend.getByText("Options", { exact: true })).toHaveCount(0);
+        await expect(entries.locator(".cu-switch-row").first()).toHaveCSS("font-size", "11px");
+        await expect(entries.locator(".cu-switch-track").first()).toHaveCSS("width", "35px");
+        await expect(entries.locator(".cu-switch-track").first()).toHaveCSS("height", "21px");
+        expect(await entries.locator(".cu-switch-track").first().evaluate(element =>
+            getComputedStyle(element, "::after").transitionDuration)).toBe("0s");
+        await expect(legend.locator(".cu-legend-swatch")).toHaveCount(4);
         await expect(legend.locator(".cu-legend-swatch").first()).toHaveCSS("width", "33px");
         await expect(legend.locator(".cu-legend-swatch").first()).toHaveCSS("height", "28px");
         await page.keyboard.press("Escape");
@@ -648,19 +675,19 @@ test("UI-33 source visibility never clears right-hand low-confidence emphasis", 
         if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected an original source canvas.");
         return element.toDataURL();
     });
-    await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     await page.getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
     await page.getByRole("switch", { name: "Show table highlights", exact: true }).uncheck();
     await expect(source(page, recipientId)).toHaveAttribute("fill", "none");
     await expect(source(page, cellId)).toHaveAttribute("fill", "none");
     await expect(field).toHaveCSS("background-color", "rgb(252, 232, 230)");
     await expect(cell).toHaveCSS("background-color", "rgb(255, 232, 236)");
-    await page.getByRole("button", { name: "Close highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await expect(page.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
-    await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     await page.getByRole("switch", { name: "Show low confidence highlight", exact: true }).uncheck();
     await expect(cell).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-    await page.getByRole("button", { name: "Close highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await page.getByRole("tab", { name: "Fields", exact: true }).click();
     await expect(field).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await expect(cell).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
@@ -693,27 +720,32 @@ test("UI-55 field-level F2 survives shortcut removal without relocating source o
     await expect(page.getByRole("button", { name: "View selected value", exact: true })).toHaveCount(0);
 });
 
-test("UI-55 field counts and previous/next navigation remain without an information shortcut", async ({ page }) => {
+test("UI-55 current field position advances with previous/next navigation without an information shortcut", async ({ page }) => {
     await loadReviewFixture(page);
     const navigation = page.locator(".cu-field-navigation");
-    const count = await navigation.locator("span").textContent();
+    const count = navigation.locator("span");
+    const initial = (await count.innerText()).match(/^— \/ (\d+) fields$/);
+    if (!initial?.[1]) throw new Error("Expected an unselected field position.");
+    const total = initial[1];
     await expect(navigation.locator("button")).toHaveCount(2);
     await page.getByRole("button", { name: "Next field", exact: true }).click();
+    await expect(count).toHaveText(`1 / ${total} fields`);
     const pin = page.getByTestId("source-overlay").locator("polygon").first();
     const first = await pin.getAttribute("data-source-id");
     if (!first) throw new Error("The first navigated field has no source selection.");
     await page.getByRole("button", { name: "Next field", exact: true }).click();
+    await expect(count).toHaveText(`2 / ${total} fields`);
     await expect(pin).not.toHaveAttribute("data-source-id", first);
     await page.getByRole("button", { name: "Previous field", exact: true }).click();
     await expect(pin).toHaveAttribute("data-source-id", first);
-    expect(await navigation.locator("span").textContent()).toBe(count);
+    await expect(count).toHaveText(`1 / ${total} fields`);
     await expect(page.getByRole("button", { name: "View selected value", exact: true })).toHaveCount(0);
     await expect(page.getByRole("region", { name: "Full value and confidence" })).toHaveCount(0);
 });
 
 test("UI-33/47 groups keep blank confidence and hover-only page actions without selected-count labels", async ({ page }) => {
     await loadReviewFixture(page);
-    await page.getByRole("button", { name: "3 columns", exact: true }).click();
+    await setShowConfidence(page, true);
     const row = page.locator(fieldRow("/contents/0/fields/CustomerAddress"));
     await page.locator(".prototype-banner").hover();
     await expect(row.locator(".cu-page-badge")).toBeHidden();
@@ -753,7 +785,7 @@ test("UI-33 inline array defaults match the reference and value actions retain i
 
 test("UI-33 threshold stepping, exact precision and invalid-input feedback remain truthful", async ({ page }) => {
     await loadReviewFixture(page);
-    await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Source settings", exact: true }).click();
     const threshold = page.getByRole("spinbutton", { name: "Confidence threshold", exact: true });
     await threshold.press("ArrowUp");
     await expect(threshold).toHaveValue("0.71");
@@ -807,10 +839,10 @@ for (const kind of ["pdf", "image"] as const) {
             return element.toDataURL();
         });
         const setSourceFills = async (enabled: boolean): Promise<void> => {
-            await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
+            await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
             await page.getByRole("switch", { name: "Show field highlights", exact: true }).setChecked(enabled);
             await page.getByRole("switch", { name: "Show table highlights", exact: true }).setChecked(enabled);
-            await page.getByRole("button", { name: "Close highlighting settings", exact: true }).click();
+            await page.getByRole("button", { name: "Close legend", exact: true }).click();
         };
         await setSourceFills(false);
         const before = await page.screenshot();

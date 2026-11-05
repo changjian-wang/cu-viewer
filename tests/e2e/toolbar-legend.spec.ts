@@ -8,20 +8,20 @@ test.use({ reducedMotion: "reduce", deviceScaleFactor: 1 });
 const trigger = (page: Page) => page.getByRole("button", { name: "Highlighting legend", exact: true });
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Legend", exact: true });
 const colors = ["rgb(232, 245, 233)", "rgb(232, 241, 255)", "rgb(252, 232, 230)",
-    "rgb(255, 232, 236)", "rgb(241, 243, 245)"];
+    "rgb(255, 232, 236)"];
 
 async function expectPalette(list: Locator): Promise<void> {
-    await expect(list.locator(".cu-legend-item")).toHaveCount(5);
+    await expect(list.locator(".cu-legend-item")).toHaveCount(4);
     expect(await list.locator(".cu-legend-swatch").evaluateAll(elements =>
         elements.map(element => getComputedStyle(element).backgroundColor))).toEqual(colors);
 }
 
-async function expectToolbarLayout(page: Page): Promise<boolean> {
+async function expectToolbarLayout(page: Page): Promise<void> {
     const toolbar = page.locator(".cu-source-toolbar");
     const layout = await toolbar.evaluate(element => {
         const bounds = element.getBoundingClientRect();
         const pane = element.closest(".cu-source-pane")!.getBoundingClientRect();
-        const slots = [".cu-file-name", ".cu-toolbar-legend", ".cu-source-actions"].map(selector => {
+        const slots = [".cu-source-identity", ".cu-page-controls", ".cu-view-controls", ".cu-source-utilities"].map(selector => {
             const child = element.querySelector(selector);
             if (!child) throw new Error(`The toolbar slot ${selector} is missing.`);
             const rect = child.getBoundingClientRect();
@@ -30,32 +30,25 @@ async function expectToolbarLayout(page: Page): Promise<boolean> {
         return { width: pane.width, left: bounds.left, right: bounds.right, height: bounds.height,
             overflow: element.scrollWidth - element.clientWidth, slots };
     });
-    expect(layout.height).toBe(57);
+    expect(layout.height).toBe(44);
     expect(layout.overflow).toBeLessThanOrEqual(1);
     for (const [index, slot] of layout.slots.entries()) {
         expect(slot.left).toBeGreaterThanOrEqual(layout.left);
         expect(slot.right).toBeLessThanOrEqual(layout.right);
         if (index) expect(slot.left - layout.slots[index - 1]!.right).toBeGreaterThanOrEqual(4);
     }
-    const wide = layout.width >= 1040;
-    const summary = page.getByRole("list", { name: "Highlighting legend summary", exact: true });
-    if (wide) {
-        await expect(summary).toBeVisible();
-        await expect(summary.locator(".cu-legend-name")).toHaveText(["Field", "Table", "Low field", "Low table", "N/A"]);
-        await expect(summary.locator(".cu-legend-swatch").first()).toHaveCSS("width", "10px");
-        await expect(summary.locator(".cu-legend-swatch").first()).toHaveCSS("height", "10px");
-        await expectPalette(summary);
-    } else await expect(page.locator(".cu-legend-inline")).toBeHidden();
-    return wide;
+    await expect(page.locator(".cu-legend-inline")).toHaveCount(0);
+    await expect(trigger(page)).toBeVisible();
 }
 
 async function expectPanelInsideSource(page: Page): Promise<void> {
     const panel = await dialog(page).boundingBox(), source = await page.locator(".cu-source-pane").boundingBox();
-    if (!panel || !source) throw new Error("The legend panel is not laid out.");
+    const toolbar = await page.locator(".cu-source-toolbar").boundingBox();
+    if (!panel || !source || !toolbar) throw new Error("The legend panel is not laid out.");
     expect(panel.x).toBeGreaterThanOrEqual(source.x);
     expect(panel.x + panel.width).toBeLessThanOrEqual(source.x + source.width);
-    expect(panel.y).toBeGreaterThanOrEqual(source.y + 30);
-    expect(panel.y + panel.height).toBeLessThanOrEqual(source.y + source.height);
+    expect(panel.y).toBeGreaterThanOrEqual(source.y);
+    expect(panel.y + panel.height).toBeLessThanOrEqual(toolbar.y - 7);
     expect(panel.y + panel.height).toBeLessThanOrEqual(page.viewportSize()!.height);
 }
 
@@ -113,21 +106,26 @@ test("UI-54 Legend and settings remain exclusive with keyboard and outside dismi
     await expect(dialog(page)).toHaveCount(0);
     await trigger(page).click();
     await page.keyboard.press("Tab");
-    await expect(dialog(page).getByRole("button", { name: "Field value", exact: true })).toBeFocused();
-    await dialog(page).getByRole("button", { name: "Confidence unavailable", exact: true }).focus();
+    await expect(dialog(page).getByRole("switch", { name: "Show field highlights", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dialog(page).getByRole("switch", { name: "Show table highlights", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dialog(page).getByRole("switch", { name: "Show low confidence highlight", exact: true })).toBeFocused();
+    await dialog(page).getByRole("switch", { name: "Show low confidence highlight", exact: true }).focus();
     await page.keyboard.press("Tab");
     await expect(dialog(page)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Highlighting settings", exact: true })).toBeFocused();
+    await expect(page.getByRole("button", { name: "Source settings", exact: true })).toBeFocused();
     await trigger(page).click();
-    await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
-    const settings = page.getByRole("dialog", { name: "Highlighting", exact: true });
+    await page.getByRole("button", { name: "Source settings", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Source settings", exact: true });
     await expect(dialog(page)).toHaveCount(0);
     await expect(settings.locator(".cu-legend-item")).toHaveCount(0);
-    await expect(settings.getByRole("switch")).toHaveCount(3);
+    await expect(settings.getByRole("switch")).toHaveCount(0);
     await expect(settings.getByRole("spinbutton", { name: "Confidence threshold", exact: true })).toBeFocused();
     await trigger(page).click();
     await expect(settings).toHaveCount(0);
     await expect(dialog(page)).toBeVisible();
+    await expect(dialog(page).getByRole("switch")).toHaveCount(3);
     await expect(page.getByRole("button", { name: "More document actions", exact: true })).toHaveCount(0);
     await expect(page.getByRole("menu", { name: "Document actions", exact: true })).toHaveCount(0);
     await page.locator(".prototype-banner").click({ position: { x: 8, y: 8 } });
@@ -137,15 +135,17 @@ test("UI-54 Legend and settings remain exclusive with keyboard and outside dismi
     await expect(trigger(page)).toBeFocused();
 });
 
-test("UI-54 the five explanatory colors survive threshold and visibility changes without modifying settings", async ({ page }) => {
+test("UI-54 the four explanatory colors survive threshold and visibility changes without modifying settings", async ({ page }) => {
     await page.goto("/");
     await ready(page);
     for (const threshold of ["0", "0.341", "1"]) {
-        await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
-        const settings = page.getByRole("dialog", { name: "Highlighting", exact: true });
+        await page.getByRole("button", { name: "Source settings", exact: true }).click();
+        const settings = page.getByRole("dialog", { name: "Source settings", exact: true });
         await settings.getByRole("spinbutton", { name: "Confidence threshold", exact: true }).fill(threshold);
+        await page.keyboard.press("Escape");
+        await trigger(page).click();
         for (const name of ["Show field highlights", "Show table highlights", "Show low confidence highlight"]) {
-            await settings.getByRole("switch", { name, exact: true }).uncheck();
+            await dialog(page).getByRole("switch", { name, exact: true }).uncheck();
         }
         await page.keyboard.press("Escape");
         const preferences = await page.evaluate(() => JSON.stringify(Object.entries(localStorage)));
@@ -153,13 +153,14 @@ test("UI-54 the five explanatory colors survive threshold and visibility changes
         await expectPalette(dialog(page));
         await expect(dialog(page).getByText("All scored values while low-confidence highlight is off", { exact: true })).toHaveCount(2);
         await expect(dialog(page).getByText("Below threshold", { exact: true })).toHaveCount(2);
-        await expect(dialog(page).getByText("No score was supplied", { exact: true })).toBeVisible();
+        await expect(dialog(page).getByText("Confidence unavailable", { exact: true })).toHaveCount(0);
+        await expect(dialog(page).getByText("No score was supplied", { exact: true })).toHaveCount(0);
         await page.keyboard.press("Escape");
         expect(await page.evaluate(() => JSON.stringify(Object.entries(localStorage)))).toBe(preferences);
     }
 });
 
-test("UI-54 source-panel resizing alone switches the summary without increasing toolbar height", async ({ page }) => {
+test("UI-54 source-panel resizing retains one bottom row and the Legend button without persistent chips", async ({ page }) => {
     await page.setViewportSize({ width: 2100, height: 1000 });
     await page.goto("/");
     await ready(page);
@@ -175,7 +176,7 @@ test("UI-54 source-panel resizing alone switches the summary without increasing 
         const actual = await page.locator(".cu-source-pane").boundingBox();
         if (!actual) throw new Error("The source pane disappeared after resizing.");
         expect(Math.abs(actual.width - target)).toBeLessThanOrEqual(1);
-        expect(await expectToolbarLayout(page)).toBe(target >= 1040);
+        await expectToolbarLayout(page);
         await trigger(page).click();
         await expectPanelInsideSource(page);
         await page.keyboard.press("Escape");
@@ -206,7 +207,6 @@ const categorySources = [
     { key: "unavailable", id: "/contents/0/fields/Unknown", fill: "#F1F3F5" },
 ] as const;
 const sourceRegion = (page: Page, id: string) => page.getByTestId("result-overlay").locator(`polygon[data-outline-id="${id}"]`).first();
-const categoryButton = (list: Locator, key: string) => list.locator(`button[data-legend-category="${key}"]`);
 
 async function sourcePixels(page: Page): Promise<string> {
     return page.getByTestId("source-canvas").evaluate(element => {
@@ -229,12 +229,12 @@ async function savedReviewIdentity(page: Page) {
 }
 
 for (const viewport of [{ width: 1280, height: 800 }, { width: 2100, height: 1000 }]) {
-    test(`UI-56 each category toggles only Source fills in the ${viewport.width} layout`, async ({ page }) => {
+    test(`UI-56 passive colors and three integrated switches preserve geometry in the ${viewport.width} layout`, async ({ page }) => {
         await page.setViewportSize(viewport);
         await loadReviewFixture(page);
         await page.getByRole("button", { name: "InvoiceId", exact: true }).click();
         await page.locator(".prototype-banner").hover();
-        const wide = await expectToolbarLayout(page);
+        await expectToolbarLayout(page);
         const frame = await page.getByTestId("rendered-page").boundingBox();
         const pixels = await sourcePixels(page);
         const fields = await page.locator(".cu-fields-pane").textContent();
@@ -244,22 +244,42 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 2100, height: 100
         })));
         const pin = page.getByTestId("source-overlay").locator("polygon");
         const selected = await pin.getAttribute("points");
-        if (!wide) await trigger(page).click();
-        const list = wide ? page.locator(".cu-legend-inline") : dialog(page);
-        for (const [index, category] of categorySources.entries()) {
-            const button = categoryButton(list, category.key);
-            const bounds = await button.boundingBox();
-            if (!bounds) throw new Error("A category toggle is not laid out.");
+        await trigger(page).click();
+        const list = dialog(page);
+        await expect(list.getByRole("button")).toHaveCount(1);
+        await expect(list.getByRole("switch")).toHaveCount(3);
+        await expect(list.getByText("Options", { exact: true })).toHaveCount(0);
+        const preferences = await page.evaluate(() => JSON.stringify(Object.entries(localStorage)));
+        await expect(list.locator('.cu-legend-item[data-legend-category="unavailable"]')).toHaveCount(0);
+        for (const category of categorySources.filter(category => category.key !== "unavailable")) {
+            const entry = list.locator(`.cu-legend-item[data-legend-category="${category.key}"]`);
+            expect(await entry.evaluate(element =>
+                !element.closest("button, label") && !element.querySelector("button, input, [tabindex], [aria-pressed]"))).toBe(true);
+            await entry.locator(".cu-legend-swatch").click();
+            await expect(list).toBeVisible();
+            await entry.locator(".cu-legend-name").click();
+            await expect(sourceRegion(page, category.id)).toHaveAttribute("fill", category.fill);
+        }
+        expect(await page.evaluate(() => JSON.stringify(Object.entries(localStorage)))).toBe(preferences);
+        for (const [name, hidden, normalColors] of [
+            ["Show field highlights", ["field", "lowField", "unavailable"], false],
+            ["Show table highlights", ["table", "lowTable"], false],
+            ["Show low confidence highlight", [], true],
+        ] as const) {
+            const control = list.getByRole("switch", { name, exact: true });
+            const bounds = await control.boundingBox();
+            if (!bounds) throw new Error("A highlight switch is not laid out.");
             expect(bounds.width).toBeGreaterThanOrEqual(24);
             expect(bounds.height).toBeGreaterThanOrEqual(24);
-            await button.click();
-            await expect(button).toHaveAttribute("aria-pressed", "false");
-            await expect(button.locator(".cu-legend-swatch")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-            await expect(button).toBeFocused();
+            await control.uncheck();
+            await expect(control).not.toBeChecked();
+            await expectPalette(list);
             for (const candidate of categorySources) {
-                await expect(sourceRegion(page, candidate.id)).toHaveAttribute("fill", candidate.key === category.key ? "none" : candidate.fill);
+                const fill = hidden.some(key => key === candidate.key) ? "none" :
+                    normalColors && candidate.key === "lowField" ? "#E8F5E9" :
+                        normalColors && candidate.key === "lowTable" ? "#E8F1FF" : candidate.fill;
+                await expect(sourceRegion(page, candidate.id)).toHaveAttribute("fill", fill);
             }
-            await expect(page.locator(`.cu-source-highlight-edges [data-source-edge-id="${category.id}"]`)).toHaveCount(0);
             expect(await sourcePixels(page)).toBe(pixels);
             expect(await page.locator(".cu-fields-pane").textContent()).toBe(fields);
             expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(frame);
@@ -267,76 +287,86 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 2100, height: 100
             expect(await regions.evaluateAll(elements => elements.map(element => ({
                 id: element.getAttribute("data-outline-id"), region: element.getAttribute("data-region-index"), points: element.getAttribute("points"),
             })))).toEqual(geometry);
-            await button.press(index % 2 ? "Enter" : "Space");
-            await expect(button).toHaveAttribute("aria-pressed", "true");
-            await expect(sourceRegion(page, category.id)).toHaveAttribute("fill", category.fill);
-            await expect(page.locator(`.cu-source-highlight-edges [data-source-edge-id="${category.id}"]`)).toHaveCount(1);
+            await control.press("Space");
+            await expect(control).toBeChecked();
+            for (const candidate of categorySources) {
+                await expect(sourceRegion(page, candidate.id)).toHaveAttribute("fill", candidate.fill);
+                await expect(page.locator(`.cu-source-highlight-edges [data-source-edge-id="${candidate.id}"]`)).toHaveCount(1);
+            }
         }
-        if (!wide) await page.keyboard.press("Escape");
-        await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
-        const settings = page.getByRole("dialog", { name: "Highlighting", exact: true });
+        await page.keyboard.press("Escape");
+        await page.getByRole("button", { name: "Source settings", exact: true }).click();
+        const settings = page.getByRole("dialog", { name: "Source settings", exact: true });
         await expect(settings.getByRole("spinbutton")).toHaveValue("0.70");
+        await expect(settings.getByRole("switch")).toHaveCount(0);
+        await page.keyboard.press("Escape");
+        await trigger(page).click();
         for (const name of ["Show field highlights", "Show table highlights", "Show low confidence highlight"]) {
-            await expect(settings.getByRole("switch", { name, exact: true })).toBeChecked();
+            await expect(dialog(page).getByRole("switch", { name, exact: true })).toBeChecked();
         }
     });
 }
 
-test("UI-56 master settings disable their categories with reasons while preserving child choices", async ({ page }) => {
+test("UI-56 field and table switches hide all their fills and can restore unknown confidence", async ({ page }) => {
     await loadReviewFixture(page);
     await trigger(page).click();
-    await categoryButton(dialog(page), "lowField").click();
-    await categoryButton(dialog(page), "table").click();
-    await page.keyboard.press("Escape");
-    const openSettings = () => page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
-    const settings = page.getByRole("dialog", { name: "Highlighting", exact: true });
-    await openSettings();
-    await settings.getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
-    await page.keyboard.press("Escape");
-    await trigger(page).click();
-    await expect(categoryButton(dialog(page), "field")).toBeDisabled();
-    await expect(categoryButton(dialog(page), "lowField")).toBeDisabled();
-    await expect(categoryButton(dialog(page), "lowField")).toHaveAttribute("aria-pressed", "false");
-    await expect(categoryButton(dialog(page), "field")).toContainText("Enable Show field highlights in settings.");
-    await expect(categoryButton(dialog(page), "unavailable")).toBeEnabled();
-    await page.keyboard.press("Escape");
-    await openSettings();
-    await settings.getByRole("switch", { name: "Show table highlights", exact: true }).uncheck();
-    await page.keyboard.press("Escape");
-    await trigger(page).click();
-    await expect(dialog(page).locator(".cu-legend-category:disabled")).toHaveCount(5);
-    await expect(categoryButton(dialog(page), "unavailable")).toContainText("Enable field or table highlights in settings.");
-    await page.keyboard.press("Escape");
-    await openSettings();
-    await settings.getByRole("switch", { name: "Show field highlights", exact: true }).check();
-    await settings.getByRole("switch", { name: "Show table highlights", exact: true }).check();
-    await page.keyboard.press("Escape");
-    await expect(sourceRegion(page, categorySources[0].id)).toHaveAttribute("fill", "#E8F5E9");
-    await expect(sourceRegion(page, categorySources[1].id)).toHaveAttribute("fill", "none");
-    await expect(sourceRegion(page, categorySources[2].id)).toHaveAttribute("fill", "none");
-    await expect(sourceRegion(page, categorySources[3].id)).toHaveAttribute("fill", "#FFE8EC");
-    await openSettings();
-    await settings.getByRole("switch", { name: "Show low confidence highlight", exact: true }).uncheck();
-    await page.keyboard.press("Escape");
-    await trigger(page).click();
-    await expect(categoryButton(dialog(page), "lowField")).toBeDisabled();
-    await expect(categoryButton(dialog(page), "lowTable")).toBeDisabled();
-    await expect(categoryButton(dialog(page), "lowTable")).toContainText("Enable Show low confidence highlight in settings.");
+    const fields = dialog(page).getByRole("switch", { name: "Show field highlights", exact: true });
+    const tables = dialog(page).getByRole("switch", { name: "Show table highlights", exact: true });
+    await fields.uncheck();
+    for (const index of [0, 2, 4]) await expect(sourceRegion(page, categorySources[index]!.id)).toHaveAttribute("fill", "none");
+    for (const index of [1, 3]) {
+        const category = categorySources[index]!;
+        await expect(sourceRegion(page, category.id)).toHaveAttribute("fill", category.fill);
+    }
+    await tables.uncheck();
+    await expect(page.getByTestId("result-overlay").locator('polygon[data-outline-id]:not([fill="none"])')).toHaveCount(0);
+    for (const control of await dialog(page).getByRole("switch").all()) await expect(control).toBeEnabled();
+    await fields.check();
+    await tables.check();
+    for (const category of categorySources) await expect(sourceRegion(page, category.id)).toHaveAttribute("fill", category.fill);
+    await dialog(page).getByRole("switch", { name: "Show low confidence highlight", exact: true }).uncheck();
     await expect(sourceRegion(page, categorySources[2].id)).toHaveAttribute("fill", "#E8F5E9");
-    await expect(sourceRegion(page, categorySources[3].id)).toHaveAttribute("fill", "none");
+    await expect(sourceRegion(page, categorySources[3].id)).toHaveAttribute("fill", "#E8F1FF");
+    await expect(sourceRegion(page, categorySources[4].id)).toHaveAttribute("fill", "#F1F3F5");
+});
+
+test("UI-56 integrated switches retain their saved settings after reload", async ({ page }) => {
+    await loadReviewFixture(page);
+    await trigger(page).click();
+    for (const name of ["Show field highlights", "Show table highlights", "Show low confidence highlight"]) {
+        await dialog(page).getByRole("switch", { name, exact: true }).uncheck();
+    }
+    const identity = await savedReviewIdentity(page);
+    const saved = await page.evaluate(key => localStorage.getItem(key), identity.key);
+    await page.reload();
+    await loadReviewFixture(page);
+    await trigger(page).click();
+    for (const name of ["Show field highlights", "Show table highlights", "Show low confidence highlight"]) {
+        await expect(dialog(page).getByRole("switch", { name, exact: true })).not.toBeChecked();
+    }
+    await expect(page.getByTestId("result-overlay").locator('polygon[data-outline-id]:not([fill="none"])')).toHaveCount(0);
+    expect(await page.evaluate(key => localStorage.getItem(key), identity.key)).toBe(saved);
+    await dialog(page).getByRole("switch", { name: "Show field highlights", exact: true }).check();
+    await expect(sourceRegion(page, "/contents/0/fields/Unknown")).toHaveAttribute("fill", "#F1F3F5");
+    await expect(sourceRegion(page, "/contents/0/fields/Zero")).toHaveAttribute("fill", "#E8F5E9");
+    await expect(sourceRegion(page, categorySources[1].id)).toHaveAttribute("fill", "none");
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Source settings", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Source settings", exact: true }).getByRole("spinbutton")).toHaveValue("0.70");
 });
 
 test("UI-56 hidden fills remain selectable and previewable without changing confidence, counts or pins", async ({ page }) => {
     await loadReviewFixture(page);
     const count = await page.locator(".cu-field-navigation > span").textContent();
     await trigger(page).click();
-    await categoryButton(dialog(page), "lowField").click();
-    await categoryButton(dialog(page), "unavailable").click();
+    await dialog(page).getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
     await page.keyboard.press("Escape");
     const zero = sourceRegion(page, "/contents/0/fields/Zero");
     await expect(zero).toHaveAttribute("fill", "none");
     await expect(sourceRegion(page, "/contents/0/fields/Unknown")).toHaveAttribute("fill", "none");
+    expect(await page.locator(".cu-field-navigation > span").textContent()).toBe(count);
     await zero.click();
+    const selectedPosition = await page.locator(".cu-field-navigation > span").textContent();
     const pin = page.getByTestId("source-overlay").locator("polygon");
     await expect(pin).toHaveAttribute("data-source-id", "/contents/0/fields/Zero");
     await expect(pin).toHaveAttribute("stroke-width", "1.8");
@@ -345,30 +375,44 @@ test("UI-56 hidden fills remain selectable and previewable without changing conf
     await sourceRegion(page, recipientId).hover();
     await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveAttribute("data-source-id", recipientId);
     await expect(pin).toHaveAttribute("data-source-id", "/contents/0/fields/Zero");
-    expect(await page.locator(".cu-field-navigation > span").textContent()).toBe(count);
+    expect(await page.locator(".cu-field-navigation > span").textContent()).toBe(selectedPosition);
 });
 
-test("UI-56 all-off category preferences survive reload and can restore N/A without restoring other classes", async ({ page }) => {
+test("UI-56 legacy category masks no longer hide colors that have no recovery controls", async ({ page }) => {
     await loadReviewFixture(page);
     await trigger(page).click();
-    for (const category of categorySources) await categoryButton(dialog(page), category.key).click();
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("result-overlay").locator('polygon[data-outline-id]:not([fill="none"])')).toHaveCount(0);
-    await savedReviewIdentity(page);
+    await dialog(page).getByRole("switch", { name: "Show table highlights", exact: true }).uncheck();
+    const identity = await savedReviewIdentity(page);
+    const legacy = JSON.stringify({ format: "cu-viewer-review", version: 1, schema: identity.schema,
+        settings: { threshold: 0.341, showFields: true, showTables: false, highlightLow: true,
+            columns: 2, paneRatio: 0.58, fieldRatio: 0.46,
+            sourceCategories: { field: false, table: false, lowField: false, lowTable: false, unavailable: false } },
+        order: {} });
+    await page.evaluate(({ key, text }) => localStorage.setItem(key, text), { key: identity.key, text: legacy });
     await page.reload();
     await loadReviewFixture(page);
     await trigger(page).click();
-    for (const category of categorySources) await expect(categoryButton(dialog(page), category.key)).toHaveAttribute("aria-pressed", "false");
-    await expect(page.getByTestId("result-overlay").locator('polygon[data-outline-id]:not([fill="none"])')).toHaveCount(0);
-    await categoryButton(dialog(page), "unavailable").press("Space");
+    await expect(dialog(page).getByRole("switch", { name: "Show field highlights", exact: true })).toBeChecked();
+    await expect(dialog(page).getByRole("switch", { name: "Show table highlights", exact: true })).not.toBeChecked();
+    await expect(sourceRegion(page, "/contents/0/fields/InvoiceId")).toHaveAttribute("fill", "#E8F5E9");
+    await expect(sourceRegion(page, "/contents/0/fields/Zero")).toHaveAttribute("fill", "#FCE8E6");
     await expect(sourceRegion(page, "/contents/0/fields/Unknown")).toHaveAttribute("fill", "#F1F3F5");
-    await expect(sourceRegion(page, "/contents/0/fields/Zero")).toHaveAttribute("fill", "none");
+    expect(await page.evaluate(key => localStorage.getItem(key), identity.key)).toBe(legacy);
+    await dialog(page).getByRole("switch", { name: "Show table highlights", exact: true }).check();
+    for (const category of categorySources) {
+        const fill = category.key === "lowTable" ? "#E8F1FF" : category.fill;
+        await expect(sourceRegion(page, category.id)).toHaveAttribute("fill", fill);
+    }
+    expect(await page.evaluate(key => localStorage.getItem(key), identity.key)).not.toContain("sourceCategories");
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Source settings", exact: true }).click();
+    await expect(page.getByRole("spinbutton", { name: "Confidence threshold", exact: true })).toHaveValue("0.341");
 });
 
 test("UI-56 legacy saved settings load with all categories enabled and no record rewrite", async ({ page }) => {
     await loadReviewFixture(page);
     await trigger(page).click();
-    await categoryButton(dialog(page), "field").click();
+    await dialog(page).getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
     const identity = await savedReviewIdentity(page);
     const legacy = JSON.stringify({ format: "cu-viewer-review", version: 1, schema: identity.schema,
         settings: { threshold: 0.341, showFields: true, showTables: true, highlightLow: true, columns: 2, paneRatio: 0.58, fieldRatio: 0.46 },
@@ -377,12 +421,12 @@ test("UI-56 legacy saved settings load with all categories enabled and no record
     await page.reload();
     await loadReviewFixture(page);
     await trigger(page).click();
-    for (const category of categorySources) await expect(categoryButton(dialog(page), category.key)).toHaveAttribute("aria-pressed", "true");
+    for (const control of await dialog(page).getByRole("switch").all()) await expect(control).toBeChecked();
     await expectPalette(dialog(page));
     await expect(sourceRegion(page, "/contents/0/fields/Zero")).toHaveAttribute("fill", "#FCE8E6");
     await expect(sourceRegion(page, "/contents/0/fields/Unknown")).toHaveAttribute("fill", "#F1F3F5");
     expect(await page.evaluate(key => localStorage.getItem(key), identity.key)).toBe(legacy);
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Source settings", exact: true }).click();
     await expect(page.getByRole("spinbutton", { name: "Confidence threshold", exact: true })).toHaveValue("0.341");
 });

@@ -123,7 +123,7 @@ test("UI-35 source decoration adds only a 1px non-interactive edge around unchan
     await expect(first).toBeFocused();
     await first.press("ArrowDown");
     await expect(second).toBeFocused();
-    await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     await page.getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
     await expect(edge).toHaveCount(0);
     await expect(polygon).toHaveAttribute("fill", "none");
@@ -140,7 +140,7 @@ test("UI-36 real invoice defaults respect the row budget and never reapply over 
         element.querySelectorAll(".cu-items-table tr").length);
     expect(visibleRows).toBeLessThanOrEqual(40);
     await page.getByRole("button", { name: "Collapse AmountDue", exact: true }).click();
-    await page.getByRole("button", { name: "Highlighting settings", exact: true }).click();
+    await page.getByRole("button", { name: "Source settings", exact: true }).click();
     await page.getByRole("spinbutton", { name: "Confidence threshold", exact: true }).fill("0.60");
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "Expand AmountDue", exact: true })).toBeVisible();

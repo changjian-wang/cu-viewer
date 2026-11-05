@@ -1,7 +1,7 @@
 import { GeometryError } from "./geometry";
 import type { PageSize } from "./geometry";
 import { fieldRegions, isFieldGroup } from "../interaction/interaction";
-import { defaultReviewSettings, isTableValue, sourceAppearance } from "../interaction/reviewFields";
+import { appearance, defaultReviewSettings, isTableValue } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ResultView } from "../model/resultViews";
 import type { CuContent, CuField, CuPage, CuPoint, CuRegion } from "../model/types";
@@ -30,6 +30,11 @@ export interface SourceOutline {
     regionIndex: number;
 }
 
+export function isValueSourceField(view: ResultView | undefined, field: CuField | null): field is CuField {
+    return Boolean(field && !isFieldGroup(field) &&
+        (view === "fields" ? !field.detailView : view === "paragraphs" && field.detailView === "paragraphs"));
+}
+
 export function sourceOutlines(content: CuContent | undefined, view: ResultView | undefined,
     pageNumber: number, hideMissing: boolean, settings: ReviewSettings = defaultReviewSettings): SourceOutline[] {
     if (!content) return [];
@@ -49,7 +54,7 @@ export function sourceOutlines(content: CuContent | undefined, view: ResultView 
     else if (view === "signatures") fields = (content.signatures ?? []).map(item => item.field);
     return fields.flatMap(field => {
         const container = isFieldGroup(field) || content.tables?.some(table => table.field === field);
-        const style = sourceAppearance(container ? {} : field, isTableValue(field), settings);
+        const style = appearance(container ? {} : field, isTableValue(field), settings);
         return field.regions.flatMap((region, index) => region.pageNumber === pageNumber ? [{
             key: `${field.id}:${index}`, field, region, regionIndex: index, color: style.background, enabled: style.enabled,
         }] : []);

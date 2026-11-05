@@ -13,10 +13,10 @@ export function HighlightSettings({ anchor, settings, onChange, onClose }: {
     const [error, setError] = useState<string | null>(null);
     const onKeyDown = usePanelDismiss(panel, anchor, onClose);
     useLayoutEffect(() => { panel.current?.querySelector("input")?.focus({ preventScroll: true }); }, []);
-    return <section className="cu-highlighting-settings" ref={panel} role="dialog" aria-labelledby={`${id}-title`}
+    return <section className="cu-highlighting-settings" ref={panel} role="dialog" aria-label="Source settings"
         onKeyDown={onKeyDown}>
-        <header><h2 id={`${id}-title`}>Highlighting</h2><button type="button" className="cu-icon-button"
-            aria-label="Close highlighting settings" onClick={() => onClose(true)}><ViewerIcon name="close" /></button></header>
+        <header><h2>Settings</h2><button type="button" className="cu-icon-button"
+            aria-label="Close source settings" onClick={() => onClose(true)}><ViewerIcon name="close" /></button></header>
         <label className="cu-threshold-label" htmlFor={`${id}-threshold`}>Confidence threshold</label>
         <div className="cu-threshold-control">
             <input id={`${id}-threshold`} type="number" min="0" max="1" step="0.01" inputMode="decimal"
@@ -31,11 +31,5 @@ export function HighlightSettings({ anchor, settings, onChange, onClose }: {
         </div>
         {error && <p id={`${id}-error`} className="cu-input-error" role="alert">{error}</p>}
         <p id={`${id}-hint`} className="cu-setting-hint">Values below <strong>{formatThreshold(settings.threshold)}</strong> receive low-confidence highlight.</p>
-        <div className="cu-settings-section cu-highlight-options"><h3>Options</h3>{([
-            ["showFields", "Show field highlights"], ["showTables", "Show table highlights"], ["highlightLow", "Show low confidence highlight"],
-        ] as const).map(([key, label]) => <label key={key} className="cu-switch-row">
-            <input type="checkbox" role="switch" checked={settings[key]} onChange={event => onChange({ ...settings, [key]: event.target.checked })} />
-            <span className="cu-switch-track" aria-hidden="true" /><span>{label}</span>
-        </label>)}</div>
     </section>;
 }

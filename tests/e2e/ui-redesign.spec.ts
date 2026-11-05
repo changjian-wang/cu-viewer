@@ -1,21 +1,23 @@
 import { expect, test } from "@playwright/test";
 import { bottomId, fieldRow, line1Id, loadReviewFixture, openValueMenu, recipientId } from "./uiRedesignFixtures";
-import { expandField, locateGroup, ready } from "./viewerAssertions";
+import { expandField, locateGroup, ready, setShowConfidence } from "./viewerAssertions";
 
 test("UI3 tree/grid projection, exact counts, search and low-confidence value-only emphasis", async ({ page }) => {
     await loadReviewFixture(page);
     const pane = page.getByRole("region", { name: "Extraction results" });
-    await expect(pane.getByRole("button", { name: "2 columns", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(pane.getByRole("columnheader", { name: "Confidence", exact: true })).toHaveCount(0);
     await pane.getByRole("button", { name: "Expand LineItems", exact: true }).click();
     const grid = pane.getByRole("table", { name: "LineItems values", exact: true });
     await expect(grid.getByRole("row")).toHaveCount(4);
     await expect(grid.getByRole("columnheader")).toHaveCount(9);
     await pane.getByRole("searchbox", { name: "Search fields or values" }).fill("3 items");
-    await expect(pane.locator(".cu-field-navigation")).toContainText("24 /");
+    await expect(pane.locator(".cu-field-navigation > span")).toHaveText("— / 24 fields");
     await expect(grid.getByRole("row")).toHaveCount(4);
-    await pane.getByRole("button", { name: /Low confidence/ }).click();
-    await expect(pane.locator(".cu-field-navigation")).toContainText("3 /");
-    await expect(grid.getByRole("row")).toHaveCount(4);
+    await pane.getByRole("searchbox", { name: "Search fields or values" }).fill("Row 1 value 1");
+    await expect(pane.locator(".cu-field-navigation > span")).toHaveText("— / 8 fields");
+    await expect(grid.locator(".cu-value-chip").first()).toHaveCSS("background-color", "rgb(255, 232, 236)");
+    await expect(grid.getByRole("row")).toHaveCount(2);
+    await expect(grid.getByRole("rowheader")).toHaveText(["1"]);
     await expect(grid.getByRole("columnheader")).toHaveCount(9);
     await page.locator(fieldRow("/contents/0/fields/LineItems")).hover();
     await expect(pane.getByRole("button", { name: "Reorder LineItems", exact: true })).toBeDisabled();
@@ -30,7 +32,7 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1280, height: 800
         await page.setViewportSize(viewport);
         await loadReviewFixture(page);
         for (const columns of [2, 3]) {
-            await page.getByRole("button", { name: `${columns} columns`, exact: true }).click();
+            await setShowConfidence(page, columns === 3);
             const value = page.locator(fieldRow(line1Id)).getByRole("button", { name: /Select value of/ });
             await page.locator(".prototype-banner").hover();
             const before = await value.boundingBox();
@@ -41,9 +43,7 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1280, height: 800
         await page.getByRole("button", { name: "Expand LineItems", exact: true }).click();
         await expect.poll(() => page.locator(".cu-inline-table-wrap").evaluate(element => element.scrollWidth - element.clientWidth)).toBeGreaterThan(100);
         await expect.poll(() => page.locator(".cu-fields-scroll").evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
-        const height = await page.locator(".cu-fields-controls").evaluate(element =>
-            element.getBoundingClientRect().bottom - element.closest(".cu-fields-pane")!.getBoundingClientRect().top);
-        expect(height).toBeLessThanOrEqual(150);
+        await expect(page.getByRole("group", { name: "Fields toolbar", exact: true })).toHaveCSS("height", "44px");
     });
 }
 
@@ -63,12 +63,12 @@ test("UI3 sibling order, consecutive keyboard moves, resizers and browser persis
     const paneWidth = await split.getAttribute("aria-valuenow");
     await column.press("ArrowRight");
     const fieldWidth = await column.getAttribute("aria-valuenow");
-    await page.getByRole("button", { name: "3 columns", exact: true }).click();
+    await setShowConfidence(page, true);
     await loadReviewFixture(page);
     await expect(roots.nth(2)).toHaveAttribute("data-field-id", "/contents/0/fields/InvoiceId");
     await expect(split).toHaveAttribute("aria-valuenow", paneWidth!);
-    await expect(page.getByRole("button", { name: "3 columns", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await page.getByRole("button", { name: "2 columns", exact: true }).click();
+    await expect(page.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
+    await setShowConfidence(page, false);
     await expect(column).toHaveAttribute("aria-valuenow", fieldWidth!);
 });
 

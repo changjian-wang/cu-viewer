@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import { checkPolygon, expandField, ready, fitSource, rotateSource } from "./viewerAssertions";
+import { reviewPdf } from "./pdfFixtures";
 
 async function synthetic(page: Page): Promise<void> {
     await page.getByLabel("Choose source file").setInputFiles(resolve("tests", "fixtures", "images", "orientation-marker.png"));
@@ -32,7 +33,7 @@ async function synthetic(page: Page): Promise<void> {
             }],
         })),
     });
-    await page.getByRole("switch", { name: "Hide missing fields" }).check();
+    await expect(page.getByRole("button", { name: "Missing", exact: true })).toBeVisible();
 }
 
 async function withinViewport(page: Page, popup: Locator): Promise<void> {
@@ -45,6 +46,170 @@ async function withinViewport(page: Page, popup: Locator): Promise<void> {
     expect(layout.y + layout.height).toBeLessThanOrEqual(viewport.y + viewport.height);
 }
 
+async function paragraphPdf(page: Page): Promise<void> {
+    await page.getByLabel("Choose source file").setInputFiles({
+        name: "synthetic-paragraph-interaction.pdf", mimeType: "application/pdf", buffer: reviewPdf(),
+    });
+    await ready(page);
+    const wrapped = "D(1,60,80,120,12);D(1,60,96,160,12);D(1,60,112,100,12)";
+    const blocked = "D(1,60,240,60,12);D(1,60,256,180,12)";
+    const neighbor = "D(1,140,242,50,8)";
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
+        name: "synthetic-paragraph-interaction.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "pixel", pages: [1, 2].map(pageNumber => ({ pageNumber, width: 600, height: 800 })),
+            markdown: "Original paragraph interaction fixture.",
+            fields: {
+                Wrapped: { type: "string", valueString: "Line A / Line B / Line C", confidence: 0.6, source: wrapped },
+                Blocked: { type: "string", valueString: "Keep actual regions", source: blocked },
+                Neighbor: { type: "string", source: neighbor },
+            },
+            paragraphs: [
+                ...Array.from({ length: 30 }, (_, index) => ({ content: `Unlocated paragraph ${index + 1}` })),
+                { content: "Line A / Line B / Line C", role: "sectionHeading", source: wrapped },
+                { content: "Keep actual regions", source: blocked },
+                { content: "Unrelated neighboring paragraph", source: neighbor },
+                { content: "Source on the second page", source: "D(2,70,80,120,12)" },
+            ],
+        }] })),
+    });
+    await expect(page.getByRole("button", { name: "Wrapped", exact: true })).toBeVisible();
+    await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption("100");
+    await ready(page);
+}
+
+async function framePresentation(page: Page, layer: "preview-overlay" | "source-overlay") {
+    return page.getByTestId(layer).locator("polygon").evaluateAll(elements => elements.map(element => {
+        const style = getComputedStyle(element);
+        return { points: element.getAttribute("points"), indices: element.getAttribute("data-region-indices"),
+            frame: element.getAttribute("data-selection-frame"), fill: element.getAttribute("fill"),
+            stroke: style.stroke, width: style.strokeWidth, dash: style.strokeDasharray };
+    }));
+}
+
+async function previewPresentation(popup: Locator) {
+    return popup.evaluate(element => {
+        const popup = getComputedStyle(element), value = element.querySelector(".cu-flyover-value dd");
+        if (!value) throw new Error("Expected the source preview value.");
+        const text = getComputedStyle(value);
+        return { padding: popup.padding, borderRadius: popup.borderRadius, border: popup.border,
+            textColor: text.color, textSize: text.fontSize, textWeight: text.fontWeight, textLine: text.lineHeight };
+    });
+}
+
+for (const dpr of [1, 2]) {
+    test.describe(`Paragraphs PDF field interaction parity at DPR ${dpr}`, () => {
+        test.use({ deviceScaleFactor: dpr, reducedMotion: "reduce" });
+        for (const rotation of [0, 90]) {
+            test(`paragraph PDF hover/pin/clear uses Fields frames and preview styles at rotation ${rotation}`, async ({ page }) => {
+                await paragraphPdf(page);
+                if (rotation) await rotateSource(page);
+                const viewport = page.getByRole("group", { name: "Source viewport", exact: true });
+                const pane = page.getByRole("region", { name: "Extraction results" });
+                const fieldParts = page.getByTestId("result-overlay")
+                    .locator('polygon[data-outline-id="/contents/0/fields/Wrapped"]');
+                await fieldParts.last().hover();
+                await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCount(1);
+                const fieldsFrames = await framePresentation(page, "preview-overlay");
+                expect(fieldsFrames[0]).toMatchObject({ indices: "0 1 2", frame: "merged", fill: "none", width: "1.8px", dash: "none" });
+                const fieldStyle = await previewPresentation(page.getByRole("tooltip", { name: "Field preview", exact: true }));
+                const canvas = page.getByTestId("source-canvas");
+                const pixels = await canvas.evaluate(element => {
+                    if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected a PDF canvas.");
+                    return element.toDataURL();
+                });
+                await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
+                const paragraph = pane.getByRole("button", { name: "Select Paragraph 31", exact: true });
+                const scroll = pane.locator(".cu-rich-result-scroll");
+                await scroll.evaluate(element => { element.scrollTop = 0; });
+                const before = await viewport.evaluate(element => ({ top: element.scrollTop, left: element.scrollLeft }));
+                const paragraphParts = page.getByTestId("result-overlay")
+                    .locator('polygon[data-outline-id="/contents/0/paragraphs/30"]');
+                await paragraphParts.last().hover();
+                const popup = page.getByRole("tooltip", { name: "Paragraph preview", exact: true });
+                await expect(popup.locator("dt")).toHaveText(["Content"]);
+                await expect(popup.locator("dd")).toHaveText(["Line A / Line B / Line C"]);
+                await expect(popup.locator(".cu-flyover-confidence")).toHaveCount(0);
+                await expect(paragraph).toHaveAttribute("aria-pressed", "false");
+                await expect(page.getByTestId("source-overlay")).toHaveCount(0);
+                await expect(scroll).toHaveJSProperty("scrollTop", 0);
+                expect(await viewport.evaluate(element => ({ top: element.scrollTop, left: element.scrollLeft }))).toEqual(before);
+                await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue("1");
+                expect(await framePresentation(page, "preview-overlay")).toEqual(fieldsFrames);
+                expect(await previewPresentation(popup)).toEqual(fieldStyle);
+                await withinViewport(page, popup);
+                expect(await canvas.evaluate(element => {
+                    if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected a PDF canvas.");
+                    return element.toDataURL();
+                })).toBe(pixels);
+                await paragraphParts.last().click();
+                await expect(paragraph).toHaveAttribute("aria-pressed", "true");
+                await expect(viewport).toBeFocused();
+                await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCount(1);
+                const selected = await framePresentation(page, "source-overlay");
+                expect(selected[0]).toMatchObject({ points: fieldsFrames[0]?.points, indices: "0 1 2", frame: "merged", fill: "none", width: "1.8px", dash: "none" });
+                await expect.poll(() => scroll.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+                const visible = await scroll.boundingBox(), target = await paragraph.boundingBox();
+                if (!visible || !target) throw new Error("Expected a visible linked paragraph.");
+                expect(target.y).toBeGreaterThanOrEqual(visible.y + 7);
+                expect(target.y + target.height).toBeLessThanOrEqual(visible.y + visible.height - 7);
+                await scroll.evaluate(element => { element.scrollTop = 123; });
+                await paragraphParts.first().hover();
+                await expect(scroll).toHaveJSProperty("scrollTop", 123);
+                await expect(paragraph).toHaveAttribute("aria-pressed", "true");
+                await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
+                await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
+                await expect(scroll).toHaveJSProperty("scrollTop", 123);
+                await expect(paragraph).toHaveAttribute("aria-pressed", "true");
+                await viewport.press("Escape");
+                await expect(paragraph).toHaveAttribute("aria-pressed", "false");
+                await expect(page.getByTestId("source-overlay")).toHaveCount(0);
+                await expect(page.getByTestId("preview-overlay")).toHaveCount(0);
+                await expect(popup).toHaveCount(0);
+                if (rotation === 0) {
+                    await paragraphParts.last().click();
+                    await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCount(1);
+                    const first = await paragraphParts.first().boundingBox(), second = await paragraphParts.nth(1).boundingBox();
+                    if (!first || !second) throw new Error("Expected the real multiline paragraph sources.");
+                    await page.mouse.click(first.x + Math.min(first.width, second.width) / 2,
+                        (first.y + first.height + second.y) / 2);
+                    await expect(paragraph).toHaveAttribute("aria-pressed", "false");
+                    await expect(page.getByTestId("source-overlay")).toHaveCount(0);
+                    await expect(page.getByTestId("preview-overlay")).toHaveCount(0);
+                }
+            });
+        }
+
+        test("paragraph PDF selection keeps obstruction-safe Fields frames and does not expand real hit regions", async ({ page }) => {
+            await paragraphPdf(page);
+            const pane = page.getByRole("region", { name: "Extraction results" });
+            const fieldParts = page.getByTestId("result-overlay")
+                .locator('polygon[data-outline-id="/contents/0/fields/Blocked"]');
+            await fieldParts.first().hover();
+            await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCount(2);
+            const fieldsFrames = await framePresentation(page, "preview-overlay");
+            await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
+            const paragraph = pane.getByRole("button", { name: "Select Paragraph 32", exact: true });
+            const parts = page.getByTestId("result-overlay")
+                .locator('polygon[data-outline-id="/contents/0/paragraphs/31"]');
+            await parts.first().hover();
+            await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCount(2);
+            expect(await framePresentation(page, "preview-overlay")).toEqual(fieldsFrames);
+            expect(fieldsFrames.map(frame => frame.frame)).toEqual(["region", "region"]);
+            await parts.last().click();
+            await expect(paragraph).toHaveAttribute("aria-pressed", "true");
+            await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCount(2);
+            const first = await parts.first().boundingBox(), last = await parts.last().boundingBox();
+            if (!first || !last) throw new Error("Expected actual paragraph source regions.");
+            await page.mouse.click(first.x + first.width / 2, (first.y + first.height + last.y) / 2);
+            await expect(paragraph).toHaveAttribute("aria-pressed", "false");
+            await expect(page.getByTestId("source-overlay")).toHaveCount(0);
+            await expect(page.getByTestId("preview-overlay")).toHaveCount(0);
+            await expect(page.getByRole("tooltip", { name: "Paragraph preview", exact: true })).toHaveCount(0);
+        });
+    });
+}
+
 test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await ready(page);
@@ -55,9 +220,9 @@ test("active tabs switch complete current-page outlines, retain direct table tar
     const pane = page.getByRole("region", { name: "Extraction results" });
     const outlines = page.getByTestId("result-overlay");
     await expect(outlines).toHaveAttribute("data-result-view", "fields");
-    await expect(outlines.locator("polygon")).toHaveCount(3);
+    await expect(outlines.locator("polygon")).toHaveCount(4);
     expect(await outlines.locator("polygon").evaluateAll(elements => elements.map(element => element.getAttribute("fill"))))
-        .toEqual(["#FCE8E6", "#F1F3F5", "#F1F3F5"]);
+        .toEqual(["#FCE8E6", "#F1F3F5", "#F1F3F5", "#F1F3F5"]);
     await expect(page.getByTestId("source-tables").getByRole("button")).toHaveCount(2);
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
     await pane.getByRole("button", { name: "Zero", exact: true }).press("Enter");
@@ -87,7 +252,7 @@ test("active tabs switch complete current-page outlines, retain direct table tar
     await expect(pane.getByRole("button", { name: "Zero", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom);
     expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(paper);
-    await pane.getByRole("switch", { name: "Hide missing fields" }).click();
+    await expect(pane.getByRole("switch", { name: "Hide missing fields" })).toHaveCount(0);
     await expect(outlines.locator("polygon")).toHaveCount(4);
 });
 
@@ -103,7 +268,7 @@ test("right-side field hover opens a source-anchored value/confidence preview wi
     await expect(popup.locator("dd")).toHaveText(["0", "0.00"]);
     await expect(popup.locator(".cu-popover-heading")).toHaveText("Zero");
     await expect(zero).toHaveAttribute("aria-pressed", "false");
-    await expect(page.getByTestId("result-overlay").locator("polygon")).toHaveCount(3);
+    await expect(page.getByTestId("result-overlay").locator("polygon")).toHaveCount(4);
     expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(before);
     await withinViewport(page, popup);
     const target = await page.getByTestId("preview-overlay").locator("polygon").boundingBox();
@@ -193,13 +358,13 @@ test("unmapped source tables report their missing Fields association without cha
     const target = page.getByTestId("source-tables").getByRole("button", { name: "Locate Table 2 in results", exact: true });
     await target.press("Enter");
     await expect(pane.getByRole("tab", { name: "Fields", exact: true })).toHaveAttribute("aria-selected", "true");
-    await expect(pane.locator(".cu-fields-review-footer")).toContainText("no corresponding extracted fields");
+    await expect(pane.locator(".cu-fields-status")).toContainText("no corresponding extracted fields");
     await expect(target).toBeFocused();
     await checkPolygon(page, [{ x: 45 / 96, y: 35 / 64 }, { x: 85 / 96, y: 35 / 64 },
         { x: 85 / 96, y: 55 / 64 }, { x: 45 / 96, y: 55 / 64 }], 0);
     await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
-    await expect(pane.locator(".cu-fields-review-footer")).toContainText("no corresponding extracted fields");
+    await expect(pane.locator(".cu-fields-status")).toContainText("no corresponding extracted fields");
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom);
 });
 

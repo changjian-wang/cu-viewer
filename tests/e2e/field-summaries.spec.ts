@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { loadReviewFixture } from "./uiRedesignFixtures";
-import { expandField, locateGroup, ready } from "./viewerAssertions";
+import { expandField, locateGroup, ready, setShowConfidence } from "./viewerAssertions";
 
 declare global {
     interface Window { cuSummaryCopies: string[] }
@@ -59,7 +59,7 @@ async function loadSynthetic(page: Page): Promise<void> {
 test("UI-47 selected real money objects retain values and source selection when folded without selected labels", async ({ page }) => {
     await page.goto("/");
     await ready(page);
-    await page.getByRole("button", { name: "3 columns", exact: true }).click();
+    await setShowConfidence(page, true);
     for (const [name, value] of [["AmountDue", "610 USD"], ["BalanceForward", "500 USD"], ["TotalAmount", "110 USD"]] as const) {
         await expandField(page, name);
         await locateGroup(page, `/contents/0/fields/${name}`);
@@ -84,7 +84,7 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1030, height: 760
         test(`UI-47 long values remain one-line ellipsized without layout shifts at ${viewport.width} and ${columns} columns`, async ({ page }) => {
             await page.setViewportSize(viewport);
             await loadSynthetic(page);
-            await page.getByRole("button", { name: `${columns} columns`, exact: true }).click();
+            await setShowConfidence(page, columns === 3);
             await expandField(page, "LongObject");
             const before = await row(page, "LongObject").evaluate(element => element.getBoundingClientRect().height);
             await fold(page, "LongObject");
@@ -160,16 +160,16 @@ test("UI-47 folded summaries keep zero, false, null and empty-string semantics",
         .toBe(JSON.stringify(syntheticResult.contents[0]!.fields.Falsy.valueObject, null, 2));
 });
 
-test("UI-47 real summary search keeps parent matches, navigation counts and own-confidence filters consistent", async ({ page }) => {
+test("UI-47 real summary search keeps parent matches and navigation counts consistent", async ({ page }) => {
     await loadSynthetic(page);
     await fold(page, "Arbitrary");
     await expect(summary(page, "Arbitrary")).toHaveText("123.45 EUR");
     await page.getByRole("searchbox", { name: "Search fields or values" }).fill("123.45 EUR");
-    await expect(page.locator(".cu-field-navigation")).toContainText("2 /");
+    await expect(page.locator(".cu-field-navigation > span")).toHaveText("— / 2 fields");
     await expect(page.getByRole("button", { name: "Number", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Code", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: /Low confidence/ }).click();
-    await expect(page.locator(".cu-field-navigation")).toContainText("1 /");
+    await page.getByRole("searchbox", { name: "Search fields or values" }).fill("Number");
+    await expect(page.locator(".cu-field-navigation > span")).toHaveText("— / 1 fields");
     await expect(page.getByRole("button", { name: "Code", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Number", exact: true })).toBeVisible();
     await expect(page.locator(".cu-group-selection-count")).toHaveCount(0);

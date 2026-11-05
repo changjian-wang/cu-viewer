@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCuResult } from "../model/parseCuResult";
-import { defaultReviewSettings, defaultSourceCategories } from "../interaction/reviewFields";
-import { popoverPosition, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames, sourceWordOutlines, WORD_LAYER_COLOR } from "./sourceOverlays";
+import { defaultReviewSettings } from "../interaction/reviewFields";
+import { isValueSourceField, popoverPosition, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames, sourceWordOutlines, WORD_LAYER_COLOR } from "./sourceOverlays";
 
 function fixture() {
     const original = {
@@ -28,6 +28,22 @@ function fixture() {
 }
 
 describe("Studio view-specific source outlines", () => {
+    it("shares value-source interaction rules only between leaf Fields and Paragraphs", () => {
+        const { content, original } = fixture(), before = JSON.stringify(original);
+        const field = content.fields[0]!, paragraph = content.paragraphs![0]!.field;
+        expect(isValueSourceField("fields", field)).toBe(true);
+        expect(isValueSourceField("paragraphs", paragraph)).toBe(true);
+        expect(isValueSourceField("fields", paragraph)).toBe(false);
+        expect(isValueSourceField("paragraphs", field)).toBe(false);
+        expect(isValueSourceField("fields", content.fields[1]!)).toBe(false);
+        expect(isValueSourceField("fields", null)).toBe(false);
+        for (const view of ["figures", "signatures", "markdown", "result", undefined] as const) {
+            expect(isValueSourceField(view, field)).toBe(false);
+            expect(isValueSourceField(view, paragraph)).toBe(false);
+        }
+        expect(JSON.stringify(original)).toBe(before);
+    });
+
     it("renders actual field regions including collapsed descendants without identity colors", () => {
         const { content, original } = fixture();
         const before = JSON.stringify(original);
@@ -47,7 +63,7 @@ describe("Studio view-specific source outlines", () => {
         expect(sourceOutlines(content, "fields", 1, true).map(item => item.field.name)).toEqual(["Name"]);
     });
 
-    it("hides only category fills while preserving all source geometry, keys and semantic colors", () => {
+    it("uses field/table switches for all related fills without changing geometry, keys or semantic colors", () => {
         const original = { apiVersion: "2025-11-01", contents: [{ kind: "document", unit: "pixel",
             pages: [{ pageNumber: 1, width: 100, height: 100 }], fields: {
                 Normal: { type: "string", valueString: "normal", confidence: 0.9, source: "D(1,1,1,10,5)" },
@@ -60,14 +76,19 @@ describe("Studio view-specific source outlines", () => {
             } }] };
         const content = parseCuResult(original).contents[0];
         const before = JSON.stringify(original), baseline = sourceOutlines(content, "fields", 1, false);
-        const categories = ["field", "lowField", "unavailable", "table", "lowTable"] as const;
         expect(baseline).toHaveLength(5);
-        for (const category of categories) {
-            const settings = { ...defaultReviewSettings, sourceCategories: { ...defaultSourceCategories, [category]: false } };
+        for (const [key, enabled] of [
+            ["showFields", [false, false, false, true, true]],
+            ["showTables", [true, true, true, false, false]],
+        ] as const) {
+            const settings = { ...defaultReviewSettings, [key]: false };
             const outlines = sourceOutlines(content, "fields", 1, false, settings);
-            expect(outlines.map(item => item.enabled)).toEqual(categories.map(candidate => candidate !== category));
+            expect(outlines.map(item => item.enabled)).toEqual(enabled);
             expect(outlines.map(item => ({ ...item, enabled: true }))).toEqual(baseline);
         }
+        const normal = sourceOutlines(content, "fields", 1, false, { ...defaultReviewSettings, highlightLow: false });
+        expect(normal.map(item => item.enabled)).toEqual([true, true, true, true, true]);
+        expect(normal.map(item => item.color)).toEqual(["#E8F5E9", "#E8F5E9", "#F1F3F5", "#E8F1FF", "#E8F1FF"]);
         expect(JSON.stringify(original)).toBe(before);
     });
 

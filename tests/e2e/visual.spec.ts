@@ -66,7 +66,7 @@ async function pinAmount(page: Page): Promise<void> {
 test("default product layout and Fields match the approved prototype-aligned reference", async ({ page }) => {
     await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
-    await expect(page.getByRole("switch", { name: "Hide missing fields" })).not.toBeChecked();
+    await expect(page.getByRole("switch", { name: "Hide missing fields" })).toHaveCount(0);
     await snapshot(page, "default-pdf.png");
 
     await page.setViewportSize({ width: 1458, height: 861 });
@@ -100,7 +100,7 @@ test("hover preview and pinned selection retain the approved layout, colors and 
     await snapshot(page, "pdf-pinned.png");
 });
 
-test("expanded and collapsed groups and missing filtering preserve Fields appearance without Clear", async ({ page }) => {
+test("expanded and collapsed groups and always-visible missing values preserve Fields appearance without Clear", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
     await pinAmount(page);
     await expect(pane).toHaveScreenshot("fields-expanded.png");
@@ -111,9 +111,7 @@ test("expanded and collapsed groups and missing filtering preserve Fields appear
     await checkPolygon(page, amountPoints, 0);
     await expect(pane).toHaveScreenshot("fields-collapsed-pin.png");
 
-    await page.getByRole("switch", { name: "Hide missing fields" }).click();
-    await expect(page.locator("[data-field-depth='0']")).toHaveCount(27);
-    await page.getByRole("switch", { name: "Hide missing fields" }).uncheck();
+    await expect(page.getByRole("switch", { name: "Hide missing fields" })).toHaveCount(0);
     await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
     const missing = page.locator('[data-field-id="/contents/0/fields/PaymentTerm"]');
     await missing.getByRole("button", { name: "PaymentTerm", exact: true }).click();
@@ -123,11 +121,10 @@ test("expanded and collapsed groups and missing filtering preserve Fields appear
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
     await expect(pane).toHaveScreenshot("fields-missing-visible.png");
 
-    await page.getByRole("switch", { name: "Hide missing fields" }).click();
+    await page.getByRole("group", { name: "Source viewport", exact: true }).press("Escape");
     await pane.locator(".cu-fields-scroll").evaluate(element => element.scrollTo(0, 0));
     await neutral(page);
     await expect(pane.getByRole("status")).toHaveText("No field selected");
-    await page.getByRole("switch", { name: "Hide missing fields" }).uncheck();
     await expandField(page, "AmountDue");
     await neutral(page);
     await expect(page.getByRole("button", { name: "Clear", exact: true })).toHaveCount(0);

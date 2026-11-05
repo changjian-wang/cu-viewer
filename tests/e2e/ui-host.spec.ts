@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
+import { openFieldsSettings } from "./viewerAssertions";
 
 const host = `/@fs/${resolve("tests", "e2e", "source-inputs.html").replaceAll("\\", "/")}`;
 
@@ -11,14 +12,37 @@ test("UI6 controlled order renders host changes, is read-only without a handler 
     await expect(viewer.getByRole("button", { name: "Zoom in", exact: true })).toBeEnabled({ timeout: 15000 });
     const roots = viewer.locator('.cu-fields-table > tbody > tr[data-field-depth="0"]');
     await expect(roots.first()).toHaveAttribute("data-field-id", "/contents/0/fields/InvoiceId");
+    const position = viewer.locator(".cu-field-navigation > span");
+    const selected = viewer.getByRole("button", { name: "InvoiceId", exact: true });
+    await expect(position).toHaveText("— / 77 fields");
+    await selected.click();
+    await expect(position).toHaveText("1 / 77 fields");
     await viewer.getByRole("button", { name: "InvoiceId", exact: true }).press("Alt+ArrowDown");
     await expect(roots.first()).toHaveAttribute("data-field-id", "/contents/0/fields/CustomerName");
+    await expect(position).toHaveText("2 / 77 fields");
+    await expect(selected).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("host-field-order")).toContainText('"changes":1');
     await page.getByRole("checkbox", { name: "Handle order changes", exact: true }).uncheck();
     await viewer.getByRole("button", { name: "InvoiceId", exact: true }).press("Alt+ArrowUp");
     await expect(roots.first()).toHaveAttribute("data-field-id", "/contents/0/fields/CustomerName");
+    await expect(position).toHaveText("2 / 77 fields");
     await expect(page.getByTestId("host-field-order")).toContainText('"changes":1');
-    await expect(viewer.getByRole("button", { name: "Reset order", exact: true })).toBeDisabled();
+    const readOnlySettings = await openFieldsSettings(viewer);
+    await expect(readOnlySettings.getByRole("button", { name: "Reset order", exact: true })).toBeDisabled();
+    await expect(readOnlySettings.getByRole("button", { name: "Reset order", exact: true }))
+        .toHaveAttribute("title", /Field order is read-only/);
+    await page.getByRole("checkbox", { name: "Handle order changes", exact: true }).check();
+    const settings = await openFieldsSettings(viewer);
+    await settings.getByRole("button", { name: "Reset order", exact: true }).click();
+    await settings.getByRole("button", { name: "Close fields settings", exact: true }).click();
+    await expect(position).toHaveText("15 / 77 fields");
+    await expect(selected).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("host-field-order")).toContainText('"changes":2');
+    await viewer.getByRole("button", { name: "Next field", exact: true }).click();
+    await expect(position).toHaveText("16 / 77 fields");
+    await viewer.getByRole("button", { name: "Previous field", exact: true }).click();
+    await expect(position).toHaveText("15 / 77 fields");
+    await expect(selected).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: "Inspect caller data", exact: true }).click();
     await expect(page.getByTestId("caller-result-unchanged")).toHaveText("true");
     expect(await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith("cu-viewer:review:v1:")))).toEqual([]);

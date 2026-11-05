@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
-import { expandField, ready } from "./viewerAssertions";
+import { expandField, ready, setShowConfidence } from "./viewerAssertions";
 
 test.use({ reducedMotion: "reduce", deviceScaleFactor: 1, launchOptions: { ignoreDefaultArgs: ["--hide-scrollbars"] } });
 
@@ -140,7 +140,7 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1280, height: 800
         const wrapper = page.locator('[data-array-id="/contents/0/fields/LineItems"]');
         const table = page.getByRole("table", { name: "LineItems values", exact: true });
         for (const columns of [2, 3]) {
-            await page.getByRole("button", { name: `${columns} columns`, exact: true }).click();
+            await setShowConfidence(page, columns === 3);
             await wrapper.scrollIntoViewIfNeeded();
             await wrapper.evaluate(element => { element.scrollLeft = 0; });
             await expect(table.getByRole("rowheader")).toHaveText(["1", "2", "3"]);
