@@ -286,7 +286,7 @@ test("right-side field hover opens a source-anchored value/confidence preview wi
     await expect(popup.locator("dd")).toHaveText(["Returned address", "N/A"]);
     await page.getByRole("button", { name: "Ungrounded", exact: true }).hover();
     await expect(popup).toHaveCount(0);
-    await expect(page.locator(".cu-preview-hint")).toContainText("no source region");
+    await expect(page.locator(".cu-preview-hint")).toHaveCount(0);
 });
 
 test("paragraph hover and focus show only Content, preserve pinning and dismiss on exit, Escape or tab changes", async ({ page }) => {

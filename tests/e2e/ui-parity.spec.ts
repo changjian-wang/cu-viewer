@@ -94,7 +94,7 @@ for (const sample of ["PDF", "Receipt PNG"]) {
 }
 
 for (const sample of ["PDF", "Receipt PNG"]) {
-    test(`BUG-009 / BUG-003 ${sample} shares one row with status, centered navigation and right-aligned zoom`, async ({ page }) => {
+    test(`BUG-009 / BUG-003 ${sample} shares one row with filename, centered navigation and right-aligned zoom`, async ({ page }) => {
         await page.setViewportSize({ width: 1800, height: 1000 });
         await page.goto("/");
         await ready(page);
@@ -161,7 +161,8 @@ for (const sample of ["PDF", "Receipt PNG"]) {
             await expect(page.locator(".cu-source-pane > header")).toHaveCount(0);
             await expect(page.locator(".cu-source-toolbar .cu-page-controls, .cu-source-toolbar .cu-view-controls")).toHaveCount(2);
             await expect(page.getByRole("button", { name: "Clear selection", exact: true })).toHaveCount(0);
-            await expect(page.locator(".cu-document-status button")).toHaveCount(0);
+            await expect(page.locator(".cu-document-status")).toHaveCount(0);
+            await expect(page.locator(".cu-source-file-info > *")).toHaveCount(1);
             if (sample === "PDF") {
                 const next = page.getByRole("button", { name: "Next page", exact: true });
                 const navigation = await next.isEnabled() ? next : page.getByRole("button", { name: "Previous page", exact: true });
@@ -185,7 +186,7 @@ for (const sample of ["PDF", "Receipt PNG"]) {
 }
 
 for (const width of [1030, 1800]) {
-    test(`BUG-009 functional source status stays usable without changing the viewport at ${width}`, async ({ page }) => {
+    test(`source identity stays icon-and-filename only across selection states at ${width}`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });
         await loadReviewFixture(page);
         const content = reviewFixture.contents[0];
@@ -204,43 +205,36 @@ for (const width of [1030, 1800]) {
         const initial = await viewport.boundingBox();
         const initialZoom = await page.getByLabel("Zoom percentage").textContent();
         if (!initial || !initialZoom) throw new Error("The fitted source viewport is unavailable.");
-        const status = page.locator(".cu-document-status");
-        await expect(status).toHaveAttribute("role", "group");
-        await expect(status).toHaveAttribute("aria-label", "Source selection and location");
+        const identity = page.locator(".cu-source-identity");
+        const filename = await identity.locator("strong").textContent();
+        if (!filename) throw new Error("The source filename is missing.");
         const stable = async (): Promise<void> => {
             await ready(page);
-            await expect(status.getByRole("button", { name: "Clear selection", exact: true })).toHaveCount(0);
+            await expect(identity).toHaveText(filename);
+            await expect(identity.locator(".cu-file-name > *")).toHaveCount(2);
+            await expect(identity.locator(".cu-source-file-info > *")).toHaveCount(1);
+            await expect(identity.locator("button, input, select")).toHaveCount(0);
+            await expect(page.locator(".cu-document-status, .cu-group-source-controls, .cu-region-controls, .cu-preview-hint")).toHaveCount(0);
+            await expect(page.getByRole("group", { name: "Source document toolbar", exact: true })).toHaveCSS("height", "44px");
             const current = await viewport.boundingBox();
             if (!current) throw new Error("The source viewport disappeared.");
             expect(current).toEqual(initial);
             await expect(page.getByLabel("Zoom percentage")).toHaveText(initialZoom);
-            const layout = await status.evaluate(element => {
-                const bounds = element.getBoundingClientRect();
-                return { overflow: element.scrollWidth - element.clientWidth,
-                    controls: [...element.querySelectorAll("button, select")].map(control => {
-                        const rect = control.getBoundingClientRect();
-                        const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
-                        return { left: rect.left - bounds.left, right: rect.right - bounds.right,
-                            top: rect.top - bounds.top, bottom: rect.bottom - bounds.bottom,
-                            width: rect.width, height: rect.height, hit: hit === control || control.contains(hit) };
-                    }) };
+            const centerError = await identity.evaluate(element => {
+                const file = element.querySelector(".cu-file-name")?.getBoundingClientRect();
+                const bar = element.closest(".cu-source-toolbar")?.getBoundingClientRect();
+                if (!file || !bar) throw new Error("The filename row or source toolbar is missing.");
+                return Math.abs(file.top + file.height / 2 - bar.top - bar.height / 2);
             });
-            expect(layout.overflow).toBeLessThanOrEqual(1);
-            for (const control of layout.controls) {
-                expect(control.left).toBeGreaterThanOrEqual(0);
-                expect(control.right).toBeLessThanOrEqual(0);
-                expect(control.top).toBeGreaterThanOrEqual(0);
-                expect(control.bottom).toBeLessThanOrEqual(0);
-                expect(control.width).toBeGreaterThanOrEqual(24);
-                expect(control.height).toBeGreaterThanOrEqual(24);
-                expect(control.hit).toBe(true);
-            }
+            expect(centerError).toBeLessThanOrEqual(1);
         };
         await expect(viewport).toHaveAccessibleDescription(/Ctrl or Command with scroll zooms at the pointer/);
         await expect(page.locator(".cu-preview-dock")).toHaveCount(0);
-        await expect(status.getByRole("button")).toHaveCount(0);
+        await stable();
         await page.getByRole("button", { name: "Ungrounded", exact: true }).hover();
-        await expect(status.locator(".cu-preview-hint")).toHaveText("Ungrounded: no source region");
+        await stable();
+        await page.getByRole("button", { name: "Ungrounded", exact: true }).click();
+        await expect(page.getByTestId("source-overlay")).toHaveCount(0);
         await stable();
         await page.getByRole("button", { name: "InvoiceId", exact: true }).click();
         await expect(page.getByTestId("source-overlay")).toBeVisible();
@@ -250,41 +244,33 @@ for (const width of [1030, 1800]) {
         await expect(page.getByRole("button", { name: "InvoiceId", exact: true })).toHaveAttribute("aria-pressed", "false");
         await stable();
         await page.getByRole("button", { name: "MultiRegion", exact: true }).click();
-        const next = status.getByRole("button", { name: "Next source region", exact: true });
-        const previous = status.getByRole("button", { name: "Previous source region", exact: true });
-        await expect(status.getByText("1 / 2", { exact: true })).toBeVisible();
-        await expect(next).toHaveAccessibleDescription("1 region on p.1 \u00b7 Location 1 of 2");
+        await expect(page.getByTestId("source-overlay")).toBeVisible();
         await stable();
-        await next.click();
+        await page.getByRole("button", { name: "Next page", exact: true }).click();
         await ready(page);
         await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue("2");
-        await expect(status.getByText("2 / 2", { exact: true })).toBeVisible();
-        await expect(previous).toHaveAccessibleDescription("1 region on p.2 \u00b7 Location 2 of 2");
-        await expect(previous).toBeFocused();
+        await page.getByRole("button", { name: "MultiRegion", exact: true }).click();
+        await expect(page.getByTestId("source-overlay")).toBeVisible();
         await stable();
-        await previous.click();
+        await page.getByRole("button", { name: "Previous page", exact: true }).click();
         await stable();
         await page.getByRole("button", { name: "CrossPage", exact: true }).click();
         await ready(page);
         await page.getByRole("textbox", { name: "Page number", exact: true }).fill("1");
         await page.getByRole("textbox", { name: "Page number", exact: true }).press("Enter");
-        await expect(status.locator(".cu-preview-hint")).toHaveText("Selected source is on page 2");
         await stable();
         await locateGroup(page, `/contents/0/fields/${groupName}`);
-        const groupPage = status.getByRole("combobox", { name: "Selected group source page", exact: true });
-        await expect(status.locator(".cu-group-source-controls strong")).toHaveAttribute("title", groupName);
-        await expect(groupPage).toHaveAccessibleDescription(/2 fields.*regions on p\.1/);
+        await expect(page.getByTestId("source-overlay")).toBeVisible();
         await stable();
-        await groupPage.focus();
-        await groupPage.selectOption("2");
+        const number = page.getByRole("textbox", { name: "Page number", exact: true });
+        await number.fill("2");
+        await number.press("Enter");
         await ready(page);
-        await expect(groupPage).toHaveValue("2");
-        await expect(groupPage).toHaveAccessibleDescription(/2 fields.*regions on p\.2/);
-        await expect(groupPage).toBeFocused();
+        await expect(number).toHaveValue("2");
+        await expect(number).toBeFocused();
+        await expect(page.getByTestId("source-overlay")).toBeVisible();
         await stable();
         await page.mouse.click(initial.x + 5, initial.y + 5);
-        await expect(status.locator(".cu-group-source-controls, .cu-region-controls, .cu-preview-hint")).toHaveCount(0);
-        await expect(status.getByRole("button")).toHaveCount(0);
         await expect(page.getByTestId("source-overlay")).toHaveCount(0);
         await stable();
         await page.getByRole("button", { name: "Previous page", exact: true }).focus();

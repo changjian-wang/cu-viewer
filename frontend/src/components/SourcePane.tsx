@@ -6,7 +6,6 @@ import type { LoadedSource } from "../source/source";
 import { hasSourcePage, unavailableSourcePageMessage } from "../source/source";
 import type { CuContent, CuField, CuPoint, CuRegion } from "../model/types";
 import { fieldLabel, isFieldGroup } from "../interaction/interaction";
-import { leafFields } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ResultView } from "../model/resultViews";
 import type { SourceOutline } from "../source/sourceOverlays";
@@ -27,7 +26,6 @@ interface SourcePaneProps {
     pinned: CuField | null;
     hasSelection: boolean;
     pinnedRegions: readonly CuRegion[];
-    pinnedRegionIndex: number;
     view: ResultView | undefined;
     outlines: readonly SourceOutline[];
     previewId: string;
@@ -43,7 +41,6 @@ interface SourcePaneProps {
     regionIndex: number;
     revealRequest: number | null;
     onPage: (pageNumber: number) => void;
-    onRegion: (index: number) => void;
     onRenderReady: (ready: boolean) => void;
     settings: ReviewSettings;
     onSettings: (settings: ReviewSettings) => void;
@@ -133,8 +130,7 @@ export function SourcePane(props: SourcePaneProps) {
     const captureControlFocus = (requested?: HTMLElement): void => {
         const target = requested ?? container.current?.ownerDocument.activeElement;
         if (target instanceof HTMLElement && container.current?.parentElement?.contains(target) &&
-            (toolbar.current?.contains(target) || documentControls.current?.contains(target) ||
-                target.closest(".cu-region-controls"))) pendingFocus.current = target;
+            (toolbar.current?.contains(target) || documentControls.current?.contains(target))) pendingFocus.current = target;
     };
     useLayoutEffect(() => {
         const previous = previousView.current;
@@ -149,7 +145,7 @@ export function SourcePane(props: SourcePaneProps) {
         const target = pendingFocus.current;
         pendingFocus.current = null;
         if (!target.isConnected || (target.ownerDocument.activeElement !== target.ownerDocument.body && target.ownerDocument.activeElement !== target)) return;
-        const next = target.matches(":disabled") ? target.closest(".cu-region-controls, .cu-page-controls, .cu-view-controls")
+        const next = target.matches(":disabled") ? target.closest(".cu-page-controls, .cu-view-controls")
             ?.querySelector<HTMLElement>("button:not(:disabled), input:not(:disabled), select:not(:disabled)") : target;
         next?.focus({ preventScroll: true });
     }, [ready, props.regionIndex, props.pageNumber]);
@@ -344,15 +340,7 @@ export function SourcePane(props: SourcePaneProps) {
     };
     const region = props.regions[props.regionIndex];
     const unavailable = props.source && region && !hasSourcePage(props.source.pages, region.pageNumber);
-    const sourcePages = [...new Set(props.pinnedRegions.map(region => region.pageNumber))].sort((a, b) => a - b);
     const error = props.error ?? renderError;
-    const pinnedLabel = props.pinned ? fieldLabel(props.pinned) : "";
-    const groupFields = pinnedGroup && props.pinned ? leafFields([props.pinned]).length : 0;
-    const groupSummary = `${groupFields} fields · ${selectedPolygons.pinned.length} regions on p.${props.pageNumber}`;
-    const locationSummary = `${selectedPolygons.pinned.length} ${selectedPolygons.pinned.length === 1 ? "region" : "regions"} on p.${props.pageNumber} · Location ${props.pinnedRegionIndex + 1} of ${props.pinnedRegions.length}`;
-    const sourceStatus = props.active && !region ? `${props.active.name}: no source region` :
-        unavailable ? `Source page ${region.pageNumber} is unavailable in this file.` :
-            props.active && region?.pageNumber !== props.pageNumber ? `Selected source is on page ${region?.pageNumber}` : null;
     const sourceStyle: CSSProperties & { "--cu-source-viewport-height": string } = {
         "--cu-source-viewport-height": `${available.height + 60}px`,
     };
@@ -498,35 +486,7 @@ export function SourcePane(props: SourcePaneProps) {
             </div>}
         </div>
         <SourceToolbar source={props.source} summaryId={`${sourceId}-summary`} toolbarRef={toolbar}
-            settings={props.settings} onSettings={props.onSettings} onControlFocus={captureControlFocus} selection={<>
-            {pinnedGroup && props.pinned ? <div className="cu-group-source-controls">
-                <strong title={pinnedLabel}>{pinnedLabel}</strong>
-                <span title={groupSummary}>
-                    <span id={`${sourceId}-group-status`} className="cu-visually-hidden">{groupSummary}</span>
-                    <span aria-hidden="true">{groupFields} fields</span>
-                </span>
-                {sourcePages.length > 1 && <select aria-label="Selected group source page" value={props.pageNumber}
-                    aria-describedby={`${sourceId}-group-status`} title={`${pinnedLabel}: ${groupSummary}`}
-                    onChange={event => props.onRegion(props.pinnedRegions.findIndex(region => region.pageNumber === Number(event.target.value)))}>
-                    {!sourcePages.includes(props.pageNumber) && <option value={props.pageNumber} disabled>Page {props.pageNumber} (no group source)</option>}
-                    {sourcePages.map(pageNumber => <option key={pageNumber} value={pageNumber}
-                        disabled={!hasSourcePage(props.source?.pages, pageNumber)}>Page {pageNumber}</option>)}
-                </select>}</div> :
-                props.pinned && props.pinnedRegions.length > 1 ? <aside className="cu-region-controls" aria-label="Source region navigation"
-                    aria-describedby={`${sourceId}-location-status`}>
-                    <span title={pinnedLabel}>{pinnedLabel}</span>
-                    <button type="button" aria-label="Previous source region" disabled={props.pinnedRegionIndex === 0}
-                        aria-describedby={`${sourceId}-location-status`} title="Previous source region"
-                        onClick={() => { captureControlFocus(); props.onRegion(props.pinnedRegionIndex - 1); }}>‹</button>
-                    <span title={`${locationSummary}. All field regions on this page stay selected. Arrows change the source location.`}>
-                        <span id={`${sourceId}-location-status`} className="cu-visually-hidden">{locationSummary}</span>
-                        <span aria-hidden="true">{props.pinnedRegionIndex + 1} / {props.pinnedRegions.length}</span>
-                    </span>
-                    <button type="button" aria-label="Next source region" disabled={props.pinnedRegionIndex >= props.pinnedRegions.length - 1}
-                        aria-describedby={`${sourceId}-location-status`} title="Next source region"
-                        onClick={() => { captureControlFocus(); props.onRegion(props.pinnedRegionIndex + 1); }}>›</button>
-                </aside> : sourceStatus && <span className="cu-preview-hint" title={sourceStatus}>{sourceStatus}</span>}
-            </>}>
+            settings={props.settings} onSettings={props.onSettings} onControlFocus={captureControlFocus}>
             <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}
                 minZoom={minZoom} maxZoom={maxZoom} ready={ready} fit={fit} controlsRef={documentControls}
                 onPage={props.onPage} onZoom={value => applyZoom(value)}

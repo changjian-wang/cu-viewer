@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import { reviewPdf } from "./pdfFixtures";
+import { openValueMenu } from "./uiRedesignFixtures";
 import { expandField, fitSource, ready, rotateSource } from "./viewerAssertions";
 
 test.use({ reducedMotion: "reduce" });
@@ -116,7 +117,6 @@ test("UI-43 all six real multi-line fields select both actual fragments and keep
         await expectBelow(page, sourceParts(page, id));
         await sourceParts(page, id).nth(1).press("Enter");
         await expectCompleteSelection(page, id, 2);
-        await expect(page.locator(".cu-region-controls")).toContainText("2 regions on p.1 · Location 2 of 2");
         await expect(page.getByRole("button", { name, exact: true })).toHaveAttribute("aria-pressed", "true");
         await expectBelow(page, sourceParts(page, id));
     }
@@ -139,7 +139,7 @@ for (const image of [false, true]) {
         await page.getByRole("button", { name: "Ungrounded", exact: true }).click();
         await expect(page.getByTestId("source-overlay")).toHaveCount(0);
         await expect(popup(page)).toHaveCount(0);
-        await expect(page.locator(".cu-preview-hint")).toContainText("no source region");
+        await expect(page.locator(".cu-preview-hint")).toHaveCount(0);
     });
 }
 
@@ -151,7 +151,6 @@ test("UI-43 clicking any source fragment selects its complete field without sele
     await expectBelow(page, sourceParts(page, id));
     await expect(page.locator(".cu-fields-table > tbody > tr.is-current-value")).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Wrapped", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator(".cu-region-controls")).toContainText("3 regions on p.1 · Location 3 of 5");
     await expect(page.getByRole("group", { name: "Source viewport", exact: true })).toBeFocused();
 });
 
@@ -163,14 +162,13 @@ test("UI-43 separated same-page locations stay selected while navigation reveals
     await page.getByRole("button", { name: "Scattered", exact: true }).click();
     await expectCompleteSelection(page, id, 2, 2);
     await expectBelow(page, sourceParts(page, id).first());
-    await page.getByRole("button", { name: "Next source region", exact: true }).click();
+    await sourceParts(page, id).nth(1).press("Enter");
     await expectBelow(page, sourceParts(page, id).nth(1));
     await expectCompleteSelection(page, id, 2, 2);
     const first = await sourceParts(page, id).first().boundingBox();
     const viewport = await page.getByRole("group", { name: "Source viewport", exact: true }).boundingBox();
     if (!first || !viewport) throw new Error("Source location bounds are unavailable.");
     expect(first.y + first.height).toBeLessThan(viewport.y);
-    await expect(page.locator(".cu-region-controls")).toContainText("Location 2 of 2");
 });
 
 test("UI-43 cross-page navigation retains the field, current-page fragments, zoom and exact location", async ({ page }) => {
@@ -179,13 +177,15 @@ test("UI-43 cross-page navigation retains the field, current-page fragments, zoo
     await page.getByRole("button", { name: "Wrapped", exact: true }).click();
     const zoom = await page.getByLabel("Zoom percentage").textContent();
     await expectCompleteSelection(page, id, 3);
-    for (let index = 0; index < 3; index++) await page.getByRole("button", { name: "Next source region", exact: true }).click();
+    await page.getByRole("textbox", { name: "Page number" }).fill("2");
+    await page.getByRole("textbox", { name: "Page number" }).press("Enter");
+    await ready(page);
+    await page.getByRole("button", { name: "Wrapped", exact: true }).click();
     await ready(page);
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("2");
     await expectCompleteSelection(page, id, 2);
     expect(await pinnedParts(page).evaluateAll(elements => elements.flatMap(element =>
         (element.getAttribute("data-region-indices") ?? "").split(" ").map(Number)))).toEqual([3, 4]);
-    await expect(page.locator(".cu-region-controls")).toContainText("2 regions on p.2 · Location 4 of 5");
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
     await expectBelow(page, sourceParts(page, id));
     await page.getByRole("textbox", { name: "Page number" }).fill("1");
@@ -210,19 +210,19 @@ test("UI-43 hover preserves the complete pinned field without panning and anchor
     await expect(page.getByRole("button", { name: "Reference", exact: true })).toHaveAttribute("aria-pressed", "false");
 });
 
-test("UI-43 an unavailable source location reports its error without fabricating a card or dropping visible selection", async ({ page }) => {
+test("UI-43 an unavailable source location stays disabled without dropping visible selection", async ({ page }) => {
     await loadSynthetic(page);
     await page.getByLabel("Choose source file").setInputFiles(resolve("tests", "fixtures", "images", "orientation-marker.png"));
     await expect(page.getByRole("group", { name: "Source viewport", exact: true })).toHaveAttribute("aria-disabled", "false");
     await page.getByRole("button", { name: "Wrapped", exact: true }).click();
     await expectCompleteSelection(page, fieldId("Wrapped"), 3);
-    for (let index = 0; index < 2; index++) await page.getByRole("button", { name: "Next source region", exact: true }).click();
     const before = await page.getByTestId("rendered-page").boundingBox();
-    await page.getByRole("button", { name: "Next source region", exact: true }).click();
+    await openValueMenu(page, fieldId("Wrapped"));
+    const unavailable = page.getByRole("menuitem", { name: "Locate on page 2", exact: true });
+    await expect(unavailable).toBeDisabled();
+    await expect(unavailable).toHaveAttribute("title", /Page 2 is not present in the loaded source/);
     await expect(page.getByTestId("source-canvas")).toHaveAttribute("aria-label", "Rendered source page 1");
-    await expect(page.getByRole("alert").filter({ hasText: /Source region:.*page 2/i })).toBeVisible();
     await expectCompleteSelection(page, fieldId("Wrapped"), 3);
-    await expect(popup(page)).toHaveCount(0);
     expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(before);
 });
 
@@ -282,9 +282,8 @@ test("UI-44 nearby sources across columns retain their original individual outli
     await loadSynthetic(page);
     await page.getByRole("button", { name: "CrossColumn", exact: true }).click();
     await expectCompleteSelection(page, fieldId("CrossColumn"), 2, 2);
-    await page.getByRole("button", { name: "Next source region", exact: true }).click();
+    await sourceParts(page, fieldId("CrossColumn")).nth(1).press("Enter");
     await expectCompleteSelection(page, fieldId("CrossColumn"), 2, 2);
-    await expect(page.locator(".cu-region-controls")).toContainText("Location 2 of 2");
 });
 
 test("UI-44 separate multiline blocks use two frames without changing their four source locations", async ({ page }) => {
@@ -294,9 +293,8 @@ test("UI-44 separate multiline blocks use two frames without changing their four
     await expectCompleteSelection(page, id, 4, 2);
     expect(await pinnedParts(page).evaluateAll(elements => elements.map(element => element.getAttribute("data-region-indices"))))
         .toEqual(["0 1", "2 3"]);
-    for (let index = 0; index < 2; index++) await page.getByRole("button", { name: "Next source region", exact: true }).click();
+    await sourceParts(page, id).nth(2).press("Enter");
     await expectCompleteSelection(page, id, 4, 2);
-    await expect(page.locator(".cu-region-controls")).toContainText("4 regions on p.1 · Location 3 of 4");
 });
 
 test("UI-44 the merged frame never turns blank space into a source hit or changes viewer preferences", async ({ page }) => {

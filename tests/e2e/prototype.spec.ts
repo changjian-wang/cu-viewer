@@ -120,7 +120,7 @@ test("real PNG and truthful empty/invalid/source-failure states", async ({ page 
     await page.locator('[data-field-id="/contents/0/fields/CountryRegion"]').getByRole("button", { name: "CountryRegion", exact: true }).click();
     await leave(page);
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
-    await expect(page.locator(".cu-preview-hint")).toContainText("no source region");
+    await expect(page.locator(".cu-preview-hint")).toHaveCount(0);
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
         name: "empty.json", mimeType: "application/json",
         buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [] })),
@@ -401,11 +401,9 @@ test("real table-like arrays and every multi-region source remain reachable with
     const address = page.locator('[data-field-id="/contents/0/fields/BillingAddress"]');
     await address.getByRole("button", { name: "BillingAddress", exact: true }).click();
     await leave(page);
-    const navigation = page.getByRole("complementary", { name: "Source region navigation" });
     const regions = page.getByTestId("result-overlay").locator('polygon[data-outline-id="/contents/0/fields/BillingAddress"]');
     const frame = page.getByTestId("source-overlay").locator("polygon");
-    await expect(navigation).toContainText("2 regions on p.1");
-    await expect(navigation).toContainText("Location 1 of 2");
+    await expect(page.getByRole("complementary", { name: "Source region navigation" })).toHaveCount(0);
     await expect(regions).toHaveCount(2);
     await expect(frame).toHaveAttribute("data-region-indices", "0 1");
     await expect(frame).toHaveAttribute("data-selection-frame", "merged");
@@ -419,17 +417,14 @@ test("real table-like arrays and every multi-region source remain reachable with
     ], 0, frame);
     const first = await frame.getAttribute("points");
     if (!first) throw new Error("The complete selected source frame is unavailable.");
-    await navigation.getByRole("button", { name: "Next source region", exact: true }).click();
-    await expect(navigation).toContainText("Location 2 of 2");
-    await expect(navigation.getByRole("button", { name: "Next source region", exact: true })).toBeDisabled();
+    await regions.nth(1).press("Enter");
     await checkPolygon(page, [
         { x: 0.5728 / 8.5, y: 4.1489 / 11 }, { x: 2.0254 / 8.5, y: 4.1489 / 11 },
         { x: 2.0254 / 8.5, y: 4.3167 / 11 }, { x: 0.5728 / 8.5, y: 4.3167 / 11 },
     ], 0, regions.nth(1));
     await expect(frame).toHaveAttribute("points", first);
     await expect(frame).toHaveAttribute("data-region-indices", "0 1");
-    await navigation.getByRole("button", { name: "Previous source region", exact: true }).click();
-    await expect(navigation).toContainText("Location 1 of 2");
+    await regions.first().press("Enter");
     await expect(frame).toHaveAttribute("points", first);
 
     const lineItems = page.locator('[data-field-id="/contents/0/fields/LineItems"]');
@@ -482,17 +477,16 @@ test("a structured group can navigate all grounded descendants across PDF pages"
     });
     await locateGroup(page, "/contents/0/fields/Rows");
     await leave(page);
-    const navigation = page.getByRole("combobox", { name: "Selected group source page" });
-    await expect(navigation).toHaveValue("1");
+    await expect(page.getByRole("combobox", { name: "Selected group source page" })).toHaveCount(0);
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
     await checkPolygon(page, [
         { x: 1 / 8.5, y: 1 / 11 }, { x: 2 / 8.5, y: 1 / 11 },
         { x: 2 / 8.5, y: 2 / 11 }, { x: 1 / 8.5, y: 2 / 11 },
     ], 0);
-    await navigation.selectOption("4");
+    await page.getByRole("textbox", { name: "Page number" }).fill("4");
+    await page.getByRole("textbox", { name: "Page number" }).press("Enter");
     await ready(page);
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
-    await expect(navigation).toHaveValue("4");
     await checkPolygon(page, [
         { x: 1 / 8.2639, y: 1 / 11.6806 }, { x: 2 / 8.2639, y: 1 / 11.6806 },
         { x: 2 / 8.2639, y: 2 / 11.6806 }, { x: 1 / 8.2639, y: 2 / 11.6806 },
@@ -501,8 +495,8 @@ test("a structured group can navigate all grounded descendants across PDF pages"
     await page.getByRole("textbox", { name: "Page number" }).press("Enter");
     await ready(page);
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
-    await expect(navigation).toHaveValue("2");
-    await navigation.selectOption("1");
+    await page.getByRole("textbox", { name: "Page number" }).fill("1");
+    await page.getByRole("textbox", { name: "Page number" }).press("Enter");
     await ready(page);
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
 
@@ -582,7 +576,7 @@ test("unavailable source pages disable scalar and group badges while preserving 
     await expect(scalar.getByRole("button", { name: "MissingPage", exact: true })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("1");
     await expect(page.getByRole("alert")).toContainText("Page 5 is not present in the loaded source");
-    await expect(page.locator(".cu-preview-hint")).toHaveText("Source page 5 is unavailable in this file.");
+    await expect(page.locator(".cu-preview-hint")).toHaveCount(0);
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
     await expect(page.getByTestId("rendered-page")).toBeVisible();
     await expandField(page, "Group");

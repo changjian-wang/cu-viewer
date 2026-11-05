@@ -283,7 +283,7 @@ export function ResultsPane(props: ResultsPaneProps) {
             {view === "markdown" && "Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered."}
             {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
             {["paragraphs", "figures", "signatures"].includes(view ?? "") &&
-                "Select a returned item to locate its source. All regions on the active source page are highlighted; region controls reach other pages."}
+                "Select a returned item to locate its source. All regions on the active source page are highlighted; use document page navigation to view other pages."}
             {view === "metadata" && "Returned string metadata. Values and property order are preserved."}
         </footer>}
     </section>;

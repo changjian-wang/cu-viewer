@@ -75,7 +75,7 @@ test("UI-47 selected real money objects retain values and source selection when 
         expect(await page.getByTestId("source-overlay").locator("polygon").evaluateAll(elements =>
             elements.map(element => element.getAttribute("points")))).toEqual(source);
         expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(frame);
-        await expect(page.locator(".cu-group-source-controls")).toContainText("2 fields");
+        await expect(page.locator(".cu-group-source-controls")).toHaveCount(0);
     }
 });
 

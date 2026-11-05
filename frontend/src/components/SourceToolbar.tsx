@@ -6,12 +6,12 @@ import { HighlightSettings } from "./HighlightSettings";
 import { HighlightLegend } from "./HighlightLegend";
 import { getFileIconName, ViewerIcon } from "./ViewerIcon";
 
-export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSettings, onControlFocus, children, selection }: {
+export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSettings, onControlFocus, children }: {
     source: LoadedSource | null;
     toolbarRef: RefObject<HTMLElement | null>; settings: ReviewSettings; onSettings: (settings: ReviewSettings) => void;
     summaryId: string;
     onControlFocus: (target?: HTMLElement) => void;
-    children?: ReactNode; selection?: ReactNode;
+    children?: ReactNode;
 }) {
     const id = useId();
     const [overlay, setOverlay] = useState<"settings" | "legend" | null>(null);
@@ -33,7 +33,6 @@ export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSetti
                 <div className="cu-source-file-info">
                     <div className="cu-file-name"><span className="cu-file-icon" aria-hidden="true" data-file-icon={fileIcon}><ViewerIcon name={fileIcon} /></span>
                         <strong title={summary}>{source?.name ?? "Source document"}</strong></div>
-                    <div className="cu-document-status" role="group" aria-label="Source selection and location">{selection}</div>
                 </div>
             </div>
             <span className="cu-visually-hidden" id={summaryId} aria-label="Source information">{summary}</span>

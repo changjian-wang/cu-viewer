@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode, RefObject } from "react";
+import type { RefObject } from "react";
 import type { LoadedSource } from "../source/source";
 import { ViewerIcon } from "./ViewerIcon";
 
 export function SourceDocumentControls({ source, pageNumber, zoom, minZoom, maxZoom, ready, fit,
-    controlsRef, children, onPage, onZoom, onFit, onRotate, onControlFocus }: {
+    controlsRef, onPage, onZoom, onFit, onRotate, onControlFocus }: {
     source: LoadedSource | null; pageNumber: number; zoom: number; minZoom: number; maxZoom: number;
     ready: boolean; fit: "page" | "width" | null;
     controlsRef: RefObject<HTMLDivElement | null>;
-    children?: ReactNode;
     onPage: (pageNumber: number) => void; onZoom: (zoom: number) => void; onFit: (fit: "page" | "width") => void;
     onRotate: () => void; onControlFocus: (target?: HTMLElement) => void;
 }) {
@@ -29,7 +28,6 @@ export function SourceDocumentControls({ source, pageNumber, zoom, minZoom, maxZ
     return <>
         <div className="cu-document-controls cu-source-view-toolbar" role="group" aria-label="Document navigation and zoom"
             ref={controlsRef} onClickCapture={() => onControlFocus()}>
-            {children !== undefined && <div className="cu-document-status" role="group" aria-label="Source selection and location">{children}</div>}
             <div className="cu-page-controls">{source?.kind === "image" ? <span>Image · single page</span> : <>
                 <button type="button" className="cu-icon-button" aria-label="Previous page" disabled={pageDisabledReason !== null}
                     title={pageDisabledReason ?? (pageNumber <= 1 ? "Previous page (last page)" : "Previous page")}

@@ -209,7 +209,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             key={source?.name ?? "loading"}
             source={source} loading={!matchingSource} error={matchingSource?.error ?? null}
             content={content} pageNumber={state.pageNumber} active={active} preview={Boolean(hovered)}
-            pinned={pinned} pinnedRegions={fieldRegions(pinned)} pinnedRegionIndex={state.selectedRegionIndex}
+            pinned={pinned} pinnedRegions={fieldRegions(pinned)}
             hasSelection={Boolean(selected)}
             view={view} outlines={outlines} previewId={previewId}
             onPreviewEnter={() => { previewHeld.current = true; keepPreview(); }}
@@ -226,14 +226,6 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
                 setReveal(null);
                 dispatch({ type: "page", pageNumber });
             }} onRenderReady={onRenderReady}
-            onRegion={index => {
-                if (selected) {
-                    if (content?.tables?.some(table => table.field === selected)) { selectTable(selected, index, true); return; }
-                    keepPreview();
-                    dispatch({ type: "region", fieldId: selected.id, index, pageAvailable: available(selected, index) });
-                    setReveal({ sequence: ++revealSequence.current, origin: "source" });
-                }
-            }}
         />
         <ResizeHandle label="Source and results width" className="cu-pane-resizer"
             value={Math.max(570, Math.min(width - 448, (width - 8) * preferences.settings.paneRatio))}

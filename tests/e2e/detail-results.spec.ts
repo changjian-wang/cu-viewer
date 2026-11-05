@@ -138,9 +138,12 @@ test("multi-region details reach all pages and raw merged/invalid native tables 
     await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
     await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).click();
     await ready(page);
-    await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCount(2);
-    await page.getByRole("button", { name: "Next source region", exact: true }).click();
-    await page.getByRole("button", { name: "Next source region", exact: true }).click();
+    await expect(page.getByTestId("result-overlay").locator("polygon")).toHaveCount(2);
+    await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveAttribute("data-region-indices", "0 1");
+    await page.getByRole("textbox", { name: "Page number" }).fill("4");
+    await page.getByRole("textbox", { name: "Page number" }).press("Enter");
+    await ready(page);
+    await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).click();
     await ready(page);
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
     await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCount(1);

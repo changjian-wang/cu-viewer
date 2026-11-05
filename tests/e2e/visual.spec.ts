@@ -143,7 +143,7 @@ test("cross-page navigation and ungrounded selection match the prototype without
     await neutral(page);
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
-    await expect(page.locator(".cu-preview-hint")).toHaveText("CountryRegion: no source region");
+    await expect(page.locator(".cu-preview-hint")).toHaveCount(0);
     await snapshot(page, "pdf-no-source.png");
 
     await locateGroup(page, "/contents/0/fields/AmountDue");

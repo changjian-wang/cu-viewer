@@ -95,13 +95,15 @@ test("real Markdown and original JSON preserve source page, zoom, rotation and p
     const address = pane.locator('[data-field-id="/contents/0/fields/BillingAddress"]');
     await address.getByRole("button", { name: "BillingAddress", exact: true }).click();
     await page.locator(".prototype-banner").hover();
-    await page.getByRole("button", { name: "Next source region" }).click();
-    await expect(page.getByRole("complementary", { name: "Source region navigation" })).toContainText("Location 2 of 2");
+    await page.getByTestId("result-overlay").locator('polygon[data-outline-id="/contents/0/fields/BillingAddress"]').nth(1).press("Enter");
+    const selectedFrame = page.getByTestId("source-overlay").locator("polygon");
+    const addressPoints = await selectedFrame.getAttribute("points");
+    if (!addressPoints) throw new Error("The selected address frame is missing.");
     await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
     await expect(address.getByRole("button", { name: "BillingAddress", exact: true })).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByRole("complementary", { name: "Source region navigation" })).toContainText("Location 2 of 2");
+    await expect(selectedFrame).toHaveAttribute("points", addressPoints);
 });
 
 test("Markdown sanitizes active content while retaining headings, lists, tables and code", async ({ page }) => {

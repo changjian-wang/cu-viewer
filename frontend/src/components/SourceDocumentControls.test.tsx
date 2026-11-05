@@ -18,26 +18,10 @@ function props(): Parameters<typeof SourceDocumentControls>[0] {
 }
 
 describe("bottom document controls", () => {
-    it("leaves the shared file and selection area to its parent toolbar when no slot is supplied", () => {
+    it("contains document navigation and zoom without a selection-status slot", () => {
         render(<SourceDocumentControls {...props()} />);
         expect(screen.queryByRole("group", { name: "Source selection and location" })).toBeNull();
         expect(screen.getByRole("group", { name: "Document navigation and zoom" })).toBeTruthy();
-    });
-
-    it("hosts selection controls in the existing row and captures their focus without changing their actions", () => {
-        const callbacks = props(), navigate = vi.fn();
-        render(<SourceDocumentControls {...callbacks}>
-            <button type="button" onClick={navigate}>Next source region</button>
-        </SourceDocumentControls>);
-        const selection = screen.getByRole("group", { name: "Source selection and location" });
-        const button = screen.getByRole("button", { name: "Next source region" });
-        expect(selection.contains(button)).toBe(true);
-        expect(callbacks.controlsRef.current?.firstElementChild).toBe(selection);
-        fireEvent.click(button);
-        expect(navigate).toHaveBeenCalledOnce();
-        expect(callbacks.onControlFocus).toHaveBeenCalledOnce();
-        expect(callbacks.onPage).not.toHaveBeenCalled();
-        expect(callbacks.onZoom).not.toHaveBeenCalled();
     });
 
     it("validates page input and retains Enter and blur navigation", () => {

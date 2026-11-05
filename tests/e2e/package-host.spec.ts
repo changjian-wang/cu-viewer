@@ -199,11 +199,12 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
     expect(revealed.width).toBeCloseTo(original.width, 1);
     expect(revealed.height).toBeCloseTo(original.height, 1);
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom);
-    const nextRegion = page.getByRole("button", { name: "Next source region", exact: true });
+    const nextRegion = page.getByTestId("result-overlay")
+        .locator('polygon[data-outline-id="/contents/0/fields/BillingAddress"]').nth(1);
     await nextRegion.focus();
     await page.keyboard.press("Enter");
-    await expect(nextRegion).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Previous source region", exact: true })).toBeFocused();
+    await expect(nextRegion).toBeFocused();
+    await expect(page.getByRole("button", { name: "Next source region", exact: true })).toHaveCount(0);
 
     const number = page.getByRole("textbox", { name: "Page number" });
     await number.fill("3");

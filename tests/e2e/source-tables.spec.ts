@@ -236,7 +236,7 @@ test("UI-38 repeated matching reuses source resources and dragging inside tables
     await expect(message(page)).toHaveCount(0);
 });
 
-test("UI-38 table source-region navigation preserves zoom between differently sized PDF pages", async ({ page }) => {
+test("UI-38 table selection stays reachable on differently sized PDF pages without changing their zoom", async ({ page }) => {
     await page.getByLabel("Choose source file").setInputFiles({
         name: "cross-page-tables.pdf", mimeType: "application/pdf", buffer: croppedRotatedPdf(),
     });
@@ -255,8 +255,11 @@ test("UI-38 table source-region navigation preserves zoom between differently si
         }] })),
     });
     await tableTarget(page, 1).press("Enter");
+    await page.getByRole("textbox", { name: "Page number", exact: true }).fill("2");
+    await page.getByRole("textbox", { name: "Page number", exact: true }).press("Enter");
+    await ready(page);
     const zoom = await page.getByLabel("Zoom percentage").textContent();
-    await page.getByRole("button", { name: "Next source region", exact: true }).click();
+    await tableTarget(page, 1).press("Enter");
     await ready(page);
     await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue("2");
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom!);

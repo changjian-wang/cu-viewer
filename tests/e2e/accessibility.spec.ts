@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import { checkPolygon, ready, rotateSource, fitSource } from "./viewerAssertions";
 import { croppedRotatedPdf } from "./pdfFixtures";
+import { openValueMenu } from "./uiRedesignFixtures";
 
 declare global {
     interface Window {
@@ -236,22 +237,7 @@ test("selecting visible targets avoids movement, selecting hidden targets center
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
 });
 
-test("source region boundaries move focus to an enabled adjacent region control", async ({ page }) => {
-    const field = page.getByRole("button", { name: "BillingAddress", exact: true });
-    await field.focus();
-    await page.keyboard.press("Enter");
-    const next = page.getByRole("button", { name: "Next source region", exact: true });
-    const previous = page.getByRole("button", { name: "Previous source region", exact: true });
-    await tabTo(page, next);
-    await page.keyboard.press("Enter");
-    await expect(next).toBeDisabled();
-    await expect(previous).toBeFocused();
-    await page.keyboard.press("Space");
-    await expect(previous).toBeDisabled();
-    await expect(next).toBeFocused();
-});
-
-test("cross-page selection and region navigation preserve the exact zoom and viewer rotation from both fit modes", async ({ page }) => {
+test("cross-page selection and value-menu navigation preserve the exact zoom and viewer rotation from both fit modes", async ({ page }) => {
     await page.getByLabel("Choose source file").setInputFiles({
         name: "synthetic-cropped-rotated.pdf", mimeType: "application/pdf", buffer: croppedRotatedPdf(),
     });
@@ -294,17 +280,16 @@ test("cross-page selection and region navigation preserve the exact zoom and vie
         await ready(page);
         await expect(number).toHaveValue("2");
         expect(Math.abs(await paper.evaluate(element => Number.parseFloat(element.style.width)) - zoom * 360)).toBeLessThan(1 / 64);
-        await page.getByRole("button", { name: "Previous source region", exact: true }).press("Enter");
+        await openValueMenu(page, "/contents/0/fields/Regions");
+        await page.getByRole("menuitem", { name: "Locate on page 1", exact: true }).click();
         await ready(page);
         await expect(number).toHaveValue("1");
         expect(Math.abs(await paper.evaluate(element => Number.parseFloat(element.style.width)) - zoom * 200)).toBeLessThan(1 / 64);
-        const next = page.getByRole("button", { name: "Next source region", exact: true });
-        await next.focus();
-        await page.keyboard.press("Enter");
+        await openValueMenu(page, "/contents/0/fields/Regions");
+        await page.getByRole("menuitem", { name: "Locate on page 2", exact: true }).click();
         await ready(page);
         await expect(number).toHaveValue("2");
         expect(Math.abs(await paper.evaluate(element => Number.parseFloat(element.style.width)) - zoom * 360)).toBeLessThan(1 / 64);
-        await expect(page.getByRole("button", { name: "Previous source region", exact: true })).toBeFocused();
     }
 });
 

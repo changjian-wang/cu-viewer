@@ -999,6 +999,12 @@ Validation passed: 37 targeted unit cases, main/worker TypeScript, affected-file
 
 The original Source-related product screenshots are deliberately not refreshed during this visual-review request. No commit, push, Release or installed native-host resource replacement is included; the separate 5189 study remains untouched.
 
+### Filename-only source identity (2026-11-05)
+
+The user confirmed that the bottom-left area must contain only the file icon and filename, including removal of multi-region arrows and the grouped-source page selector without replacements. This supersedes the earlier status-retention requirements. SourceToolbar no longer renders a selection/status slot; its unused SourcePane wiring, SourceDocumentControls slot and styles are removed. The single-line filename keeps its existing icon, truncation, full-file summary and accessible source description.
+
+The footer remains 44px with centered document pages and unchanged zoom, rotation, Legend and settings. Right-side value-menu navigation, document page controls, direct source selection, Escape/blank-source clearing and independent real-error messages remain available. Selection, hover and grouped fields do not add bottom-left text or controls.
+
 ### Combined passive Legend and highlight switches (2026-11-05)
 
 The user explicitly confirmed that Legend and Options should be one area: five colors remain explanatory, only the original three switches are interactive, and no five-color toggle replacement is wanted. The field and table color descriptions each share a row with their corresponding switch. Both low-confidence descriptions share the third switch, while unavailable confidence remains a separate passive explanation. The Options heading, color buttons, category focus/pressed states and independent runtime category filters are removed.

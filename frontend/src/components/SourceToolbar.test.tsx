@@ -51,6 +51,10 @@ describe("source file information", () => {
         const file = container.querySelector<HTMLElement>(".cu-file-name");
         if (!file) throw new Error("The source filename is missing.");
         const summary = `${name} \u00b7 ${details}`;
+        const identity = container.querySelector(".cu-source-identity");
+        expect(identity?.textContent).toBe(name);
+        expect(container.querySelector(".cu-source-file-info")?.children).toHaveLength(1);
+        expect(identity?.querySelector("button, input, select")).toBeNull();
         expect(file.children).toHaveLength(2);
         expect(file.firstElementChild?.tagName).toBe("SPAN");
         expect(file.lastElementChild?.tagName).toBe("STRONG");
@@ -63,6 +67,7 @@ describe("source file information", () => {
         expect(within(file).queryByRole("img")).toBeNull();
         expect(file.querySelector("button, a, [role='button'], [tabindex]")).toBeNull();
         expect(container.querySelector(".cu-kind-badge")).toBeNull();
+        expect(screen.queryByRole("group", { name: "Source selection and location" })).toBeNull();
         expect(screen.getByLabelText("Source information").textContent).toBe(summary);
         expect(renderSource).not.toHaveBeenCalled();
         expect(disposeSource).not.toHaveBeenCalled();
@@ -80,7 +85,7 @@ describe("source file information", () => {
 });
 
 describe("direct document controls without overflow", () => {
-    it("composes one bottom toolbar without persistent legend chips or duplicate status groups", () => {
+    it("composes one bottom toolbar without selection status or persistent legend chips", () => {
         const { container, props } = setup();
         const toolbar = screen.getByRole("group", { name: "Source document toolbar" });
         expect(toolbar.tagName).toBe("FOOTER");
@@ -88,7 +93,7 @@ describe("direct document controls without overflow", () => {
         expect(container.querySelector(".cu-source-pane > header")).toBeNull();
         expect(container.querySelectorAll(".cu-source-toolbar")).toHaveLength(1);
         expect(within(toolbar).getByRole("group", { name: "Document navigation and zoom" })).toBeTruthy();
-        expect(within(toolbar).getAllByRole("group", { name: "Source selection and location" })).toHaveLength(1);
+        expect(within(toolbar).queryByRole("group", { name: "Source selection and location" })).toBeNull();
         expect(screen.queryByRole("list", { name: "Highlighting legend summary" })).toBeNull();
         expect(container.querySelector(".cu-legend-inline")).toBeNull();
         openLegend();
