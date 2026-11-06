@@ -64,6 +64,26 @@ describe("prototype selection and page interaction", () => {
         expect(interaction(state, { type: "leave", fieldId: "different", restorePageAvailable: false })).toBe(state);
     });
 
+    it("previews the selected field again without changing or restoring its selection", () => {
+        const selected = field("Amount", 1);
+        const pinned = interaction(initialInteraction, { type: "select", field: selected, pageAvailable: true });
+        const preview = interaction(pinned, { type: "hover", field: selected, pageAvailable: false });
+        expect(preview.hovered).toBe(selected);
+        expect(preview.selected).toBe(selected);
+        expect(interaction(preview, { type: "leave", fieldId: selected.id, restorePageAvailable: true })).toEqual(pinned);
+    });
+
+    it("retains a focused preview on explicit selection while keeping pointer selections transient", () => {
+        const selected = field("Amount", 2);
+        const focused = interaction(initialInteraction, {
+            type: "select", field: selected, pageAvailable: true, retainPreview: true,
+        });
+        expect(focused.selected).toBe(selected);
+        expect(focused.hovered).toBe(selected);
+        expect(focused.pageNumber).toBe(2);
+        expect(interaction(focused, { type: "select", field: selected, pageAvailable: true }).hovered).toBeNull();
+    });
+
     it("does not undo a manual page choice after hovering an ungrounded field", () => {
         const selected = field("Amount", 1);
         const ungrounded = field("CountryRegion");

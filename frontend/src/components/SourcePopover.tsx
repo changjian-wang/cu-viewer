@@ -17,8 +17,6 @@ interface SourcePopoverProps {
     pan: CuPoint;
     viewport: RefObject<HTMLDivElement | null>;
     paper: RefObject<HTMLDivElement | null>;
-    onEnter: () => void;
-    onLeave: () => void;
 }
 
 export function SourcePopover(props: SourcePopoverProps) {
@@ -68,9 +66,7 @@ export function SourcePopover(props: SourcePopoverProps) {
     return <>
         <aside id={props.id} ref={element} role="tooltip" aria-label={paragraph ? "Paragraph preview" : "Field preview"}
             className="cu-source-popover"
-            style={{ left: position?.x ?? 0, top: position?.y ?? 0, visibility: position ? "visible" : "hidden" }}
-            onMouseEnter={props.onEnter} onMouseLeave={props.onLeave}
-            onPointerDown={event => event.stopPropagation()}>
+            style={{ left: position?.x ?? 0, top: position?.y ?? 0, visibility: position ? "visible" : "hidden" }}>
             {!paragraph && <strong className="cu-popover-heading">
                 {fieldLabel(props.field)}
             </strong>}

@@ -22,6 +22,6 @@ export default defineConfig({
     },
     test: {
         environment: "node",
-        include: ["frontend/src/**/*.test.{ts,tsx}"],
+        include: ["frontend/src/**/*.test.{ts,tsx}", "frontend/app/**/*.test.{ts,tsx}"],
     },
 });

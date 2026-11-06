@@ -37,7 +37,7 @@ export function appearance(field: Pick<CuField, "confidence">, table: boolean, s
     const unavailable = field.confidence === undefined;
     return {
         enabled, low, unavailable,
-        background: unavailable ? "#F1F3F5" : low ? table ? "#FFE8EC" : "#FCE8E6" : table ? "#E8F1FF" : "#E8F5E9",
+        background: unavailable ? "#F1F3F5" : low ? table ? "#F6C5CC" : "#FCE8E6" : table ? "#E8F1FF" : "#E8F5E9",
         color: unavailable ? "#374151" : low ? "#9B1C1C" : table ? "#1E40AF" : "#1E3A2A",
     };
 }
@@ -186,23 +186,9 @@ export function orderedLeafFields(fields: readonly CuField[], order: ViewerField
     return result;
 }
 
-export function initialExpandedFields(fields: readonly CuField[], order: ViewerFieldOrder = {}, rowBudget = 40): Set<string> {
-    if (!Number.isSafeInteger(rowBudget) || rowBudget < 0) throw new RangeError("Initial visible-row budget must be a nonnegative safe integer.");
-    const expanded = new Set<string>();
-    const roots = orderedFields(fields, "$root", order);
-    let remaining = rowBudget - roots.length;
-    if (remaining <= 0) return expanded;
-    const array = roots.find(field => field.type === "array" && field.children.length > 0);
-    if (array && array.children.length <= remaining) {
-        const cost = array.children.length + (inlineArrayProjection(array) ? 1 : 0);
-        if (cost <= remaining) { expanded.add(array.id); remaining -= cost; }
-    }
-    for (const field of roots) {
-        if (field.type !== "object" || field.children.length === 0 || field.children.length > remaining) continue;
-        expanded.add(field.id);
-        remaining -= field.children.length;
-    }
-    return expanded;
+export function initialExpandedFields(fields: readonly CuField[]): Set<string> {
+    return new Set(flattenFields([...fields])
+        .filter(field => field.type === "array" && field.children.length > 0).map(field => field.id));
 }
 
 export function moveField(entries: readonly FieldEntry[], order: ViewerFieldOrder, from: string, to: string,

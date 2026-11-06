@@ -6,7 +6,7 @@ import { expandField, locateGroup, ready, setShowConfidence } from "./viewerAsse
 test.use({ reducedMotion: "reduce" });
 
 const hover = "rgb(238, 231, 255)", selected = "rgb(229, 218, 255)", related = "rgb(248, 245, 255)";
-const hoverStroke = "rgb(140, 112, 194)", selectedStroke = "rgb(91, 33, 182)";
+const hoverStroke = "rgb(128, 99, 181)", selectedStroke = "rgb(91, 33, 182)";
 const row = (page: Page, id: string) => page.locator(`.cu-fields-table > tbody > tr${fieldRow(id)}`);
 const source = (page: Page, id: string, index = 0) =>
     page.getByTestId("result-overlay").locator(`polygon[data-outline-id="${id}"][data-region-index="${index}"]`);
@@ -61,7 +61,7 @@ test("UI-48/51 source hover and pin have distinct violet outlines with linked Fi
         color: getComputedStyle(element).color, background: getComputedStyle(element).backgroundColor,
     }))).toEqual(beforeChip);
     expect(await source(page, billing).getAttribute("fill")).toBe(fills);
-    await expect(page.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(30, 58, 42)");
+    await expect(page.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(36, 52, 71)");
     await expect(page.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(155, 28, 28)");
     await expect(row(page, shipping).locator(".cu-field-name")).toHaveAttribute("aria-pressed", "true");
     await expect(row(page, billing).locator(".cu-field-name")).toHaveAttribute("aria-pressed", "false");
@@ -120,7 +120,7 @@ test("UI-48 array-cell hover and whole-group selection preserve neighbors, opaqu
     await expect(grid.locator(".is-location-row")).toHaveCSS("background-color", related);
     await expect(grid.locator(".is-location-column")).toHaveCSS("background-color", related);
     await expect(grid.locator(":scope > tbody > tr > td").nth(2)).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(cell(first).locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(255, 232, 236)");
+    await expect(cell(first).locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(246, 197, 204)");
     await expect(cell(first).locator(".cu-value-chip")).toHaveCSS("color", "rgb(155, 28, 28)");
     await expect(cell(first).locator(".cu-cell-value")).toHaveAttribute("aria-pressed", "true");
     await expect(cell(second).locator(".cu-cell-value")).toHaveAttribute("aria-pressed", "false");
@@ -179,7 +179,7 @@ test("UI-51 violet outlines contrast with every semantic source fill without cha
     const fills = [...new Set(before.map(region => region.fill))].sort();
     expect(fills).toEqual([
         "rgb(232, 241, 255)", "rgb(232, 245, 233)", "rgb(241, 243, 245)",
-        "rgb(252, 232, 230)", "rgb(255, 232, 236)",
+        "rgb(246, 197, 204)", "rgb(252, 232, 230)",
     ]);
     const canvas = page.getByTestId("source-canvas");
     const pixels = await canvas.evaluate(element => {

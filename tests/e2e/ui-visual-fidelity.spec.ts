@@ -76,7 +76,7 @@ for (const ratio of [1, 1.25, 2]) {
                     const preview = page.getByTestId("preview-overlay").locator("polygon");
                     await expect(preview).toHaveAttribute("data-source-id", billing);
                     await expect(preview).toHaveAttribute("data-selection-frame", "merged");
-                    await expect(preview).toHaveCSS("stroke", "rgb(140, 112, 194)");
+                    await expect(preview).toHaveCSS("stroke", "rgb(128, 99, 181)");
                     await expectUniformStroke(preview);
                     await page.getByRole("button", { name: "BillingAddress", exact: true }).click();
                     await page.getByTestId("result-overlay").locator(`[data-outline-id="${billing}"][data-region-index="1"]`).focus();
@@ -129,28 +129,26 @@ test("UI-35 source decoration adds only a 1px non-interactive edge around unchan
     await expect(polygon).toHaveAttribute("fill", "none");
 });
 
-test("UI-36 real invoice defaults respect the row budget and never reapply over user choices", async ({ page }) => {
+test("UI-36 real invoice starts with collapsed objects and expanded tables without reapplying over manual choices", async ({ page }) => {
     await page.goto("/");
     await ready(page);
-    await expect(page.getByRole("button", { name: "Collapse AmountDue", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Collapse BalanceForward", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Expand AmountDue", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Expand BalanceForward", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Collapse LineItems", exact: true })).toBeVisible();
-    const visibleRows = await page.locator(".cu-fields-scroll").evaluate(element =>
-        element.querySelectorAll(".cu-fields-table > tbody > tr[data-field-id]").length +
-        element.querySelectorAll(".cu-items-table tr").length);
-    expect(visibleRows).toBeLessThanOrEqual(40);
-    await page.getByRole("button", { name: "Collapse AmountDue", exact: true }).click();
+    await expect(page.getByRole("button", { name: "TaxDetails", exact: true })).toHaveAttribute("aria-expanded", "true");
+    await page.getByRole("button", { name: "Expand AmountDue", exact: true }).click();
+    await page.getByRole("button", { name: "Collapse LineItems", exact: true }).click();
     await page.getByRole("button", { name: "Source settings", exact: true }).click();
     await page.getByRole("spinbutton", { name: "Confidence threshold", exact: true }).fill("0.60");
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("button", { name: "Expand AmountDue", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Collapse AmountDue", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "LineItems", exact: true }).focus();
     await page.getByRole("button", { name: "LineItems", exact: true }).press("Alt+ArrowUp");
-    await expect(page.getByRole("button", { name: "Expand AmountDue", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Collapse AmountDue", exact: true })).toBeVisible();
     await page.getByRole("tab", { name: "Markdown", exact: true }).click();
     await page.getByRole("tab", { name: "Fields", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Expand AmountDue", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Collapse LineItems", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Collapse AmountDue", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "LineItems", exact: true })).toHaveAttribute("aria-expanded", "false");
 });
 
 test("UI-36 matched flat invoice arrays use reference-density columns and accurate group annotations", async ({ page }) => {
@@ -188,7 +186,7 @@ test("UI-36 matched flat invoice arrays use reference-density columns and accura
     expect(Math.abs(widths.table - 773.421875)).toBeLessThanOrEqual(1);
     expect(Math.abs(widths.quantity - 60.40625)).toBeLessThanOrEqual(1);
     expect(Math.abs(widths.row - 29)).toBeLessThanOrEqual(0.1);
-    await expect(page.locator('[data-field-id="/contents/0/fields/Customer"] .cu-summary-value')).toHaveText("");
+    await expect(page.locator('[data-field-id="/contents/0/fields/Customer"] .cu-summary-value')).toHaveText("Contoso");
     await expect(page.locator('[data-field-id="/contents/0/fields/LineItems"] .cu-field-count')).toHaveCount(0);
     await expect(page.locator('[data-field-id="/contents/0/fields/LineItems"] .cu-summary-value')).toHaveText("3 items");
     await expect(page.locator(".cu-fields-table > thead th").first()).toHaveCSS("border-top-left-radius", "4px");

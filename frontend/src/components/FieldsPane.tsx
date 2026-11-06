@@ -21,8 +21,8 @@ export interface FieldsReviewState {
     focused: string | null;
 }
 
-export const initialFieldsReview = (fields: readonly CuField[] = [], order: ViewerFieldOrder = {}): FieldsReviewState =>
-    ({ expanded: initialExpandedFields(fields, order), query: "", focused: null });
+export const initialFieldsReview = (fields: readonly CuField[] = []): FieldsReviewState =>
+    ({ expanded: initialExpandedFields(fields), query: "", focused: null });
 
 interface FieldsPaneProps {
     fields: readonly CuField[];
@@ -88,6 +88,13 @@ export function FieldsPane(props: FieldsPaneProps) {
     useEffect(() => { setSettingsOpen(false); }, [props.workflow.context]);
     const entries = useMemo(() => fieldEntries(fields), [fields]);
     const byId = useMemo(() => new Map(entries.map(entry => [entry.field.id, entry])), [entries]);
+    const setObjectExpansion = (open: boolean): void => props.setReview(current => {
+        const expanded = new Set(current.expanded);
+        for (const { field } of entries) if (field.type === "object" && field.children.length) {
+            if (open) expanded.add(field.id); else expanded.delete(field.id);
+        }
+        return { ...current, expanded };
+    });
     const leaves = useMemo(() => leafFields(fields), [fields]);
     const matches = useMemo(() => {
         const found = matchingLeaves(fields, review.query, false, false, settings.threshold, scopeIds ?? undefined);
@@ -456,6 +463,8 @@ export function FieldsPane(props: FieldsPaneProps) {
                 settings={settings} onSettings={props.onSettings}
                 onResetOrder={() => props.onOrder({})}
                 resetOrderDisabledReason={props.orderReadOnly || props.tableScope ? reorderReason : null}
+                onObjectExpansion={setObjectExpansion}
+                objectExpansionDisabledReason={filtering ? "Clear search before expanding or collapsing object fields." : null}
                 onClose={closeSettings} />}
         </footer>
     </>;

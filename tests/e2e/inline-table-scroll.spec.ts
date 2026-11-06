@@ -265,7 +265,7 @@ test("UI-40 pointer selection uses one cell background and quiet header cues wit
     await expect(grid.locator(".is-location-column")).toHaveCSS("box-shadow", "none");
     await expect(grid.locator("td:not(.is-selected-cell)").first()).toHaveCSS("background-color", "rgb(255, 255, 255)");
     await expect(chip).toHaveCSS("background-color", confidenceColor);
-    expect(confidenceColor).toBe("rgb(255, 232, 236)");
+    expect(confidenceColor).toBe("rgb(246, 197, 204)");
     await expect(selected.locator(".cu-value-menu-trigger")).toHaveCSS("border-top-width", "0px");
     const after = await selected.boundingBox();
     if (!before || !after) throw new Error("The selected cell is not laid out.");
@@ -322,5 +322,5 @@ test("UI-40 source selection briefly emphasizes array backgrounds rather than dr
     await expect(cell).toHaveCSS("background-color", "rgb(229, 218, 255)");
     await expect(cell).toHaveCSS("box-shadow", "none");
     await expect(cell).toHaveCSS("outline-style", "none");
-    await expect(cell.locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(255, 232, 236)");
+    await expect(cell.locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(246, 197, 204)");
 });

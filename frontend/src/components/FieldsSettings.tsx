@@ -3,9 +3,11 @@ import type { ReviewSettings } from "../interaction/reviewFields";
 import { usePanelDismiss } from "../interaction/usePanelDismiss";
 import { ViewerIcon } from "./ViewerIcon";
 
-export function FieldsSettings({ id, anchor, settings, onSettings, onResetOrder, resetOrderDisabledReason, onClose }: {
+export function FieldsSettings({ id, anchor, settings, onSettings, onResetOrder, resetOrderDisabledReason,
+    onObjectExpansion, objectExpansionDisabledReason, onClose }: {
     id: string; anchor: HTMLElement; settings: ReviewSettings; onSettings: (settings: ReviewSettings) => void;
     onResetOrder: () => void; resetOrderDisabledReason: string | null;
+    onObjectExpansion: (open: boolean) => void; objectExpansionDisabledReason: string | null;
     onClose: (restoreFocus: boolean) => void;
 }) {
     const checkboxId = useId();
@@ -27,6 +29,14 @@ export function FieldsSettings({ id, anchor, settings, onSettings, onResetOrder,
             <button type="button" className="cu-text-button" disabled={resetOrderDisabledReason !== null}
                 title={resetOrderDisabledReason ?? undefined} onClick={onResetOrder}>
                 <ViewerIcon name="reset" />Reset order
+            </button>
+            <button type="button" className="cu-text-button" disabled={objectExpansionDisabledReason !== null}
+                title={objectExpansionDisabledReason ?? undefined} onClick={() => onObjectExpansion(false)}>
+                <ViewerIcon name="collapseAll" />Collapse all object fields
+            </button>
+            <button type="button" className="cu-text-button" disabled={objectExpansionDisabledReason !== null}
+                title={objectExpansionDisabledReason ?? undefined} onClick={() => onObjectExpansion(true)}>
+                <ViewerIcon name="expandAll" />Expand all object values
             </button>
         </div>
     </section>;

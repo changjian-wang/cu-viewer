@@ -15,7 +15,7 @@ test("UI3 tree/grid projection, exact counts, search and low-confidence value-on
     await expect(grid.getByRole("row")).toHaveCount(4);
     await pane.getByRole("searchbox", { name: "Search fields or values" }).fill("Row 1 value 1");
     await expect(pane.locator(".cu-field-navigation > span")).toHaveText("— / 8 fields");
-    await expect(grid.locator(".cu-value-chip").first()).toHaveCSS("background-color", "rgb(255, 232, 236)");
+    await expect(grid.locator(".cu-value-chip").first()).toHaveCSS("background-color", "rgb(246, 197, 204)");
     await expect(grid.getByRole("row")).toHaveCount(2);
     await expect(grid.getByRole("rowheader")).toHaveText(["1"]);
     await expect(grid.getByRole("columnheader")).toHaveCount(9);
@@ -93,12 +93,13 @@ test("UI3 actual saved invoice LineItems retain nested monetary values in the in
     await expect(grid.getByRole("button", { name: "Select value of LineItems / Item 1 / TaxAmount / Amount", exact: true })).toHaveText("6");
 });
 
-test("UI-16 pinned bottom space and both scroll positions survive result-tab round trips", async ({ page }) => {
+test("UI-16 pinned source and both scroll positions survive result-tab round trips without retaining a popup", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 760 });
     await loadReviewFixture(page);
     await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption("width");
     await ready(page);
     await page.getByRole("button", { name: "PageBottom", exact: true }).click();
-    await expect(page.getByRole("tooltip", { name: "Field preview", exact: true })).toBeVisible();
+    await expect(page.getByRole("tooltip", { name: "Field preview", exact: true })).toHaveCount(0);
     const frame = await page.getByTestId("rendered-page").boundingBox();
     const scroll = await page.getByRole("group", { name: "Source viewport", exact: true }).evaluate(element => element.scrollTop);
     await page.getByRole("button", { name: "Expand LineItems", exact: true }).click();
@@ -113,7 +114,7 @@ test("UI-16 pinned bottom space and both scroll positions survive result-tab rou
     await expect.poll(() => page.locator(".cu-inline-table-wrap").evaluate(element => element.scrollLeft)).toBe(250);
     await expect.poll(() => page.locator(".cu-fields-scroll").evaluate(element => element.scrollTop)).toBe(50);
     expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(frame);
-    await expect(page.getByRole("tooltip", { name: "Field preview", exact: true })).toBeVisible();
+    await expect(page.getByRole("tooltip", { name: "Field preview", exact: true })).toHaveCount(0);
 });
 
 test("UI-10 real group drag moves descendants together and rejects a cross-parent drop", async ({ page }) => {
@@ -151,7 +152,7 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1280, height: 800
                 await expect(page.getByTestId("preview-overlay")).toHaveCount(0);
                 await expect(page.getByTestId("source-overlay").locator("polygon").first()).toHaveAttribute("data-source-id", recipientId);
                 await expect(page.getByRole("region", { name: "Full value and confidence" })).toContainText("Microsoft Corp");
-                await expect(page.getByRole("tooltip", { name: "Field preview", exact: true })).toContainText("Microsoft Corp");
+                await expect(page.getByRole("tooltip", { name: "Field preview", exact: true })).toHaveCount(0);
             }
             await page.locator(fieldRow(line1Id)).hover();
             await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveAttribute("data-source-id", line1Id);
@@ -203,12 +204,20 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 1280, height: 540
             }
             await ready(page);
             const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
-            await expect(popup).toBeVisible();
-            const card = await popup.boundingBox(), source = await target.boundingBox();
+            const source = await target.boundingBox();
             const viewportBounds = await page.getByRole("group", { name: "Source viewport", exact: true }).boundingBox();
-            if (!card || !source || !viewportBounds) throw new Error("Source reveal geometry is unavailable.");
-            expect(card.y).toBeGreaterThanOrEqual(source.y + source.height);
-            expect(card.y + card.height).toBeLessThanOrEqual(viewportBounds.y + viewportBounds.height);
+            if (!source || !viewportBounds) throw new Error("Source reveal geometry is unavailable.");
+            expect(source.y).toBeGreaterThanOrEqual(viewportBounds.y);
+            expect(source.y + source.height).toBeLessThanOrEqual(viewportBounds.y + viewportBounds.height);
+            if (entry === "Enter") {
+                await expect(popup).toBeVisible();
+                const card = await popup.boundingBox();
+                if (!card) throw new Error("The focused source preview is unavailable.");
+                expect(card.y).toBeGreaterThanOrEqual(source.y + source.height);
+                expect(card.y + card.height).toBeLessThanOrEqual(viewportBounds.y + viewportBounds.height);
+            } else {
+                await expect(popup).toHaveCount(0);
+            }
         });
     }
 }

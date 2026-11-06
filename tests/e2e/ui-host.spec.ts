@@ -72,3 +72,32 @@ test("UI6 two embedded viewers have unique IDs and isolated menus, pins, focus a
     await page.getByRole("button", { name: "Inspect caller data", exact: true }).click();
     await expect(page.getByTestId("caller-result-unchanged")).toHaveText("true");
 });
+
+test("bulk object actions preserve controlled order and independent manual table state", async ({ page }) => {
+    await page.goto(host);
+    await page.getByRole("checkbox", { name: "Controlled field order", exact: true }).check();
+    await page.getByRole("button", { name: "Load PDF", exact: true }).click();
+    const viewer = page.locator(".cu-viewer");
+    await expect(viewer.getByRole("button", { name: "Zoom in", exact: true })).toBeEnabled({ timeout: 15000 });
+    const amount = viewer.getByRole("button", { name: "AmountDue", exact: true });
+    const table = viewer.getByRole("button", { name: "LineItems", exact: true });
+    await expect(amount).toHaveAttribute("aria-expanded", "false");
+    await expect(table).toHaveAttribute("aria-expanded", "true");
+    await viewer.getByRole("button", { name: "Collapse LineItems", exact: true }).click();
+    let settings = await openFieldsSettings(viewer);
+    for (let repeat = 0; repeat < 2; repeat++) {
+        await settings.getByRole("button", { name: "Expand all object values", exact: true }).click();
+        await expect(amount).toHaveAttribute("aria-expanded", "true");
+        await expect(table).toHaveAttribute("aria-expanded", "false");
+        await settings.getByRole("button", { name: "Collapse all object fields", exact: true }).click();
+        await expect(amount).toHaveAttribute("aria-expanded", "false");
+        await expect(table).toHaveAttribute("aria-expanded", "false");
+    }
+    await expect(page.getByTestId("host-field-order")).toContainText('"changes":0');
+    await page.getByRole("checkbox", { name: "Handle order changes", exact: true }).uncheck();
+    settings = await openFieldsSettings(viewer);
+    await expect(settings.getByRole("button", { name: "Reset order", exact: true })).toBeDisabled();
+    await expect(settings.getByRole("button", { name: "Expand all object values", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "Inspect caller data", exact: true }).click();
+    await expect(page.getByTestId("caller-result-unchanged")).toHaveText("true");
+});

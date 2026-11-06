@@ -35,7 +35,7 @@ test("real PDF, pin/hover, transforms, manual page precedence and local assets",
     await page.locator('[data-field-id="/contents/0/fields/BillingAddress"]').hover();
     await expect(page.getByRole("tooltip", { name: "Field preview" })).toContainText("BillingAddress");
     await leave(page);
-    await expect(page.getByRole("tooltip", { name: "Field preview" })).toContainText("AmountDue / Amount");
+    await expect(page.getByRole("tooltip", { name: "Field preview" })).toHaveCount(0);
     const sourcePoints = [[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.3628, 8.2124]] as const;
     const points = sourcePoints.map(([x, y]) => ({ x: x / 8.5, y: y / 11 }));
     for (let rotation = 0; rotation < 360; rotation += 90) {
@@ -316,6 +316,7 @@ test("Fields matches the approved compact grouping and confidence palette withou
 
     await expect(clear).toHaveCount(0);
     await expect(page.getByRole("switch", { name: "Hide missing fields" })).toHaveCount(0);
+    await expandField(page, "AmountDue");
     await expect(group.getByRole("button", { name: "Collapse AmountDue", exact: true })).toHaveAttribute("aria-expanded", "true");
     await expect(page.locator(amountRow)).toBeVisible();
     await group.getByRole("button", { name: "Collapse AmountDue", exact: true }).click();
@@ -429,7 +430,8 @@ test("real table-like arrays and every multi-region source remain reachable with
 
     const lineItems = page.locator('[data-field-id="/contents/0/fields/LineItems"]');
     await expandField(page, "LineItems");
-    for (const item of [1, 2, 3]) await expect(page.getByRole("rowheader", { name: String(item), exact: true })).toBeVisible();
+    const grid = page.getByRole("table", { name: "LineItems values", exact: true });
+    for (const item of [1, 2, 3]) await expect(grid.getByRole("rowheader", { name: String(item), exact: true })).toBeVisible();
     const date = page.locator('[data-field-id="/contents/0/fields/LineItems/valueArray/0/valueObject/Date"]');
     const dateButton = date.getByRole("button", { name: "Select value of LineItems / Item 1 / Date", exact: true });
     await dateButton.click();

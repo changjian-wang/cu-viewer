@@ -276,9 +276,9 @@ test("right-side field hover opens a source-anchored value/confidence preview wi
     if (!target || !box) throw new Error("Source preview anchor bounds are unavailable.");
     expect(box.x + box.width <= target.x || box.x >= target.x + target.width ||
         box.y + box.height <= target.y || box.y >= target.y + target.height).toBe(true);
-    await popup.hover();
-    await page.waitForTimeout(200);
-    await expect(popup).toBeVisible();
+    await expect(popup).toHaveCSS("pointer-events", "none");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(popup).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(popup).toHaveCount(0);
     await page.getByRole("button", { name: "Address", exact: true }).hover();
@@ -306,7 +306,7 @@ test("paragraph hover and focus show only Content, preserve pinning and dismiss 
     await expect(second).toHaveAttribute("aria-pressed", "false");
     await withinViewport(page, popup);
     await page.locator(".prototype-banner").hover();
-    await expect(popup).toContainText("First returned paragraph");
+    await expect(popup).toHaveCount(0);
     await expect(paragraph).toHaveAttribute("aria-pressed", "true");
     await second.focus();
     await expect(popup).toBeVisible();
@@ -320,34 +320,130 @@ test("paragraph hover and focus show only Content, preserve pinning and dismiss 
     await expect(page.getByTestId("result-overlay")).toHaveCount(0);
 });
 
-test("long returned preview text scrolls inside a bounded popover without expanding the page or covering its target", async ({ page }) => {
+test("long names wrap and clipped previews retain complete values in persistent readable and copyable details", async ({ page }) => {
     await synthetic(page);
     const text = "Returned value. ".repeat(800);
+    const name = "LongFieldNameWithoutSpaces".repeat(4);
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
         name: "synthetic-long-preview.json", mimeType: "application/json",
         buffer: Buffer.from(JSON.stringify({
             apiVersion: "2025-11-01", contents: [{ kind: "document", unit: "pixel",
                 pages: [{ pageNumber: 1, width: 96, height: 64 }],
-                fields: { Long: { type: "string", valueString: text, source: "D(1,40,30,40,6)" } } }],
+                fields: { [name]: { type: "string", valueString: text, source: "D(1,40,30,40,6)" } } }],
         })),
     });
     await page.locator(".prototype-banner").click();
-    await page.getByRole("button", { name: "Long", exact: true }).hover();
+    const field = page.getByRole("button", { name, exact: true });
+    await field.hover();
     const popup = page.getByRole("tooltip", { name: "Field preview" });
     await expect(popup.locator(".cu-flyover-value dd")).toHaveText(text);
     await withinViewport(page, popup);
     expect(await popup.locator(".cu-flyover-body").evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+    await expect(popup.locator(".cu-flyover-body")).toHaveCSS("overflow-y", "hidden");
+    await expect(popup.locator(".cu-popover-heading")).toHaveText(name);
+    expect(await popup.locator(".cu-popover-heading").evaluate(element => element.clientHeight)).toBeGreaterThan(30);
     const region = await page.getByTestId("preview-overlay").locator("polygon").boundingBox();
     const bounds = await popup.boundingBox();
     if (!region || !bounds) throw new Error("Long preview bounds are unavailable.");
     expect(bounds.y + bounds.height <= region.y || bounds.y >= region.y + region.height ||
         bounds.x + bounds.width <= region.x || bounds.x >= region.x + region.width).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(1000);
-    await popup.hover();
-    await popup.locator(".cu-flyover-body").evaluate(element => { element.scrollTop = element.scrollHeight; });
-    expect(await popup.locator(".cu-flyover-body").evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    await page.evaluate(() => {
+        let copied = "";
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+            writeText: (value: string) => { copied = value; return Promise.resolve(); }, readText: () => Promise.resolve(copied),
+        } });
+    });
+    await field.press("F2");
+    const details = page.getByRole("region", { name: "Full value and confidence" });
+    await expect(details.getByLabel("Full extracted value")).toHaveText(text);
+    await details.getByRole("button", { name: "Copy full value" }).click();
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(text);
     await page.keyboard.press("Escape");
+    await expect(details).toHaveCount(0);
+});
+
+test("keyboard selection retains only the focused preview and still explicitly navigates to its source", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
+        name: "keyboard-preview-selection.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "inch", pages: [{ pageNumber: 1, width: 8.5, height: 11 }, { pageNumber: 2, width: 8.5, height: 11 }],
+            fields: { Focused: { type: "string", valueString: "Second page", source: "D(2,0.7,2,2,0.25)" } },
+        }] })),
+    });
+    const field = page.getByRole("button", { name: "Focused", exact: true });
+    await field.focus();
+    await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue("1");
+    await field.press("Enter");
+    await ready(page);
+    await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue("2");
+    await expect(field).toBeFocused();
+    const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
+    await expect(popup).toContainText("Second page");
+    await page.getByRole("searchbox", { name: "Search fields or values", exact: true }).focus();
     await expect(popup).toHaveCount(0);
+    await expect(field).toHaveAttribute("aria-pressed", "true");
+});
+
+test("pointer previews dismiss with the clock paused and never resurrect the selected field", async ({ page }) => {
+    await synthetic(page);
+    const zero = page.getByRole("button", { name: "Zero", exact: true });
+    const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
+    await zero.click();
+    await page.locator(".prototype-banner").hover();
+    await expect(popup).toHaveCount(0);
+    await zero.hover();
+    await expect(popup).toBeVisible();
+    const time = new Date();
+    await page.clock.install({ time });
+    await page.clock.pauseAt(new Date(time.getTime() + 1000));
+    await page.locator(".prototype-banner").hover();
+    await expect(popup).toHaveCount(0);
+    await expect(zero).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("source-overlay")).toBeVisible();
+    await page.clock.resume();
+});
+
+test("the purple preview is pointer-transparent and immediately exposes another source field behind it", async ({ page }) => {
+    await synthetic(page);
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
+        name: "synthetic-overlapping-preview.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 96, height: 64 }],
+            fields: {
+                First: { type: "string", valueString: "First value", confidence: 0.2, source: "D(1,5,5,20,8)" },
+                Second: { type: "string", valueString: "Second value", source: "D(1,5,14,20,8)" },
+            },
+        }] })),
+    });
+    await page.locator(".prototype-banner").click();
+    const regions = page.getByTestId("result-overlay");
+    await regions.locator('[data-outline-id="/contents/0/fields/First"]').hover();
+    const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
+    await expect(popup).toBeVisible();
+    await expect(popup).toHaveCSS("pointer-events", "none");
+    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(229, 218, 255)");
+    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("color", "rgb(76, 29, 149)");
+    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("font-size", "12.5px");
+    await expect(popup.locator(".cu-flyover-value")).toHaveCSS("color", "rgb(36, 52, 71)");
+    await expect(popup.locator(".cu-flyover-value")).toHaveCSS("font-size", "12.5px");
+    await expect(popup.locator(".cu-flyover-confidence")).toHaveCSS("font-size", "11px");
+    expect(await popup.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(229, 218, 255)");
+    const box = await popup.boundingBox();
+    const second = await regions.locator('[data-outline-id="/contents/0/fields/Second"]').boundingBox();
+    if (!box || !second) throw new Error("Expected both the preview and the underlying source field.");
+    const left = Math.max(box.x, second.x), right = Math.min(box.x + box.width, second.x + second.width);
+    const top = Math.max(box.y, second.y), bottom = Math.min(box.y + box.height, second.y + second.height);
+    expect(right - left).toBeGreaterThan(0);
+    expect(bottom - top).toBeGreaterThan(0);
+    const point = { x: (left + right) / 2, y: (top + bottom) / 2 };
+    expect(await page.evaluate(point => document.elementFromPoint(point.x, point.y)
+        ?.closest("[data-outline-id]")?.getAttribute("data-outline-id"), point)).toBe("/contents/0/fields/Second");
+    await page.mouse.move(point.x, point.y);
+    await expect(popup.locator(".cu-popover-heading")).toHaveText("Second");
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveText("Second value");
 });
 
 test("unmapped source tables report their missing Fields association without changing zoom", async ({ page }) => {

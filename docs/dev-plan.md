@@ -430,7 +430,30 @@ Optional API frozen in UI0 and implemented/type-tested in UI1:
 
 An incomplete order must not hide newly returned fields: append unspecified siblings in input order. Reject cross-parent/array-row moves, validate configuration, report invalid/unrecognized storage explicitly, and provide an explicit reset. A schema key must ignore extracted values and object key display order while distinguishing changed field structure; do not use a file name or the prototype's fixed `invoice-example` key.
 
-The source/result unions, API-version mapping, format limits, URL/CORS rules, worker paths and Python signatures stay unchanged. No new dependency is planned; request a specific, evidenced exception if an existing tool/helper cannot meet a requirement.
+The source/result unions, API-version mapping, format limits, worker paths and public order props stay unchanged.
+
+### November 6, 2026 owner handoff
+
+The maintained production shell removes the standalone app title bar. Popovers use the shared selected-row background `#E5DAFF`, dark-purple names, white bodies with `#243447` values, shared 12.5px name/value typography and an unchanged 11px confidence badge. Low-confidence tables use `#F6C5CC` and the hover outline uses `#8063B5`; scores, thresholds and scalar semantics are unchanged.
+
+Pointer previews are transparent to hit testing and dismiss immediately on leaving the real target, without a timer or pinned-field fallback. Selection remains independent. Keyboard previews and Escape remain supported; persistent full-value details provide scrolling and copying instead of a hoverable popup. Objects initialize collapsed and all nonempty arrays initialize expanded, including arrays hidden by collapsed parents. Bulk object actions affect nested object groups only and do not write order preferences or override manual table state.
+
+The production [App](../frontend/app/App.tsx) optionally consumes `session.json.fieldOrderUrl`. The URL must belong to the same origin and session path and must not contain credentials, a query or fragment. `GET` returns a `ViewerFieldOrder` mapping; `PUT application/json` submits an explicit customization, with `{}` resetting this analyzer, and succeeds with HTTP 204. The CU host bounds requests to 1 MiB, retains host/origin/session checks and leaves all other routes read-only.
+
+The Go host stores overrides under the literal hierarchy `extension → installed → azure.ai.content-understanding → Viewer → fieldOrderByAnalyzer`, keyed by normalized endpoint plus `#` and analyzerId. It reloads the raw azd user JSON after taking a file lock, changes only the selected override, and atomically replaces the file. This avoids the command-lifetime gRPC configuration snapshot and the dotted-path parser's inability to address a literal dotted extension key. No source/result values are persisted. The already-pinned Go file-lock dependency is now direct; no frontend dependency was added.
+
+Opening a file does not create defaults. Saved stale paths are ignored for display and new fields remain visible. Writes are serialized; read failures disable reordering without hiding valid data, and failed writes report an error and restore the last confirmed order. The core installed-extension model retains opaque `Viewer` data through metadata changes and replacement; this lifecycle guarantee requires a compatible azd build. Neither installed CLI binaries nor releases are replaced automatically.
+
+Legacy hosts without the optional URL retain the existing browser-owned order. Frozen HTML prototypes and approved production screenshot baselines remain historical references and are not re-recorded by this handoff implementation.
+
+Local validation: 150 focused frontend unit tests, 82 core Chrome/Edge scenarios
+and 40 additional distinct regression scenarios passed; TypeScript, targeted
+ESLint, component/production builds, Go viewer/command tests, core metadata
+update/replacement tests and both Go builds passed. The real embedded Go page
+was opened twice with different PDF paths and one analyzer: no initial settings
+write, customized order restored after restart, and reset preserved the other
+analyzer and existing settings. These checks used saved fixtures with no Azure
+analysis calls; production screenshot baselines were not updated.
 
 ### Phases, dependencies and exit gates
 

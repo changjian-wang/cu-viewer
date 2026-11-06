@@ -17,6 +17,8 @@ const icons = {
     down: <path d="m6 9 6 6 6-6" />,
     plus: <path d="M12 5v14M5 12h14" />,
     minus: <path d="M5 12h14" />,
+    collapseAll: <><rect x="7" y="7" width="14" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2M10 14h8" /></>,
+    expandAll: <><rect x="7" y="7" width="14" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2M10 14h8M14 10v8" /></>,
     close: <path d="m6 6 12 12M18 6 6 18" />,
     search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></>,
     locate: <><rect x="5" y="5" width="14" height="14" rx="3" /><path d="M12 2v6M12 16v6M2 12h6M16 12h6" /></>,

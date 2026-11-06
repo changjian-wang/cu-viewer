@@ -195,7 +195,6 @@ describe("structured Fields presentation", () => {
             onShowAllFields: vi.fn() };
         const original = JSON.stringify(content);
         const view = render(<TestPane {...props} selected={null} />);
-        fireEvent.click(screen.getByRole("button", { name: "Collapse Total" }));
         const scroll = view.container.querySelector<HTMLElement>(".cu-fields-scroll")!;
         scroll.scrollTop = 120;
         view.container.querySelector<HTMLElement>("[data-array-id]")!.scrollLeft = 150;
@@ -322,7 +321,6 @@ describe("structured Fields presentation", () => {
         } }] }).contents[0]!;
         const field = content.fields[0]!;
         const { container, onSelect } = renderPane(content, field);
-        fireEvent.click(screen.getByRole("button", { name: "Collapse ArbitraryTotal" }));
         const summary = screen.getByRole("button", { name: "View full value of ArbitraryTotal" });
         expect(summary.textContent).toBe("610 USD");
         expect(container.querySelector(".cu-group-selection-count")).toBeNull();
@@ -353,7 +351,6 @@ describe("structured Fields presentation", () => {
             Long: { type: "object", valueObject: { Text: { type: "string", valueString: long } } },
         } }] }).contents[0]!;
         renderPane(next);
-        fireEvent.click(screen.getByRole("button", { name: "Collapse Long" }));
         const full = screen.getByRole("button", { name: "View full value of Long" });
         expect(full.textContent).toBe(long);
         fireEvent.click(full);
@@ -368,6 +365,8 @@ describe("structured Fields presentation", () => {
             ] } } },
         } }] }).contents[0]!;
         const { container } = renderPane(content);
+        fireEvent.click(screen.getByRole("button", { name: "Expand Nested" }));
+        fireEvent.click(screen.getByRole("button", { name: "Collapse Inner" }));
         const name = screen.getByRole("button", { name: "Inner" });
         const row = name.closest("tr")!;
         expect(row.querySelector(".cu-summary-value")?.textContent).toBe("3 items");
@@ -380,6 +379,41 @@ describe("structured Fields presentation", () => {
         fireEvent.click(row.querySelector<HTMLButtonElement>(".cu-summary-value")!);
         expect(screen.getByLabelText("Full extracted value").textContent)
             .toBe(JSON.stringify(content.fields[0]!.children[0]!.value, null, 2));
+    });
+
+    it("expands and collapses nested objects without changing manual table state or extracted data", () => {
+        const content = parseCuResult({ apiVersion: "2025-11-01", contents: [{ kind: "document", fields: {
+            TopRows: { type: "array", valueArray: [{ type: "string", valueString: "Top row" }] },
+            Group: { type: "object", valueObject: {
+                Nested: { type: "object", valueObject: { Value: { type: "integer", valueInteger: 0 } } },
+                NestedRows: { type: "array", valueArray: [{ type: "string", valueString: "Nested row" }] },
+            } },
+        } }] }).contents[0]!;
+        const original = JSON.stringify(content);
+        const { onSelect } = renderPane(content);
+        expect(screen.getByRole("button", { name: "Expand Group" })).toBeTruthy();
+        expect(screen.getByRole("table", { name: "TopRows values" })).toBeTruthy();
+        expect(screen.queryByRole("table", { name: "Group / NestedRows values" })).toBeNull();
+        fireEvent.click(screen.getByRole("button", { name: "Collapse TopRows" }));
+        fireEvent.click(screen.getByRole("button", { name: "Fields settings" }));
+        fireEvent.click(screen.getByRole("button", { name: "Expand all object values" }));
+        expect(screen.getByRole("button", { name: "Collapse Group" })).toBeTruthy();
+        expect(screen.getByRole("button", { name: "Collapse Nested" })).toBeTruthy();
+        expect(screen.getByRole("table", { name: "Group / NestedRows values" })).toBeTruthy();
+        expect(screen.getByRole("button", { name: "Expand TopRows" })).toBeTruthy();
+        fireEvent.click(screen.getByRole("button", { name: "Collapse all object fields" }));
+        expect(screen.getByRole("button", { name: "Expand Group" })).toBeTruthy();
+        fireEvent.click(screen.getByRole("button", { name: "Close fields settings" }));
+        fireEvent.click(screen.getByRole("button", { name: "Expand Group" }));
+        expect(screen.getByRole("button", { name: "Expand Nested" })).toBeTruthy();
+        expect(screen.getByRole("table", { name: "Group / NestedRows values" })).toBeTruthy();
+        fireEvent.click(screen.getByRole("button", { name: "Fields settings" }));
+        fireEvent.click(screen.getByRole("button", { name: "Collapse all object fields" }));
+        fireEvent.click(screen.getByRole("button", { name: "Expand all object values" }));
+        expect(screen.getByRole("button", { name: "Collapse Nested" })).toBeTruthy();
+        expect(screen.getByRole("button", { name: "Expand TopRows" })).toBeTruthy();
+        expect(onSelect).not.toHaveBeenCalled();
+        expect(JSON.stringify(content)).toBe(original);
     });
 
     it("omits the selected-value toolbar shortcut for empty and group selections and leaves group confidence blank", () => {

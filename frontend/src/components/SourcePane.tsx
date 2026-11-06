@@ -29,8 +29,6 @@ interface SourcePaneProps {
     view: ResultView | undefined;
     outlines: readonly SourceOutline[];
     previewId: string;
-    onPreviewEnter: () => void;
-    onPreviewLeave: () => void;
     onDismissPreview: () => void;
     onHover: (field: CuField, regionIndex: number, keyboard?: boolean) => void;
     onLeave: (field: CuField) => void;
@@ -122,7 +120,7 @@ export function SourcePane(props: SourcePaneProps) {
     const group = props.active ? isFieldGroup(props.active) : false;
     const pinnedGroup = props.pinned ? isFieldGroup(props.pinned) : false;
     const wholeTable = props.content?.tables?.some(table => table.id === props.active?.id);
-    const showCard = Boolean(props.active && !group && !wholeTable &&
+    const showCard = Boolean(props.preview && props.active && !group && !wholeTable &&
         (!props.active.detailView || props.active.detailView === "paragraphs"));
     const valuePreview = props.preview && isValueSourceField(props.view, props.active);
     const previewInSelection = Boolean(props.pinned && props.active && (props.pinned.id === props.active.id ||
@@ -224,8 +222,9 @@ export function SourcePane(props: SourcePaneProps) {
     }, [props.active?.id]);
     useLayoutEffect(() => {
         const request = props.revealRequest, viewport = container.current, paper = renderedPage.current;
-        if (request === null || request === handledReveal.current || props.preview || !ready || !viewport || !paper ||
+        if (request === null || request === handledReveal.current || !ready || !viewport || !paper ||
             !activePolygons.length || (showCard && !cardPolygon)) return;
+        if (props.preview && props.active?.id !== props.pinned?.id) return;
         if (showCard && popupSize?.fieldId !== props.active?.id) return;
         try {
             const points = showCard && cardPolygon ? cardPolygon : activePolygons.flatMap(item => item.polygon);
@@ -249,7 +248,7 @@ export function SourcePane(props: SourcePaneProps) {
             handledReveal.current = request;
             setNavigationError(null);
         } catch (error) { handledReveal.current = request; setNavigationError(error instanceof Error ? error.message : String(error)); }
-    }, [props.revealRequest, props.preview, props.active, ready, activePolygons, cardPolygon, showCard, popupSize, display.height, zoom, reserve, shiftPaper]);
+    }, [props.revealRequest, props.preview, props.active, props.pinned, ready, activePolygons, cardPolygon, showCard, popupSize, display.height, zoom, reserve, shiftPaper]);
     const zoomRef = useRef(zoom);
     zoomRef.current = zoom;
     const applyZoom = (value: number, client?: CuPoint): void => {
@@ -385,7 +384,7 @@ export function SourcePane(props: SourcePaneProps) {
                     }
                     return;
                 }
-                if (!ready || (event.target instanceof Element && event.target.closest(".cu-source-popover"))) return;
+                if (!ready) return;
                 const target = hit(event.clientX, event.clientY);
                 if (target && !isTable(target.field)) props.onHover(target.field, target.regionIndex);
                 else if (target) props.onDismissPreview();
@@ -480,7 +479,7 @@ export function SourcePane(props: SourcePaneProps) {
             </div>
             {layersReady && showCard && props.active && cardPolygon && <SourcePopover id={props.previewId} field={props.active}
                 settings={props.settings} points={cardPolygon} pan={pan ?? layout.paper} viewport={container} paper={renderedPage}
-                onMeasure={measureCard} onEnter={props.onPreviewEnter} onLeave={props.onPreviewLeave} />}
+                onMeasure={measureCard} />}
             {(!hasPreview || error) && <div className={`cu-source-state cu-state${error ? " cu-error" : ""}`} role={error ? "alert" : "status"}>
                 <h2>{error ? "Source could not be displayed" : "Loading source..."}</h2><p>{error ?? "Valid field data stays available."}</p>
             </div>}

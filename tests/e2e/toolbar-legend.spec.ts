@@ -8,7 +8,7 @@ test.use({ reducedMotion: "reduce", deviceScaleFactor: 1 });
 const trigger = (page: Page) => page.getByRole("button", { name: "Highlighting legend", exact: true });
 const dialog = (page: Page) => page.getByRole("dialog", { name: "Legend", exact: true });
 const colors = ["rgb(232, 245, 233)", "rgb(232, 241, 255)", "rgb(252, 232, 230)",
-    "rgb(255, 232, 236)"];
+    "rgb(246, 197, 204)"];
 
 async function expectPalette(list: Locator): Promise<void> {
     await expect(list.locator(".cu-legend-item")).toHaveCount(4);
@@ -203,7 +203,7 @@ const categorySources = [
     { key: "field", id: "/contents/0/fields/InvoiceId", fill: "#E8F5E9" },
     { key: "table", id: "/contents/0/fields/LineItems/valueArray/0/valueObject/Column2", fill: "#E8F1FF" },
     { key: "lowField", id: "/contents/0/fields/Zero", fill: "#FCE8E6" },
-    { key: "lowTable", id: "/contents/0/fields/LineItems/valueArray/0/valueObject/Column1", fill: "#FFE8EC" },
+    { key: "lowTable", id: "/contents/0/fields/LineItems/valueArray/0/valueObject/Column1", fill: "#F6C5CC" },
     { key: "unavailable", id: "/contents/0/fields/Unknown", fill: "#F1F3F5" },
 ] as const;
 const sourceRegion = (page: Page, id: string) => page.getByTestId("result-overlay").locator(`polygon[data-outline-id="${id}"]`).first();

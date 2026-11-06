@@ -32,7 +32,7 @@ describe("approved review semantics", () => {
     it("uses the exact palette, own confidence and category precedence", () => {
         expect(appearance({ confidence: 0.7 }, false, defaultReviewSettings).background).toBe("#E8F5E9");
         expect(appearance({ confidence: 0 }, false, defaultReviewSettings).background).toBe("#FCE8E6");
-        expect(appearance({ confidence: 0.699 }, true, defaultReviewSettings).background).toBe("#FFE8EC");
+        expect(appearance({ confidence: 0.699 }, true, defaultReviewSettings).background).toBe("#F6C5CC");
         expect(appearance({}, true, defaultReviewSettings).background).toBe("#F1F3F5");
         expect(appearance({ confidence: 0 }, true, { ...defaultReviewSettings, highlightLow: false }).background).toBe("#E8F1FF");
         expect(appearance({ confidence: 0 }, false, { ...defaultReviewSettings, showFields: false }).enabled).toBe(false);
@@ -42,7 +42,7 @@ describe("approved review semantics", () => {
             const style = appearance({ confidence: 0 }, table, { ...defaultReviewSettings, showFields: false, showTables: false });
             expect(style.enabled).toBe(false);
             expect(style.low).toBe(true);
-            expect(style.background).toBe(table ? "#FFE8EC" : "#FCE8E6");
+            expect(style.background).toBe(table ? "#F6C5CC" : "#FCE8E6");
         }
         expect(confidenceDescription({ confidence: 0.698 }, 0.699)).toBe("Confidence 0.698, below threshold 0.699");
     });
@@ -246,59 +246,36 @@ describe("real collapsed field values", () => {
     });
 });
 
-describe("bounded array-first initial expansion", () => {
+describe("independent object and table initial expansion", () => {
     const object = (count: number) => ({ type: "object", valueObject: Object.fromEntries(
         Array.from({ length: count }, (_, index) => [`Field${index}`, text(`Value ${index}`)])) });
     const array = (count: number) => ({ type: "array", valueArray: Array.from({ length: count }, () => object(2)) });
 
-    it("reserves the first array header/business rows before opening first-level objects", () => {
+    it("collapses objects and expands every nonempty table without changing the fields", () => {
         const fields = content({ Large: object(6), Rows: array(3), Small: object(2) }).fields;
-        const expanded = initialExpandedFields(fields, {}, 9);
-        expect([...expanded]).toEqual([fields[1]!.id, fields[2]!.id]);
-    });
-
-    it("counts the array header and never expands beyond the row budget", () => {
-        const fields = content({ Rows: array(2) }).fields;
-        expect(initialExpandedFields(fields, {}, 3).size).toBe(0);
-        expect([...initialExpandedFields(fields, {}, 4)]).toEqual([fields[0]!.id]);
-    });
-
-    it("leaves oversized arrays folded without replacing them with a later array", () => {
-        const fields = content({ Huge: array(100), Later: array(1), Small: object(2) }).fields;
-        expect([...initialExpandedFields(fields)]).toEqual([fields[2]!.id]);
-    });
-
-    it("uses configured display order for object priority without changing the fields", () => {
-        const fields = content({ First: object(2), Second: object(2), Rows: array(1) }).fields;
         const before = JSON.stringify(fields);
-        expect([...initialExpandedFields(fields, {}, 7)]).toEqual([fields[2]!.id, fields[0]!.id]);
-        expect([...initialExpandedFields(fields, { $root: ["/Second", "/First", "/Rows"] }, 7)]).toEqual([fields[2]!.id, fields[1]!.id]);
+        expect([...initialExpandedFields(fields)]).toEqual([fields[1]!.id]);
         expect(JSON.stringify(fields)).toBe(before);
     });
 
-    it("does not recursively open nested objects or nested array rows", () => {
-        const fields = content({ Group: { type: "object", valueObject: { Nested: object(100) } } }).fields;
-        expect([...initialExpandedFields(fields)]).toEqual([fields[0]!.id]);
-        const nested = content({ Rows: { type: "array", valueArray: [{
-            type: "object", valueObject: { Nested: array(2) },
-        }] } }).fields;
-        expect([...initialExpandedFields(nested, {}, 2)]).toEqual([nested[0]!.id]);
+    it("keeps nested tables ready without opening their object parents", () => {
+        const fields = content({ Group: { type: "object", valueObject: {
+            Nested: { type: "object", valueObject: { Rows: array(2) } },
+        } } }).fields;
+        const nested = fields[0]!.children[0]!;
+        expect([...initialExpandedFields(fields)]).toEqual([nested.children[0]!.id]);
     });
 
-    it("keeps all groups folded if the root rows already fill the budget", () => {
-        const fields = content({ Group: object(1), Other: object(1) }).fields;
-        expect(initialExpandedFields(fields, {}, 2).size).toBe(0);
+    it("does not restrict table defaults to the first array or a visible-row budget", () => {
+        const fields = content({ Huge: array(100), Later: array(1), Empty: array(0) }).fields;
+        expect([...initialExpandedFields(fields)]).toEqual([fields[0]!.id, fields[1]!.id]);
     });
 
     it("uses the real invoice structure without hardcoded business names", () => {
         const original: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "mixed-financial-docs.cu.json"), "utf8"));
         const fields = parseCuResult(original).contents[0]!.fields;
         const expanded = initialExpandedFields(fields);
-        expect(fields.filter(field => expanded.has(field.id)).map(field => field.name)).toEqual(["AmountDue", "BalanceForward", "LineItems"]);
-    });
-
-    it.each([-1, 0.5, Infinity, NaN])("rejects invalid row budget %s", budget => {
-        expect(() => initialExpandedFields([], {}, budget)).toThrow(RangeError);
+        expect(fields.filter(field => expanded.has(field.id)).map(field => field.name)).toEqual(["LineItems", "TaxDetails"]);
     });
 });
 

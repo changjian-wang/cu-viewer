@@ -58,7 +58,7 @@ interface ResultsPaneProps {
 }
 
 export function ResultsPane(props: ResultsPaneProps) {
-    const [review, setReview] = useState(() => initialFieldsReview(props.content?.fields ?? [], props.preferences?.order ?? {}));
+    const [review, setReview] = useState(() => initialFieldsReview(props.content?.fields ?? []));
     const [localSettings, setLocalSettings] = useState({ ...defaultReviewSettings });
     const { view } = props;
     const settings = props.preferences?.settings ?? localSettings;
@@ -108,7 +108,7 @@ export function ResultsPane(props: ResultsPaneProps) {
         [props.content, props.result, props.apiVersion]);
     const activeTab = tabs.find(tab => tab.id === view);
     useEffect(() => {
-        setReview(initialFieldsReview(props.content?.fields ?? [], props.preferences?.order ?? {}));
+        setReview(initialFieldsReview(props.content?.fields ?? []));
     }, [props.workflow.context]);
     const restoreFieldFocus = (field: CuField, trigger?: HTMLElement): void => {
         const controls = [...(panel.current?.querySelectorAll<HTMLElement>("[data-review-focus]") ?? [])];

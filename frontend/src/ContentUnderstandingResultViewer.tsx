@@ -4,7 +4,7 @@ import type { ContentUnderstandingResultViewerProps } from "./index";
 import { ResultsPane } from "./components/ResultsPane";
 import { SourcePane } from "./components/SourcePane";
 import { ResizeHandle } from "./components/ResizeHandle";
-import { fieldRegion, fieldRegions, initialInteraction, interaction, selectableFields } from "./interaction/interaction";
+import { fieldRegion, fieldRegions, initialInteraction, interaction, isFieldGroup, selectableFields } from "./interaction/interaction";
 import { CuResultParseError, parseCuResult } from "./model/parseCuResult";
 import type { LoadedSource } from "./source/source";
 import { hasSourcePage, loadSource, unavailableSourcePageMessage } from "./source/source";
@@ -48,19 +48,10 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         [content, view, state.pageNumber, preferences.settings]);
     const previewId = useId();
     const viewer = useRef<HTMLDivElement>(null);
-    const previewClose = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const previewHeld = useRef(false);
     const previewOrigin = useRef<"pointer" | "focus">("pointer");
-    const keepPreview = useCallback(() => {
-        if (previewClose.current !== null) clearTimeout(previewClose.current);
-        previewClose.current = null;
-    }, []);
     const dismissPreview = useCallback(() => {
-        keepPreview();
-        previewHeld.current = false;
         dispatch({ type: "dismiss-preview" });
-    }, [keepPreview]);
-    useEffect(() => () => keepPreview(), [keepPreview]);
+    }, []);
     const [width, setWidth] = useState(1280);
     useLayoutEffect(() => {
         const element = viewer.current;
@@ -82,7 +73,6 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         const controller = new AbortController();
         let loaded: LoadedSource | null = null;
         setRenderReady(false);
-        keepPreview();
         setReveal(null);
         dispatch({ type: "clear" });
         dispatch({ type: "page", pageNumber: 1 });
@@ -101,12 +91,11 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             controller.abort();
             if (loaded) void loaded.dispose().catch((error: unknown) => console.error("Source disposal failed.", error));
         };
-    }, [props.source, keepPreview]);
+    }, [props.source]);
     useEffect(() => {
         dispatch({ type: "clear" });
-        keepPreview();
         setReveal(null);
-    }, [props.result, keepPreview]);
+    }, [props.result]);
     const onRenderReady = useCallback((ready: boolean) => setRenderReady(ready), []);
     const isPageAvailable = (pageNumber: number | undefined): boolean => hasSourcePage(source?.pages, pageNumber);
     const available = (field: CuField | null, regionIndex = 0): boolean =>
@@ -127,22 +116,16 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const activeRegionIndex = hovered ? state.hoveredRegionIndex ??
         Math.max(0, activeRegions.findIndex(region => region.pageNumber === state.pageNumber)) : state.selectedRegionIndex;
     const leavePreview = (field: CuField): void => {
-        keepPreview();
-        if (previewHeld.current) return;
         const focused = viewer.current?.ownerDocument.activeElement;
         const item = focused?.closest("[data-review-focus], [data-outline-id]");
         if (previewOrigin.current === "focus" && viewer.current?.contains(focused ?? null) &&
             (item?.getAttribute("data-review-focus") ?? item?.getAttribute("data-outline-id")) === field.id) return;
-        previewClose.current = setTimeout(() => {
-            previewClose.current = null;
-            dispatch({ type: "leave", fieldId: field.id, restorePageAvailable: available(selected) });
-        }, 150);
+        dispatch({ type: "leave", fieldId: field.id, restorePageAvailable: available(selected) });
     };
     const chooseContent = (index: number): void => {
         const next = parsed.model?.contents[index];
         if (!next) throw new Error("The chosen result content does not exist.");
         setContentChoice({ result: props.result, index });
-        keepPreview();
         setReveal(null);
         dispatch({ type: "clear" });
         workflow.clear();
@@ -152,14 +135,18 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const selectField = (field: CuField, regionIndex?: number, origin: "source" | "source-table" | "results" = "results", revealSource = false): void => {
         if (origin !== "source-table" && !(tableLocation &&
             ((tableLocation.focused && origin === "results") || tableFieldIds(tableLocation.match).has(field.id)))) setTableLocation(null);
-        keepPreview();
-        previewHeld.current = false;
         if (origin === "source-table") workflow.clear();
         else workflow.select(field);
         const regions = fieldRegions(field);
         const currentIndex = regions.findIndex(region => region.pageNumber === state.pageNumber && isPageAvailable(region.pageNumber));
         const index = regionIndex ?? Math.max(0, currentIndex >= 0 ? currentIndex : regions.findIndex(region => isPageAvailable(region.pageNumber)));
-        dispatch({ type: "select", field, regionIndex: index, pageAvailable: available(field, index) });
+        const focused = viewer.current?.ownerDocument.activeElement;
+        const item = focused?.closest("[data-review-focus], [data-outline-id]");
+        const retainPreview = Boolean(!isFieldGroup(field) && focused?.matches(":focus-visible") &&
+            viewer.current?.contains(focused) &&
+            (item?.getAttribute("data-review-focus") ?? item?.getAttribute("data-outline-id")) === field.id);
+        if (retainPreview) previewOrigin.current = "focus";
+        dispatch({ type: "select", field, regionIndex: index, pageAvailable: available(field, index), retainPreview });
         setReveal({ sequence: ++revealSequence.current, origin, revealSource });
     };
     const selectTable = (field: CuField, index: number, revealSource = false): void => {
@@ -169,10 +156,9 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         selectField(field, index, "source-table", revealSource);
     };
     const clearSelection = (): void => {
-        keepPreview(); workflow.clear(); setReveal(null); setTableLocation(null); dispatch({ type: "clear" });
+        workflow.clear(); setReveal(null); setTableLocation(null); dispatch({ type: "clear" });
     };
     const previewField = (field: CuField, regionIndex?: number, origin: "pointer" | "focus" = "pointer"): void => {
-        keepPreview(); previewHeld.current = false;
         previewOrigin.current = origin;
         if (!workflow.menuOpen.current) dispatch({ type: "hover", field, pageAvailable: false,
             ...(regionIndex === undefined ? {} : { regionIndex }) });
@@ -212,8 +198,6 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             pinned={pinned} pinnedRegions={fieldRegions(pinned)}
             hasSelection={Boolean(selected)}
             view={view} outlines={outlines} previewId={previewId}
-            onPreviewEnter={() => { previewHeld.current = true; keepPreview(); }}
-            onPreviewLeave={() => { previewHeld.current = false; if (hovered) leavePreview(hovered); }}
             onDismissPreview={dismissPreview}
             regions={activeRegions} regionIndex={activeRegionIndex}
             revealRequest={reveal?.origin === "source-table" && !reveal.revealSource ? null : revealRequest}
@@ -222,7 +206,6 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             onSelectTable={selectTable}
             settings={preferences.settings} onSettings={preferences.changeSettings}
             onPage={pageNumber => {
-                keepPreview();
                 setReveal(null);
                 dispatch({ type: "page", pageNumber });
             }} onRenderReady={onRenderReady}

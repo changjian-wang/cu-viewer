@@ -90,12 +90,12 @@ test("hover preview and pinned selection retain the approved layout, colors and 
     await expect(address).toHaveClass(/is-hovered/);
     await expect(page.getByRole("tooltip", { name: "Field preview" }).locator("dd").last()).toHaveText("0.32");
     await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCSS("stroke-dasharray", "none");
-    await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(140, 112, 194)");
+    await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(128, 99, 181)");
     await snapshot(page, "pdf-hover.png");
 
     await neutral(page);
     await pinAmount(page);
-    await expect(page.getByRole("tooltip", { name: "Field preview" })).toContainText("AmountDue / Amount");
+    await expect(page.getByRole("tooltip", { name: "Field preview" })).toHaveCount(0);
     await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(91, 33, 182)");
     await snapshot(page, "pdf-pinned.png");
 });

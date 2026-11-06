@@ -123,7 +123,7 @@ describe("direct document controls without overflow", () => {
 });
 
 const palette = ["rgb(232, 245, 233)", "rgb(232, 241, 255)", "rgb(252, 232, 230)",
-    "rgb(255, 232, 236)"];
+    "rgb(246, 197, 204)"];
 
 function openLegend() {
     const trigger = screen.getByRole("button", { name: "Highlighting legend" });

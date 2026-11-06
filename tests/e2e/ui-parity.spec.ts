@@ -636,7 +636,7 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1440, height: 100
         await page.setViewportSize(viewport);
         await loadReviewFixture(page);
         const target = source(page, "/contents/0/fields/InvoiceId");
-        await target.click();
+        await target.hover();
         const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
         await expect(popup).toBeVisible();
         await expect.poll(async () => {
@@ -667,7 +667,7 @@ test("UI-33 source visibility never clears right-hand low-confidence emphasis", 
     await expect(source(page, recipientId)).toHaveAttribute("fill", "none");
     await expect(source(page, cellId)).toHaveAttribute("fill", "none");
     await expect(field).toHaveCSS("background-color", "rgb(252, 232, 230)");
-    await expect(cell).toHaveCSS("background-color", "rgb(255, 232, 236)");
+    await expect(cell).toHaveCSS("background-color", "rgb(246, 197, 204)");
     await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await expect(page.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
@@ -838,7 +838,7 @@ for (const kind of ["pdf", "image"] as const) {
             { id: "/contents/0/fields/InvoiceId", rgb: [232, 245, 233] },
             { id: recipientId, rgb: [252, 232, 230] },
             { id: "/contents/0/fields/Unknown", rgb: [241, 243, 245] },
-            { id: cellId, rgb: [255, 232, 236] },
+            { id: cellId, rgb: [246, 197, 204] },
             { id: `${arrayId}/valueArray/0/valueObject/Column2`, rgb: [232, 241, 255] },
         ];
         const regions = [];

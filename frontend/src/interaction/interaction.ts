@@ -41,7 +41,7 @@ export interface InteractionState {
 export type InteractionAction =
     | { type: "hover"; field: CuField; pageAvailable: boolean; regionIndex?: number }
     | { type: "leave"; fieldId: string; restorePageAvailable: boolean }
-    | { type: "select"; field: CuField; pageAvailable: boolean; regionIndex?: number }
+    | { type: "select"; field: CuField; pageAvailable: boolean; regionIndex?: number; retainPreview?: boolean }
     | { type: "region"; fieldId: string; index: number; pageAvailable: boolean }
     | { type: "page"; pageNumber: number }
     | { type: "dismiss-preview" }
@@ -53,10 +53,6 @@ export function interaction(state: InteractionState, action: InteractionAction):
     switch (action.type) {
         case "hover":
             if (isFieldGroup(action.field)) return state.hovered ? { ...state, hovered: null } : state;
-            if (state.selected?.id === action.field.id &&
-                (action.regionIndex === undefined || action.regionIndex === state.selectedRegionIndex)) {
-                return state.hovered ? { ...state, hovered: null } : state;
-            }
             if (state.hovered === action.field && state.hoveredRegionIndex === action.regionIndex) return state;
             return { ...state, hovered: action.field, hoveredRegionIndex: action.regionIndex };
         case "leave":
@@ -64,8 +60,10 @@ export function interaction(state: InteractionState, action: InteractionAction):
             return { ...state, hovered: null };
         case "select": {
             const index = action.regionIndex ?? Math.max(0, fieldRegions(action.field).findIndex(region => region.pageNumber === state.pageNumber));
+            const preview = action.retainPreview && !isFieldGroup(action.field);
             return {
-                ...state, selected: action.field, hovered: null, selectedRegionIndex: index,
+                ...state, selected: action.field, hovered: preview ? action.field : null, selectedRegionIndex: index,
+                ...(preview ? { hoveredRegionIndex: index } : {}),
                 pageNumber: action.pageAvailable ? fieldRegion(action.field, index)?.pageNumber ?? state.pageNumber : state.pageNumber,
             };
         }
