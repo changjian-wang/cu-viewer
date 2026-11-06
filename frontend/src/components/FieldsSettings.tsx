@@ -14,7 +14,7 @@ export function FieldsSettings({ id, anchor, settings, onSettings, onResetOrder,
     const panel = useRef<HTMLElement>(null);
     const onKeyDown = usePanelDismiss(panel, anchor, onClose);
     useLayoutEffect(() => { panel.current?.querySelector("input")?.focus({ preventScroll: true }); }, []);
-    return <section id={id} className="cu-fields-settings" ref={panel} role="dialog" aria-label="Fields settings"
+    return <section id={id} className="cu-fields-settings" ref={panel} role="dialog" aria-label="Fields settings" tabIndex={-1}
         onKeyDown={onKeyDown} onBlur={event => {
             if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget) && event.relatedTarget !== anchor) onClose(false);
         }}>

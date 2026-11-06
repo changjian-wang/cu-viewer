@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { loadReviewFixture } from "./uiRedesignFixtures";
-import { openFieldsSettings, ready, setShowConfidence } from "./viewerAssertions";
+import { expandField, openFieldsSettings, ready, setShowConfidence } from "./viewerAssertions";
 import { standardFontPdf } from "./pdfFixtures";
 
 test.use({ reducedMotion: "reduce" });
@@ -181,7 +181,7 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1440, height: 100
         const panel = page.getByRole("dialog", { name: "Fields settings", exact: true });
         await expect(panel.getByRole("checkbox", { name: "Show Confidence", exact: true })).toBeFocused();
         await expect(panel.getByRole("checkbox")).toHaveCount(1);
-        await expect(panel.getByRole("button")).toHaveCount(2);
+        await expect(panel.getByRole("button")).toHaveCount(4);
         const reset = panel.getByRole("button", { name: "Reset order", exact: true });
         await expect(reset).toBeEnabled();
         await page.keyboard.press("Tab");
@@ -202,6 +202,34 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1440, height: 100
         await expect(trigger).toBeFocused();
     });
 }
+
+test("Show Confidence text, row space and checkbox use native toggling without dismissing Settings", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    const panel = await openFieldsSettings(page);
+    const checkbox = panel.getByRole("checkbox", { name: "Show Confidence", exact: true });
+    const label = panel.locator("label.cu-confidence-toggle");
+    const box = await label.boundingBox();
+    if (!box) throw new Error("The Confidence label is missing.");
+    await label.click({ position: { x: 45, y: box.height / 2 } });
+    await expect(panel).toBeVisible();
+    await expect(checkbox).toBeChecked();
+    await expect(page.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
+    await label.click({ position: { x: box.width - 5, y: box.height / 2 } });
+    await expect(panel).toBeVisible();
+    await expect(checkbox).not.toBeChecked();
+    await expect(page.getByRole("columnheader", { name: "Confidence", exact: true })).toHaveCount(0);
+    await checkbox.click();
+    await expect(panel).toBeVisible();
+    await expect(checkbox).toBeChecked();
+    await checkbox.press("Space");
+    await expect(panel).toBeVisible();
+    await expect(checkbox).not.toBeChecked();
+    const search = page.getByRole("searchbox", { name: "Search fields or values", exact: true });
+    await search.click();
+    await expect(panel).toHaveCount(0);
+    await expect(search).toBeFocused();
+});
 
 test("Show Confidence controls the third column without changing source, selection or saved order", async ({ page }) => {
     await page.goto("/");
@@ -327,6 +355,7 @@ test("field positions advance consecutively in rendered order and wrap at both e
 
 test("real root and nested drags reindex the same selected field and Reset order restores navigation", async ({ page }) => {
     await loadOrderedFields(page);
+    await expandField(page, "Group");
     const position = page.locator(".cu-field-navigation > span");
     const selectedId = "/contents/0/fields/Group/valueObject/B";
     const selected = page.locator(`[data-review-focus="${selectedId}"]`);
@@ -370,6 +399,7 @@ test("real root and nested drags reindex the same selected field and Reset order
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
         name: "ordered-navigation.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(orderedResult)),
     });
+    await expandField(page, "Group");
     await selected.click();
     await expect(position).toHaveText("3 / 10 fields");
 });

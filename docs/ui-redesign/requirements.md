@@ -24,7 +24,7 @@
 | 原型载体 | 独立 HTML/CSS/JS 浏览器页面，不新增 Copilot 扩展，不接入现有 React。 |
 | Fields 布局 | 两列和三列都呈现，可切换比较，默认两列。 |
 | 字段排序 | 各层同级字段可排序，对象分组整体移动，不跨层级移动，不重排数组业务行。 |
-| 排序持久化 | azd 生产宿主按规范化 endpoint + analyzerId 将实际自定义顺序保存到用户配置的字面扩展键下 `Viewer.fieldOrderByAnalyzer`；旧宿主／普通嵌入保留浏览器模式，不存原始值。 |
+| 排序持久化 | azd 生产宿主仅按完整 analyzerId 将实际自定义顺序保存到用户配置的字面扩展键下 `Viewer.fieldOrderByAnalyzer`，不保存 endpoint；旧键迁移并保留顺序，旧宿主／普通嵌入保留浏览器模式，不存原始值。 |
 | 关闭低置信度强调 | 左侧恢复字段／表格基础色，右侧取消低置信度值的底色；不隐藏数据。 |
 | Flyover 定位 | 遵循最初文字要求：在原文值下方，与其左边缘对齐；必要时进行边界避让。 |
 | 真实原文文字色 | 保留 PDF／图片原文，不增加文字重绘层；使用来源高亮叠加与轮廓表达状态。 |
@@ -295,7 +295,7 @@
 - 同字段结构在当前浏览器重新打开后保留顺序；不同结构隔离，不能互相覆盖。
 - 原型使用带格式标识与版本的 localStorage。损坏、不兼容或写入失败时明确提示；不得显示“已保存”或静默覆盖损坏数据。
 - 新增字段在未指定顺序时按原始相对顺序追加；失效路径不导致字段消失。
-- azd 宿主通过会话内 `fieldOrderUrl` 读取／提交受控顺序，实际自定义后才写入 `extension.installed` 下字面键 `azure.ai.content-understanding` 的 `Viewer.fieldOrderByAnalyzer`。键为规范化 endpoint + `#` + analyzerId，不包含文件或 API 版本；重置只删当前覆盖，保留其他分析器和安装／CU 元数据。详见 [宿主桥接](../../README.md#azd-viewer-preferences)。
+- azd 宿主通过会话内 `fieldOrderUrl` 读取／提交受控顺序，实际自定义后才写入 `extension.installed` 下字面键 `azure.ai.content-understanding` 的 `Viewer.fieldOrderByAnalyzer`。键仅为完整 analyzerId，不包含 endpoint、文件或 API 版本；同 analyzerId 跨资源复用。旧 endpoint 前缀键自动迁移，冲突明确报错；重置只删当前覆盖，保留其他分析器和安装／CU 元数据。详见 [宿主桥接](../../README.md#azd-viewer-preferences)。
 
 ## 9. 后续 React 组件能力要求
 

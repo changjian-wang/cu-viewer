@@ -129,15 +129,17 @@ export function OrderedResultView({ source, result }: ContentUnderstandingResult
 
 生产入口通过 `session.json` 中可选的 `fieldOrderUrl` 读取宿主偏好，并复用受控 `fieldOrder`／`onFieldOrderChange`，不把宿主顺序另存到浏览器。没有该能力的旧宿主及普通 React 嵌入仍保留既有浏览器偏好。
 
-Go CU 宿主把用户实际自定义的顺序保存到 `azd config` 使用的用户 JSON，层级为 `extension → installed → ["azure.ai.content-understanding"] → Viewer → fieldOrderByAnalyzer`。键使用规范化资源 endpoint 加 `#` 和 analyzerId，不包含文件名、路径或 API 版本；同资源的同 analyzer 换文件或重启后复用，不同资源／analyzer 互不影响。值沿用 `ViewerFieldOrder` 的内容相对 JSON Pointer 映射，而不是只保存顶层名称数组。
+Go CU 宿主把用户实际自定义的顺序保存到 `azd config` 使用的用户 JSON，层级为 `extension → installed → ["azure.ai.content-understanding"] → Viewer → fieldOrderByAnalyzer`。键仅使用完整 analyzerId，例如 `prebuilt-invoice`；排序配置不保存 endpoint、文件名、路径或 API 版本。同 analyzerId 跨资源、换文件或重启后复用，不同 analyzerId 互不影响。值沿用 `ViewerFieldOrder` 的内容相对 JSON Pointer 映射，而不是只保存顶层名称数组。
 
-只打开文件、展开对象或修改置信度显示不会创建排序覆盖；Reset order 只移除当前 analyzer 的覆盖，保留其他 analyzer、扩展安装元数据、`Viewer` 中其他设置及既有 CU 默认值。失效字段／父级路径只在展示时忽略，新字段按原顺序追加，不在读取时改写配置。读取失败时仍可查看源文件和结果，但排序禁用并明确提示；写入按顺序提交，失败明确提示并回到最后确认的顺序。
+旧 `endpoint#analyzerId` 键在首次读取或保存偏好时迁移为纯 analyzerId，保留已有顺序、其他设置和安装元数据；相同顺序可合并，同名 analyzer 的不同旧顺序会明确报错、不覆盖任何一份，需先选择保留的顺序。迁移只处理已有自定义，不创建默认排序。连接服务所需的既有 CU endpoint 设置不受影响。
+
+只打开文件、展开对象或修改置信度显示不会创建排序覆盖；Reset order 只移除当前 analyzer 的覆盖，保留其他 analyzer、扩展安装元数据、`Viewer` 中其他设置及既有 CU 默认值。失效字段／父级路径只在展示时忽略，新字段按原顺序追加，不因 schema 兼容处理改写顺序。读取失败时仍可查看源文件和结果，但排序禁用并明确提示；写入按顺序提交，失败明确提示并回到最后确认的顺序。
 
 该桥接要求配套的 Viewer 和 CU 宿主；扩展重装／更新时保留 `Viewer` 还要求包含安装记录保留修补的 azd 核心。旧 azd 可能在修改安装记录时丢弃该字段，本轮没有替换系统 azd 或已安装的私有扩展。
 
 ### 查阅、来源与偏好
 
-- Fields 默认显示 Field／Value 两列；右侧 Settings 中的 `Show Confidence` checkbox 控制第三列，沿用原有 `columns` 浏览器偏好，已保存的三列设置继续有效。置信度阈值为 `0.70`，三个高亮开关默认启用；未知置信度与有效的 `0` 区分，组级 Confidence 仍留空。
+- Fields 默认显示 Field／Value 两列；右侧 Settings 中的 `Show Confidence` 文字、同一 label 行内空白和 checkbox 均可原生切换第三列，点击时不关闭面板，键盘 Space、外部点击及 Escape 行为保留。沿用原有 `columns` 浏览器偏好，已保存的三列设置继续有效。置信度阈值为 `0.70`，三个高亮开关默认启用；未知置信度与有效的 `0` 区分，组级 Confidence 仍留空。
 - 右侧 Fields 移除顶部统计／搜索／筛选区域，只保留结果标签和表格。44px 底栏与 Source 对称：左侧为搜索，placeholder `Search field names or values...` 明确字段名／值搜索范围，悬停保留完整提示；中间为“上一字段 — 当前序号／总数 — 下一字段”（例如 `1 / 77 fields`），数字只读，右侧只保留 Settings 齿轮。最窄支持宽度为 440px，各项不重叠。Settings 内为 `Show Confidence` 和其下的 Reset order，不再显示 Low confidence 筛选及阈值／浏览器偏好说明。
 - 当前序号按可导航叶字段的实际显示顺序从 1 连续编号；未选中、选中分组或选中字段不在当前范围时显示 `— / 总数 fields`。搜索／关联表格范围内按匹配字段重新编号，分母为该范围的叶字段数，无匹配时为 `— / 0 fields` 并禁用前后按钮。拖拽、键盘重排、受控宿主顺序更新及 Reset order 保持选中字段身份并实时重算序号，不保存独立游标、不改原始 JSON；鼠标预览与折叠分组不改变序号。数组按原业务行、统一显示列从左到右导航，首尾继续循环；未选中时 Next 从首字段、Previous 从末字段开始。
 - 来源的多页文档箭头与字段导航一样首尾循环：第 1 页的 Previous 跳到末页，末页的 Next 回到第 1 页，边界 tooltip 分别为 `Previous page (last page)`／`Next page (first page)`；其他页为 `Previous page`／`Next page`。单页 PDF 的箭头仍禁用并提示 `Single-page document`，来源未就绪时提示 `Source not ready`；图片仍显示单页说明。页码输入继续严格校验 `1–总页数`，不把 `0` 或越界输入自动循环，也不改变既有定位、缩放及其他快捷键行为。右侧保持 `Previous field`／`Next field` 与字段循环，无匹配时禁用并提示 `No matching fields`。悬停不导航，工具栏尺寸及原有无障碍名称不变。

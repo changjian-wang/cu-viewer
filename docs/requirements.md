@@ -33,7 +33,7 @@
 - 首版入口为 `azd ai cu analyze sample_invoice.pdf --analyzer prebuilt-invoice --view`，仅支持一份本地 PDF/当前支持的图片；不扩展批量、目录、URL，也不移植 Python 的离线 `--result` 入口。
 - Go 宿主接收同一次分析的完整原始 JSON，不重复调用 CU，不依赖默认 Markdown 输出，也不改变现有控制台和保存文件的输出规则。不带 `--view` 时行为保持不变。
 - Go 宿主负责只读本地服务、会话数据和指定源文件、默认浏览器启动及 `Ctrl+C` 清理。仅监听 `127.0.0.1` 的系统分配端口，不开放工作目录。运行时不需要 Node.js/Python。
-- 2026-11-06 交接补充：原始文档和结果仍只读；当前 CU 宿主另外提供会话范围、同源校验下的字段顺序读写。实际自定义顺序写入 azd 用户配置的 `extension.installed` 中字面扩展键 `azure.ai.content-understanding` 的 `Viewer.fieldOrderByAnalyzer`，按规范化 endpoint + analyzerId 隔离，不包含文件名或 API 版本。打开文件不写默认值，重置只删当前覆盖；旧宿主未声明能力时保留浏览器模式。详细协议及兼容要求见 [azd Viewer 字段顺序](../README.md#azd-viewer-preferences)。
+- 2026-11-06 交接补充：原始文档和结果仍只读；当前 CU 宿主另外提供会话范围、同源校验下的字段顺序读写。实际自定义顺序写入 azd 用户配置的 `extension.installed` 中字面扩展键 `azure.ai.content-understanding` 的 `Viewer.fieldOrderByAnalyzer`，仅按完整 analyzerId 保存，不记录 endpoint、文件名或 API 版本；同 analyzerId 跨资源复用。旧 endpoint 前缀键迁移并保留顺序，冲突明确报错、不覆盖。打开文件不写默认值，重置只删当前覆盖；旧宿主未声明能力时保留浏览器模式。详细协议及兼容要求见 [azd Viewer 字段顺序](../README.md#azd-viewer-preferences)。
 
 ## 组件输入
 
