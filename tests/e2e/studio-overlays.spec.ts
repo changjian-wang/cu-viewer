@@ -215,6 +215,122 @@ test.beforeEach(async ({ page }) => {
     await ready(page);
 });
 
+async function expectObjectEnvelope(page: Page, id: string): Promise<void> {
+    const points = await page.getByTestId("result-overlay")
+        .locator(`[data-outline-id="${id}"], [data-outline-id^="${id}/"]`).evaluateAll(elements => elements.flatMap(element => {
+            if (!(element instanceof SVGPolygonElement)) throw new Error("Expected real object source polygons.");
+            const source = element.getAttribute("points");
+            if (!source) throw new Error("Object source coordinates are missing.");
+            // SVGPointList rounds to float32; compare the original attribute coordinates.
+            return source.trim().split(/\s+/).map(point => {
+                const [x, y] = point.split(",").map(Number);
+                if (x === undefined || y === undefined || !Number.isFinite(x) || !Number.isFinite(y)) {
+                    throw new Error("Object source coordinates must be finite.");
+                }
+                return { x, y };
+            });
+        }));
+    expect(points.length).toBeGreaterThan(0);
+    const left = Math.min(...points.map(point => point.x)), right = Math.max(...points.map(point => point.x));
+    const top = Math.min(...points.map(point => point.y)), bottom = Math.max(...points.map(point => point.y));
+    const frame = page.getByTestId("preview-overlay").locator("polygon");
+    await expect(frame).toHaveCount(1);
+    await expect(frame).toHaveAttribute("data-source-id", id);
+    await expect(frame).toHaveAttribute("points", `${left},${top} ${right},${top} ${right},${bottom} ${left},${bottom}`);
+    await expect(frame).toHaveAttribute("fill", "none");
+    await expect(frame).toHaveAttribute("stroke-width", "1.8");
+    await expect(frame).toHaveCSS("pointer-events", "none");
+}
+
+test("object hover shows the real AmountDue summary without expanding, navigating or replacing a pin", async ({ page }) => {
+    const object = page.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/AmountDue"]');
+    await page.getByRole("button", { name: "BillingAddress", exact: true }).click();
+    await page.locator(".prototype-banner").hover();
+    const pin = page.getByTestId("source-overlay").locator("polygon").first();
+    const pinPoints = await pin.getAttribute("points");
+    const frame = await page.getByTestId("rendered-page").boundingBox();
+    const pageNumber = await page.getByRole("textbox", { name: "Page number", exact: true }).inputValue();
+    const summary = await object.locator(".cu-summary-value").innerText();
+    const sourcePoints = await page.getByTestId("result-overlay").locator("polygon")
+        .evaluateAll(elements => elements.map(element => element.getAttribute("points")));
+    await object.getByRole("button", { name: "AmountDue", exact: true }).hover();
+    const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
+    await expect(popup.locator(".cu-popover-heading")).toHaveText("AmountDue");
+    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("font-weight", "400");
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveText(summary);
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveText("610 USD");
+    await expect(popup.locator(".cu-flyover-confidence")).toHaveCount(0);
+    await expectObjectEnvelope(page, "/contents/0/fields/AmountDue");
+    await expect(object.getByRole("button", { name: "AmountDue", exact: true })).toHaveAttribute("aria-expanded", "false");
+    await expect(pin).toHaveAttribute("data-source-id", "/contents/0/fields/BillingAddress");
+    await expect(pin).toHaveAttribute("points", pinPoints!);
+    expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(frame);
+    await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue(pageNumber);
+    expect(await page.getByTestId("result-overlay").locator("polygon")
+        .evaluateAll(elements => elements.map(element => element.getAttribute("points")))).toEqual(sourcePoints);
+    await page.locator(".prototype-banner").hover();
+    await expect(popup).toHaveCount(0);
+    await expect(pin).toBeVisible();
+});
+
+test("nested object previews unite only current-page sources and preserve real hits and scoped summaries", async ({ page }) => {
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
+        name: "synthetic-object-preview.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "inch",
+            pages: [{ pageNumber: 1, width: 8.5, height: 11 }, { pageNumber: 2, width: 8.5, height: 11 }],
+            fields: {
+                Group: { type: "object", valueObject: {
+                    A: { type: "string", valueString: "First", source: "D(1,0.8,1.5,1,0.2)" },
+                    Nested: { type: "object", valueObject: {
+                        B: { type: "string", valueString: "Second", source: "D(1,2.7,2.3,1,0.2)" },
+                        OtherPage: { type: "string", valueString: "Other page", source: "D(2,0.8,1.5,1,0.2)" },
+                    } },
+                } },
+                Outside: { type: "string", valueString: "Separate target", source: "D(1,1.9,2,0.4,0.2)" },
+                Elsewhere: { type: "object", valueObject: {
+                    Text: { type: "string", valueString: "Page two", source: "D(2,1,1,1,0.2)" },
+                } },
+                NoGround: { type: "object", valueObject: { Text: { type: "string", valueString: "No source" } } },
+                Rows: { type: "array", valueArray: [{ type: "string", valueString: "Array item" }] },
+            },
+            tables: [{ rowCount: 1, columnCount: 1, source: "D(1,0.7,1.4,1.3,0.4)", cells: [] }],
+        }] })),
+    });
+    const group = page.getByRole("button", { name: "Group", exact: true });
+    const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
+    const frame = await page.getByTestId("rendered-page").boundingBox();
+    await group.hover();
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveText("First Second Other page");
+    await expectObjectEnvelope(page, "/contents/0/fields/Group");
+    await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveAttribute("data-region-indices", "0 1");
+    const outside = page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/Outside"]');
+    const outsideBounds = await outside.boundingBox();
+    if (!outsideBounds) throw new Error("The independent source target is unavailable.");
+    expect(await page.evaluate(point => document.elementFromPoint(point.x, point.y)?.getAttribute("data-outline-id"),
+        { x: outsideBounds.x + outsideBounds.width / 2, y: outsideBounds.y + outsideBounds.height / 2 }))
+        .toBe("/contents/0/fields/Outside");
+    for (const name of ["Elsewhere", "NoGround", "Rows"]) {
+        await page.getByRole("button", { name, exact: true }).hover();
+        await expect(popup).toHaveCount(0);
+        await expect(page.getByTestId("preview-overlay")).toHaveCount(0);
+        await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue("1");
+        expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(frame);
+    }
+    await page.getByRole("button", { name: "Expand Group", exact: true }).click();
+    await page.getByRole("button", { name: "Nested", exact: true }).hover();
+    await expect(popup.locator(".cu-popover-heading")).toHaveText("Group / Nested");
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveText("Second Other page");
+    await expectObjectEnvelope(page, "/contents/0/fields/Group/valueObject/Nested");
+    await page.getByRole("button", { name: "Locate Table 1 in results", exact: true }).first().press("Enter");
+    await page.getByRole("button", { name: "Collapse Group", exact: true }).click();
+    await group.hover();
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveText("First");
+    await expect(page.locator('[data-field-id="/contents/0/fields/Group"] .cu-summary-value')).toHaveText("First");
+    await page.locator(".prototype-banner").hover();
+    await expect(popup).toHaveCount(0);
+});
+
 test("active tabs switch complete current-page outlines, retain direct table targets and preserve source state", async ({ page }) => {
     await synthetic(page);
     const pane = page.getByRole("region", { name: "Extraction results" });

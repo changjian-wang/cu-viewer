@@ -69,14 +69,24 @@ describe("Studio result tab availability", () => {
         expect(availableResultTabs(content({ analyzerId: "child" }), { analyzerId: "root" }, "2026-06-01-preview")
             .map(tab => tab.id)).toEqual(["result"]);
     });
-    it("keeps Fields available for table-only results without exposing a Tables tab or changing raw data", () => {
+    it("hides Fields for table-only results without exposing a Tables tab or changing raw data", () => {
         const raw = { apiVersion: "2025-11-01", contents: [{ kind: "document",
             tables: [{ rowCount: 1, columnCount: 2, cells: [{ rowIndex: 0, columnIndex: 0, columnSpan: 2, content: "Raw native table" }] }],
         }] };
         const before = JSON.stringify(raw), model = parseCuResult(raw);
-        expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id)).toEqual(["fields", "result"]);
+        expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id)).toEqual(["result"]);
         expect(model.contents[0]!.fields).toEqual([]);
         expect(model.original).toBe(raw);
         expect(JSON.stringify(raw)).toBe(before);
+    });
+
+    it.each([undefined, {}])("starts fieldless layout tabs with Markdown when fields are %j", fields => {
+        const raw = { apiVersion: "2026-06-01-preview", analyzerId: "prebuilt-layout", contents: [{
+            kind: "document", fields, markdown: "# Layout",
+            tables: [{ rowCount: 1, columnCount: 1, cells: [{ rowIndex: 0, columnIndex: 0, content: "Native cell" }] }],
+        }] };
+        const model = parseCuResult(raw);
+        expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id))
+            .toEqual(["markdown", "result"]);
     });
 });

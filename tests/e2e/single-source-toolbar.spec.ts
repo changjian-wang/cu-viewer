@@ -22,6 +22,47 @@ test("simplified Legend and field summary preserve missing values and the field 
     await expect(legend.getByRole("button")).toHaveCount(1);
 });
 
+test("compact Legend switches reduce visual size by 20 percent while keeping outer clicks and Space usable", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
+    const panel = page.getByRole("dialog", { name: "Legend", exact: true });
+    const switches = panel.locator(".cu-legend-switch");
+    await expect(switches).toHaveCount(3);
+    for (const label of await switches.all()) {
+        const control = label.getByRole("switch");
+        const track = label.locator(".cu-switch-track");
+        const hit = await control.boundingBox(), visual = await track.boundingBox();
+        if (!hit || !visual) throw new Error("The switch or visual track is unavailable.");
+        expect(visual.width / 35).toBeCloseTo(0.8, 3);
+        expect(visual.height / 21).toBeCloseTo(0.8, 3);
+        expect(hit.width).toBe(35);
+        expect(hit.height).toBe(28);
+        expect(hit.y + 2).toBeLessThan(visual.y);
+        const initial = await control.isChecked();
+        for (const keyboard of [false, true]) {
+            if (keyboard) await control.press("Space");
+            else await control.click({ position: { x: hit.width / 2, y: 2 } });
+            if (keyboard ? initial : !initial) await expect(control).toBeChecked();
+            else await expect(control).not.toBeChecked();
+            await expect(panel).toBeVisible();
+            const thumb = await track.evaluate(element => {
+                const style = getComputedStyle(element, "::after"), rail = getComputedStyle(element);
+                const shift = style.transform === "none" ? 0 : new DOMMatrix(style.transform).m41;
+                return { width: Number.parseFloat(style.width), height: Number.parseFloat(style.height),
+                    left: Number.parseFloat(style.left) + shift, top: Number.parseFloat(style.top),
+                    railWidth: Number.parseFloat(rail.width), railHeight: Number.parseFloat(rail.height) };
+            });
+            expect(thumb.width / 15).toBeCloseTo(0.8, 3);
+            expect(thumb.height / 15).toBeCloseTo(0.8, 3);
+            expect(thumb.left).toBeGreaterThanOrEqual(0);
+            expect(thumb.top).toBeGreaterThanOrEqual(0);
+            expect(thumb.left + thumb.width).toBeLessThanOrEqual(thumb.railWidth);
+            expect(thumb.top + thumb.height).toBeLessThanOrEqual(thumb.railHeight);
+        }
+    }
+});
+
 for (const viewport of [{ width: 1030, height: 540 }, { width: 1800, height: 1000 }]) {
     for (const sample of ["PDF", "Receipt PNG"]) {
         test(`Legend switches align with their control row for ${sample} at ${viewport.width}px`, async ({ page }) => {
@@ -89,8 +130,8 @@ test("Source and Fields settings share the Settings title with distinct accessib
     await fields.click();
     const fieldsPanel = page.getByRole("dialog", { name: "Fields settings", exact: true });
     await expect(fieldsPanel.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
-    await expect(fieldsPanel.getByRole("checkbox", { name: "Show Confidence", exact: true })).toBeFocused();
-    await expect(fieldsPanel.getByRole("button", { name: "Reset order", exact: true })).toBeEnabled();
+    await expect(fieldsPanel.getByRole("switch", { name: "Show Confidence", exact: true })).toBeFocused();
+    await expect(fieldsPanel.getByRole("button", { name: "Reset Field Order", exact: true })).toBeEnabled();
     await fieldsPanel.getByRole("button", { name: "Close fields settings", exact: true }).click();
     await expect(fields).toBeFocused();
 });

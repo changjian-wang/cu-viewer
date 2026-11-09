@@ -21,6 +21,7 @@ test.beforeEach(async ({ page }) => {
 
 test("UI-41 related fields gather without saved-order changes and Show all restores the original view", async ({ page }) => {
     await page.getByRole("button", { name: "TaxDetails", exact: true }).press("Alt+ArrowUp");
+    await page.getByRole("button", { name: "Collapse TaxDetails", exact: true }).click();
     const order = await roots(page).evaluateAll(elements => elements.map(element => element.getAttribute("data-field-id")));
     const preferences = await savedPreferences(page);
     const array = page.locator('[data-array-id="/contents/0/fields/LineItems"]');
@@ -46,8 +47,8 @@ test("UI-41 related fields gather without saved-order changes and Show all resto
     await page.getByRole("button", { name: "AmountDue", exact: true }).focus();
     await expect(page.getByRole("button", { name: "Reorder AmountDue", exact: true })).toBeDisabled();
     const scopedSettings = await openFieldsSettings(page);
-    await expect(scopedSettings.getByRole("button", { name: "Reset order", exact: true })).toBeDisabled();
-    await expect(scopedSettings.getByRole("button", { name: "Reset order", exact: true }))
+    await expect(scopedSettings.getByRole("button", { name: "Reset Field Order", exact: true })).toBeDisabled();
+    await expect(scopedSettings.getByRole("button", { name: "Reset Field Order", exact: true }))
         .toHaveAttribute("title", "Show all fields before reordering.");
     await scopedSettings.getByRole("button", { name: "Close fields settings", exact: true }).click();
     await page.getByRole("button", { name: "AmountDue", exact: true }).press("Alt+ArrowUp");
@@ -63,7 +64,7 @@ test("UI-41 related fields gather without saved-order changes and Show all resto
     await expect(array).toHaveJSProperty("scrollLeft", 250);
     await expect(page.getByRole("button", { name: "Expand TaxDetails", exact: true })).toBeVisible();
     const settings = await openFieldsSettings(page);
-    await expect(settings.getByRole("button", { name: "Reset order", exact: true })).toBeEnabled();
+    await expect(settings.getByRole("button", { name: "Reset Field Order", exact: true })).toBeEnabled();
     await settings.getByRole("button", { name: "Close fields settings", exact: true }).click();
     expect(await savedPreferences(page)).toBe(preferences);
 });

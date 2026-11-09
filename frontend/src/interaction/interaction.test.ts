@@ -22,6 +22,22 @@ describe("prototype selection and page interaction", () => {
             .toEqual({ pageNumber: 4, hovered: null, selected: null, selectedRegionIndex: 0 });
     });
 
+    it("previews objects without changing their expansion, the current page or another pin", () => {
+        const child = field("Amount", 2);
+        const object = { ...field("AmountDue"), type: "object", children: [child] };
+        const selected = field("Pinned", 4);
+        const original = JSON.stringify(object);
+        const state = { ...initialInteraction, pageNumber: 4, selected };
+        const hovered = interaction(state, { type: "hover", field: object, pageAvailable: true });
+        expect(hovered.hovered).toBe(object);
+        expect(hovered.selected).toBe(selected);
+        expect(hovered.pageNumber).toBe(4);
+        expect(interaction(hovered, { type: "leave", fieldId: object.id, restorePageAvailable: true })).toEqual(state);
+        expect(JSON.stringify(object)).toBe(original);
+        const array = { ...object, type: "array" };
+        expect(interaction(hovered, { type: "hover", field: array, pageAvailable: true }).hovered).toBeNull();
+    });
+
     it("pins a field and restores it after another field's preview", () => {
         const pinned = field("Amount", 1);
         const preview = field("Address", 2);

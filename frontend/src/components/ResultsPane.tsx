@@ -4,6 +4,7 @@ import { fieldLabel, fieldRegions } from "../interaction/interaction";
 import { defaultReviewSettings, copyValue } from "../interaction/reviewFields";
 import { unavailableSourcePageMessage } from "../source/source";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
+import { tableLocationMessage } from "../interaction/tableFields";
 import type { TableFieldLocation } from "../interaction/tableFields";
 import type { useReviewPreferences } from "../interaction/useReviewPreferences";
 import { availableResultTabs } from "../model/resultViews";
@@ -106,6 +107,8 @@ export function ResultsPane(props: ResultsPaneProps) {
     const tabBaseId = useId();
     const tabs = useMemo(() => availableResultTabs(props.content, props.result, props.apiVersion),
         [props.content, props.result, props.apiVersion]);
+    const hasFieldsTab = tabs.some(tab => tab.id === "fields");
+    const tableMessage = !hasFieldsTab && props.tableLocation ? tableLocationMessage(props.tableLocation) : null;
     const activeTab = tabs.find(tab => tab.id === view);
     useEffect(() => {
         setReview(initialFieldsReview(props.content?.fields ?? []));
@@ -140,13 +143,14 @@ export function ResultsPane(props: ResultsPaneProps) {
     };
     useLayoutEffect(() => {
         const request = props.selectionRequest;
-        if (!props.sourceTableSelection || !props.tableLocation || !request || request === tableViewRequest.current) return;
+        if (!hasFieldsTab || !props.sourceTableSelection || !props.tableLocation || !request ||
+            request === tableViewRequest.current) return;
         tableViewRequest.current = request;
         if (view !== "fields") {
             skipFieldsRestore.current = request;
             changeView("fields");
         }
-    }, [props.selectionRequest, props.sourceTableSelection, props.tableLocation, view]);
+    }, [hasFieldsTab, props.selectionRequest, props.sourceTableSelection, props.tableLocation, view]);
     useLayoutEffect(() => {
         const element = panel.current;
         if (!element || !view) return;
@@ -247,6 +251,7 @@ export function ResultsPane(props: ResultsPaneProps) {
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
                 {view === "metadata" && <MetadataPane metadata={props.content?.metadata ?? {}} copyContext={copyContext} />}
             </Suspense>}
+            {tableMessage && <div className="cu-fields-status" role="status">{tableMessage}</div>}
             <ValueDetails workflow={props.workflow} threshold={settings.threshold} onClose={() => {
                 if (props.workflow.inspected) restoreFieldFocus(props.workflow.inspected);
                 props.workflow.closeDetails();

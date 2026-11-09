@@ -28,12 +28,12 @@ test("UI6 controlled order renders host changes, is read-only without a handler 
     await expect(position).toHaveText("2 / 77 fields");
     await expect(page.getByTestId("host-field-order")).toContainText('"changes":1');
     const readOnlySettings = await openFieldsSettings(viewer);
-    await expect(readOnlySettings.getByRole("button", { name: "Reset order", exact: true })).toBeDisabled();
-    await expect(readOnlySettings.getByRole("button", { name: "Reset order", exact: true }))
+    await expect(readOnlySettings.getByRole("button", { name: "Reset Field Order", exact: true })).toBeDisabled();
+    await expect(readOnlySettings.getByRole("button", { name: "Reset Field Order", exact: true }))
         .toHaveAttribute("title", /Field order is read-only/);
     await page.getByRole("checkbox", { name: "Handle order changes", exact: true }).check();
     const settings = await openFieldsSettings(viewer);
-    await settings.getByRole("button", { name: "Reset order", exact: true }).click();
+    await settings.getByRole("button", { name: "Reset Field Order", exact: true }).click();
     await settings.getByRole("button", { name: "Close fields settings", exact: true }).click();
     await expect(position).toHaveText("15 / 77 fields");
     await expect(selected).toHaveAttribute("aria-pressed", "true");
@@ -96,7 +96,7 @@ test("bulk object actions preserve controlled order and independent manual table
     await expect(page.getByTestId("host-field-order")).toContainText('"changes":0');
     await page.getByRole("checkbox", { name: "Handle order changes", exact: true }).uncheck();
     settings = await openFieldsSettings(viewer);
-    await expect(settings.getByRole("button", { name: "Reset order", exact: true })).toBeDisabled();
+    await expect(settings.getByRole("button", { name: "Reset Field Order", exact: true })).toBeDisabled();
     await expect(settings.getByRole("button", { name: "Expand all object values", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "Inspect caller data", exact: true }).click();
     await expect(page.getByTestId("caller-result-unchanged")).toHaveText("true");

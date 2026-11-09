@@ -159,7 +159,7 @@ describe("structured Fields presentation", () => {
         expect(toolbar.contains(screen.getByRole("searchbox", { name: "Search fields or values" }))).toBe(true);
         expect(screen.getByRole("searchbox", { name: "Search fields or values" }).getAttribute("placeholder"))
             .toBe("Search field names or values...");
-        expect(screen.queryByRole("button", { name: "Reset order" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "Reset Field Order" })).toBeNull();
         expect(toolbar.querySelector(".cu-fields-toolbar-actions")?.children).toHaveLength(1);
         expect(screen.queryByRole("switch", { name: "Hide missing fields" })).toBeNull();
         expect(screen.queryByRole("button", { name: "2 columns" })).toBeNull();
@@ -169,12 +169,12 @@ describe("structured Fields presentation", () => {
         expect(screen.queryByRole("columnheader", { name: "Confidence" })).toBeNull();
         fireEvent.click(screen.getByRole("button", { name: "Fields settings" }));
         expect(screen.getByRole("dialog", { name: "Fields settings" })
-            .contains(screen.getByRole("button", { name: "Reset order" }))).toBe(true);
-        fireEvent.click(screen.getByRole("checkbox", { name: "Show Confidence" }));
+            .contains(screen.getByRole("button", { name: "Reset Field Order" }))).toBe(true);
+        fireEvent.click(screen.getByRole("switch", { name: "Show Confidence" }));
         expect(screen.getByRole("columnheader", { name: "Confidence" })).toBeTruthy();
         expect(container.querySelector('[data-field-id="/contents/0/fields/Unknown"] .cu-confidence')?.textContent).toBe("N/A");
         expect(container.querySelector('[data-field-id="/contents/0/fields/Zero"] .cu-confidence')?.textContent).toBe("0.00");
-        fireEvent.click(screen.getByRole("checkbox", { name: "Show Confidence" }));
+        fireEvent.click(screen.getByRole("switch", { name: "Show Confidence" }));
         expect(screen.queryByRole("columnheader", { name: "Confidence" })).toBeNull();
         expect(JSON.stringify(original)).toBe(before);
     });
@@ -263,20 +263,29 @@ describe("structured Fields presentation", () => {
         expect(screen.getByRole("tab", { name: "Fields" }).getAttribute("aria-selected")).toBe("true");
     });
 
-    it("explains table-only results without creating Fields data or a Document Tables group", () => {
-        const content = parseCuResult({ apiVersion: "2025-11-01", contents: [{ kind: "document", tables: [1, 2].map(number => ({
+    it("defaults fieldless layout to Markdown without redirecting source tables to a hidden Fields tab", async () => {
+        const raw = { apiVersion: "2025-11-01", analyzerId: "prebuilt-layout", contents: [{
+            kind: "document", markdown: "# Saved layout", tables: [1, 2].map(number => ({
             rowCount: 1, columnCount: 1, cells: [{ rowIndex: 0, columnIndex: 0, content: `Table ${number} value` }],
-        })) }] }).contents[0]!;
-        const props = { result: {}, content, contents: [content], contentIndex: 0, issues: [], error: null,
+        })) }] };
+        const content = parseCuResult(raw).contents[0]!;
+        const props = { result: raw, content, contents: [content], contentIndex: 0, issues: [], error: null,
             hovered: null, sourceReady: true, isPageAvailable: () => true,
             onContentChange: vi.fn(), onHover: vi.fn(), onLeave: vi.fn(), onSelect: vi.fn(), onClear: vi.fn(),
             sourceTableSelection: true, selectionRequest: 1 };
         const selected = content.tables![1]!.field;
         const view = render(<TestPane {...props} selected={selected} tableLocation={{ table: selected, match: matchTableFields(content, selected) }} />);
-        expect(screen.getByRole("heading", { name: "No extracted fields" })).toBeTruthy();
+        expect(screen.queryByRole("tab", { name: "Fields" })).toBeNull();
+        expect(screen.getByRole("tab", { name: "Markdown" }).getAttribute("aria-selected")).toBe("true");
+        expect(await screen.findByRole("heading", { name: "Saved layout" })).toBeTruthy();
         expect(screen.getAllByRole("status").map(item => item.textContent).join(" ")).toContain("no corresponding extracted fields");
         expect(screen.queryByRole("tab", { name: "Tables" })).toBeNull();
         expect(screen.queryByText(/Document Tables/)).toBeNull();
+        fireEvent.click(screen.getByRole("tab", { name: "Result" }));
+        view.rerender(<TestPane {...props} selectionRequest={2} selected={selected}
+            tableLocation={{ table: selected, match: matchTableFields(content, selected) }} />);
+        expect(screen.getByRole("tab", { name: "Result" }).getAttribute("aria-selected")).toBe("true");
+        expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" })).toBeTruthy();
         view.rerender(<TestPane {...props} sourceTableSelection={false} selected={null} />);
         expect(screen.queryByText(/no corresponding extracted fields/)).toBeNull();
     });
@@ -429,7 +438,7 @@ describe("structured Fields presentation", () => {
         expect(container.querySelector(".cu-group-selection-count")).toBeNull();
         expect(container.querySelector(".is-group-selected")).toBeTruthy();
         fireEvent.click(screen.getByRole("button", { name: "Fields settings" }));
-        fireEvent.click(screen.getByRole("checkbox", { name: "Show Confidence" }));
+        fireEvent.click(screen.getByRole("switch", { name: "Show Confidence" }));
         expect(container.querySelector(".is-group-selected .cu-confidence")?.textContent).toBe("");
     });
 

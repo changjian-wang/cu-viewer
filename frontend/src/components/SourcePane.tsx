@@ -9,7 +9,7 @@ import { fieldLabel, isFieldGroup } from "../interaction/interaction";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ResultView } from "../model/resultViews";
 import type { SourceOutline } from "../source/sourceOverlays";
-import { isValueSourceField, SOURCE_POPOVER_GAP, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
+import { isValueSourceField, SOURCE_POPOVER_GAP, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
 import { SourcePopover } from "./SourcePopover";
 import { useSourceRendering } from "../source/useSourceRendering";
 import { SourceToolbar } from "./SourceToolbar";
@@ -36,6 +36,7 @@ interface SourcePaneProps {
     onSelectTable: (field: CuField, regionIndex: number) => void;
     onClear: () => void;
     regions: readonly CuRegion[];
+    summaryFieldIds?: ReadonlySet<string> | undefined;
     regionIndex: number;
     revealRequest: number | null;
     onPage: (pageNumber: number) => void;
@@ -120,7 +121,8 @@ export function SourcePane(props: SourcePaneProps) {
     const group = props.active ? isFieldGroup(props.active) : false;
     const pinnedGroup = props.pinned ? isFieldGroup(props.pinned) : false;
     const wholeTable = props.content?.tables?.some(table => table.id === props.active?.id);
-    const showCard = Boolean(props.preview && props.active && !group && !wholeTable &&
+    const objectPreview = props.preview && props.view === "fields" && props.active?.type === "object";
+    const showCard = Boolean(props.preview && props.active && (!group || objectPreview) && !wholeTable &&
         (!props.active.detailView || props.active.detailView === "paragraphs"));
     const valuePreview = props.preview && isValueSourceField(props.view, props.active);
     const previewInSelection = Boolean(props.pinned && props.active && (props.pinned.id === props.active.id ||
@@ -202,17 +204,18 @@ export function SourcePane(props: SourcePaneProps) {
                         .map(outline => projectRegion(outline.region, pageGeometry).polygon)) :
                     regions.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
             };
-            const previewRegions = valuePreview || props.active?.detailView ? preview :
+            const previewRegions = valuePreview || objectPreview || props.active?.detailView ? preview :
                 preview.filter(item => item.regionIndex === props.regionIndex);
+            const objectFrame = objectPreview ? sourceObjectPreviewFrame(preview) : undefined;
             return {
                 pinned, preview, frames: framesFor(props.pinned, pinned),
-                previewFrames: framesFor(props.active, previewRegions),
-                card: showCard ? sourcePopoverPoints(props.preview ? preview : pinned, props.regionIndex) : undefined,
+                previewFrames: objectFrame ? [objectFrame] : framesFor(props.active, previewRegions),
+                card: showCard ? objectFrame?.polygon ?? sourcePopoverPoints(props.preview ? preview : pinned, props.regionIndex) : undefined,
                 error: null,
             };
         } catch (error) { return { pinned: [], preview: [], frames: [], previewFrames: [], card: undefined, error: error instanceof Error ? error.message : String(error) }; }
     }, [geometry, props.content, props.view, props.pinned, props.pinnedRegions, props.preview,
-        props.active, props.regions, props.regionIndex, props.pageNumber, showCard, valuePreview]);
+        props.active, props.regions, props.regionIndex, props.pageNumber, showCard, valuePreview, objectPreview]);
     const activePolygons = props.preview ? selectedPolygons.preview : selectedPolygons.pinned;
     const cardPolygon = selectedPolygons.card;
     const measureCard = useCallback((next: PageSize): void => {
@@ -464,7 +467,8 @@ export function SourcePane(props: SourcePaneProps) {
                             data-selection-frame={item.regionIndices.length > 1 ? "merged" : "region"}
                             points={item.polygon.map(point => `${point.x},${point.y}`).join(" ")} fill="none"
                             stroke="var(--cu-hover-stroke)"
-                            strokeWidth={valuePreview ? 1.8 : 1.5} strokeDasharray={valuePreview ? undefined : "3 2"} />)}
+                            strokeWidth={valuePreview || objectPreview ? 1.8 : 1.5}
+                            strokeDasharray={valuePreview || objectPreview ? undefined : "3 2"} />)}
                     </svg>}
                     {layersReady && selectedPolygons.pinned.length > 0 && <svg className="cu-overlay cu-source-interaction" data-testid="source-overlay"
                         aria-hidden="true" focusable="false" width={layerFrame?.size.width} height={layerFrame?.size.height}>
@@ -478,6 +482,7 @@ export function SourcePane(props: SourcePaneProps) {
                 </div>
             </div>
             {layersReady && showCard && props.active && cardPolygon && <SourcePopover id={props.previewId} field={props.active}
+                summaryFieldIds={props.summaryFieldIds}
                 settings={props.settings} points={cardPolygon} pan={pan ?? layout.paper} viewport={container} paper={renderedPage}
                 onMeasure={measureCard} />}
             {(!hasPreview || error) && <div className={`cu-source-state cu-state${error ? " cu-error" : ""}`} role={error ? "alert" : "status"}>

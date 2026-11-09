@@ -362,7 +362,8 @@ test("Fields matches the approved compact grouping and confidence palette withou
     await expect(page.getByRole("tooltip", { name: "Field preview" }).locator("dd").last()).toHaveText("0.32");
     await leave(page);
     await group.hover();
-    await expect(page.getByTestId("preview-overlay")).toHaveCount(0);
+    await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCount(1);
+    await expect(page.getByRole("tooltip", { name: "Field preview" }).locator(".cu-flyover-value dd")).toHaveText("610 USD");
     await expect(clear).toHaveCount(0);
     await leave(page);
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);

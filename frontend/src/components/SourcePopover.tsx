@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { displayValue, fieldLabel, formatConfidence } from "../interaction/interaction";
-import { appearance, confidenceDescription, defaultReviewSettings, isTableValue } from "../interaction/reviewFields";
+import { appearance, collapsedValue, confidenceDescription, defaultReviewSettings, isTableValue } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import { popoverPosition } from "../source/sourceOverlays";
 import type { CuField, CuPoint } from "../model/types";
@@ -11,6 +11,7 @@ import { ViewerIcon } from "./ViewerIcon";
 interface SourcePopoverProps {
     id: string;
     field: CuField;
+    summaryFieldIds?: ReadonlySet<string> | undefined;
     settings?: ReviewSettings;
     onMeasure?: (size: PageSize) => void;
     points: readonly CuPoint[];
@@ -61,19 +62,20 @@ export function SourcePopover(props: SourcePopoverProps) {
         };
     }, [props.viewport, props.paper, props.points, props.pan, props.onMeasure]);
     const paragraph = props.field.detailView === "paragraphs";
+    const object = props.field.type === "object";
     const settings = props.settings ?? defaultReviewSettings;
     const style = appearance(props.field, isTableValue(props.field), settings);
     return <>
         <aside id={props.id} ref={element} role="tooltip" aria-label={paragraph ? "Paragraph preview" : "Field preview"}
             className="cu-source-popover"
             style={{ left: position?.x ?? 0, top: position?.y ?? 0, visibility: position ? "visible" : "hidden" }}>
-            {!paragraph && <strong className="cu-popover-heading">
+            {!paragraph && <span className="cu-popover-heading">
                 {fieldLabel(props.field)}
-            </strong>}
+            </span>}
             <dl id={`${props.id}-content`} className="cu-flyover-body">
                 <div className="cu-flyover-value"><dt className="cu-visually-hidden">{paragraph ? "Content" : "Value"}</dt>
-                    <dd>{displayValue(props.field)}</dd></div>
-                {!paragraph && <div className="cu-flyover-confidence" title={confidenceDescription(props.field, settings.threshold)}
+                    <dd>{object ? collapsedValue(props.field, props.summaryFieldIds) : displayValue(props.field)}</dd></div>
+                {!paragraph && !object && <div className="cu-flyover-confidence" title={confidenceDescription(props.field, settings.threshold)}
                     style={{ color: style.color, background: style.background }}>
                     <dt className="cu-visually-hidden">Confidence</dt><dd>{props.field.confidence !== undefined ?
                         <><ViewerIcon name="gauge" />{formatConfidence(props.field.confidence, settings.threshold)}</> : "N/A"}</dd>

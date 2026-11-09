@@ -133,7 +133,7 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1440, height: 100
         await expect(toolbar.locator(".cu-search-box")).toHaveAttribute("title", "Search field names or values");
         await expect(page.locator(".cu-fields-controls, .cu-layout-switch, .cu-review-toolbar")).toHaveCount(0);
         await expect(page.getByRole("switch", { name: "Hide missing fields", exact: true })).toHaveCount(0);
-        await expect(toolbar.getByRole("button", { name: "Reset order", exact: true })).toHaveCount(0);
+        await expect(toolbar.getByRole("button", { name: "Reset Field Order", exact: true })).toHaveCount(0);
         await expect(toolbar.locator(".cu-fields-toolbar-actions > button")).toHaveCount(1);
         const position = toolbar.locator(".cu-field-navigation > span");
         await expect(position).toHaveText("— / 77 fields");
@@ -179,15 +179,15 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1440, height: 100
         const trigger = toolbar.getByRole("button", { name: "Fields settings", exact: true });
         await trigger.click();
         const panel = page.getByRole("dialog", { name: "Fields settings", exact: true });
-        await expect(panel.getByRole("checkbox", { name: "Show Confidence", exact: true })).toBeFocused();
-        await expect(panel.getByRole("checkbox")).toHaveCount(1);
+        await expect(panel.getByRole("switch", { name: "Show Confidence", exact: true })).toBeFocused();
+        await expect(panel.getByRole("switch")).toHaveCount(1);
         await expect(panel.getByRole("button")).toHaveCount(4);
-        const reset = panel.getByRole("button", { name: "Reset order", exact: true });
+        const reset = panel.getByRole("button", { name: "Reset Field Order", exact: true });
         await expect(reset).toBeEnabled();
         await page.keyboard.press("Tab");
         await expect(reset).toBeFocused();
         await page.keyboard.press("Shift+Tab");
-        await expect(panel.getByRole("checkbox", { name: "Show Confidence", exact: true })).toBeFocused();
+        await expect(panel.getByRole("switch", { name: "Show Confidence", exact: true })).toBeFocused();
         await expect(panel.getByRole("button", { name: /Low confidence/ })).toHaveCount(0);
         await expect(panel.locator("p")).toHaveCount(0);
         await expect(panel).not.toContainText("Preferences stay in this browser.");
@@ -203,11 +203,11 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1440, height: 100
     });
 }
 
-test("Show Confidence text, row space and checkbox use native toggling without dismissing Settings", async ({ page }) => {
+test("Show Confidence text, row space and switch use native toggling without dismissing Settings", async ({ page }) => {
     await page.goto("/");
     await ready(page);
     const panel = await openFieldsSettings(page);
-    const checkbox = panel.getByRole("checkbox", { name: "Show Confidence", exact: true });
+    const checkbox = panel.getByRole("switch", { name: "Show Confidence", exact: true });
     const label = panel.locator("label.cu-confidence-toggle");
     const box = await label.boundingBox();
     if (!box) throw new Error("The Confidence label is missing.");
@@ -215,7 +215,7 @@ test("Show Confidence text, row space and checkbox use native toggling without d
     await expect(panel).toBeVisible();
     await expect(checkbox).toBeChecked();
     await expect(page.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
-    await label.click({ position: { x: box.width - 5, y: box.height / 2 } });
+    await label.click({ position: { x: box.width / 2, y: box.height / 2 } });
     await expect(panel).toBeVisible();
     await expect(checkbox).not.toBeChecked();
     await expect(page.getByRole("columnheader", { name: "Confidence", exact: true })).toHaveCount(0);
@@ -231,6 +231,57 @@ test("Show Confidence text, row space and checkbox use native toggling without d
     await expect(search).toBeFocused();
 });
 
+test("Fields Settings uses the shared compact switch and actionable full-width rows", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
+    const legendTrack = await page.getByRole("dialog", { name: "Legend", exact: true }).locator(".cu-switch-track").first().boundingBox();
+    if (!legendTrack) throw new Error("The reference Legend switch is unavailable.");
+    const panel = await openFieldsSettings(page);
+    const confidence = panel.getByRole("switch", { name: "Show Confidence", exact: true });
+    const label = panel.locator(".cu-confidence-toggle");
+    const track = await label.locator(".cu-switch-track").boundingBox(), hit = await confidence.boundingBox();
+    const caption = await label.getByText("Show Confidence", { exact: true }).boundingBox();
+    if (!track || !hit || !caption) throw new Error("The Confidence label or switch is unavailable.");
+    expect(track.width).toBe(legendTrack.width);
+    expect(track.height).toBe(legendTrack.height);
+    expect(hit.width).toBe(35);
+    expect(hit.height).toBe(28);
+    expect(hit.x).toBeGreaterThan(caption.x + caption.width);
+    expect(Math.abs(track.x + track.width / 2 - hit.x - hit.width / 2)).toBeLessThanOrEqual(1);
+    const actions = panel.locator(".cu-fields-settings-actions");
+    const actionBounds = await actions.boundingBox();
+    if (!actionBounds) throw new Error("The Settings action rows are unavailable.");
+    const names = ["Reset Field Order", "Collapse all object fields", "Expand all object values"];
+    for (const name of names) {
+        const button = actions.getByRole("button", { name, exact: true });
+        const box = await button.boundingBox();
+        if (!box) throw new Error(`The ${name} action is unavailable.`);
+        expect(box.width).toBe(actionBounds.width);
+        await button.hover({ position: { x: box.width - 8, y: box.height / 2 } });
+        await expect(button).toHaveCSS("background-color", "rgb(237, 243, 249)");
+        await panel.getByRole("heading", { name: "Settings", exact: true }).hover();
+        await expect(button).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    }
+    await expect(page.getByRole("button", { name: "AmountDue", exact: true })).toHaveAttribute("aria-expanded", "false");
+    await confidence.focus();
+    for (const name of names) {
+        await page.keyboard.press("Tab");
+        const button = actions.getByRole("button", { name, exact: true });
+        await expect(button).toBeFocused();
+        await expect(button).toHaveCSS("background-color", "rgb(237, 243, 249)");
+    }
+    await panel.getByRole("button", { name: "Close fields settings", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Search fields or values", exact: true }).fill("610");
+    const filtered = await openFieldsSettings(page);
+    for (const name of names.slice(1)) {
+        const button = filtered.getByRole("button", { name, exact: true });
+        await expect(button).toBeDisabled();
+        await button.hover();
+        await expect(button).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    }
+});
+
 test("Show Confidence controls the third column without changing source, selection or saved order", async ({ page }) => {
     await page.goto("/");
     await ready(page);
@@ -241,6 +292,7 @@ test("Show Confidence controls the third column without changing source, selecti
         if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected a source canvas.");
         return element.toDataURL();
     });
+
     const sourceFrame = await page.getByTestId("rendered-page").boundingBox();
     const rows = await page.locator(".cu-fields-table > tbody > tr[data-field-depth='0']").evaluateAll(elements =>
         elements.map(element => element.getAttribute("data-field-id")));
@@ -353,7 +405,7 @@ test("field positions advance consecutively in rendered order and wrap at both e
     await expect(grid.getByRole("rowheader")).toHaveText(["1", "2"]);
 });
 
-test("real root and nested drags reindex the same selected field and Reset order restores navigation", async ({ page }) => {
+test("real root and nested drags reindex the same selected field and Reset Field Order restores navigation", async ({ page }) => {
     await loadOrderedFields(page);
     await expandField(page, "Group");
     const position = page.locator(".cu-field-navigation > span");
@@ -385,9 +437,9 @@ test("real root and nested drags reindex the same selected field and Reset order
     await page.getByRole("button", { name: "Previous field", exact: true }).click();
     await expect(selected).toHaveAttribute("aria-pressed", "true");
     const settings = await openFieldsSettings(page);
-    await settings.getByRole("button", { name: "Reset order", exact: true }).click();
+    await settings.getByRole("button", { name: "Reset Field Order", exact: true }).click();
     await expect(settings).toBeVisible();
-    await expect(settings.getByRole("button", { name: "Reset order", exact: true })).toBeFocused();
+    await expect(settings.getByRole("button", { name: "Reset Field Order", exact: true })).toBeFocused();
     await settings.getByRole("button", { name: "Close fields settings", exact: true }).click();
     await expect(selected).toHaveAttribute("aria-pressed", "true");
     await expect(position).toHaveText("3 / 10 fields");
@@ -432,7 +484,7 @@ test("search positions use only the matching fields and return to the selected f
     await expect(page.getByRole("button", { name: "Next field", exact: true })).toBeDisabled();
 });
 
-test("Settings Reset order restores the input order without resetting Show Confidence", async ({ page }) => {
+test("Settings Reset Field Order restores the input order without resetting Show Confidence", async ({ page }) => {
     await page.goto("/");
     await ready(page);
     const roots = page.locator(".cu-fields-table > tbody > tr[data-field-depth='0']");
@@ -445,14 +497,14 @@ test("Settings Reset order restores the input order without resetting Show Confi
     const search = page.getByRole("searchbox", { name: "Search fields or values", exact: true });
     await search.fill("InvoiceId");
     const settings = await openFieldsSettings(page);
-    const reset = settings.getByRole("button", { name: "Reset order", exact: true });
+    const reset = settings.getByRole("button", { name: "Reset Field Order", exact: true });
     await expect(reset).toBeEnabled();
     await reset.press("Enter");
     await expect(reset).toBeFocused();
     await expect(settings).toBeVisible();
     await expect(search).toHaveValue("InvoiceId");
     await expect(page.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
-    await expect(settings.getByRole("checkbox", { name: "Show Confidence", exact: true })).toBeChecked();
+    await expect(settings.getByRole("switch", { name: "Show Confidence", exact: true })).toBeChecked();
     await settings.getByRole("button", { name: "Close fields settings", exact: true }).click();
     await expect(page.getByRole("button", { name: "Fields settings", exact: true })).toBeFocused();
     await search.fill("");

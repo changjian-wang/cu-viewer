@@ -1323,17 +1323,21 @@ Applicable nonempty data determines this tab order:
 
 The tab bar fits the available width and puts overflow views in a `...` dropdown instead of scrolling horizontally. Selecting an overflow view keeps its active tab visible. Arrow keys and Home/End still reach every view; the menu supports Up/Down, Home/End, Enter/Space, and Escape. The Code tab has been removed.
 
-Fields preserve generic values, own confidence, structured relationships, semantic colors and multi-region navigation. Native source tables locate existing Fields without an additional table group; table-only content keeps a Fields empty state explaining the missing extraction. Paragraphs preserve service order. Figures/Signatures crop actual loaded source regions rather than generating images or inferring detection states. Metadata preserves returned key/value order. Result renders the complete original input, including unmodified native table cells/headers/spans, with a mature interactive JSON tree.
+Fields preserve generic values, own confidence, structured relationships, semantic colors and multi-region navigation. Fields is hidden when the current content has no structured fields, even if it has native tables; nonempty Markdown becomes the default, with the other applicable views remaining valid fallbacks. Native source tables locate existing Fields without an additional table group. Fieldless table requests retain the current result view and show explicit missing-extraction feedback rather than selecting a hidden tab. Paragraphs preserve service order. Figures/Signatures crop actual loaded source regions rather than generating images or inferring detection states. Metadata preserves returned key/value order. Result renders the complete original input, including unmodified native table cells/headers/spans, with a mature interactive JSON tree.
 
 Markdown uses sanitization; the current remote-image omission policy and synchronous capacity limits are implementation choices documented in the README, not new product requirements.
+
+Fields Settings uses the same compact native switch styling as Legend for Show Confidence, preserving label/blank-space activation, Space, focus and the existing `columns` preference. Reset Field Order, Collapse all object fields and Expand all object values are full-width action rows with hover/keyboard-focus highlighting only when enabled. Renaming reset does not change its order-only callback or read-only/table-scope restrictions; hover does not run actions.
 
 ### Source layers and previews
 
 1. Render the original source without baking annotations into its pixels.
 2. Draw valid current-page `pages[].words[].source` polygons on an independent transparent Canvas 2D layer, with `#FAFF7F40` fill and a 1 CSS px same-color stroke. Keep it across tabs, independent of field confidence; deduplicate identical polygons.
 3. Draw tab-specific source outlines above the OCR layer, then interactive emphasis.
-4. Field hover/focus previews show the returned name, value, and optional confidence; paragraph previews show Content only. Keep unrelated outlines and the pinned selection.
+4. Field hover/focus previews show the returned name, value, and optional confidence; the field name uses regular weight 400 while the value retains semibold 600. Paragraph previews show Content only. Keep unrelated outlines and the pinned selection.
 5. Native source-table regions are transparent pointer/keyboard targets, not marker icons or dialog triggers. They locate unambiguous corresponding existing Fields groups/ranges without changing source transforms; unmatched/ambiguous extraction has explicit feedback and full raw data remains in Result.
+
+Object hover/focus previews reuse the Fields value summary without a fabricated group confidence. Their display-only frame and popup anchor use the exact union bounding box of all current-page descendant sources, including nested objects; raw polygons and hit testing do not expand. Scoped summaries include only in-scope values. No current-page source means no invented frame or navigation. Previewing does not expand objects, replace a pin, reorder fields or move the viewport; existing scalar selection-frame rules and whole-array behavior are unchanged.
 
 ## Repository responsibilities
 

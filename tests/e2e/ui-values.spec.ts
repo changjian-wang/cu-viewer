@@ -123,7 +123,7 @@ test("UI-04/05 highlighting validation and category precedence preserve real sou
     await expect(page.getByTestId("word-overlay")).toHaveCount(0);
 });
 
-test("UI-45 Microsoft Services uses the default value text while its confidence stays low", async ({ page }) => {
+test("UI-45 the popover field name stays regular while its value and confidence retain their styles", async ({ page }) => {
     await page.goto("/");
     await ready(page);
     const id = "/contents/0/fields/ServiceAddressRecipient";
@@ -135,6 +135,8 @@ test("UI-45 Microsoft Services uses the default value text while its confidence 
     await expect(source).toHaveAttribute("fill", "#FCE8E6");
     await row.locator(".cu-field-name").hover();
     const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
+    await expect(popup.locator(".cu-popover-heading")).toHaveText("ServiceAddressRecipient");
+    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("font-weight", "400");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveText("Microsoft Services");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(36, 52, 71)");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("font-size", "12.5px");

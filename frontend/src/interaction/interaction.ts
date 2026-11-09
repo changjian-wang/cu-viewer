@@ -52,7 +52,9 @@ export const initialInteraction: InteractionState = { pageNumber: 1, hovered: nu
 export function interaction(state: InteractionState, action: InteractionAction): InteractionState {
     switch (action.type) {
         case "hover":
-            if (isFieldGroup(action.field)) return state.hovered ? { ...state, hovered: null } : state;
+            if (isFieldGroup(action.field) && action.field.type !== "object") {
+                return state.hovered ? { ...state, hovered: null } : state;
+            }
             if (state.hovered === action.field && state.hoveredRegionIndex === action.regionIndex) return state;
             return { ...state, hovered: action.field, hoveredRegionIndex: action.regionIndex };
         case "leave":

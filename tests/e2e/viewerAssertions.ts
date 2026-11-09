@@ -42,7 +42,7 @@ export async function openFieldsSettings(scope: Page | Locator): Promise<Locator
 
 export async function setShowConfidence(page: Page, show: boolean): Promise<void> {
     const panel = await openFieldsSettings(page);
-    await panel.getByRole("checkbox", { name: "Show Confidence", exact: true }).setChecked(show);
+    await panel.getByRole("switch", { name: "Show Confidence", exact: true }).setChecked(show);
     await panel.getByRole("button", { name: "Close fields settings", exact: true }).click();
 }
 

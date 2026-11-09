@@ -154,13 +154,28 @@ test("UI-38 Enter/Space navigate table regions to Fields while retaining source 
     await noAdditionalTables(page);
 });
 
-test("UI-38 table-only and ambiguous results never create a Document Tables group or guess a field", async ({ page }) => {
+test("UI-38 fieldless layout defaults to Markdown and table-only or ambiguous results never invent fields", async ({ page }) => {
     await fixture(page);
     await upload(page, {});
+    const markdown = page.getByRole("tab", { name: "Markdown", exact: true });
+    await expect(page.getByRole("tab", { name: "Fields", exact: true, includeHidden: true })).toHaveCount(0);
+    await expect(markdown).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("heading", { name: "Saved table fixture", exact: true })).toBeVisible();
     await tableTarget(page, 1).press("Enter");
-    await expect(page.getByRole("heading", { name: "No extracted fields", exact: true })).toBeVisible();
+    await expect(markdown).toHaveAttribute("aria-selected", "true");
     await expect(message(page)).toContainText("no corresponding extracted fields");
     await noAdditionalTables(page);
+    const result = page.getByRole("tab", { name: "Result", exact: true });
+    await result.click();
+    await tableTarget(page, 1).press("Space");
+    await expect(result).toHaveAttribute("aria-selected", "true");
+    const tree = page.getByRole("tree", { name: "Original Analyze result JSON", exact: true });
+    await expect(tree).toBeVisible();
+    for (let count = 0; count < 40 && await tree.getByRole("button", { name: "Expand JSON node" }).count(); count++) {
+        await tree.getByRole("button", { name: "Expand JSON node" }).first().click();
+    }
+    await expect(tree).toContainText("Raw table 1 only");
+    await expect(page.getByRole("tab", { name: "Fields", exact: true, includeHidden: true })).toHaveCount(0);
     await upload(page, { LooksLikeTable: { type: "string", valueString: "Raw table 1 only", source: "D(1,10,25,20,5)" } },
         ["D(1,5,20,80,25)", "D(1,8,22,70,20)"]);
     await tableTarget(page, 1).press("Enter");

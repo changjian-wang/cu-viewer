@@ -200,6 +200,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             view={view} outlines={outlines} previewId={previewId}
             onDismissPreview={dismissPreview}
             regions={activeRegions} regionIndex={activeRegionIndex}
+            summaryFieldIds={tableLocation?.focused ? tableFieldIds(tableLocation.match) : undefined}
             revealRequest={reveal?.origin === "source-table" && !reveal.revealSource ? null : revealRequest}
             onHover={(field, index, keyboard) => previewField(field, index, keyboard ? "focus" : "pointer")}
             onLeave={leavePreview} onSelect={(field, index) => selectField(field, index, "source")} onClear={clearSelection}

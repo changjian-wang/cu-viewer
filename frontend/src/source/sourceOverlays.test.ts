@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCuResult } from "../model/parseCuResult";
 import { defaultReviewSettings } from "../interaction/reviewFields";
-import { isValueSourceField, popoverPosition, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames, sourceWordOutlines, WORD_LAYER_COLOR } from "./sourceOverlays";
+import { isValueSourceField, popoverPosition, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames, sourceWordOutlines, WORD_LAYER_COLOR } from "./sourceOverlays";
 
 function fixture() {
     const original = {
@@ -118,6 +118,21 @@ describe("Studio view-specific source outlines", () => {
 describe("multi-fragment source preview anchors", () => {
     const region = (regionIndex: number, x: number, y: number, width = 100, height = 10) => ({
         regionIndex, polygon: [{ x, y }, { x: x + width, y }, { x: x + width, y: y + height }, { x, y: y + height }],
+    });
+
+    it("unites every current-page object source into one unpadded display frame without changing real sources", () => {
+        const regions = [region(4, 400, 500), region(1, 20, 20, 40)];
+        const before = JSON.stringify(regions);
+        expect(sourceObjectPreviewFrame(regions)).toEqual({
+            regionIndices: [1, 4],
+            polygon: [{ x: 20, y: 20 }, { x: 500, y: 20 }, { x: 500, y: 510 }, { x: 20, y: 510 }],
+        });
+        expect(JSON.stringify(regions)).toBe(before);
+    });
+
+    it("does not fabricate an object frame without sources and reports invalid coordinates", () => {
+        expect(sourceObjectPreviewFrame([])).toBeUndefined();
+        expect(() => sourceObjectPreviewFrame([region(0, NaN, 20)])).toThrow("finite");
     });
 
     it("anchors below the complete connected block regardless of source order or focused line", () => {

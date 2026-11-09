@@ -621,8 +621,8 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1440, height: 100
         await expect(entries.getByRole("switch")).toHaveCount(3);
         await expect(legend.getByText("Options", { exact: true })).toHaveCount(0);
         await expect(entries.locator(".cu-switch-row").first()).toHaveCSS("font-size", "11px");
-        await expect(entries.locator(".cu-switch-track").first()).toHaveCSS("width", "35px");
-        await expect(entries.locator(".cu-switch-track").first()).toHaveCSS("height", "21px");
+        await expect(entries.locator(".cu-switch-track").first()).toHaveCSS("width", "28px");
+        expect((await entries.locator(".cu-switch-track").first().boundingBox())?.height).toBeCloseTo(16.8, 2);
         expect(await entries.locator(".cu-switch-track").first().evaluate(element =>
             getComputedStyle(element, "::after").transitionDuration)).toBe("0s");
         await expect(legend.locator(".cu-legend-swatch")).toHaveCount(4);

@@ -19,7 +19,7 @@ export function availableResultTabs(
     apiVersion?: CuApiVersion,
 ) {
     const available: Record<ResultView, boolean> = {
-        fields: (content?.fields.length ?? 0) > 0 || (content?.tables?.length ?? 0) > 0,
+        fields: (content?.fields.length ?? 0) > 0,
         markdown: Boolean(content?.markdown?.trim()),
         paragraphs: (content?.paragraphs?.length ?? 0) > 0,
         figures: (content?.figures?.length ?? 0) > 0,

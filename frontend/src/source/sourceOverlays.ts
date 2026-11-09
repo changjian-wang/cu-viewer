@@ -77,6 +77,16 @@ function sourceBounds(polygon: readonly CuPoint[]): SourceBounds {
     return { left, right, top, bottom, width: right - left, height: bottom - top };
 }
 
+export function sourceObjectPreviewFrame(regions: readonly SourceRegionPolygon[]): SourceSelectionFrame | undefined {
+    if (!regions.length) return undefined;
+    const bounds = sourceBounds(regions.flatMap(region => [...region.polygon]));
+    return {
+        regionIndices: regions.map(region => region.regionIndex).sort((a, b) => a - b),
+        polygon: [{ x: bounds.left, y: bounds.top }, { x: bounds.right, y: bounds.top },
+            { x: bounds.right, y: bounds.bottom }, { x: bounds.left, y: bounds.bottom }],
+    };
+}
+
 function connectedRegions(bounds: readonly SourceBounds[], start: number): number[] {
     const connected = [start], included = new Set(connected);
     for (let cursor = 0; cursor < connected.length; cursor++) {

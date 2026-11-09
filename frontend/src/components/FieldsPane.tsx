@@ -7,7 +7,7 @@ import { appearance, collapsedValue, confidenceDescription, fieldEntries, format
     isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, visibleFieldIds } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
-import { tableFieldIds } from "../interaction/tableFields";
+import { tableFieldIds, tableLocationMessage } from "../interaction/tableFields";
 import type { TableFieldLocation } from "../interaction/tableFields";
 import type { CuField } from "../model/types";
 import { ResizeHandle } from "./ResizeHandle";
@@ -112,12 +112,7 @@ export function FieldsPane(props: FieldsPaneProps) {
     const hiddenGroupCount = props.tableLocation ? props.tableLocation.match.fields.filter(field => !visible.has(field.id)).length :
         selectedGroup ? leafFields([selectedGroup]).filter(field => !matches.has(field.id)).length :
         props.selected && byId.has(props.selected.id) && !matches.has(props.selected.id) ? 1 : 0;
-    const tableMessage = props.tableLocation ? props.tableLocation.match.fields.length ?
-        `${props.tableLocation.table.name}: ${props.tableLocation.match.fields.length} related fields located in Fields.${
-            props.tableLocation.match.ambiguous ? ` ${props.tableLocation.match.ambiguous} ambiguous fields were not located.` : ""}` :
-        props.tableLocation.match.ambiguous ?
-            `${props.tableLocation.table.name}: field association is ambiguous; no field was chosen. Inspect the original tables in Result.` :
-            `${props.tableLocation.table.name}: no corresponding extracted fields. Inspect the original tables in Result.` : null;
+    const tableMessage = props.tableLocation ? tableLocationMessage(props.tableLocation) : null;
     useLayoutEffect(() => {
         const element = viewport.current;
         if (!element) return;

@@ -20,9 +20,9 @@ function setup(resetOrderDisabledReason: string | null = null) {
 }
 
 describe("bottom Fields settings", () => {
-    it("uses one checkbox for the Confidence column without altering other settings", () => {
+    it("uses one native switch for the Confidence column without altering other settings", () => {
         const props = setup();
-        const confidence = screen.getByRole<HTMLInputElement>("checkbox", { name: "Show Confidence" });
+        const confidence = screen.getByRole<HTMLInputElement>("switch", { name: "Show Confidence" });
         expect(confidence.checked).toBe(false);
         expect(document.activeElement).toBe(confidence);
         fireEvent.click(confidence);
@@ -35,7 +35,7 @@ describe("bottom Fields settings", () => {
     it("contains no low-confidence filter, helper text or browser preference message", () => {
         const { onSettings } = setup();
         const panel = screen.getByRole("dialog", { name: "Fields settings" });
-        expect(within(panel).getAllByRole("checkbox")).toHaveLength(1);
+        expect(within(panel).getAllByRole("switch")).toHaveLength(1);
         expect(within(panel).getAllByRole("button")).toHaveLength(4);
         expect(within(panel).queryByRole("button", { name: /Low confidence/ })).toBeNull();
         expect(screen.queryByText(/Show only values below confidence/)).toBeNull();
@@ -46,7 +46,7 @@ describe("bottom Fields settings", () => {
 
     it("resets only the field order without changing settings or dismissing the panel", () => {
         const props = setup();
-        const reset = screen.getByRole<HTMLButtonElement>("button", { name: "Reset order" });
+        const reset = screen.getByRole<HTMLButtonElement>("button", { name: "Reset Field Order" });
         expect(reset.disabled).toBe(false);
         fireEvent.click(reset);
         expect(props.onResetOrder).toHaveBeenCalledOnce();
@@ -72,14 +72,14 @@ describe("bottom Fields settings", () => {
     });
 
     it.each(["Field order is read-only.", "Show all fields before reordering."])(
-        "disables Reset order with its reason (%s) without disabling Confidence", reason => {
+        "disables Reset Field Order with its reason (%s) without disabling Confidence", reason => {
             const props = setup(reason);
-            const reset = screen.getByRole<HTMLButtonElement>("button", { name: "Reset order" });
+            const reset = screen.getByRole<HTMLButtonElement>("button", { name: "Reset Field Order" });
             expect(reset.disabled).toBe(true);
             expect(reset.title).toBe(reason);
             fireEvent.click(reset);
             expect(props.onResetOrder).not.toHaveBeenCalled();
-            const confidence = screen.getByRole<HTMLInputElement>("checkbox", { name: "Show Confidence" });
+            const confidence = screen.getByRole<HTMLInputElement>("switch", { name: "Show Confidence" });
             expect(confidence.disabled).toBe(false);
             fireEvent.click(confidence);
             expect(props.onSettings).toHaveBeenCalledWith({ ...props.settings, columns: 3 });
@@ -94,7 +94,7 @@ describe("bottom Fields settings", () => {
         expect(props.onClose).toHaveBeenLastCalledWith(true);
         fireEvent.pointerDown(document.body);
         expect(props.onClose).toHaveBeenLastCalledWith(false);
-        fireEvent.blur(screen.getByRole("checkbox"), { relatedTarget: document.body });
+        fireEvent.blur(screen.getByRole("switch"), { relatedTarget: document.body });
         expect(props.onClose).toHaveBeenLastCalledWith(false);
     });
 });

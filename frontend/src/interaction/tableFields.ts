@@ -14,6 +14,14 @@ export interface TableFieldLocation {
     match: TableFieldMatch;
 }
 
+export function tableLocationMessage({ table, match }: TableFieldLocation): string {
+    if (match.fields.length) return `${table.name}: ${match.fields.length} related fields located in Fields.${
+        match.ambiguous ? ` ${match.ambiguous} ambiguous fields were not located.` : ""}`;
+    return match.ambiguous ?
+        `${table.name}: field association is ambiguous; no field was chosen. Inspect the original tables in Result.` :
+        `${table.name}: no corresponding extracted fields. Inspect the original tables in Result.`;
+}
+
 export function tableFieldIds(match: TableFieldMatch): ReadonlySet<string> {
     return new Set(flattenFields([...match.targets]).map(field => field.id));
 }
