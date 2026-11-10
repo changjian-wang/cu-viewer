@@ -6,13 +6,6 @@ import { checkPolygon, expandField, ready, selectResultView } from "./viewerAsse
 import { alive, trackSourceResources } from "./sourceResources";
 import { standardFontPdf } from "./pdfFixtures";
 
-declare global {
-    interface Window {
-        cuPackedClipboardWrites?: string[];
-        cuPackedCopyComplete?: () => void;
-    }
-}
-
 const observations = new WeakMap<Page, {
     errors: string[]; external: string[]; failed: string[]; workers: string[]; fonts: string[]; heif: string[];
 }>();
@@ -228,6 +221,7 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
     await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).click();
     await ready(page);
     await expect(number).toHaveValue("1");
+    await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).hover();
     const paragraphPreview = page.getByRole("tooltip", { name: "Paragraph preview", exact: true });
     await expect(paragraphPreview.locator("dt")).toHaveText(["Content"]);
     await expect(paragraphPreview.locator("dd")).toHaveText("CONTOSO LTD.");
@@ -246,38 +240,15 @@ test("isolated packed consumer preserves desktop keyboard focus and conditional 
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     const sample = "Returned packed metadata";
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
-        name: "synthetic-packed-copy.json", mimeType: "application/json",
+        name: "synthetic-packed-info.json", mimeType: "application/json",
         buffer: Buffer.from(JSON.stringify({
             apiVersion: "2026-06-01-preview",
             contents: [{ kind: "document", metadata: { Author: sample } }],
         })),
     });
-    await pane.getByRole("tab", { name: "Metadata", exact: true }).click();
-    await page.evaluate(() => {
-        const writes: string[] = [];
-        window.cuPackedClipboardWrites = writes;
-        Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
-            writeText(value: string) {
-                writes.push(value);
-                return new Promise<void>(resolve => { window.cuPackedCopyComplete = resolve; });
-            },
-        } });
-    });
-    const copy = pane.getByRole("button", { name: "Copy metadata Author", exact: true });
-    await copy.focus();
-    await page.keyboard.press("Enter");
-    await expect(copy).toHaveAttribute("aria-disabled", "true");
-    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-    await expect(copy).toBeFocused();
-    await page.keyboard.press("Enter");
-    expect(await page.evaluate(() => window.cuPackedClipboardWrites)).toEqual([sample]);
-    await page.evaluate(() => {
-        if (!window.cuPackedCopyComplete) throw new Error("Packed clipboard write is not pending.");
-        window.cuPackedCopyComplete();
-    });
-    await expect(copy).toHaveAttribute("aria-disabled", "false");
-    await expect(copy).toBeFocused();
-    await expect(pane.getByRole("status").filter({ hasText: /^Copied$/ })).toBeVisible();
+    await pane.getByRole("tab", { name: "Info", exact: true }).click();
+    await expect(pane.getByRole("table", { name: "Result information", exact: true })).toContainText(sample);
+    await expect(pane.getByRole("button", { name: /^Copy/ })).toHaveCount(0);
 });
 
 test("isolated packed consumer loads local standard fonts rather than relying on repository middleware or a CDN", async ({ page }) => {

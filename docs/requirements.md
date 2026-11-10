@@ -61,7 +61,7 @@
 
 从原始 JSON 识别 GA `2025-11-01` 与 Preview `2026-06-01-preview` 的适用非空数据，按以下顺序生成标签，无值隐藏，未知属性保留在完整 Result：
 
-`Fields → Markdown → Paragraphs → Figures → Signatures → Metadata → Result`
+`Fields → Markdown → Paragraphs → Figures → Signatures → Info → Result`
 
 Fields 仅在当前 content 返回结构化 fields 时显示；没有 fields（如 prebuilt-layout）时隐藏，即使有原生 tables。此时默认选择非空 Markdown；Markdown 不存在时回退到其他适用视图，不显示空标签。
 
@@ -71,12 +71,20 @@ Tab 栏按可用宽度自动收纳，超出部分通过右侧 `...` 下拉菜单
 | --- | --- |
 | Fields | 显示名称、原值、已有置信度及来源；支持嵌套对象/数组、多来源区域、折叠和固定选择，区分缺失与 `0`、`false`、空字符串、`null`。折叠对象显示真实值摘要，长值单行省略但可查看／复制完整原值，名称旁不显示 `n selected`；数组数量只在 Value 保留 `N items`，不在名称旁重复 `[数量]`。不影响选中、业务行号及来源。源表格点击临时聚拢已有的可靠关联字段，不新增 Document Tables 分组、不自动重排；表格无提取字段时解释无对应项。 |
 | Markdown | 安全展示标题、列表、表格、代码等常规格式；危险 HTML/URL 不能执行。 |
-| Paragraphs | 保留 CU 顺序、role/页信息，关联全部真实来源。 |
+| Paragraphs | 按连续来源页集合分组的无卡片紧凑列表，保持 CU 顺序和全局序号，不跨组重排或合并段落；跨页／无来源明确标注。页标题独立展开／收起，默认全展开且不增加行高，不清除固定选择。44px 底栏提供名称／路径／正文搜索、匹配段落循环导航和批量页组展开／收起，不显示原说明。搜索临时展开匹配组、禁用折叠，清空后恢复手动状态；无匹配明确提示并禁用导航，原文选中被搜索隐藏时提示但不清空搜索。导航选中并聚焦段落；新的原文定位只打开目标组并定位一次，不抢焦点。保留 role、完整来源及自然换行正文，不单独截断或折叠、不持久化偏好。 |
 | Figures/Signatures | 从已加载 source 的真实区域裁剪，显示已有 metadata 并定位，不推断签名状态或虚构图片。 |
-| Metadata | 只读字符串键值、保留顺序，支持单值复制。 |
+| Info | 替代 Metadata；依次显示所有 `result.contents[*].metadata`（按 content 分组）、顶层 `usage`、`result.infos`、`result.warnings`。类似 Fields 的只读名称／值树形表，默认全部展开，可折叠但无 Copy 控件；保留空对象／数组、null、0、false、空字符串，无来源或 Confidence，不写配置。 |
 | Result | 成熟交互 JSON 树支持合理规模的大结果，展示完整原始输入/envelope，包括 usage；根展开、嵌套折叠。 |
 
 切换标签不重挂 Source，不重置页码、缩放、旋转、平移或固定项/区域索引；切换 content 时重算适用视图。
+
+Info 不局限于选中的 content，也不受 Preview 版本限制；读取原始操作响应或 inner result 中实际存在的属性，缺失分组不补造，明确返回的空值仍展示。非法或超出既有 JSON 显示容量的数据明确报错，原始 Result 保留。
+
+Info 用与 Fields 一致的 44px 底栏、右侧设置齿轮和弹层替代底部说明文字。设置仅含 `Collapse all groups`／`Expand all groups`，覆盖所有非空对象、数组及隐藏后代；没有可展开分组时两项均禁用，操作后不自动关闭。Esc 或关闭按钮恢复齿轮焦点，外部点击／焦点移出关闭但不抢焦点；换结果关闭设置并恢复默认展开。批量操作只影响 Info，不改 Fields、原始结果或配置。
+
+Info 的 metadata 按 `metadata → contents[N] → 属性` 分层，单 content 也保留 `contents[0]`；仅显示实际返回的 metadata，保留原始零基序号及各 content 的内部路径，总组和各子组可独立折叠。正文与 Fields 共用 12.5px 常规字重及 20px 行高，顶层标题 600、嵌套组 500、数组计数 11px。infos、warnings 及其他嵌套数组项统一使用一基小写 `item N` 自动标签，不改变原字段名或值的大小写，仍保留零基原始路径；单项为 `1 item`。长名称单行省略但完整可访问，长值完整换行；空容器保持分组样式但不提供无效展开按钮。
+
+Info 中数值映射型 `usage.tokens` 折叠后，在右侧值列显示模型名与计数的摘要。同模型名精确匹配的 `-input`／`-output` 成对计数合并为 `模型 (in 数值 / out 数值)`，不同模型按首次出现顺序分组，以分号分隔；未知或未配对的键保留原名与数值，不猜测其他计数类型。摘要固定单行、与普通行同高，不撑宽或增高；优先省略长模型名，若完整计数仍放不下则对摘要明确显示省略号。悬停或键盘聚焦可查看完整摘要，Esc 关闭提示；摘要可通过点击、Enter 或 Space 展开，焦点回到左侧展开按钮。展开后的原始值和顺序完整保留，其他分组及非计数结构的既有行为不变。
 
 ## 已确认的来源交互
 

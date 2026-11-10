@@ -60,7 +60,7 @@ test("all eight views retain OCR data without a permanent yellow layer or source
     await page.getByRole("button", { name: "Field", exact: true }).press("Enter");
     const sourceBounds = await page.getByTestId("rendered-page").boundingBox();
     const resources = await alive(page);
-    for (const name of ["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Metadata", "Result"]) {
+    for (const name of ["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Info", "Result"]) {
         await selectResultView(page.getByRole("region", { name: "Extraction results" }), name);
         await expect(page.getByTestId("word-overlay")).toHaveCount(0);
         expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(sourceBounds);

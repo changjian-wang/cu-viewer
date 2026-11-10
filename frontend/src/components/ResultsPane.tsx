@@ -22,7 +22,7 @@ const JsonPane = lazy(() => import("./JsonPane").then(module => ({ default: modu
 const ParagraphsPane = lazy(() => import("./ParagraphsPane").then(module => ({ default: module.ParagraphsPane })));
 const FiguresPane = lazy(() => import("./FiguresPane").then(module => ({ default: module.FiguresPane })));
 const SignaturesPane = lazy(() => import("./SignaturesPane").then(module => ({ default: module.SignaturesPane })));
-const MetadataPane = lazy(() => import("./MetadataPane").then(module => ({ default: module.MetadataPane })));
+const InfoPane = lazy(() => import("./InfoPane").then(module => ({ default: module.InfoPane })));
 
 interface ResultsPaneProps {
     result: unknown;
@@ -67,7 +67,6 @@ export function ResultsPane(props: ResultsPaneProps) {
     const panel = useRef<HTMLDivElement>(null);
     const scrollPositions = useMemo(() => new Map<string, { top: number; left: number }>(), [props.workflow.context]);
     const tableScroll = useMemo(() => new Map<string, number>(), [props.workflow.context]);
-    const copyContext = useMemo(() => ({}), [props.workflow.context, props.workflow.generation]);
     const fieldsReveal = useRef<number | null>(null);
     const paragraphsReveal = useRef<number | null>(null);
     const tableViewRequest = useRef<number | null>(null);
@@ -213,7 +212,7 @@ export function ResultsPane(props: ResultsPaneProps) {
             {props.error && <div className="cu-state cu-error" role="alert">
                 <h2>Result could not be read</h2><p>{props.error}</p>
             </div>}
-            {!props.error && !props.content && <div className="cu-state">
+            {!props.error && !props.content && view !== "info" && <div className="cu-state">
                 <h2>No extracted fields</h2><p>The source can still be inspected. Inspect the original data in Result.</p>
             </div>}
             {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} result warnings</summary>
@@ -249,7 +248,7 @@ export function ResultsPane(props: ResultsPaneProps) {
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
                 {view === "signatures" && props.content && <SignaturesPane signatures={props.content.signatures ?? []}
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
-                {view === "metadata" && <MetadataPane metadata={props.content?.metadata ?? {}} copyContext={copyContext} />}
+                {view === "info" && <InfoPane result={props.result} />}
             </Suspense>}
             {tableMessage && <div className="cu-fields-status" role="status">{tableMessage}</div>}
             <ValueDetails workflow={props.workflow} threshold={settings.threshold} onClose={() => {
@@ -284,12 +283,11 @@ export function ResultsPane(props: ResultsPaneProps) {
                 { label: "Copy value", icon: "copy", disabled: !props.workflow.menu.field.hasValue,
                     run: () => { if (props.workflow.menu) void props.workflow.copy(props.workflow.menu.field); } },
             ]} />}
-        {view !== "fields" && <footer className="cu-results-footer">
+        {view !== "fields" && view !== "info" && view !== "paragraphs" && <footer className="cu-results-footer">
             {view === "markdown" && "Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered."}
             {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
-            {["paragraphs", "figures", "signatures"].includes(view ?? "") &&
+            {["figures", "signatures"].includes(view ?? "") &&
                 "Select a returned item to locate its source. All regions on the active source page are highlighted; use document page navigation to view other pages."}
-            {view === "metadata" && "Returned string metadata. Values and property order are preserved."}
         </footer>}
     </section>;
 }

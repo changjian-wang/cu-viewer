@@ -41,7 +41,7 @@ const libraryJson = requireSingle(library, /^JsonPane-.*\.js$/, "library JSON ch
 const demoEntry = requireSingle(demo, /^index-.*\.js$/, "demo entry");
 const demoMarkdown = requireSingle(demo, /^MarkdownPane-.*\.js$/, "demo Markdown chunk");
 const demoJson = requireSingle(demo, /^JsonPane-.*\.js$/, "demo JSON chunk");
-const detailPanes = ["ParagraphsPane", "FiguresPane", "SignaturesPane", "MetadataPane"];
+const detailPanes = ["ParagraphsPane", "FiguresPane", "SignaturesPane", "InfoPane"];
 if ([...library, ...demo].some(item => /^(?:TablesPane|TableGrid)-.*\.js$/.test(item.name))) {
     throw new Error("The removed standalone Tables view must not ship a native grid chunk.");
 }

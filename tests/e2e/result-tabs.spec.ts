@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { ready, selectResultView } from "./viewerAssertions";
 
-const labels = ["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Metadata", "Result"];
+const labels = ["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Info", "Result"];
 
 async function setResultsWidth(page: Page, width: number): Promise<void> {
     await page.locator(".cu-viewer").evaluate(async (element, width) => {
@@ -58,13 +58,13 @@ test("overflow selection keeps the active tab visible and preserves the loaded s
     const number = await page.getByRole("textbox", { name: "Page number" }).inputValue();
     await more.click();
     await expect(pane.getByRole("menuitem")).toHaveText(labels.filter(label => !visible.includes(label)));
-    await pane.getByRole("menuitem", { name: "Metadata", exact: true }).click();
-    const metadata = pane.getByRole("tab", { name: "Metadata", exact: true });
+    await pane.getByRole("menuitem", { name: "Info", exact: true }).click();
+    const metadata = pane.getByRole("tab", { name: "Info", exact: true });
     await expect(metadata).toBeVisible();
     await expect(metadata).toBeFocused();
     await expect(metadata).toHaveAttribute("aria-selected", "true");
     await expect(pane.getByRole("menu")).toHaveCount(0);
-    await expect(pane.getByRole("table", { name: "Returned metadata" })).toBeVisible();
+    await expect(pane.getByRole("table", { name: "Result information" })).toBeVisible();
     await expect(pane.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", await metadata.getAttribute("id") ?? "");
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue(number);
@@ -88,8 +88,8 @@ test("keyboard operates overflow items, dismissal and every tab with correct foc
     await expect(more).toBeFocused();
     await expect(pane.getByRole("menu")).toHaveCount(0);
     await more.press("Space");
-    await pane.getByRole("menuitem", { name: "Metadata", exact: true }).press("Enter");
-    const metadata = pane.getByRole("tab", { name: "Metadata", exact: true });
+    await pane.getByRole("menuitem", { name: "Info", exact: true }).press("Enter");
+    const metadata = pane.getByRole("tab", { name: "Info", exact: true });
     await expect(metadata).toBeFocused();
     await expect(pane.locator('[role="tab"][tabindex="0"]')).toHaveCount(1);
     await metadata.press("End");
@@ -104,16 +104,16 @@ test("keyboard operates overflow items, dismissal and every tab with correct foc
     await expect(pane.getByRole("menu")).toHaveCount(0);
     await expect(pane.getByRole("tabpanel")).toBeFocused();
     await more.press("ArrowDown");
-    await pane.getByRole("menuitem", { name: "Metadata", exact: true }).press("Space");
-    await expect(pane.getByRole("tab", { name: "Metadata", exact: true })).toBeFocused();
-    await expect(pane.getByRole("table", { name: "Returned metadata", exact: true })).toHaveCount(1);
+    await pane.getByRole("menuitem", { name: "Info", exact: true }).press("Space");
+    await expect(pane.getByRole("tab", { name: "Info", exact: true })).toBeFocused();
+    await expect(pane.getByRole("table", { name: "Result information", exact: true })).toHaveCount(1);
 });
 
 test("container resizing uses the exact fit threshold without a window resize and retains selection", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
     const bar = pane.locator(".cu-result-tabs");
     await setResultsWidth(page, 330);
-    await selectResultView(pane, "Metadata");
+    await selectResultView(pane, "Info");
     const requiredWidth = await bar.evaluate(element => {
         const tabs = Array.from(element.querySelectorAll('[role="tab"]'));
         const gap = Number.parseFloat(getComputedStyle(element).columnGap);
@@ -125,7 +125,7 @@ test("container resizing uses the exact fit threshold without a window resize an
     await expect(pane.getByRole("tab")).toHaveText(labels);
     await expect(pane.getByRole("button", { name: "More result views" })).toHaveCount(0);
     await expect(pane.getByRole("menu")).toHaveCount(0);
-    const metadata = pane.getByRole("tab", { name: "Metadata", exact: true });
+    const metadata = pane.getByRole("tab", { name: "Info", exact: true });
     await expect(metadata).toBeFocused();
     await setResultsWidth(page, requiredWidth - 1);
     await expect(pane.getByRole("button", { name: "More result views" })).toBeVisible();

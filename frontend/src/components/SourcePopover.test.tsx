@@ -24,9 +24,10 @@ function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>) {
     });
     viewport.current = element;
     paper.current = element;
-    render(<SourcePopover id="source-preview" field={field} summaryFieldIds={summaryFieldIds}
+    const view = render(<SourcePopover id="source-preview" field={field} summaryFieldIds={summaryFieldIds}
         points={[{ x: 50, y: 200 }, { x: 150, y: 200 }, { x: 150, y: 220 }, { x: 50, y: 220 }]}
         pan={{ x: 0, y: 0 }} viewport={viewport} paper={paper} />);
+    return { ...view, viewport, paper };
 }
 
 const field: CuField = { id: "/contents/0/fields/Zero", path: "/contents/0/fields/Zero",
@@ -61,6 +62,25 @@ describe("Studio source preview content", () => {
         expect(popup.textContent).toContain("ZeroValue0Confidence0.00");
         expect(popup.style.left).toBe("50px");
         expect(popup.style.top).toBe("232px");
+    });
+    it("does not feed unchanged dimensions back into the parent when the source anchor changes", () => {
+        const { rerender, viewport, paper } = setup(field);
+        const onMeasure = vi.fn();
+        const props = { id: "source-preview", field, viewport, paper, onMeasure,
+            points: [{ x: 50, y: 200 }, { x: 150, y: 200 }, { x: 150, y: 220 }, { x: 50, y: 220 }] };
+        rerender(<SourcePopover {...props} pan={{ x: 0, y: 0 }} />);
+        expect(onMeasure).toHaveBeenLastCalledWith({ width: 330, height: 100 });
+        rerender(<SourcePopover {...props} pan={{ x: 10, y: 0 }} />);
+        expect(onMeasure).toHaveBeenCalledTimes(1);
+
+        vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(110);
+        rerender(<SourcePopover {...props} pan={{ x: 20, y: 0 }} />);
+        expect(onMeasure).toHaveBeenCalledTimes(2);
+        expect(onMeasure).toHaveBeenLastCalledWith({ width: 330, height: 110 });
+
+        const nextMeasurement = vi.fn();
+        rerender(<SourcePopover {...props} pan={{ x: 20, y: 0 }} onMeasure={nextMeasurement} />);
+        expect(nextMeasurement).toHaveBeenCalledExactlyOnceWith({ width: 330, height: 110 });
     });
     it("marks unavailable confidence without inventing a zero or showing a Gauge", () => {
         const withoutConfidence = { ...field };

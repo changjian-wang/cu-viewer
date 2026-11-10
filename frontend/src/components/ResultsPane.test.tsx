@@ -550,10 +550,11 @@ describe("structured Fields presentation", () => {
             figures: details.figures, signatures: details.signatures,
             metadata: { Author: "Contoso" },
         });
-        const { container } = renderPane(content, null, () => true, { rawOnly: "preserved" },
+        const { container } = renderPane(content, null, () => true,
+            { rawOnly: "preserved", contents: [{ metadata: { Author: "Contoso" } }] },
             { apiVersion: "2026-06-01-preview" });
         expect(screen.getAllByRole("tab").map(tab => tab.textContent))
-            .toEqual(["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Metadata", "Result"]);
+            .toEqual(["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Info", "Result"]);
         expect(container.querySelectorAll('[role="tab"][disabled]')).toHaveLength(0);
         fireEvent.keyDown(screen.getByRole("tab", { name: "Fields" }), { key: "End" });
         expect(screen.getByRole("tab", { name: "Result" }).getAttribute("aria-selected")).toBe("true");
@@ -561,7 +562,9 @@ describe("structured Fields presentation", () => {
         expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" })).toBeTruthy();
         expect(screen.getByText(/rawOnly/)).toBeTruthy();
         fireEvent.keyDown(screen.getByRole("tab", { name: "Result" }), { key: "ArrowLeft" });
-        expect(await screen.findByRole("table", { name: "Returned metadata" })).toBeTruthy();
+        expect(await screen.findByRole("table", { name: "Result information" })).toBeTruthy();
+        expect(screen.getByRole("button", { name: "Info settings" })).toBeTruthy();
+        expect(container.querySelector(".cu-results-footer")).toBeNull();
     });
 
     it("retains an applicable view on content changes and selects a stable fallback when its data disappears", async () => {

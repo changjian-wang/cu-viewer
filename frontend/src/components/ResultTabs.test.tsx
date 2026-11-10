@@ -73,12 +73,12 @@ describe("responsive result tabs", () => {
         fireEvent.click(more);
         expect(more.getAttribute("aria-expanded")).toBe("true");
         expect(screen.getAllByRole("menuitem").map(item => item.textContent))
-            .toEqual(["Figures", "Signatures", "Metadata", "Result"]);
+            .toEqual(["Figures", "Signatures", "Info", "Result"]);
         expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Figures" }));
-        fireEvent.click(screen.getByRole("menuitem", { name: "Metadata" }));
+        fireEvent.click(screen.getByRole("menuitem", { name: "Info" }));
         expect(screen.queryByRole("menu")).toBeNull();
-        expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Fields", "Markdown", "Metadata"]);
-        const metadata = screen.getByRole("tab", { name: "Metadata" });
+        expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Fields", "Markdown", "Info"]);
+        const metadata = screen.getByRole("tab", { name: "Info" });
         expect(document.activeElement).toBe(metadata);
         expect(metadata.getAttribute("aria-selected")).toBe("true");
         expect(metadata.getAttribute("aria-controls")).toBe(screen.getByRole("tabpanel").id);
@@ -146,17 +146,17 @@ describe("responsive result tabs", () => {
     it("retains the selected view through resize and restores focus when an open menu is no longer needed", () => {
         render(<TestTabs />);
         fireEvent.click(screen.getByRole("button", { name: "More result views" }));
-        fireEvent.click(screen.getByRole("menuitem", { name: "Metadata" }));
+        fireEvent.click(screen.getByRole("menuitem", { name: "Info" }));
         resize(250);
-        expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Fields", "Metadata"]);
-        expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Metadata" }));
+        expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Fields", "Info"]);
+        expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Info" }));
         fireEvent.click(screen.getByRole("button", { name: "More result views" }));
         resize(668);
         expect(screen.queryByRole("menu")).toBeNull();
         expect(screen.queryByRole("button", { name: "More result views" })).toBeNull();
         expect(screen.getAllByRole("tab")).toHaveLength(7);
-        expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Metadata" }));
-        expect(screen.getByRole("tabpanel").textContent).toBe("metadata");
+        expect(document.activeElement).toBe(screen.getByRole("tab", { name: "Info" }));
+        expect(screen.getByRole("tabpanel").textContent).toBe("info");
     });
 
     it("recalculates when tab widths change and disconnects observers on unmount", () => {

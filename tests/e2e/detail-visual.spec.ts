@@ -43,7 +43,7 @@ test("real Paragraphs and existing Fields arrays preserve source-linked selectio
     await snapshot(page, "fields-array-from-source.png");
 });
 
-test("Figures, Signatures and Metadata have reviewed source previews and safe read-only values", async ({ page }) => {
+test("Figures, Signatures and Info have reviewed source previews and safe read-only values", async ({ page }) => {
     await page.getByLabel("Choose source file").setInputFiles(resolve("tests", "fixtures", "images", "orientation-marker.png"));
     await ready(page);
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
@@ -69,9 +69,9 @@ test("Figures, Signatures and Metadata have reviewed source previews and safe re
     await expect(pane.getByRole("img", { name: "Signature 1 region 1 preview on page 1" })).toBeVisible();
     await pane.getByRole("button", { name: "Select Signature 1", exact: true }).click();
     await snapshot(page, "detail-signatures.png");
-    await pane.getByRole("tab", { name: "Metadata", exact: true }).click();
-    await expect(pane.getByRole("table", { name: "Returned metadata" })).toBeVisible();
-    await snapshot(page, "detail-metadata.png");
+    await pane.getByRole("tab", { name: "Info", exact: true }).click();
+    await expect(pane.getByRole("table", { name: "Result information" })).toBeVisible();
+    await snapshot(page, "detail-info.png");
 });
 
 test("right-side Fields and Paragraphs hover show their distinct Studio source previews", async ({ page }) => {

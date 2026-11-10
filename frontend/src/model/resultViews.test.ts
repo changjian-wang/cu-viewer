@@ -26,7 +26,7 @@ describe("Studio result tab availability", () => {
         };
         const model = parseCuResult(raw);
         expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.label))
-            .toEqual(["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Metadata", "Result"]);
+            .toEqual(["Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Info", "Result"]);
     });
 
     it("hides absent and empty values while keeping provided raw JSON inspectable", () => {
@@ -55,14 +55,21 @@ describe("Studio result tab availability", () => {
         expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id)).toEqual(["fields", "result"]);
     });
 
-    it("requires mapped preview properties for Signatures and Metadata", () => {
-        const value = parseCuResult({
+    it("keeps Signatures preview-only while Info shows returned data across API versions and contents", () => {
+        const raw = {
             apiVersion: "2026-06-01-preview",
             contents: [{ kind: "document", signatures: [{ id: "signature" }], metadata: { Author: "Contoso" } }],
-        }).contents[0];
-        expect(availableResultTabs(value, {}, "2025-11-01").map(tab => tab.id)).toEqual(["result"]);
-        expect(availableResultTabs(value, {}, "2026-06-01-preview").map(tab => tab.id))
-            .toEqual(["signatures", "metadata", "result"]);
+        };
+        const value = parseCuResult(raw).contents[0];
+        expect(availableResultTabs(value, raw, "2025-11-01").map(tab => tab.id)).toEqual(["info", "result"]);
+        expect(availableResultTabs(value, raw, "2026-06-01-preview").map(tab => tab.id))
+            .toEqual(["signatures", "info", "result"]);
+        expect(availableResultTabs(content(), raw, "2026-06-01-preview").map(tab => tab.id)).toEqual(["info", "result"]);
+    });
+
+    it.each(["usage", "infos", "warnings"])("shows Info when only %s is returned", section => {
+        const raw = { apiVersion: "2025-11-01", contents: [], [section]: section === "usage" ? { pages: 0 } : [] };
+        expect(availableResultTabs(undefined, raw, "2025-11-01").map(tab => tab.id)).toEqual(["info", "result"]);
     });
 
     it("does not add a Code tab even when the result includes analyzer context", () => {

@@ -49,6 +49,8 @@ async function expectCompleteSelection(page: Page, id: string, count: number, fr
 }
 
 async function expectBelow(page: Page, parts: Locator): Promise<void> {
+    // Pinning and previewing are independent; request the preview explicitly.
+    await parts.first().hover();
     await expect(popup(page)).toBeVisible();
     await expect.poll(async () => {
         const bottom = await parts.evaluateAll(elements => Math.max(...elements.map(element => element.getBoundingClientRect().bottom)));
@@ -340,7 +342,7 @@ test("UI-46 every real multiline value previews with the exact fixed-selection f
         for (const index of [0, 1]) {
             await sourceParts(page, id).nth(index).hover();
             await expectCompleteSelection(page, id, 2, 1, "preview-overlay");
-            await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(140, 112, 194)");
+            await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(128, 99, 181)");
             expect(await page.getByTestId("preview-overlay").locator("polygon").evaluate(element => ({
                 points: element.getAttribute("points"), fill: element.getAttribute("fill"),
                 width: element.getAttribute("stroke-width"),

@@ -5,13 +5,6 @@ import { checkPolygon, ready, rotateSource, fitSource } from "./viewerAssertions
 import { croppedRotatedPdf } from "./pdfFixtures";
 import { openValueMenu } from "./uiRedesignFixtures";
 
-declare global {
-    interface Window {
-        cuCompleteClipboardWrite?: () => void;
-        cuClipboardWrites?: string[];
-    }
-}
-
 async function tabTo(page: Page, target: Locator): Promise<void> {
     for (let count = 0; count < 180; count++) {
         await page.keyboard.press("Tab");
@@ -123,8 +116,9 @@ test("desktop keyboard reaches source controls, pans, validates pages and retain
     await page.keyboard.press("Enter");
     await ready(page);
     await expect(number).toHaveValue("4");
-    await expect(next).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Previous page", exact: true })).toBeFocused();
+    await expect(next).toBeEnabled();
+    await expect(next).toHaveAttribute("title", "Next page (first page)");
+    await expect(next).toBeFocused();
     await number.focus();
     await page.locator('[data-field-id="/contents/0/fields/AmountDue"]').hover();
     await ready(page);
@@ -134,7 +128,7 @@ test("desktop keyboard reaches source controls, pans, validates pages and retain
     await number.press("Tab");
     await ready(page);
     await expect(number).toHaveValue("2");
-    await expect(page.getByRole("button", { name: "Zoom out", exact: true })).toBeFocused();
+    await expect(next).toBeFocused();
 });
 
 test("hidden field descriptions do not overflow the desktop and Result scrolls independently of Source", async ({ page }) => {
@@ -293,50 +287,28 @@ test("cross-page selection and value-menu navigation preserve the exact zoom and
     }
 });
 
-test("keyboard copying retains focus while pending and never steals focus back from another control", async ({ page }) => {
+test("Info supports keyboard expansion without obsolete copy controls in the Tab order", async ({ page }) => {
     const value = "Returned first";
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
-        name: "synthetic-copy-metadata.json", mimeType: "application/json",
+        name: "synthetic-keyboard-info.json", mimeType: "application/json",
         buffer: Buffer.from(JSON.stringify({
             apiVersion: "2026-06-01-preview",
             contents: [{ kind: "document", metadata: { First: value, Second: "Returned second" } }],
+            usage: { pages: 0 },
         })),
     });
-    const copy = page.getByRole("button", { name: "Copy metadata First", exact: true });
-    await tabTo(page, copy);
-    await page.evaluate(() => {
-        window.cuClipboardWrites = [];
-        Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
-            writeText(value: string) {
-                window.cuClipboardWrites?.push(value);
-                return new Promise<void>(resolve => { window.cuCompleteClipboardWrite = resolve; });
-            },
-        } });
-    });
+    const table = page.getByRole("table", { name: "Result information", exact: true });
+    const metadata = table.locator('tr[data-info-path="/contents/0/metadata"]').getByRole("button");
+    await tabTo(page, metadata);
+    await page.keyboard.press("Space");
+    await expect(metadata).toBeFocused();
+    await expect(table.getByText(value, { exact: true })).toHaveCount(0);
     await page.keyboard.press("Enter");
-    await expect(copy).toHaveAttribute("aria-disabled", "true");
-    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-    await expect(copy).toBeFocused();
-    await page.keyboard.press("Enter");
-    expect(await page.evaluate(() => window.cuClipboardWrites)).toEqual([value]);
-    await page.evaluate(() => {
-        if (!window.cuCompleteClipboardWrite) throw new Error("No clipboard write is pending.");
-        window.cuCompleteClipboardWrite();
-    });
-    await expect(copy).toHaveAttribute("aria-disabled", "false");
-    await expect(copy).toBeFocused();
-    await expect(page.getByRole("status").filter({ hasText: /^Copied$/ })).toBeVisible();
-    await page.keyboard.press("Enter");
-    await expect(copy).toHaveAttribute("aria-disabled", "true");
+    await expect(metadata).toBeFocused();
+    await expect(table.getByText(value, { exact: true })).toBeVisible();
     await page.keyboard.press("Tab");
-    const second = page.getByRole("button", { name: "Copy metadata Second", exact: true });
-    await expect(second).toBeFocused();
-    await page.evaluate(() => {
-        if (!window.cuCompleteClipboardWrite) throw new Error("No clipboard write is pending.");
-        window.cuCompleteClipboardWrite();
-    });
-    await expect(copy).toHaveAttribute("aria-disabled", "false");
-    await expect(second).toBeFocused();
+    await expect(table.getByRole("button", { name: "Collapse usage", exact: true })).toBeFocused();
+    await expect(table.getByRole("button", { name: /^Copy/ })).toHaveCount(0);
 });
 
 test.describe("conditional reveal at DPR 2", () => {

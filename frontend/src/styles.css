@@ -159,6 +159,24 @@
 .cu-detail-heading { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; color: #004578; }
 .cu-detail-heading > span, .cu-detail-source { color: #617087; font-size: 12px; }
 .cu-detail-source, .cu-detail-text { display: block; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 6px; }
+.cu-paragraphs-scroll { padding: 0 16px 16px; }
+.cu-paragraph-list { list-style: none; margin: 0; padding: 0; }
+.cu-paragraph-list > li { margin: 0; padding: 0; }
+.cu-paragraph-page { margin: 0; padding: 0; border-bottom: 1px solid var(--cu-border); background: #f6f8fb; color: #243447; font-size: var(--cu-value-font-size); font-weight: 600; line-height: 20px; overflow-wrap: anywhere; }
+.cu-viewer .cu-paragraph-page-toggle { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; min-height: 32px; border: 0; border-radius: 0; padding: 6px 8px; background: transparent; color: inherit; text-align: left; font: inherit; }
+.cu-paragraph-page-toggle .cu-icon { width: 12px; height: 12px; }
+.cu-paragraph-page-toggle > span { min-width: 0; }
+.cu-viewer .cu-paragraph-page-toggle:hover { background: #edf3f9; }
+.cu-viewer .cu-paragraph-page-toggle:focus-visible { outline: 2px solid var(--cu-focus); outline-offset: -2px; }
+.cu-viewer .cu-paragraph-row { position: relative; display: grid; align-items: start; gap: 8px; width: 100%; min-width: 0; min-height: 32px; border: 0; border-bottom: 1px solid #edf0f4; border-radius: 0; padding: 6px 8px; background: transparent; color: #2d435b; text-align: left; font-size: var(--cu-value-font-size); font-weight: 400; line-height: 20px; }
+.cu-paragraph-row:is(:hover, .is-hovered) { background: var(--cu-hover-bg); }
+.cu-viewer .cu-paragraph-row[aria-pressed="true"] { background: var(--cu-selected-bg); box-shadow: inset 2px 0 var(--cu-selected-stroke); }
+.cu-viewer .cu-paragraph-row:focus-visible { outline: 2px solid var(--cu-focus); outline-offset: -2px; }
+.cu-paragraph-index { color: #627084; font-size: 11px; line-height: 20px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cu-paragraph-content { min-width: 0; margin: 0; }
+.cu-paragraph-meta { display: flex; align-items: start; gap: 6px; min-width: 0; max-width: 140px; color: #627084; font-size: 11px; line-height: 20px; white-space: nowrap; }
+.cu-paragraph-role { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cu-paragraph-regions { flex: none; }
 .cu-detail-table { margin-bottom: 24px; }
 .cu-table-navigation { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px; margin-bottom: 22px; border-bottom: 1px solid #d9e1eb; background: #f8f9fb; font-size: 12px; }
 .cu-table-navigation button { border: 1px solid #d1d9e3; border-radius: 4px; min-width: 28px; height: 28px; background: white; }
@@ -176,9 +194,25 @@
 .cu-source-thumbnail canvas { max-width: 100%; height: auto !important; border: 1px solid #d9e1eb; background: #fff; }
 .cu-source-thumbnail canvas[hidden] { display: none; }
 .cu-source-thumbnail [role="alert"], .cu-copy-control [role="alert"] { color: #9e2734; display: block; }
-.cu-metadata-pane table { width: 100%; border-collapse: collapse; }
-.cu-metadata-pane th, .cu-metadata-pane td { border-bottom: 1px solid #d9e1eb; padding: 9px; text-align: left; overflow-wrap: anywhere; }
-.cu-metadata-pane td { white-space: pre-wrap; }
+.cu-info-pane { padding: 0 16px 20px; }
+.cu-info-table > tbody > tr > th { border-bottom: 1px solid #edf0f4; padding: 0; text-align: left; font-weight: 400; vertical-align: top; }
+.cu-info-table > tbody > tr > td { vertical-align: top; }
+.cu-info-name { min-width: 0; overflow-wrap: anywhere; }
+.cu-info-table .cu-info-expander { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; min-height: 32px; border: 0; padding: 6px 4px 6px 0; background: transparent; color: #243447; text-align: left; font-size: var(--cu-value-font-size); font-weight: 500; line-height: 20px; }
+.cu-info-expander .cu-icon { width: 12px; height: 12px; }
+.cu-info-leaf { display: flex; min-height: 32px; padding: 6px 4px 6px 16px; line-height: 20px; }
+.cu-info-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cu-info-table .is-info-section { background: #f6f8fb; }
+.cu-info-table .is-info-section :is(.cu-info-expander, .cu-info-leaf) { font-weight: 600; }
+.cu-info-value { padding: 6px 8px; min-height: 32px; color: #2d435b; font-size: var(--cu-value-font-size); font-weight: 400; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 20px; }
+.cu-info-value.cu-info-summary { color: #627084; font-size: 11px; }
+.cu-info-table .cu-info-token-summary { display: block; width: 100%; border: 0; background: transparent; color: #2d435b; text-align: left; font-size: var(--cu-value-font-size); font-weight: 400; line-height: 20px; }
+.cu-info-table .cu-info-token-summary:focus-visible { outline: 2px solid var(--cu-focus); outline-offset: -2px; }
+.cu-info-token-lines { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; max-height: 20px; overflow: hidden; white-space: normal; }
+.cu-info-token-pair { display: inline-flex; max-width: calc(100% - 1em); vertical-align: bottom; white-space: nowrap; }
+.cu-info-token-model { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cu-info-token-count { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+.cu-info-token-tooltip.cu-viewer-popup { position: fixed; z-index: 100; width: max-content; max-width: min(480px, calc(100vw - 16px)); max-height: min(320px, calc(100vh - 16px)); overflow: auto; padding: 8px 10px; border: 1px solid #d7e0ea; border-radius: 6px; background: white; color: #243447; box-shadow: 0 8px 24px #20334c20; font-size: 12.5px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .cu-copy-button { border: 1px solid #d1d9e3; border-radius: 4px; padding: 4px 8px; background: white; }
 .cu-copy-control { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }
 .cu-icon { flex: none; }
@@ -301,6 +335,7 @@
 .cu-table-cell-select .cu-value-chip { display: inline; white-space: pre-wrap; overflow-wrap: anywhere; }
 .cu-missing-cell { color: #687589; font-size: 11px; }
 .cu-fields-review-footer { position: relative; order: 1; flex: none; height: 44px; min-height: 44px; padding: 0 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; border-top: 1px solid var(--cu-border); background: white; }
+.cu-fields-review-footer.cu-info-footer { display: flex; justify-content: flex-end; }
 .cu-fields-review-footer > .cu-search-box { min-width: 0; height: 30px; padding: 2px 7px; gap: 5px; }
 .cu-fields-review-footer .cu-search-box input { height: 24px; font-size: 11px; }
 .cu-fields-review-footer > .cu-field-navigation { margin: 0; justify-self: center; }

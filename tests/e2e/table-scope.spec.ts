@@ -148,6 +148,7 @@ test("UI-41 scoped review intersects existing search without clearing explicit u
 });
 
 test("UI-41 closing details after Show all returns focus to the restored collapsed parent", async ({ page }) => {
+    await page.getByRole("button", { name: "Collapse TaxDetails", exact: true }).click();
     await table(page, 3).press("Enter");
     const value = page.getByRole("button", { name: "Select value of TaxDetails / Item 1 / Amount / Amount", exact: true });
     await value.click();
@@ -184,6 +185,7 @@ test("UI-41 hovering outside the table keeps the scope, but explicitly selecting
 });
 
 test("UI-41 scoped tab round trips keep the range, and clear restores base expansion and scroll", async ({ page }) => {
+    await page.getByRole("button", { name: "Collapse TaxDetails", exact: true }).click();
     const array = page.locator('[data-array-id="/contents/0/fields/LineItems"]');
     await array.evaluate(element => { element.scrollLeft = 200; });
     await page.locator(".cu-fields-scroll").evaluate(element => { element.scrollTop = 100; });

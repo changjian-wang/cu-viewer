@@ -100,7 +100,7 @@ describe("Studio view-specific source outlines", () => {
         expect(sourceOutlines(content, "fields", 1, true).some(outline => outline.field.detailView === "tables")).toBe(false);
     });
 
-    it.each(["markdown", "result", "metadata"] as const)("does not retain another tab's outlines in %s", view => {
+    it.each(["markdown", "result", "info"] as const)("does not retain another tab's outlines in %s", view => {
         expect(sourceOutlines(fixture().content, view, 1, true)).toEqual([]);
     });
 

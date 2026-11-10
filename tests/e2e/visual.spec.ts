@@ -77,7 +77,10 @@ test("default product layout and Fields match the approved prototype-aligned ref
     await expect(pane.locator('[data-field-id="/contents/0/fields/CountryRegion"] .cu-field-value')).toHaveText("USA");
     const box = await pane.boundingBox();
     if (!box) throw new Error("The Fields reference pane is not laid out.");
-    expect(box.height).toBe(781);
+    const header = await page.locator(".prototype-banner").boundingBox();
+    if (!header) throw new Error("The demo host header is unavailable.");
+    expect(header.height).toBe(54);
+    expect(box.height).toBe(861 - header.height);
     expect(Math.abs(box.width - 609)).toBeLessThan(1);
     await expect(pane.locator(".cu-field-name").first()).toHaveCSS("font-size", "12.5px");
     await expect(pane.locator(".cu-dot")).toHaveCount(0);
@@ -125,7 +128,7 @@ test("expanded and collapsed groups and always-visible missing values preserve F
     await pane.locator(".cu-fields-scroll").evaluate(element => element.scrollTo(0, 0));
     await neutral(page);
     await expect(pane.getByRole("status")).toHaveText("No field selected");
-    await expandField(page, "AmountDue");
+    await expect(page.getByRole("button", { name: "Expand AmountDue", exact: true })).toBeVisible();
     await neutral(page);
     await expect(page.getByRole("button", { name: "Clear", exact: true })).toHaveCount(0);
     await snapshot(page, "default-pdf.png");

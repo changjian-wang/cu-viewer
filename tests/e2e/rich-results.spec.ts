@@ -196,7 +196,7 @@ test("missing, malformed and oversized rich results have explicit bounded states
 
 test("GA and Preview derive Studio tabs from selected content without changing the source or inventing renderers", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
-    await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText(["Fields", "Markdown", "Paragraphs", "Result"]);
+    await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText(["Fields", "Markdown", "Paragraphs", "Info", "Result"]);
     await expect(pane.locator('[role="tab"][disabled]')).toHaveCount(0);
     await expect(page.getByRole("combobox", { name: /version/i })).toHaveCount(0);
 
@@ -232,7 +232,7 @@ test("GA and Preview derive Studio tabs from selected content without changing t
         usage: { units: 0 },
     }, "synthetic-preview-tabs.json");
     await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText([
-        "Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Metadata", "Result",
+        "Fields", "Markdown", "Paragraphs", "Figures", "Signatures", "Info", "Result",
     ]);
     await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
     await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeFocused();
@@ -241,7 +241,7 @@ test("GA and Preview derive Studio tabs from selected content without changing t
     await pane.locator(".cu-json-label", { hasText: "result:" }).click();
     await expect(pane.locator(".cu-json-label", { hasText: "futureProperty:" })).toBeVisible();
     await pane.getByRole("tab", { name: "Result", exact: true }).press("ArrowLeft");
-    await expect(pane.getByRole("table", { name: "Returned metadata" })).toBeVisible();
+    await expect(pane.getByRole("table", { name: "Result information" })).toBeVisible();
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
     const afterSwitch = await page.getByTestId("rendered-page").boundingBox();
     expect(afterSwitch?.width).toBeCloseTo(bounds.width, 1);
@@ -251,15 +251,15 @@ test("GA and Preview derive Studio tabs from selected content without changing t
 
     await page.getByRole("combobox", { name: "Result content" }).focus();
     await page.getByRole("combobox", { name: "Result content" }).selectOption("1");
-    await expect(pane.getByRole("tab")).toHaveText(["Result"]);
-    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(pane.getByRole("tab")).toHaveText(["Info", "Result"]);
+    await expect(pane.getByRole("tab", { name: "Info", exact: true })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("combobox", { name: "Result content" })).toBeFocused();
     await page.getByRole("combobox", { name: "Result content" }).selectOption("0");
-    await expect(pane.getByRole("tab", { name: "Result", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(pane.getByRole("tab", { name: "Info", exact: true })).toHaveAttribute("aria-selected", "true");
 
     await page.getByRole("button", { name: "Receipt PNG", exact: true }).click();
     await ready(page);
-    await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText(["Fields", "Markdown", "Paragraphs", "Result"]);
+    await expect(pane.getByRole("tab", { includeHidden: true })).toHaveText(["Fields", "Markdown", "Paragraphs", "Info", "Result"]);
     await expect(pane.getByRole("tab", { name: "Figures", exact: true })).toHaveCount(0);
     await expect(pane.getByRole("tab", { name: "Signatures", exact: true })).toHaveCount(0);
 });
@@ -275,11 +275,13 @@ test("malformed detail values produce visible warnings while valid fields and or
         }],
     }, "synthetic-malformed-details.json");
     const pane = page.getByRole("region", { name: "Extraction results" });
-    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Result"]);
+    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Info", "Result"]);
     await expect(pane.locator(".cu-field-value")).toHaveText("Retained field");
     await pane.locator(".cu-issues summary").click();
     await expect(pane.locator(".cu-issues")).toContainText("invalid-content-detail");
     await expect(pane.locator(".cu-issues")).toContainText("/contents/0/metadata/Invalid");
+    await pane.getByRole("tab", { name: "Info", exact: true }).click();
+    await expect(pane.getByRole("table", { name: "Result information", exact: true }).getByText("42", { exact: true })).toBeVisible();
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(page.getByTestId("rendered-page")).toBeVisible();

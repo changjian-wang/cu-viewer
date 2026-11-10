@@ -239,6 +239,7 @@ test("UI-49 arbitrary root and nested arrays use the same single-count rule", as
         } }] })),
     });
     await expect(page.getByRole("button", { name: "RootArray", exact: true })).toBeVisible();
+    await expandField(page, "Nested");
     for (const [name, path, values] of [["RootArray", "RootArray", rootValues], ["Inner", "Nested/valueObject/Inner", nestedValues]] as const) {
         await fold(page, name);
         const group = row(page, path);

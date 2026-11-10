@@ -370,6 +370,8 @@ test("UI-56 hidden fills remain selectable and previewable without changing conf
     const pin = page.getByTestId("source-overlay").locator("polygon");
     await expect(pin).toHaveAttribute("data-source-id", "/contents/0/fields/Zero");
     await expect(pin).toHaveAttribute("stroke-width", "1.8");
+    await page.locator(".prototype-banner").hover();
+    await zero.hover();
     await expect(page.locator(".cu-flyover-confidence dd")).toHaveText("0.00");
     await expect(page.locator(`${fieldRow("/contents/0/fields/Zero")} .cu-value-chip`)).toHaveCSS("background-color", "rgb(252, 232, 230)");
     await sourceRegion(page, recipientId).hover();

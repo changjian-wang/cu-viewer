@@ -330,7 +330,7 @@ test("Fields matches the approved compact grouping and confidence palette withou
     await expect(pane.getByRole("tab").filter({ hasText: /Markdown|Paragraphs/ })).toHaveCount(2);
     await expect(pane.getByRole("tab", { name: "Markdown", exact: true })).toBeEnabled();
     await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeEnabled();
-    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Markdown", "Paragraphs", "Result"]);
+    await expect(pane.getByRole("tab")).toHaveText(["Fields", "Markdown", "Paragraphs", "Info", "Result"]);
     await expect(pane.locator('[role="tab"][disabled]')).toHaveCount(0);
 
     const appearance = await group.evaluate(element => {

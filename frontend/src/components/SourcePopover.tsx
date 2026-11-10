@@ -22,6 +22,7 @@ interface SourcePopoverProps {
 
 export function SourcePopover(props: SourcePopoverProps) {
     const element = useRef<HTMLElement>(null);
+    const measurement = useRef<(PageSize & { onMeasure: SourcePopoverProps["onMeasure"] }) | null>(null);
     const [position, setPosition] = useState<CuPoint | null>(null);
     const [error, setError] = useState<string | null>(null);
     useLayoutEffect(() => {
@@ -39,10 +40,16 @@ export function SourcePopover(props: SourcePopoverProps) {
                 const bottom = Math.max(...props.points.map(point => point.y));
                 const anchor = { x: frame.x + left - bounds.x - viewport.clientLeft,
                     y: frame.y + top - bounds.y - viewport.clientTop, width: right - left, height: bottom - top };
-                props.onMeasure?.({ width: popup.offsetWidth, height: popup.offsetHeight });
+                const size = { width: popup.offsetWidth, height: popup.offsetHeight };
+                const previous = measurement.current;
+                if (props.onMeasure && (!previous || previous.onMeasure !== props.onMeasure ||
+                    previous.width !== size.width || previous.height !== size.height)) {
+                    props.onMeasure(size);
+                    measurement.current = { ...size, onMeasure: props.onMeasure };
+                }
                 const next = popoverPosition(anchor, { width: viewport.clientWidth, height: viewport.clientHeight },
-                    { width: popup.offsetWidth, height: popup.offsetHeight });
-                popup.style.setProperty("--cu-arrow-left", `${Math.max(8, Math.min(popup.offsetWidth - 16, anchor.x - (next?.x ?? anchor.x) + 18))}px`);
+                    size);
+                popup.style.setProperty("--cu-arrow-left", `${Math.max(8, Math.min(size.width - 16, anchor.x - (next?.x ?? anchor.x) + 18))}px`);
                 setPosition(next ? { x: next.x + viewport.scrollLeft, y: next.y + viewport.scrollTop } : null);
                 setError(null);
             } catch (failure) {
