@@ -1,6 +1,6 @@
 import type { ViewerFieldOrder } from "../index";
 import type { CuContent, CuField } from "../model/types";
-import { displayValue, flattenFields, formatConfidence as formatScore, isFieldGroup } from "./interaction";
+import { displayValue, fieldDisplayName, flattenFields, formatConfidence as formatScore, isFieldGroup } from "./interaction";
 
 export { formatScore, isFieldGroup };
 
@@ -31,10 +31,10 @@ export function isLowConfidence(field: CuField, threshold: number): boolean {
     return field.confidence !== undefined && field.confidence < threshold;
 }
 
-export function appearance(field: Pick<CuField, "confidence">, table: boolean, settings: ReviewSettings) {
+export function appearance(field: Pick<CuField, "confidence">, table: boolean, settings: ReviewSettings, labelMode = false) {
     const enabled = table ? settings.showTables : settings.showFields;
-    const low = field.confidence !== undefined && field.confidence < settings.threshold && settings.highlightLow;
-    const unavailable = field.confidence === undefined;
+    const low = !labelMode && field.confidence !== undefined && field.confidence < settings.threshold && settings.highlightLow;
+    const unavailable = !labelMode && field.confidence === undefined;
     return {
         enabled, low, unavailable,
         background: unavailable ? "#F1F3F5" : low ? table ? "#F6C5CC" : "#FCE8E6" : table ? "#E8F1FF" : "#E8F5E9",
@@ -88,6 +88,20 @@ export function collapsedValue(field: CuField, included?: ReadonlySet<string>): 
     return values.length ? values.join(" ") : field.children.length ? "Not returned" : "{}";
 }
 
+export function labelSummary(field: CuField): string {
+    if (!field.children.length) return isFieldGroup(field) ? collapsedValue(field) : displayValue(field);
+    const values: string[] = [];
+    const stack = field.children.slice().reverse().map(child => ({ field: child, path: fieldDisplayName(child) }));
+    while (stack.length) {
+        const entry = stack.pop()!;
+        if (entry.field.children.length) {
+            stack.push(...entry.field.children.slice().reverse().map(child => ({
+                field: child, path: `${entry.path} / ${fieldDisplayName(child)}`,
+            })));
+        } else values.push(`${entry.path}: ${isFieldGroup(entry.field) ? collapsedValue(entry.field) : displayValue(entry.field)}`);
+    }
+    return values.join("; ");
+}
 function segment(value: string): string {
     return value.replaceAll("~", "~0").replaceAll("/", "~1");
 }

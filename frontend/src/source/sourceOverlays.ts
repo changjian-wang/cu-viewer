@@ -4,6 +4,7 @@ import { fieldRegions, isFieldGroup } from "../interaction/interaction";
 import { appearance, defaultReviewSettings, isTableValue } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ResultView } from "../model/resultViews";
+import { isFieldView } from "../model/resultViews";
 import type { CuContent, CuField, CuPage, CuPoint, CuRegion } from "../model/types";
 
 export const WORD_LAYER_COLOR = "#FAFF7F40";
@@ -32,20 +33,20 @@ export interface SourceOutline {
 
 export function isValueSourceField(view: ResultView | undefined, field: CuField | null): field is CuField {
     return Boolean(field && !isFieldGroup(field) &&
-        (view === "fields" ? !field.detailView : view === "paragraphs" && field.detailView === "paragraphs"));
+        (isFieldView(view) ? !field.detailView : view === "paragraphs" && field.detailView === "paragraphs"));
 }
 
 export function sourceOutlines(content: CuContent | undefined, view: ResultView | undefined,
     pageNumber: number, hideMissing: boolean, settings: ReviewSettings = defaultReviewSettings): SourceOutline[] {
     if (!content) return [];
     let fields: CuField[] = [];
-    if (view === "fields") {
+    if (isFieldView(view)) {
         const stack = content.fields.slice().reverse();
         while (stack.length) {
             const field = stack.pop();
             if (!field) break;
             if (hideMissing && !field.hasValue) continue;
-            if (!isFieldGroup(field) || field.children.length === 0 ||
+            if (view === "label" || !isFieldGroup(field) || field.children.length === 0 ||
                 (field.regions.length > 0 && fieldRegions(field) === field.regions)) fields.push(field);
             stack.push(...field.children.slice().reverse());
         }
@@ -54,7 +55,7 @@ export function sourceOutlines(content: CuContent | undefined, view: ResultView 
     else if (view === "signatures") fields = (content.signatures ?? []).map(item => item.field);
     return fields.flatMap(field => {
         const container = isFieldGroup(field) || content.tables?.some(table => table.field === field);
-        const style = appearance(container ? {} : field, isTableValue(field), settings);
+        const style = appearance(container ? {} : field, isTableValue(field), settings, view === "label");
         return field.regions.flatMap((region, index) => region.pageNumber === pageNumber ? [{
             key: `${field.id}:${index}`, field, region, regionIndex: index, color: style.background, enabled: style.enabled,
         }] : []);
@@ -87,26 +88,46 @@ export function sourceObjectPreviewFrame(regions: readonly SourceRegionPolygon[]
     };
 }
 
-function connectedRegions(bounds: readonly SourceBounds[], start: number): number[] {
+function nearbySourceRegions(left: SourceBounds, right: SourceBounds): boolean {
+    const gapX = Math.max(0, left.left - right.right, right.left - left.right);
+    const gapY = Math.max(0, left.top - right.bottom, right.top - left.bottom);
+    return Math.hypot(gapX, gapY) <= Math.min(left.width, left.height, right.width, right.height);
+}
+
+function inlineSourceRegions(left: SourceBounds, right: SourceBounds, horizontal: boolean): boolean {
+    const thickness = horizontal ? Math.min(left.height, right.height) : Math.min(left.width, right.width);
+    const overlap = horizontal ? Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top) :
+        Math.min(left.right, right.right) - Math.max(left.left, right.left);
+    const center = horizontal ? Math.abs(left.top + left.bottom - right.top - right.bottom) / 2 :
+        Math.abs(left.left + left.right - right.left - right.right) / 2;
+    const gap = horizontal ? Math.max(0, left.left - right.right, right.left - left.right) :
+        Math.max(0, left.top - right.bottom, right.top - left.bottom);
+    return overlap >= thickness * 0.75 && center <= thickness * 0.35 && gap <= thickness * 0.45;
+}
+
+function nearbySourceFragments(left: SourceBounds, right: SourceBounds): boolean {
+    return nearbySourceRegions(left, right) || inlineSourceRegions(left, right, true) || inlineSourceRegions(left, right, false);
+}
+
+function connectedRegions(bounds: readonly SourceBounds[], start: number,
+    neighbors: (left: SourceBounds, right: SourceBounds) => boolean = nearbySourceRegions): number[] {
     const connected = [start], included = new Set(connected);
     for (let cursor = 0; cursor < connected.length; cursor++) {
         const current = bounds[connected[cursor]!]!;
         bounds.forEach((candidate, index) => {
             if (included.has(index)) return;
-            const gapX = Math.max(0, current.left - candidate.right, candidate.left - current.right);
-            const gapY = Math.max(0, current.top - candidate.bottom, candidate.top - current.bottom);
-            const lineSize = Math.min(current.width, current.height, candidate.width, candidate.height);
-            if (Math.hypot(gapX, gapY) <= lineSize) { included.add(index); connected.push(index); }
+            if (neighbors(current, candidate)) { included.add(index); connected.push(index); }
         });
     }
     return connected;
 }
 
-export function sourcePopoverPoints(regions: readonly SourceRegionPolygon[], regionIndex: number): readonly CuPoint[] | undefined {
+export function sourcePopoverPoints(regions: readonly SourceRegionPolygon[], regionIndex: number,
+    mergeFragments = false): readonly CuPoint[] | undefined {
     const focused = regions.findIndex(region => region.regionIndex === regionIndex);
     if (focused < 0) return undefined;
     const bounds = regions.map(region => sourceBounds(region.polygon));
-    const included = new Set(connectedRegions(bounds, focused));
+    const included = new Set(connectedRegions(bounds, focused, mergeFragments ? nearbySourceFragments : nearbySourceRegions));
     return regions.flatMap((region, index) => included.has(index) ? [...region.polygon] : []);
 }
 
@@ -130,13 +151,26 @@ function alignedSourceLines(bounds: readonly SourceBounds[], horizontal: boolean
     });
 }
 
+function sourceLineBounds(bounds: readonly SourceBounds[], horizontal: boolean): SourceBounds[] {
+    const visited = new Set<number>();
+    return bounds.flatMap((_bound, index) => {
+        if (visited.has(index)) return [];
+        const line = connectedRegions(bounds, index, (left, right) => inlineSourceRegions(left, right, horizontal));
+        line.forEach(member => visited.add(member));
+        return [sourceBounds(line.flatMap(member => [
+            { x: bounds[member]!.left, y: bounds[member]!.top },
+            { x: bounds[member]!.right, y: bounds[member]!.bottom },
+        ]))];
+    });
+}
+
 export function sourceSelectionFrames(regions: readonly SourceRegionPolygon[],
-    otherPolygons: readonly (readonly CuPoint[])[]): SourceSelectionFrame[] {
+    otherPolygons: readonly (readonly CuPoint[])[], mergeFragments = false): SourceSelectionFrame[] {
     const bounds = regions.map(region => sourceBounds(region.polygon)), blockers = otherPolygons.map(sourceBounds);
     const visited = new Set<number>(), frames: SourceSelectionFrame[] = [];
     regions.forEach((region, index) => {
         if (visited.has(index)) return;
-        const block = connectedRegions(bounds, index);
+        const block = connectedRegions(bounds, index, mergeFragments ? nearbySourceFragments : nearbySourceRegions);
         block.forEach(member => visited.add(member));
         if (block.length === 1) {
             frames.push({ regionIndices: [region.regionIndex], polygon: region.polygon });
@@ -146,7 +180,11 @@ export function sourceSelectionFrames(regions: readonly SourceRegionPolygon[],
         const envelope = sourceBounds(block.flatMap(member => [...regions[member]!.polygon]));
         const overlaps = blockers.some(other => other.left <= envelope.right && other.right >= envelope.left &&
             other.top <= envelope.bottom && other.bottom >= envelope.top);
-        if ((alignedSourceLines(lines, true) || alignedSourceLines(lines, false)) && !overlaps) {
+        const horizontal = mergeFragments ? sourceLineBounds(lines, true) : lines;
+        const vertical = mergeFragments ? sourceLineBounds(lines, false) : lines;
+        const aligned = (mergeFragments && (horizontal.length === 1 || vertical.length === 1)) ||
+            alignedSourceLines(horizontal, true) || alignedSourceLines(vertical, false);
+        if (aligned && !overlaps) {
             frames.push({
                 regionIndices: block.map(member => regions[member]!.regionIndex).sort((a, b) => a - b),
                 polygon: [{ x: envelope.left, y: envelope.top }, { x: envelope.right, y: envelope.top },
@@ -157,6 +195,36 @@ export function sourceSelectionFrames(regions: readonly SourceRegionPolygon[],
         }
     });
     return frames.sort((a, b) => a.regionIndices[0]! - b.regionIndices[0]!);
+}
+
+export function outsetSourceFrame(polygon: readonly CuPoint[], padding = 1): readonly CuPoint[] {
+    sourceBounds(polygon);
+    if (polygon.length < 3 || !Number.isFinite(padding) || padding < 0) {
+        throw new GeometryError("invalid-source", "Source frame padding must be finite and nonnegative.");
+    }
+    const area = polygon.reduce((sum, point, index) => {
+        const next = polygon[(index + 1) % polygon.length]!;
+        return sum + point.x * next.y - next.x * point.y;
+    }, 0);
+    if (!Number.isFinite(area) || area === 0) {
+        throw new GeometryError("invalid-source", "Source frames must have a finite nonzero area.");
+    }
+    if (!padding) return polygon;
+    const normals = polygon.map((point, index) => {
+        const next = polygon[(index + 1) % polygon.length]!;
+        const dx = next.x - point.x, dy = next.y - point.y, length = Math.hypot(dx, dy);
+        if (!length) throw new GeometryError("invalid-source", "Source frame edges must have positive lengths.");
+        return { x: Math.sign(area) * dy / length, y: -Math.sign(area) * dx / length };
+    });
+    return polygon.map((point, index) => {
+        const previous = normals[(index + normals.length - 1) % normals.length]!, next = normals[index]!;
+        const denominator = 1 + previous.x * next.x + previous.y * next.y;
+        if (denominator <= 0) throw new GeometryError("invalid-source", "Source frame corners must not reverse direction.");
+        const dx = padding * (previous.x + next.x) / denominator, dy = padding * (previous.y + next.y) / denominator;
+        // Keep acute annotation corners from creating long decorative spikes.
+        const factor = Math.min(1, padding * 2 / Math.hypot(dx, dy));
+        return { x: point.x + dx * factor, y: point.y + dy * factor };
+    });
 }
 
 export function popoverPosition(anchor: SourceAnchor, viewport: PageSize, popup: PageSize): CuPoint | null {

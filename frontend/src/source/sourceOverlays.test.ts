@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCuResult } from "../model/parseCuResult";
 import { defaultReviewSettings } from "../interaction/reviewFields";
-import { isValueSourceField, popoverPosition, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames, sourceWordOutlines, WORD_LAYER_COLOR } from "./sourceOverlays";
+import { isValueSourceField, outsetSourceFrame, popoverPosition, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames, sourceWordOutlines, WORD_LAYER_COLOR } from "./sourceOverlays";
 
 function fixture() {
     const original = {
@@ -177,6 +177,69 @@ describe("multi-fragment source preview anchors", () => {
     });
 
     describe("display-only selection frames", () => {
+        for (const scale of [0.25, 0.63, 1.25]) {
+            it.each([0, 90, 180, 270])(`merges label word and punctuation fragments at zoom ${scale} and rotation %i`, rotation => {
+                const regions = [region(0, 20, 20, 12), region(1, 32, 20, 1), region(2, 34.2, 20, 15)].map(item => ({
+                    ...item, polygon: item.polygon.map(point => {
+                        const x = point.x * scale, y = point.y * scale;
+                        return rotation === 90 ? { x: -y, y: x } : rotation === 180 ? { x: -x, y: -y } :
+                            rotation === 270 ? { x: y, y: -x } : { x, y };
+                    }),
+                }));
+                const before = JSON.stringify(regions);
+                const frames = sourceSelectionFrames(regions, [], true);
+                expect(frames).toHaveLength(1);
+                expect(frames[0]?.regionIndices).toEqual([0, 1, 2]);
+                expect(JSON.stringify(regions)).toBe(before);
+            });
+        }
+
+        it("merges continuous label lines after uniting their word fragments", () => {
+            const regions = [
+                region(0, 20, 20, 12), region(1, 33, 20, 1), region(2, 35, 20, 15),
+                region(3, 20, 32, 15), region(4, 36, 32, 12),
+            ];
+            expect(sourceSelectionFrames(regions, [], true)).toEqual([{
+                regionIndices: [0, 1, 2, 3, 4],
+                polygon: [{ x: 20, y: 20 }, { x: 50, y: 20 }, { x: 50, y: 42 }, { x: 20, y: 42 }],
+            }]);
+        });
+
+        it("does not merge label fragments across another field or a column-sized gap", () => {
+            const words = [region(0, 20, 20, 12), region(1, 33, 20, 1), region(2, 35, 20, 15)];
+            expect(sourceSelectionFrames(words, [region(0, 32.2, 21, 0.6, 8).polygon], true))
+                .toEqual(words.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon })));
+            expect(sourceSelectionFrames([region(0, 20, 20), region(1, 125, 20)], [], true)
+                .map(frame => frame.regionIndices)).toEqual([[0], [1]]);
+        });
+
+        it("outsets decorative frames by one pixel without changing source points or winding", () => {
+            const polygon = region(0, 20, 20, 12).polygon;
+            const before = JSON.stringify(polygon);
+            const expected = [{ x: 19, y: 19 }, { x: 33, y: 19 }, { x: 33, y: 31 }, { x: 19, y: 31 }];
+            expect(outsetSourceFrame(polygon)).toEqual(expected);
+            expect(outsetSourceFrame([...polygon].reverse())).toEqual([...expected].reverse());
+            expect(JSON.stringify(polygon)).toBe(before);
+            expect(() => outsetSourceFrame(polygon, -1)).toThrow("nonnegative");
+            expect(() => outsetSourceFrame(region(0, NaN, 20).polygon)).toThrow("finite");
+        });
+
+        it("preserves skewed frame edges and bounds acute-corner expansion", () => {
+            const polygon = [{ x: 20, y: 20 }, { x: 40, y: 22 }, { x: 39, y: 32 }, { x: 19, y: 30 }];
+            const expanded = outsetSourceFrame(polygon);
+            for (const [index, point] of polygon.entries()) {
+                const next = polygon[(index + 1) % polygon.length]!, outer = expanded[index]!;
+                const outerNext = expanded[(index + 1) % polygon.length]!;
+                const dx = next.x - point.x, dy = next.y - point.y;
+                expect(Math.abs(dx * (outer.y - point.y) - dy * (outer.x - point.x)) / Math.hypot(dx, dy)).toBeCloseTo(1, 8);
+                expect(dx * (outerNext.y - outer.y) - dy * (outerNext.x - outer.x)).toBeCloseTo(0, 8);
+            }
+            const sharp = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }];
+            for (const [index, point] of outsetSourceFrame(sharp).entries()) {
+                expect(Math.hypot(point.x - sharp[index]!.x, point.y - sharp[index]!.y)).toBeLessThanOrEqual(2.000001);
+            }
+        });
+
         it("uses one exact unpadded envelope without changing real source polygons or indices", () => {
             const regions = [region(0, 20, 20, 40), region(1, 20, 32)];
             const before = JSON.stringify(regions);

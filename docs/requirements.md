@@ -6,7 +6,7 @@
 
 ## 目标与职责
 
-提供 React/TypeScript 组件，让 cu-cli 在浏览器中并排展示原始 PDF/图片和 CU 分析结果，并在结果与真实来源间关联定位。
+提供 React/TypeScript 组件，让 cu-cli 在浏览器中并排展示原始 PDF/图片和 CU 分析结果或本地标签，并在数据与真实来源间关联定位。
 
 - 已确认下一版优先服务 CU 开发者、技术实施及技术测试人员，保持只读，不加入字段纠错、人工审核状态或修改保存。
 - 本轮按已确认原型规划 UI 改造，包括 Fields 内的字段／值检索与同级展示排序；保持既有调用兼容，不迁入 toolkit、不发布版本，不新增跨文档批量浏览、全文检索或对比。
@@ -35,14 +35,26 @@
 - Go 宿主负责只读本地服务、会话数据和指定源文件、默认浏览器启动及 `Ctrl+C` 清理。仅监听 `127.0.0.1` 的系统分配端口，不开放工作目录。运行时不需要 Node.js/Python。
 - 2026-11-06 交接补充：原始文档和结果仍只读；当前 CU 宿主另外提供会话范围、同源校验下的字段顺序读写。实际自定义顺序写入 azd 用户配置的 `extension.installed` 中字面扩展键 `azure.ai.content-understanding` 的 `Viewer.fieldOrderByAnalyzer`，仅按完整 analyzerId 保存，不记录 endpoint、文件名或 API 版本；同 analyzerId 跨资源复用。旧 endpoint 前缀键迁移并保留顺序，冲突明确报错、不覆盖。打开文件不写默认值，重置只删当前覆盖；旧宿主未声明能力时保留浏览器模式。详细协议及兼容要求见 [azd Viewer 字段顺序](../README.md#azd-viewer-preferences)。
 
+### 本地 Label 查看第一阶段（2026-11-11 确认）
+
+- 新增 `azd ai cu label view <PDF>`，读取原输入路径追加 `.labels.json` 的相邻文件；只需本地 PDF 和标签文件，不要求 Analyze JSON、Azure 登录或项目，不上传、不调用服务。两个文件只读，本地服务及浏览器生命周期沿用 Viewer。
+- 标签根级为 `fieldLabels`。按类型读取 `valueString`、`valueDate`、`valueNumber` 等，保留对象、数组、缺失、零、false、空字符串及 null，不改写输入。没有标签值或来源时明确保留缺失状态。
+- 新增 Label tab，复用 Fields 的对象折叠、数组表格、搜索、循环导航、左右悬停及定位。组级悬浮显示子字段名称和值摘要，来源来自其真实子标签，不编造容器来源。一个标签的多个来源片段全部保留。
+- 当前仅支持 PDF 标签；由 PDF 实际页尺寸映射 `D(...)` 来源，不依赖配套 `.result.json` 的页元信息。文件、JSON、类型或来源无效时明确报告；PDF 读取失败仍保留可读标签值，不伪造来源框。
+- 普通／对象标签及其子字段使用浅绿，数组及数组内标签使用浅蓝；参考配色独立于置信度。Legend 明确标为未比较，不提供无效的置信度高亮／阈值操作。参考标签不写入 analyzer 的字段顺序配置。
+- Label 的装饰外框采用固定 1 CSS px 描边及约 1 CSS px 外边距，避免小比例下边框遮字；保持倾斜来源的方向，尖锐拐角限制外扩长度。同一标签的同行紧邻词／标点片段先合并，连续对齐多行可合并；跨列、远距及含其他字段的范围不合并。只改变装饰层，不改来源坐标、真实片段、点击范围、悬浮值或原 Fields 样式。
+- 此阶段不编辑或保存标签，不做提取值匹配、Mismatch、False Positive 或 False Negative。后续比对的颜色含义不能提前作为一期结论展示。
+- 本地标签命令要求配套的新前端与 Go 扩展，开发分支先使用同步的内嵌页面验证；不代表旧 Release 或本机已安装扩展已支持该入口。
+
 ## 组件输入
 
 | 输入 | 要求 |
 | --- | --- |
 | `source` | `File \| Blob \| ArrayBuffer \| string`，提供原始源文件或浏览器可访问的 URL。 |
-| `result` | `unknown`，传入已解析的原始 CU JSON 对象；支持 Succeeded envelope 或 inner result，不要求调用方标准化或构造 SDK 模型。 |
+| `result?` | `unknown`，传入已解析的原始 CU JSON 对象；支持 Succeeded envelope 或 inner result，不要求调用方标准化或构造 SDK 模型。 |
+| `labels?` | `unknown`，传入已解析的本地标签 JSON，根级包含 `fieldLabels`。当前来源为 PDF。 |
 
-不修改调用方输入，不把内部 CU/PDF.js 类型作为集成契约。下一版为已确认的 React 排序需求规划可选初始顺序、受控顺序与变化回调，不改变上述两个必需输入；具体契约按 UI 开发计划冻结，不预先开发其他通用定制 API。
+`source` 必需，`result`／`labels` 至少一项；既有 `source` + `result` 调用保持兼容。不修改调用方输入，不把内部 CU/PDF.js 类型作为集成契约。字段顺序配置仍是可选输入，不扩展未确认的通用定制 API。
 
 ## 源文件与导航
 
@@ -61,7 +73,9 @@
 
 从原始 JSON 识别 GA `2025-11-01` 与 Preview `2026-06-01-preview` 的适用非空数据，按以下顺序生成标签，无值隐藏，未知属性保留在完整 Result：
 
-`Fields → Markdown → Paragraphs → Figures → Signatures → Info → Result`
+`Fields → Label → Markdown → Paragraphs → Figures → Signatures → Info → Result`
+
+Label 只在调用方提供 `labels` 时出现；仅有标签时默认进入 Label，不伪造分析结果或空 Fields 页。
 
 Fields 仅在当前 content 返回结构化 fields 时显示；没有 fields（如 prebuilt-layout）时隐藏，即使有原生 tables。此时默认选择非空 Markdown；Markdown 不存在时回退到其他适用视图，不显示空标签。
 
@@ -70,6 +84,7 @@ Tab 栏按可用宽度自动收纳，超出部分通过右侧 `...` 下拉菜单
 | 视图 | 要求 |
 | --- | --- |
 | Fields | 显示名称、原值、已有置信度及来源；支持嵌套对象/数组、多来源区域、折叠和固定选择，区分缺失与 `0`、`false`、空字符串、`null`。折叠对象显示真实值摘要，长值单行省略但可查看／复制完整原值，名称旁不显示 `n selected`；数组数量只在 Value 保留 `N items`，不在名称旁重复 `[数量]`。不影响选中、业务行号及来源。源表格点击临时聚拢已有的可靠关联字段，不新增 Document Tables 分组、不自动重排；表格无提取字段时解释无对应项。 |
+| Label | 展示本地参考标签的字段层级、类型值、对象及数组；绿／蓝区分普通／对象标签与数组标签，悬浮展示原值或子字段摘要。双向悬停、搜索、导航与定位沿用 Fields，不能把参考色解释为比对结果。 |
 | Markdown | 安全展示标题、列表、表格、代码等常规格式；危险 HTML/URL 不能执行。 |
 | Paragraphs | 按连续来源页集合分组的无卡片紧凑列表，保持 CU 顺序和全局序号，不跨组重排或合并段落；跨页／无来源明确标注。页标题独立展开／收起，默认全展开且不增加行高，不清除固定选择。44px 底栏提供名称／路径／正文搜索、匹配段落循环导航和批量页组展开／收起，不显示原说明。搜索临时展开匹配组、禁用折叠，清空后恢复手动状态；无匹配明确提示并禁用导航，原文选中被搜索隐藏时提示但不清空搜索。导航选中并聚焦段落；新的原文定位只打开目标组并定位一次，不抢焦点。保留 role、完整来源及自然换行正文，不单独截断或折叠、不持久化偏好。 |
 | Figures/Signatures | 从已加载 source 的真实区域裁剪，显示已有 metadata 并定位，不推断签名状态或虚构图片。 |

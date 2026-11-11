@@ -9,7 +9,7 @@ import { fieldLabel, isFieldGroup } from "../interaction/interaction";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ResultView } from "../model/resultViews";
 import type { SourceOutline } from "../source/sourceOverlays";
-import { isValueSourceField, SOURCE_POPOVER_GAP, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
+import { isValueSourceField, outsetSourceFrame, SOURCE_POPOVER_GAP, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
 import { SourcePopover } from "./SourcePopover";
 import { useSourceRendering } from "../source/useSourceRendering";
 import { SourceToolbar } from "./SourceToolbar";
@@ -121,7 +121,8 @@ export function SourcePane(props: SourcePaneProps) {
     const group = props.active ? isFieldGroup(props.active) : false;
     const pinnedGroup = props.pinned ? isFieldGroup(props.pinned) : false;
     const wholeTable = props.content?.tables?.some(table => table.id === props.active?.id);
-    const objectPreview = props.preview && props.view === "fields" && props.active?.type === "object";
+    const objectPreview = props.preview && ((props.view === "fields" && props.active?.type === "object") ||
+        (props.view === "label" && group));
     const showCard = Boolean(props.preview && props.active && (!group || objectPreview) && !wholeTable &&
         (!props.active.detailView || props.active.detailView === "paragraphs"));
     const valuePreview = props.preview && isValueSourceField(props.view, props.active);
@@ -201,16 +202,19 @@ export function SourcePane(props: SourcePaneProps) {
                 return merge && pageGeometry ? sourceSelectionFrames(regions,
                     sourceOutlines(props.content, props.view, props.pageNumber, false)
                         .filter(outline => outline.field.id !== field.id)
-                        .map(outline => projectRegion(outline.region, pageGeometry).polygon)) :
+                        .map(outline => projectRegion(outline.region, pageGeometry).polygon), props.view === "label") :
                     regions.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
             };
+            const decorate = (frames: ReturnType<typeof sourceSelectionFrames>) => props.view === "label" ?
+                frames.map(frame => ({ ...frame, polygon: outsetSourceFrame(frame.polygon) })) : frames;
             const previewRegions = valuePreview || objectPreview || props.active?.detailView ? preview :
                 preview.filter(item => item.regionIndex === props.regionIndex);
             const objectFrame = objectPreview ? sourceObjectPreviewFrame(preview) : undefined;
             return {
-                pinned, preview, frames: framesFor(props.pinned, pinned),
-                previewFrames: objectFrame ? [objectFrame] : framesFor(props.active, previewRegions),
-                card: showCard ? objectFrame?.polygon ?? sourcePopoverPoints(props.preview ? preview : pinned, props.regionIndex) : undefined,
+                pinned, preview, frames: decorate(framesFor(props.pinned, pinned)),
+                previewFrames: decorate(objectFrame ? [objectFrame] : framesFor(props.active, previewRegions)),
+                card: showCard ? objectFrame?.polygon ??
+                    sourcePopoverPoints(props.preview ? preview : pinned, props.regionIndex, props.view === "label") : undefined,
                 error: null,
             };
         } catch (error) { return { pinned: [], preview: [], frames: [], previewFrames: [], card: undefined, error: error instanceof Error ? error.message : String(error) }; }
@@ -467,7 +471,9 @@ export function SourcePane(props: SourcePaneProps) {
                             data-selection-frame={item.regionIndices.length > 1 ? "merged" : "region"}
                             points={item.polygon.map(point => `${point.x},${point.y}`).join(" ")} fill="none"
                             stroke="var(--cu-hover-stroke)"
-                            strokeWidth={valuePreview || objectPreview ? 1.8 : 1.5}
+                            strokeWidth={props.view === "label" ? 1 : valuePreview || objectPreview ? 1.8 : 1.5}
+                            vectorEffect={props.view === "label" ? "non-scaling-stroke" : undefined}
+                            strokeLinejoin={props.view === "label" ? "round" : undefined}
                             strokeDasharray={valuePreview || objectPreview ? undefined : "3 2"} />)}
                     </svg>}
                     {layersReady && selectedPolygons.pinned.length > 0 && <svg className="cu-overlay cu-source-interaction" data-testid="source-overlay"
@@ -477,11 +483,14 @@ export function SourcePane(props: SourcePaneProps) {
                             data-region-indices={item.regionIndices.join(" ")}
                             data-selection-frame={item.regionIndices.length > 1 ? "merged" : "region"}
                             points={item.polygon.map(point => `${point.x},${point.y}`).join(" ")} fill="none"
-                            stroke="var(--cu-selected-stroke)" strokeWidth={1.8} />)}
+                            stroke="var(--cu-selected-stroke)" strokeWidth={props.view === "label" ? 1 : 1.8}
+                            vectorEffect={props.view === "label" ? "non-scaling-stroke" : undefined}
+                            strokeLinejoin={props.view === "label" ? "round" : undefined} />)}
                     </svg>}
                 </div>
             </div>
             {layersReady && showCard && props.active && cardPolygon && <SourcePopover id={props.previewId} field={props.active}
+                labelMode={props.view === "label"}
                 summaryFieldIds={props.summaryFieldIds}
                 settings={props.settings} points={cardPolygon} pan={pan ?? layout.paper} viewport={container} paper={renderedPage}
                 onMeasure={measureCard} />}
@@ -490,6 +499,7 @@ export function SourcePane(props: SourcePaneProps) {
             </div>}
         </div>
         <SourceToolbar source={props.source} summaryId={`${sourceId}-summary`} toolbarRef={toolbar}
+            labelMode={props.view === "label"}
             settings={props.settings} onSettings={props.onSettings} onControlFocus={captureControlFocus}>
             <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}
                 minZoom={minZoom} maxZoom={maxZoom} ready={ready} fit={fit} controlsRef={documentControls}

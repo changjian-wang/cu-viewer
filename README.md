@@ -1,6 +1,6 @@
 # CU Viewer
 
-面向 CU 开发者、技术实施和测试人员的只读本地结果查看器，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 并排展示，提供 Studio 式结果查阅和来源定位。Go、Python 及后续 C# 等宿主统一从 CU Viewer Release 获取兼容静态资源并本地托管，不再各自内嵌前端副本；TypeScript 宿主也可通过 npm package 集成同一 React 组件。
+面向 CU 开发者、技术实施和测试人员的只读本地结果查看器，将原始 PDF/图片与保存的 Azure Content Understanding（CU）Analyze JSON 或本地 Label JSON 并排展示，提供 Studio 式结果查阅和来源定位。Go、Python 及后续 C# 等宿主统一从 CU Viewer Release 获取兼容静态资源并本地托管，不再各自内嵌前端副本；TypeScript 宿主也可通过 npm package 集成同一 React 组件。
 
 本仓库只维护前端组件、演示和 Release/npm 交付，不再发行 Python 宿主、命令或 API。组件只负责渲染：不调用 Analyze、不认证、不上传、不管理 analyzer 或轮询 LRO，也不依赖 CU SDK。各语言 CLI 自己负责取得源文件和结果、下载缓存、只读本地服务、浏览器启动和退出生命周期。
 
@@ -36,7 +36,25 @@ npm run dev
 
 打开 <http://127.0.0.1:5173/>。选择 PDF／Receipt PNG 使用真实配对样本，或分别选择本地源文件和保存的 JSON；不产生新的 CU 调用。文件选择属于演示宿主，不是组件公开 API。
 
+本地标签通过顶部 **Labels** 选择器加载：先选择配对 PDF，再选择 `.labels.json`，打开 **Label** tab。可使用[标签样本](tests/fixtures/labels)，无需配套分析结果文件；演示宿主允许另行加载 Analyze JSON，但阶段一不做两者比对。
+
 该页面由[演示宿主](frontend/demo)启动，直接使用[组件源码](frontend/src)。它用于开发和调试，实际 CLI 接入见[开发计划](docs/dev-plan.md)。
+
+### 本地 Label 查看（第一阶段）
+
+配套开发版 Go CU 扩展新增：
+
+```powershell name="本地查看标签"
+azd ai cu label view invoice.pdf
+```
+
+命令读取同目录的 `invoice.pdf.labels.json`，保留 `.pdf` 后缀。只接受一份本地 PDF，不依赖 `.result.json`，不登录、不上传、不调用 Analyze，也不修改 PDF 或标签文件。标签文件限 500,000 UTF-8 字节；缺失、无效或过大的文件明确报错，不回退到分析。
+
+Label 按 `fieldLabels` 展示对象和数组；字符串、日期、数字等分别读取相应的 `value*`。每个有效 `source` 的全部 `D(...)` 区域都会映射到实际 PDF 页，页尺寸来自 PDF，而不是分析结果。普通／对象标签及其子字段为浅绿色，数组内标签为浅蓝色，不按置信度改变颜色。左右悬停、选中和定位联动；组级预览显示子字段名称和值的摘要。缺少值／来源时明确保留缺失状态，不补造高亮。
+
+这些是参考标签颜色，不表示匹配成功。此阶段不提供值比对、Mismatch、False Positive、False Negative 或标签编辑。该入口要求配套的新 Viewer 和 Go 扩展；现有已发布资源和已安装扩展不会自动更新。
+
+Label 的悬浮／固定选择外框使用 1 CSS px 描边，并在装饰层向外留出约 1 CSS px。同一标签同一行的紧邻词片段（包括短横线等窄标点）先合框，连续对齐多行也可合框；跨列、远距离或会圈入其他字段时仍保留独立外框。原始来源多边形、颜色填充、点击命中及原 PDF 文字不变，原 Fields 的外框样式保持不变。
 
 ## cu-cli 入口
 
@@ -91,12 +109,13 @@ export function AnalyzeResultView(props: ContentUnderstandingResultViewerProps) 
 }
 ```
 
-以下两个必需输入保持兼容：
+`source` 必需；`result` 与 `labels` 至少提供其一。既有 `source` + `result` 调用保持兼容：
 
 | 输入 | 当前行为 |
 | --- | --- |
 | `source` | `File \| Blob \| ArrayBuffer \| string`；从内容识别 PDF/JPEG/PNG/BMP/HEIF/HEIC，不只相信扩展名或 MIME。 |
-| `result` | `unknown`，传入已解析的原始 CU JSON 对象；接受 Succeeded envelope 或 inner result，不要求宿主标准化或构造 SDK 模型。 |
+| `result?` | `unknown`，传入已解析的原始 CU JSON 对象；接受 Succeeded envelope 或 inner result，不要求宿主标准化或构造 SDK 模型。 |
+| `labels?` | `unknown`，传入已解析的本地 `.labels.json`，根级需要 `fieldLabels` 对象。当前标签来源仅支持 PDF；单独提供时默认进入 Label，不伪造 Fields 或 Analyze 结果。 |
 
 可选字段顺序配置：
 
@@ -226,6 +245,7 @@ Tab 栏按可用宽度展示，放不下的标签收进右侧 `...` 下拉菜单
 | 视图 | 行为 |
 | --- | --- |
 | Fields | 双／三列表格展示真实层级及数组投影，对象默认折叠、非空数组默认展开；置信度使用值自身的分数，不继承父级。缺失过滤不隐藏 `0`、`false`、空字符串或 `null`，折叠不丢失单项或整组选择。只有原生表格而无提取字段时隐藏 Fields，不补造数据。 |
+| Label | 使用本地 `fieldLabels`，复用 Fields 的层级、数组表格、搜索及导航；普通／对象标签浅绿，数组标签浅蓝。参考颜色不受置信度影响，组级悬浮摘要使用子字段的真实值与来源。 |
 | Markdown | 渲染原始 Markdown、GFM 和经清理的 CU HTML 表格；脚本、危险 URL 等不能执行。 |
 | Paragraphs | 保留返回顺序、role/页码，选择定位真实来源。 |
 | Figures／Signatures | 使用已加载 source 的真实区域裁剪及返回 metadata；不补造图片或签名状态。 |
@@ -313,7 +333,7 @@ schema 2 清单包含 `viewerVersion`、`protocolVersion: 1`、归档及逐文�
 
 各原生宿主应按 SemVer 查找协议兼容、同时包含两份资源的非草稿 Release，验证后以原子活动记录启用缓存；损坏缓存明确报告并重新获取，失败更新保留旧活动版本。宿主运行不依赖 Node/npm/gh；Go 不依赖 Python。此处定义多语言契约，不代表本仓库实现了新的语言宿主。
 
-宿主提供页面同目录下的 `session.json`（`source`、`name`、`result`）和指定源文件；`source` 必须属于同源、同会话路径，`result` 是同一次分析的完整 JSON。仅监听 loopback，校验 Host/Origin，按 CSP 提供已校验资源，不开放文件目录。分析后查看失败保留输出，不重新分析。`azd ai cu analyze <本地文件> --view` 首版只接受单一本地文件，不扩展批量、目录、URL 或 Python 的离线 `--result` 入口。
+宿主提供页面同目录下的 `session.json`（`source`、`name`，以及 `result`／`labels` 至少一项）和指定源文件；`source` 必须属于同源、同会话路径，`result` 是同一次分析的完整 JSON，`labels` 是本地标签文件的完整 JSON。只有 `labels` 时不要求分析响应，也不提供 analyzer `fieldOrderUrl`；即使同时提供两类数据，Label 的显示顺序也不写入 analyzer 偏好。仅监听 loopback，校验 Host/Origin，按 CSP 提供已校验资源，不开放文件目录。分析后查看失败保留输出，不重新分析。`azd ai cu analyze <本地文件> --view` 首版只接受单一本地文件，不扩展批量、目录、URL 或 Python 的离线 `--result` 入口。
 
 ### 脚本与验证边界
 

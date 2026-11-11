@@ -227,9 +227,10 @@ function parseSource(
     return { source: raw, regions };
 }
 
-function parseFields(raw: unknown, content: CuContent, rootPath: string, issues: CuParseIssue[]): CuField[] {
+export function parseFields(raw: unknown, content: CuContent, rootPath: string, issues: CuParseIssue[],
+    collection: "fields" | "fieldLabels" = "fields"): CuField[] {
     if (raw === undefined) return [];
-    if (!isRecord(raw)) fail("invalid-fields", `${rootPath}/fields`, "Fields must be an object.");
+    if (!isRecord(raw)) fail("invalid-fields", `${rootPath}/${collection}`, "Fields must be an object.");
     const fields: CuField[] = [];
     const active = new WeakSet<object>();
     const stack: FieldFrame[] = [];
@@ -244,7 +245,7 @@ function parseFields(raw: unknown, content: CuContent, rootPath: string, issues:
             });
         }
     };
-    pushFields(Object.entries(raw), `${content.id}/fields`, `${rootPath}/fields`, fields);
+    pushFields(Object.entries(raw), `${content.id}/fields`, `${rootPath}/${collection}`, fields);
     while (stack.length > 0) {
         const frame = stack.pop();
         if (!frame) break;

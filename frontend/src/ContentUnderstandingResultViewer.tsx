@@ -6,10 +6,11 @@ import { SourcePane } from "./components/SourcePane";
 import { ResizeHandle } from "./components/ResizeHandle";
 import { fieldRegion, fieldRegions, initialInteraction, interaction, isFieldGroup, selectableFields } from "./interaction/interaction";
 import { CuResultParseError, parseCuResult } from "./model/parseCuResult";
+import { parseLabels } from "./model/parseLabels";
 import type { LoadedSource } from "./source/source";
 import { hasSourcePage, loadSource, unavailableSourcePageMessage } from "./source/source";
 import type { CuField, CuParseIssue } from "./model/types";
-import { availableResultTabs } from "./model/resultViews";
+import { availableResultTabs, isFieldView } from "./model/resultViews";
 import type { ResultView } from "./model/resultViews";
 import { sourceOutlines } from "./source/sourceOverlays";
 import { useReviewPreferences } from "./interaction/useReviewPreferences";
@@ -19,28 +20,44 @@ import type { TableFieldLocation } from "./interaction/tableFields";
 import "./styles.css";
 
 export function ContentUnderstandingResultViewer(props: ContentUnderstandingResultViewerProps) {
+    const [sourceState, setSourceState] = useState<{
+        input: ContentUnderstandingResultViewerProps["source"]; source: LoadedSource | null; error: string | null;
+    } | null>(null);
+    const matchingSource = sourceState?.input === props.source ? sourceState : null;
+    const source = matchingSource?.source ?? null;
     const parsed = useMemo(() => {
+        if (props.result === undefined && props.labels !== undefined) return { model: null, error: null };
         try {
             return { model: parseCuResult(props.result), error: null };
         } catch (error) {
             if (!(error instanceof CuResultParseError)) throw error;
             return { model: null, error: `${error.message} (${error.code}${error.path ? ` at ${error.path}` : ""})` };
         }
-    }, [props.result]);
+    }, [props.result, props.labels]);
+    const labelData = useMemo(() => {
+        if (props.labels === undefined || !matchingSource) return { model: null, error: null };
+        try {
+            return { model: parseLabels(props.labels, source), error: null };
+        } catch (error) {
+            if (!(error instanceof CuResultParseError)) throw error;
+            return { model: null, error: `${error.message} (${error.code}${error.path ? ` at ${error.path}` : ""})` };
+        }
+    }, [props.labels, matchingSource, source]);
     const [contentChoice, setContentChoice] = useState<{ result: unknown; index: number }>({ result: props.result, index: 0 });
     const contentIndex = contentChoice.result === props.result ? contentChoice.index : 0;
-    const content = parsed.model?.contents[contentIndex];
-    const fields = useMemo(() => selectableFields(content), [content]);
-    const [sourceState, setSourceState] = useState<{
-        input: ContentUnderstandingResultViewerProps["source"]; source: LoadedSource | null; error: string | null;
-    } | null>(null);
+    const analysisContent = parsed.model?.contents[contentIndex];
     const [state, dispatch] = useReducer(interaction, initialInteraction);
     const [requestedView, setView] = useState<ResultView | undefined>("fields");
-    const preferences = useReviewPreferences(props, content, parsed.model?.apiVersion, parsed.model?.analyzerId);
-    const context = useMemo(() => ({}), [props.source, props.result, content]);
-    const workflow = useValueWorkflow(context);
-    const tabs = availableResultTabs(content, props.result, parsed.model?.apiVersion);
+    const hasLabels = props.labels !== undefined;
+    const tabs = availableResultTabs(analysisContent, props.result, parsed.model?.apiVersion, hasLabels);
     const view = (tabs.find(tab => tab.id === requestedView) ?? tabs[0])?.id;
+    const labelMode = view === "label";
+    const content = labelMode ? labelData.model?.content : analysisContent;
+    const fields = useMemo(() => selectableFields(content), [content]);
+    const preferences = useReviewPreferences(labelMode && props.result !== undefined ? { source: props.source } : props, content,
+        labelMode ? undefined : parsed.model?.apiVersion, labelMode ? undefined : parsed.model?.analyzerId);
+    const context = useMemo(() => ({}), [props.source, props.result, props.labels, content]);
+    const workflow = useValueWorkflow(context);
     useEffect(() => {
         if (view !== requestedView) setView(view);
     }, [view, requestedView]);
@@ -67,8 +84,6 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const [tableLocationState, setTableLocation] = useState<(TableFieldLocation & { context: object; focused: boolean }) | null>(null);
     const revealRequest = reveal?.sequence ?? null;
     const revealSequence = useRef(0);
-    const matchingSource = sourceState?.input === props.source ? sourceState : null;
-    const source = matchingSource?.source ?? null;
     useEffect(() => {
         const controller = new AbortController();
         let loaded: LoadedSource | null = null;
@@ -95,7 +110,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     useEffect(() => {
         dispatch({ type: "clear" });
         setReveal(null);
-    }, [props.result]);
+    }, [props.result, props.labels]);
     const onRenderReady = useCallback((ready: boolean) => setRenderReady(ready), []);
     const isPageAvailable = (pageNumber: number | undefined): boolean => hasSourcePage(source?.pages, pageNumber);
     const available = (field: CuField | null, regionIndex = 0): boolean =>
@@ -110,8 +125,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const tableLocation = tableLocationState?.context === context ? tableLocationState : null;
     const hovered = state.hovered && fields.includes(state.hovered) ? state.hovered : null;
     const candidate = hovered ?? selected;
-    const active = candidate && (view === "fields" ? !candidate.detailView || candidate === tableLocation?.table : candidate.detailView === view) ? candidate : null;
-    const pinned = selected && (view === "fields" ? !selected.detailView || selected === tableLocation?.table : selected.detailView === view) ? selected : null;
+    const active = candidate && (isFieldView(view) ? !candidate.detailView || candidate === tableLocation?.table : candidate.detailView === view) ? candidate : null;
+    const pinned = selected && (isFieldView(view) ? !selected.detailView || selected === tableLocation?.table : selected.detailView === view) ? selected : null;
     const activeRegions = fieldRegions(active);
     const activeRegionIndex = hovered ? state.hoveredRegionIndex ??
         Math.max(0, activeRegions.findIndex(region => region.pageNumber === state.pageNumber)) : state.selectedRegionIndex;
@@ -160,7 +175,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     };
     const previewField = (field: CuField, regionIndex?: number, origin: "pointer" | "focus" = "pointer"): void => {
         previewOrigin.current = origin;
-        if (!workflow.menuOpen.current) dispatch({ type: "hover", field, pageAvailable: false,
+        if (!workflow.menuOpen.current) dispatch({ type: "hover", field, pageAvailable: false, groupPreview: labelMode,
             ...(regionIndex === undefined ? {} : { regionIndex }) });
     };
     const handleEscape = (): void => {
@@ -217,16 +232,18 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             onChange={next => preferences.changeSettings({ ...preferences.settings, paneRatio: next / (width - 8) })} />
         <ResultsPane
             result={props.result}
+            hasLabels={hasLabels} labelContent={labelData.model?.content} labelLoading={hasLabels && !matchingSource}
             view={view} onViewChange={next => { setView(next); dismissPreview(); }}
             workflow={workflow} preferences={preferences} selectionRequest={revealRequest}
             sourceSelection={reveal?.origin === "source"} sourceTableSelection={reveal?.origin === "source-table"}
             tableLocation={tableLocation} tableScope={tableLocation?.focused ? tableLocation : null}
             onShowAllFields={() => setTableLocation(current => current ? { ...current, focused: false } : current)} onLocate={selectField}
             previewId={hovered && active && renderReady && available(active) &&
-                activeRegions[0]?.pageNumber === state.pageNumber ? previewId : undefined}
+                activeRegions.some(region => region.pageNumber === state.pageNumber) ? previewId : undefined}
             source={source}
             apiVersion={parsed.model?.apiVersion}
-            content={content} issues={[...(parsed.model?.issues ?? []), ...sourceIssues]} error={parsed.error}
+            content={analysisContent} issues={[...(labelMode ? labelData.model?.issues ?? [] : parsed.model?.issues ?? []), ...sourceIssues]}
+            error={labelMode ? labelData.error : parsed.error}
             contents={parsed.model?.contents ?? []} contentIndex={contentIndex} onContentChange={chooseContent}
             selected={selected} hovered={hovered} sourceReady={Boolean(source)} isPageAvailable={isPageAvailable}
             pageNumber={state.pageNumber}

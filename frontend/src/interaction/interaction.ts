@@ -16,7 +16,8 @@ export function fieldRegions(field: CuField | null): CuRegion[] {
             stack.push(...current.field.children.slice().reverse().map(child => ({ field: child, visited: false })));
         } else {
             const descendants = current.field.children.flatMap(child => regions.get(child) ?? []);
-            regions.set(current.field, descendants.length ? descendants : current.field.regions);
+            regions.set(current.field, current.field.origin === "label" ?
+                [...current.field.regions, ...descendants] : descendants.length ? descendants : current.field.regions);
         }
     }
     return regions.get(field) ?? [];
@@ -39,7 +40,7 @@ export interface InteractionState {
 }
 
 export type InteractionAction =
-    | { type: "hover"; field: CuField; pageAvailable: boolean; regionIndex?: number }
+    | { type: "hover"; field: CuField; pageAvailable: boolean; regionIndex?: number; groupPreview?: boolean }
     | { type: "leave"; fieldId: string; restorePageAvailable: boolean }
     | { type: "select"; field: CuField; pageAvailable: boolean; regionIndex?: number; retainPreview?: boolean }
     | { type: "region"; fieldId: string; index: number; pageAvailable: boolean }
@@ -52,7 +53,7 @@ export const initialInteraction: InteractionState = { pageNumber: 1, hovered: nu
 export function interaction(state: InteractionState, action: InteractionAction): InteractionState {
     switch (action.type) {
         case "hover":
-            if (isFieldGroup(action.field) && action.field.type !== "object") {
+            if (isFieldGroup(action.field) && action.field.type !== "object" && !action.groupPreview) {
                 return state.hovered ? { ...state, hovered: null } : state;
             }
             if (state.hovered === action.field && state.hoveredRegionIndex === action.regionIndex) return state;

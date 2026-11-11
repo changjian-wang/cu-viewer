@@ -4,7 +4,8 @@ export type ViewerFieldOrder = Readonly<Record<string, readonly string[]>>;
 
 export interface ContentUnderstandingResultViewerProps {
     source: ViewerSource;
-    result: unknown;
+    result?: unknown;
+    labels?: unknown;
     fieldOrder?: ViewerFieldOrder;
     defaultFieldOrder?: ViewerFieldOrder;
     onFieldOrderChange?: (order: ViewerFieldOrder) => void;

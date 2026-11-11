@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import type { LoadedSource } from "../source/source";
 import type { ReviewSettings } from "../interaction/reviewFields";
@@ -6,7 +6,8 @@ import { HighlightSettings } from "./HighlightSettings";
 import { HighlightLegend } from "./HighlightLegend";
 import { getFileIconName, ViewerIcon } from "./ViewerIcon";
 
-export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSettings, onControlFocus, children }: {
+export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSettings, onControlFocus, children, labelMode = false }: {
+    labelMode?: boolean;
     source: LoadedSource | null;
     toolbarRef: RefObject<HTMLElement | null>; settings: ReviewSettings; onSettings: (settings: ReviewSettings) => void;
     summaryId: string;
@@ -15,6 +16,7 @@ export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSetti
 }) {
     const id = useId();
     const [overlay, setOverlay] = useState<"settings" | "legend" | null>(null);
+    useEffect(() => { setOverlay(null); }, [labelMode]);
     const settingsButton = useRef<HTMLButtonElement>(null), legendButton = useRef<HTMLButtonElement>(null);
     const close = (restore: boolean): void => {
         if (restore) (overlay === "legend" ? legendButton : settingsButton).current?.focus({ preventScroll: true });
@@ -39,11 +41,12 @@ export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSetti
             {children}
             <div className="cu-source-utilities">
                 <HighlightLegend id={`${id}-legend`} buttonRef={legendButton} settings={settings} onChange={onSettings} open={overlay === "legend"}
+                    labelMode={labelMode}
                     onToggle={() => setOverlay(overlay === "legend" ? null : "legend")} onClose={close} />
-                <button type="button" className="cu-icon-button" ref={settingsButton} aria-label="Source settings" aria-haspopup="dialog"
-                    title="Source settings" aria-expanded={overlay === "settings"} onClick={() => setOverlay(overlay === "settings" ? null : "settings")}><ViewerIcon name="settings" /></button>
+                {!labelMode && <button type="button" className="cu-icon-button" ref={settingsButton} aria-label="Source settings" aria-haspopup="dialog"
+                    title="Source settings" aria-expanded={overlay === "settings"} onClick={() => setOverlay(overlay === "settings" ? null : "settings")}><ViewerIcon name="settings" /></button>}
             </div>
-            {overlay === "settings" && settingsButton.current && <HighlightSettings anchor={settingsButton.current}
+            {!labelMode && overlay === "settings" && settingsButton.current && <HighlightSettings anchor={settingsButton.current}
                 settings={settings} onChange={onSettings} onClose={close} />}
         </footer>
     </>;

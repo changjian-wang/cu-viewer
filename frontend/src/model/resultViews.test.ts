@@ -8,6 +8,11 @@ function content(overrides: Partial<CuContent> = {}): CuContent {
 }
 
 describe("Studio result tab availability", () => {
+    it("provides a standalone Label tab without inventing Fields or an Analyze result", () => {
+        expect(availableResultTabs(undefined, undefined, undefined, true).map(tab => tab.label)).toEqual(["Label"]);
+        expect(availableResultTabs(undefined, {}, undefined, true).map(tab => tab.label)).toEqual(["Label", "Result"]);
+    });
+
     it("derives all known tabs in Studio order without adding tabs for unknown properties", () => {
         const raw = {
             apiVersion: "2026-06-01-preview",

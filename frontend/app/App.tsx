@@ -7,6 +7,7 @@ import { parseCuResult } from "../src/model/parseCuResult";
 interface ViewerSession {
     source: string;
     result: unknown;
+    labels: unknown;
     fieldOrder: ViewerFieldOrder | undefined;
     fieldOrderUrl: string | undefined;
 }
@@ -55,10 +56,15 @@ export function App() {
             if (!response.ok) throw new Error(`Viewer session could not be loaded (${response.status}).`);
             const data: unknown = await response.json();
             if (!data || typeof data !== "object" || !("source" in data) || typeof data.source !== "string" ||
-                !("name" in data) || typeof data.name !== "string" || !("result" in data)) {
+                !("name" in data) || typeof data.name !== "string" || (!("result" in data) && !("labels" in data))) {
                 throw new Error("The CLI returned an invalid viewer session.");
             }
+            if (!("result" in data) && "fieldOrderUrl" in data) {
+                throw new Error("A label-only viewer session cannot specify an analyzer field-order URL.");
+            }
             const source = sessionURL(data.source);
+            const result = "result" in data ? data.result : undefined;
+            const labels = "labels" in data ? data.labels : undefined;
             let fieldOrder: ViewerFieldOrder | undefined;
             let fieldOrderUrl: string | undefined;
             if ("fieldOrderUrl" in data) {
@@ -72,7 +78,7 @@ export function App() {
                         signal: controller.signal, credentials: "same-origin", cache: "no-store",
                     });
                     if (!response.ok) throw new Error(`azd settings could not be read (${response.status}).`);
-                    fieldOrder = compatibleOrder(await response.json(), data.result);
+                    fieldOrder = compatibleOrder(await response.json(), result);
                     fieldOrderUrl = url.href;
                 } catch (failure) {
                     if (controller.signal.aborted) return;
@@ -81,7 +87,7 @@ export function App() {
             }
             if (controller.signal.aborted) return;
             confirmedOrder.current = fieldOrder ?? {};
-            setSession({ source: source.href, result: data.result, fieldOrder, fieldOrderUrl });
+            setSession({ source: source.href, result, labels, fieldOrder, fieldOrderUrl });
         })().catch((failure: unknown) => {
             if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : String(failure));
         });
@@ -124,9 +130,9 @@ export function App() {
         {error ? <p role="alert">{error}</p> : session ? <>
             {orderError && <p role="alert">{orderError}</p>}
             <span className="cu-visually-hidden" role="status">{orderStatus}</span>
-            <ContentUnderstandingResultViewer source={session.source} result={session.result}
+            <ContentUnderstandingResultViewer source={session.source} result={session.result} labels={session.labels}
                 {...(session.fieldOrder === undefined ? {} : { fieldOrder: session.fieldOrder })}
                 {...(session.fieldOrderUrl ? { onFieldOrderChange: changeOrder } : {})} />
-        </> : <p role="status">Loading source and saved result...</p>}
+        </> : <p role="status">Loading source and saved data...</p>}
     </div></main>;
 }

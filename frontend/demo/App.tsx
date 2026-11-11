@@ -14,11 +14,15 @@ const samples = {
 export function App() {
     const [sample, setSample] = useState<"pdf" | "png">("pdf");
     const [reload, setReload] = useState(0);
-    const [input, setInput] = useState<{ source: ViewerSource; result: unknown; name: string; json: string } | null>(null);
+    const [input, setInput] = useState<{
+        source: ViewerSource; result: unknown; name: string; json: string; labels?: unknown; labelName?: string;
+    } | null>(null);
     const [hostError, setHostError] = useState<string | null>(null);
     const jsonGeneration = useRef(0);
+    const labelGeneration = useRef(0);
     useEffect(() => {
         jsonGeneration.current++;
+        labelGeneration.current++;
         const controller = new AbortController();
         const pair = samples[sample];
         setInput(null);
@@ -56,8 +60,22 @@ export function App() {
     };
     const chooseSample = (choice: "pdf" | "png"): void => {
         jsonGeneration.current++;
+        labelGeneration.current++;
         setSample(choice);
         setReload(current => current + 1);
+    };
+    const loadLabels = (file: File): void => {
+        const generation = ++labelGeneration.current;
+        setHostError(null);
+        void file.text().then(text => {
+            const labels: unknown = JSON.parse(text);
+            if (generation !== labelGeneration.current) return;
+            setInput(current => current ? { ...current, labels, labelName: file.name } : null);
+        }).catch((error: unknown) => {
+            if (generation !== labelGeneration.current) return;
+            setHostError(`Local label JSON could not be read: ${error instanceof Error ? error.message : String(error)}`);
+            setInput(current => current ? { ...current, labels: undefined, labelName: file.name } : null);
+        });
     };
     return <main className="prototype-host">
         <header className="prototype-banner"><div className="prototype-brand"><h1>CU Viewer</h1><span>Development preview · saved data</span></div>
@@ -68,11 +86,21 @@ export function App() {
                         const file = event.target.files?.[0];
                         if (file) {
                             jsonGeneration.current++;
+                            labelGeneration.current++;
                             setHostError(null);
                             setInput(current => current ? { ...current, source: file, name: file.name } : null);
                             event.target.value = "";
                         }
                     }} />
+            </label>
+            <label className="prototype-picker"><span>Labels</span><strong title={input?.labelName}>{input?.labelName ?? "Choose .labels.json"}</strong><span className="prototype-browse">Browse...</span>
+                <input type="file" aria-label="Choose local label JSON" accept=".json" disabled={!input} onChange={event => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                        loadLabels(file);
+                        event.target.value = "";
+                    }
+                }} />
             </label>
             <label className="prototype-picker"><span>Result</span><strong>{input?.json ?? "Loading sample..."}</strong><span className="prototype-browse">Browse...</span>
                 <input type="file" aria-label="Choose saved Analyze JSON" accept=".json" disabled={!input} onChange={event => {
@@ -91,7 +119,7 @@ export function App() {
         </header>
         {hostError && <div className="prototype-alert" role="alert">{hostError}</div>}
         <div className="prototype-workspace">
-            {input ? <ContentUnderstandingResultViewer source={input.source} result={input.result} /> :
+            {input ? <ContentUnderstandingResultViewer source={input.source} result={input.result} labels={input.labels} /> :
                 <div className="prototype-loading" role="status">{hostError ? "Sample loading failed." : "Loading saved source and result..."}</div>}
         </div>
     </main>;

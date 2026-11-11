@@ -25,6 +25,7 @@ export const initialFieldsReview = (fields: readonly CuField[] = []): FieldsRevi
     ({ expanded: initialExpandedFields(fields), query: "", focused: null });
 
 interface FieldsPaneProps {
+    labelMode?: boolean;
     fields: readonly CuField[];
     settings: ReviewSettings;
     onSettings: (settings: ReviewSettings) => void;
@@ -66,8 +67,8 @@ export function FieldsPane(props: FieldsPaneProps) {
     const descriptionId = (field: CuField): string => `${id}-value-${encodeURIComponent(field.id)}`;
     const description = (field: CuField, summary?: string): string => {
         const value = summary ?? displayValue(field);
-        return `${value ? `${value} · ` : ""}${isFieldGroup(field) ? "Group of descendant fields" :
-            confidenceDescription(field, settings.threshold)}${fieldRegions(field).length ? "" : " · No source region"}${
+        return `${value ? `${value} · ` : ""}${isFieldGroup(field) ? `Group of descendant ${props.labelMode ? "labels" : "fields"}` :
+            props.labelMode ? "Reference label (not compared)" : confidenceDescription(field, settings.threshold)}${fieldRegions(field).length ? "" : " · No source region"}${
                 relatedBlock.has(field.id) ? " · Related to the current source table" : ""}`;
     };
     const viewport = useRef<HTMLDivElement>(null);
@@ -223,10 +224,10 @@ export function FieldsPane(props: FieldsPaneProps) {
         props.onSelect(field);
     };
     const value = (field: CuField, inline = false): ReactNode => {
-        const style = appearance(field, inline || isTableValue(field), settings);
+        const style = appearance(field, inline || isTableValue(field), settings, props.labelMode);
         return <span className={`cu-value-chip${!field.hasValue ? " is-missing" : ""}`}
             style={style.low ? { background: style.background, color: style.color } : undefined}
-            title={confidenceDescription(field, settings.threshold)}>{displayValue(field)}</span>;
+            title={props.labelMode ? "Reference label value" : confidenceDescription(field, settings.threshold)}>{displayValue(field)}</span>;
     };
     const cell = (field: CuField): ReactNode => <div className="cu-cell-content"
         data-field-id={field.id} data-field-type={field.type}
@@ -403,7 +404,7 @@ export function FieldsPane(props: FieldsPaneProps) {
                 }}>Show all</button>
         </div>}
         <div className="cu-fields-scroll" ref={viewport}>
-            <table className="cu-fields-table" role="treegrid" aria-label="Extracted fields">
+            <table className="cu-fields-table" role="treegrid" aria-label={props.labelMode ? "Labels" : "Extracted fields"}>
                 <colgroup><col style={{ width: `${settings.fieldRatio * (settings.columns === 3 ? 83 : 100)}%` }} /><col />
                     {settings.columns === 3 && <col style={{ width: "17%" }} />}</colgroup>
                 <thead><tr><th scope="col">Field<ResizeHandle label="Field column width" className="cu-column-resizer"
@@ -413,9 +414,9 @@ export function FieldsPane(props: FieldsPaneProps) {
                     <th scope="col">Value</th>{settings.columns === 3 && <th scope="col">Confidence</th>}</tr></thead>
                 <tbody>{rows}</tbody>
             </table>
-            {fields.length === 0 ? <div className="cu-state"><h2>No extracted fields</h2>
-                <p>This content has no extracted fields. Original table data remains available in Result.</p></div> :
-            matches.size === 0 && <div className="cu-state"><h2>No matching fields</h2><p>No values match the current search and filters.</p>
+            {fields.length === 0 ? <div className="cu-state"><h2>{props.labelMode ? "No labels" : "No extracted fields"}</h2>
+                <p>{props.labelMode ? "The local label file has no fields." : "This content has no extracted fields. Original table data remains available in Result."}</p></div> :
+            matches.size === 0 && <div className="cu-state"><h2>{props.labelMode ? "No matching labels" : "No matching fields"}</h2><p>No values match the current search and filters.</p>
                 <button type="button" onClick={() => {
                     props.setReview(current => ({ ...current, query: "" }));
                 }}>Clear filters</button></div>}
@@ -423,38 +424,42 @@ export function FieldsPane(props: FieldsPaneProps) {
         {(tableMessage || hiddenGroupCount > 0 || notice || props.preferenceError) && <div className="cu-fields-status"
             role="status">
             {props.preferenceError ? "Preferences were not saved. See the warning above." : tableMessage}
-            {hiddenGroupCount > 0 && <span>{hiddenGroupCount} selected fields are hidden by filters.</span>}
+            {hiddenGroupCount > 0 && <span>{hiddenGroupCount} selected {props.labelMode ? "labels" : "fields"} are hidden by filters.</span>}
             {notice && <span>{notice}</span>}
         </div>}
-        <footer className="cu-fields-review-footer" role="group" aria-label="Fields toolbar" onKeyDown={event => {
+        <footer className="cu-fields-review-footer" role="group" aria-label={props.labelMode ? "Label toolbar" : "Fields toolbar"} onKeyDown={event => {
             if (event.key === "Escape" && settingsOpen) {
                 event.preventDefault(); event.stopPropagation(); closeSettings(true);
             }
         }}>
-            <label className="cu-search-box" title="Search field names or values"><ViewerIcon name="search" />
-                <input type="search" aria-label="Search fields or values" placeholder="Search field names or values..." value={review.query}
+            <label className="cu-search-box" title={props.labelMode ? "Search label names or values" : "Search field names or values"}><ViewerIcon name="search" />
+                <input type="search" aria-label={props.labelMode ? "Search labels or values" : "Search fields or values"}
+                    placeholder={props.labelMode ? "Search label names or values..." : "Search field names or values..."} value={review.query}
                     onChange={event => props.setReview(current => ({ ...current, query: event.target.value }))} /></label>
-            <div className="cu-field-navigation" role="group" aria-label="Field navigation">
-                <button type="button" className="cu-icon-button" aria-label="Previous field" disabled={!navigation.length}
-                    title={navigation.length ? "Previous field" : "No matching fields"}
+            <div className="cu-field-navigation" role="group" aria-label={props.labelMode ? "Label navigation" : "Field navigation"}>
+                <button type="button" className="cu-icon-button" aria-label={props.labelMode ? "Previous label" : "Previous field"} disabled={!navigation.length}
+                    title={navigation.length ? props.labelMode ? "Previous label" : "Previous field" :
+                        props.labelMode ? "No matching labels" : "No matching fields"}
                     onClick={() => chooseNext(-1)}><ViewerIcon name="left" /></button>
-                <span aria-label="Current field position" aria-live="polite"
+                <span aria-label={props.labelMode ? "Current label position" : "Current field position"} aria-live="polite"
                     title={`${navigation.length} matching fields out of ${leaves.length} total.${
                         currentIndex < 0 ? " No single field selected in this navigation range." : ""}`}>
-                    {currentIndex < 0 ? "—" : currentIndex + 1} / {navigation.length} fields
+                    {currentIndex < 0 ? "—" : currentIndex + 1} / {navigation.length} {props.labelMode ? "labels" : "fields"}
                 </span>
-                <button type="button" className="cu-icon-button" aria-label="Next field" disabled={!navigation.length}
-                    title={navigation.length ? "Next field" : "No matching fields"}
+                <button type="button" className="cu-icon-button" aria-label={props.labelMode ? "Next label" : "Next field"} disabled={!navigation.length}
+                    title={navigation.length ? props.labelMode ? "Next label" : "Next field" :
+                        props.labelMode ? "No matching labels" : "No matching fields"}
                     onClick={() => chooseNext(1)}><ViewerIcon name="right" /></button>
             </div>
             <div className="cu-fields-toolbar-actions">
                 <button type="button" className="cu-icon-button cu-fields-settings-trigger"
-                    ref={settingsButton} aria-label="Fields settings" aria-haspopup="dialog" aria-expanded={settingsOpen}
+                    ref={settingsButton} aria-label={props.labelMode ? "Label settings" : "Fields settings"} aria-haspopup="dialog" aria-expanded={settingsOpen}
                     aria-controls={settingsOpen ? `${id}-settings` : undefined}
-                    title="Fields settings"
+                    title={props.labelMode ? "Label settings" : "Fields settings"}
                     onClick={() => setSettingsOpen(current => !current)}><ViewerIcon name="settings" /></button>
             </div>
             {settingsOpen && settingsButton.current && <FieldsSettings id={`${id}-settings`} anchor={settingsButton.current}
+                labelMode={Boolean(props.labelMode)}
                 settings={settings} onSettings={props.onSettings}
                 onResetOrder={() => props.onOrder({})}
                 resetOrderDisabledReason={props.orderReadOnly || props.tableScope ? reorderReason : null}

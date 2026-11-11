@@ -2,6 +2,8 @@ import type { LoadedSource, SourcePage } from "./source";
 import { abortIfNeeded, validateSourceCrop } from "./source";
 import { getRasterSize } from "./geometry";
 
+export const PDF_CSS_UNITS_PER_INCH = 96;
+
 export async function createPdfSource(bytes: ArrayBuffer, name: string, signal: AbortSignal): Promise<LoadedSource> {
     const pdfjs = await import("pdfjs-dist");
     abortIfNeeded(signal);
@@ -43,7 +45,7 @@ export async function createPdfSource(bytes: ArrayBuffer, name: string, signal: 
         for (let number = 1; number <= document.numPages; number++) {
             abortIfNeeded(signal);
             const page = await document.getPage(number);
-            const size = page.getViewport({ scale: 96 / 72 });
+            const size = page.getViewport({ scale: PDF_CSS_UNITS_PER_INCH / 72 });
             pages.push({ pageNumber: number, width: size.width, height: size.height });
         }
         return {
@@ -56,7 +58,7 @@ export async function createPdfSource(bytes: ArrayBuffer, name: string, signal: 
                 if (crop) validateSourceCrop(crop, sourcePage, rotation);
                 const page = await document.getPage(pageNumber);
                 abortIfNeeded(renderSignal);
-                const viewport = page.getViewport({ scale: 96 / 72 * zoom, rotation: (page.rotate + rotation) % 360 });
+                const viewport = page.getViewport({ scale: PDF_CSS_UNITS_PER_INCH / 72 * zoom, rotation: (page.rotate + rotation) % 360 });
                 const size = crop ? { width: crop.width * zoom, height: crop.height * zoom } :
                     { width: viewport.width, height: viewport.height };
                 const raster = getRasterSize(size, window.devicePixelRatio);

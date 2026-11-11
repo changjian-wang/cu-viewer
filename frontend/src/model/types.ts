@@ -40,6 +40,7 @@ export interface CuField {
     regions: CuRegion[];
     children: CuField[];
     detailView?: CuDetailView;
+    origin?: "label";
 }
 
 export interface CuDetailItem {

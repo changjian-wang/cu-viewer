@@ -7,7 +7,7 @@ import type { ValueWorkflow } from "../interaction/useValueWorkflow";
 import { tableLocationMessage } from "../interaction/tableFields";
 import type { TableFieldLocation } from "../interaction/tableFields";
 import type { useReviewPreferences } from "../interaction/useReviewPreferences";
-import { availableResultTabs } from "../model/resultViews";
+import { availableResultTabs, isFieldView } from "../model/resultViews";
 import type { ResultView } from "../model/resultViews";
 import type { LoadedSource } from "../source/source";
 import { ResultTabs } from "./ResultTabs";
@@ -26,6 +26,9 @@ const InfoPane = lazy(() => import("./InfoPane").then(module => ({ default: modu
 
 interface ResultsPaneProps {
     result: unknown;
+    hasLabels?: boolean;
+    labelContent?: CuContent | undefined;
+    labelLoading?: boolean;
     view: ResultView | undefined;
     onViewChange: (view: ResultView) => void;
     previewId: string | undefined;
@@ -59,7 +62,8 @@ interface ResultsPaneProps {
 }
 
 export function ResultsPane(props: ResultsPaneProps) {
-    const [review, setReview] = useState(() => initialFieldsReview(props.content?.fields ?? []));
+    const content = props.view === "label" ? props.labelContent : props.content;
+    const [review, setReview] = useState(() => initialFieldsReview(content?.fields ?? []));
     const [localSettings, setLocalSettings] = useState({ ...defaultReviewSettings });
     const { view } = props;
     const settings = props.preferences?.settings ?? localSettings;
@@ -104,13 +108,13 @@ export function ResultsPane(props: ResultsPaneProps) {
         setReview({ ...review, expanded: snapshot.expanded, focused: snapshot.focused });
     }
     const tabBaseId = useId();
-    const tabs = useMemo(() => availableResultTabs(props.content, props.result, props.apiVersion),
-        [props.content, props.result, props.apiVersion]);
+    const tabs = useMemo(() => availableResultTabs(props.content, props.result, props.apiVersion, props.hasLabels),
+        [props.content, props.result, props.apiVersion, props.hasLabels]);
     const hasFieldsTab = tabs.some(tab => tab.id === "fields");
     const tableMessage = !hasFieldsTab && props.tableLocation ? tableLocationMessage(props.tableLocation) : null;
     const activeTab = tabs.find(tab => tab.id === view);
     useEffect(() => {
-        setReview(initialFieldsReview(props.content?.fields ?? []));
+        setReview(initialFieldsReview(content?.fields ?? []));
     }, [props.workflow.context]);
     const restoreFieldFocus = (field: CuField, trigger?: HTMLElement): void => {
         const controls = [...(panel.current?.querySelectorAll<HTMLElement>("[data-review-focus]") ?? [])];
@@ -183,7 +187,7 @@ export function ResultsPane(props: ResultsPaneProps) {
         });
     });
     const panelId = `${tabBaseId}-panel`;
-    const contentSelector = props.contents.length > 1 && <label className="cu-content-selector">Content
+    const contentSelector = view !== "label" && props.contents.length > 1 && <label className="cu-content-selector">Content
         <select aria-label="Result content" value={props.contentIndex} onChange={event => props.onContentChange(Number(event.target.value))}>
             {props.contents.map((content, index) => <option key={content.id} value={index}>
                 {index + 1}: {content.kind}{content.startPageNumber ? ` · p. ${content.startPageNumber}` : ""}
@@ -210,15 +214,16 @@ export function ResultsPane(props: ResultsPaneProps) {
             }}
         >
             {props.error && <div className="cu-state cu-error" role="alert">
-                <h2>Result could not be read</h2><p>{props.error}</p>
+                <h2>{view === "label" ? "Labels could not be read" : "Result could not be read"}</h2><p>{props.error}</p>
             </div>}
-            {!props.error && !props.content && view !== "info" && <div className="cu-state">
+            {view === "label" && props.labelLoading && <div className="cu-state" role="status">Loading labels and PDF geometry...</div>}
+            {!props.error && !content && view !== "info" && view !== "label" && <div className="cu-state">
                 <h2>No extracted fields</h2><p>The source can still be inspected. Inspect the original data in Result.</p>
             </div>}
-            {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} result warnings</summary>
+            {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} {view === "label" ? "label" : "result"} warnings</summary>
                 <ul>{props.issues.map((issue, index) => <li key={index}><strong>{issue.code}</strong>: {issue.message} <code>{issue.path}</code></li>)}</ul>
             </details>}
-            {view === "fields" && props.content && <FieldsPane fields={props.content.fields} settings={settings}
+            {isFieldView(view) && content && <FieldsPane fields={content.fields} settings={settings} labelMode={view === "label"}
                 onSettings={props.preferences?.changeSettings ?? setLocalSettings}
                 order={props.preferences?.order ?? {}} onOrder={props.preferences?.changeOrder ?? (() => {})}
                 orderReadOnly={props.preferences?.orderReadOnly ?? true}
@@ -237,7 +242,7 @@ export function ResultsPane(props: ResultsPaneProps) {
             {view === "result" && <Suspense fallback={<div className="cu-state" role="status">Loading Result view…</div>}>
                 <JsonPane value={props.result} />
             </Suspense>}
-            {view && view !== "fields" && view !== "markdown" && view !== "result" && <Suspense
+            {view && !isFieldView(view) && view !== "markdown" && view !== "result" && <Suspense
                 fallback={<div className="cu-state" role="status">Loading {activeTab?.label} view…</div>}>
                 {view === "paragraphs" && <ParagraphsPane paragraphs={props.content?.paragraphs ?? []}
                     selected={props.selected} hovered={props.hovered} previewId={props.previewId}
@@ -283,7 +288,7 @@ export function ResultsPane(props: ResultsPaneProps) {
                 { label: "Copy value", icon: "copy", disabled: !props.workflow.menu.field.hasValue,
                     run: () => { if (props.workflow.menu) void props.workflow.copy(props.workflow.menu.field); } },
             ]} />}
-        {view !== "fields" && view !== "info" && view !== "paragraphs" && <footer className="cu-results-footer">
+        {!isFieldView(view) && view !== "info" && view !== "paragraphs" && <footer className="cu-results-footer">
             {view === "markdown" && "Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered."}
             {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
             {["figures", "signatures"].includes(view ?? "") &&

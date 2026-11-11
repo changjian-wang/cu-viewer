@@ -1,0 +1,1077 @@
+{
+  "$schema": "https://schema.ai.azure.com/mmi/2024-12-01-preview/labels.json",
+  "fileId": "",
+  "fieldLabels": {
+    "InvoiceNumber": {
+      "type": "string",
+      "valueString": "INV-100",
+      "spans": [
+        {
+          "offset": 90,
+          "length": 3
+        },
+        {
+          "offset": 93,
+          "length": 1
+        },
+        {
+          "offset": 94,
+          "length": 3
+        }
+      ],
+      "confidence": 0.921,
+      "source": "D(1,7.4774,1.4002,7.7008,1.3996,7.7008,1.5464,7.4774,1.5468);D(1,7.7008,1.3996,7.7475,1.3995,7.7475,1.5464,7.7008,1.5464);D(1,7.7573,1.3995,8.0103,1.3989,8.0103,1.5463,7.7573,1.5464)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "InvoiceDate": {
+      "type": "date",
+      "valueDate": "2019-11-15",
+      "spans": [
+        {
+          "offset": 113,
+          "length": 10
+        }
+      ],
+      "confidence": 0.96,
+      "source": "D(1,7.2399,1.595,8.0061,1.5909,8.0061,1.7485,7.2398,1.7519)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "DueDate": {
+      "type": "date",
+      "valueDate": "2019-12-15",
+      "spans": [
+        {
+          "offset": 135,
+          "length": 10
+        }
+      ],
+      "confidence": 0.96,
+      "source": "D(1,7.2352,1.8082,8.0061,1.8063,8.0061,1.9639,7.2352,1.9653)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "SellerName": {
+      "type": "string",
+      "valueString": "CONTOSO LTD.",
+      "spans": [
+        {
+          "offset": 0,
+          "length": 7
+        },
+        {
+          "offset": 8,
+          "length": 3
+        },
+        {
+          "offset": 11,
+          "length": 1
+        }
+      ],
+      "confidence": 0.823,
+      "source": "D(1,0.5753,0.6583,1.7312,0.6573,1.7312,0.8908,0.5753,0.8897);D(1,1.8138,0.6573,2.2423,0.6577,2.2423,0.8881,1.8138,0.8905);D(1,2.2502,0.6577,2.3367,0.6578,2.3367,0.8876,2.2502,0.8881)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "SellerAddress": {
+      "type": "string",
+      "valueString": "Contoso Headquarters 123 456th St New York, NY, 10001",
+      "spans": [
+        {
+          "offset": 26,
+          "length": 7
+        },
+        {
+          "offset": 34,
+          "length": 12
+        },
+        {
+          "offset": 47,
+          "length": 3
+        },
+        {
+          "offset": 51,
+          "length": 5
+        },
+        {
+          "offset": 57,
+          "length": 2
+        },
+        {
+          "offset": 60,
+          "length": 3
+        },
+        {
+          "offset": 64,
+          "length": 4
+        },
+        {
+          "offset": 68,
+          "length": 1
+        },
+        {
+          "offset": 70,
+          "length": 2
+        },
+        {
+          "offset": 72,
+          "length": 1
+        },
+        {
+          "offset": 74,
+          "length": 5
+        }
+      ],
+      "confidence": 0.32,
+      "source": "D(1,0.5722,1.4131,1.1302,1.412,1.1298,1.5759,0.5722,1.5746);D(1,1.1742,1.412,2.1115,1.412,2.1105,1.5759,1.1738,1.5759);D(1,0.5774,1.6019,0.8176,1.6026,0.8176,1.7673,0.5774,1.7659);D(1,0.8526,1.6027,1.2196,1.6005,1.2196,1.7654,0.8526,1.7675);D(1,1.2412,1.6003,1.3976,1.5985,1.3976,1.7631,1.2412,1.7651);D(1,0.5722,1.8119,0.8709,1.8103,0.8707,1.978,0.5722,1.9791);D(1,0.9016,1.8101,1.2143,1.8085,1.2138,1.9768,0.9014,1.9778);D(1,1.2115,1.8085,1.245,1.8084,1.2445,1.9767,1.211,1.9768);D(1,1.298,1.8081,1.4795,1.8072,1.4788,1.976,1.2975,1.9765);D(1,1.4767,1.8073,1.513,1.8071,1.5123,1.9759,1.4761,1.976);D(1,1.566,1.8069,2.0015,1.8051,2.0005,1.9747,1.5653,1.9757)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "CustomerName": {
+      "type": "string",
+      "valueString": "MICROSOFT CORPORATION",
+      "spans": [
+        {
+          "offset": 162,
+          "length": 9
+        },
+        {
+          "offset": 172,
+          "length": 11
+        }
+      ],
+      "confidence": 0.885,
+      "source": "D(1,6.2251,2.0095,6.9981,2.009,6.9981,2.1642,6.2251,2.1644);D(1,7.0344,2.009,8.002,2.0091,8.002,2.1641,7.0344,2.1642)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "CustomerId": {
+      "type": "string",
+      "valueString": "CID-12345",
+      "spans": [
+        {
+          "offset": 239,
+          "length": 3
+        },
+        {
+          "offset": 242,
+          "length": 1
+        },
+        {
+          "offset": 243,
+          "length": 5
+        }
+      ],
+      "confidence": 0.902,
+      "source": "D(1,7.3232,2.4196,7.5421,2.4196,7.5421,2.5708,7.3232,2.5707);D(1,7.5497,2.4196,7.5955,2.4196,7.5955,2.5708,7.5497,2.5708);D(1,7.6006,2.4196,8.0103,2.4194,8.0103,2.5712,7.6006,2.5708)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "ServicePeriod": {
+      "type": "object",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "skip"
+      },
+      "valueObject": {
+        "StartDate": {
+          "type": "date",
+          "valueDate": "2019-10-14",
+          "spans": [
+            {
+              "offset": 201,
+              "length": 10
+            }
+          ],
+          "confidence": 0.973,
+          "source": "D(1,6.3168,2.2123,7.0712,2.2133,7.0712,2.3756,6.3168,2.374)",
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "succeed"
+          }
+        },
+        "EndDate": {
+          "type": "date",
+          "valueDate": "2019-11-14",
+          "spans": [
+            {
+              "offset": 214,
+              "length": 10
+            }
+          ],
+          "confidence": 0.978,
+          "source": "D(1,7.2398,2.213,8.0103,2.2114,8.0103,2.3733,7.2398,2.3752)",
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "succeed"
+          }
+        }
+      }
+    },
+    "BillTo": {
+      "type": "string",
+      "valueString": "Microsoft Finance 123 Bill St, Redmond WA, 98052",
+      "spans": [
+        {
+          "offset": 307,
+          "length": 9
+        },
+        {
+          "offset": 317,
+          "length": 7
+        },
+        {
+          "offset": 325,
+          "length": 3
+        },
+        {
+          "offset": 329,
+          "length": 4
+        },
+        {
+          "offset": 334,
+          "length": 2
+        },
+        {
+          "offset": 336,
+          "length": 1
+        },
+        {
+          "offset": 338,
+          "length": 7
+        },
+        {
+          "offset": 346,
+          "length": 2
+        },
+        {
+          "offset": 348,
+          "length": 1
+        },
+        {
+          "offset": 350,
+          "length": 5
+        }
+      ],
+      "confidence": 0.786,
+      "source": "D(1,0.5753,3.7532,1.2323,3.7551,1.2323,3.9094,0.5753,3.9067);D(1,1.2732,3.7552,1.8023,3.7549,1.8023,3.9104,1.2732,3.9096);D(1,0.5805,3.9488,0.8146,3.9507,0.8143,4.114,0.5805,4.1119);D(1,0.8697,3.9506,1.0653,3.95,1.0645,4.1136,0.8693,4.114);D(1,1.1038,3.9496,1.2388,3.9479,1.2378,4.1117,1.103,4.1132);D(1,1.2415,3.9479,1.2856,3.9473,1.2845,4.1111,1.2405,4.1116);D(1,0.5728,4.1523,1.2165,4.1536,1.2168,4.3161,0.5733,4.3131);D(1,1.2551,4.1535,1.5054,4.153,1.5056,4.3166,1.2553,4.3162);D(1,1.5054,4.153,1.5439,4.1529,1.5441,4.3167,1.5056,4.3166);D(1,1.5825,4.1525,2.0254,4.1489,2.0254,4.3155,1.5826,4.3166)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "ShipTo": {
+      "type": "string",
+      "valueString": "Microsoft Delivery 123 Ship St, Redmond WA, 98052",
+      "spans": [
+        {
+          "offset": 366,
+          "length": 9
+        },
+        {
+          "offset": 376,
+          "length": 8
+        },
+        {
+          "offset": 385,
+          "length": 3
+        },
+        {
+          "offset": 389,
+          "length": 4
+        },
+        {
+          "offset": 394,
+          "length": 2
+        },
+        {
+          "offset": 396,
+          "length": 1
+        },
+        {
+          "offset": 398,
+          "length": 7
+        },
+        {
+          "offset": 406,
+          "length": 2
+        },
+        {
+          "offset": 408,
+          "length": 1
+        },
+        {
+          "offset": 410,
+          "length": 5
+        }
+      ],
+      "confidence": 0.856,
+      "source": "D(1,3.3224,3.7556,3.9818,3.753,3.9818,3.9215,3.3224,3.922);D(1,4.0186,3.7531,4.5903,3.7585,4.5903,3.9258,4.0186,3.9216);D(1,3.3307,3.9485,3.5655,3.9523,3.5655,4.1188,3.3307,4.115);D(1,3.6065,3.9528,3.8987,3.9551,3.8987,4.1216,3.6065,4.1193);D(1,3.9369,3.9552,4.0735,3.9554,4.0735,4.1219,3.9369,4.1217);D(1,4.0762,3.9554,4.1172,3.9555,4.1172,4.122,4.0762,4.1219);D(1,3.3245,4.1497,3.9691,4.1518,3.9691,4.3175,3.3245,4.3159);D(1,4.0076,4.1519,4.2599,4.1522,4.2599,4.3176,4.0076,4.3175);D(1,4.2545,4.1522,4.2929,4.1522,4.2929,4.3176,4.2545,4.3176);D(1,4.334,4.1521,4.7729,4.1514,4.7729,4.3165,4.334,4.3175)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "ServiceAddress": {
+      "type": "string",
+      "valueString": "Microsoft Services 123 Service St, Redmond WA, 98052",
+      "spans": [
+        {
+          "offset": 434,
+          "length": 9
+        },
+        {
+          "offset": 444,
+          "length": 8
+        },
+        {
+          "offset": 453,
+          "length": 3
+        },
+        {
+          "offset": 457,
+          "length": 7
+        },
+        {
+          "offset": 465,
+          "length": 2
+        },
+        {
+          "offset": 467,
+          "length": 1
+        },
+        {
+          "offset": 469,
+          "length": 7
+        },
+        {
+          "offset": 477,
+          "length": 2
+        },
+        {
+          "offset": 479,
+          "length": 1
+        },
+        {
+          "offset": 481,
+          "length": 5
+        }
+      ],
+      "confidence": 0.877,
+      "source": "D(1,6.1965,3.7537,6.8494,3.7543,6.8494,3.9086,6.1965,3.9076);D(1,6.8807,3.7543,7.45,3.7544,7.45,3.9096,6.8807,3.9086);D(1,6.2007,3.9468,6.4389,3.9486,6.4389,4.1119,6.2007,4.1097);D(1,6.4822,3.9489,6.9667,3.9524,6.9667,4.1157,6.4822,4.1123);D(1,7.01,3.9527,7.1481,3.9537,7.1481,4.1167,7.01,4.1159);D(1,7.1481,3.9537,7.1968,3.954,7.1968,4.117,7.1481,4.1167);D(1,6.1924,4.1492,6.8417,4.152,6.8417,4.3183,6.1924,4.3162);D(1,6.8829,4.152,7.1333,4.152,7.1333,4.3187,6.8829,4.3184);D(1,7.1305,4.152,7.1663,4.1519,7.1663,4.3187,7.1305,4.3187);D(1,7.2103,4.1517,7.645,4.1493,7.645,4.3179,7.2103,4.3186)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "OrderInformation": {
+      "type": "object",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "skip"
+      },
+      "valueObject": {
+        "Salesperson": {
+          "type": "string",
+          "confidence": 0.614,
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "skip"
+          }
+        },
+        "PurchaseOrderNumber": {
+          "type": "string",
+          "valueString": "PO-3333",
+          "spans": [
+            {
+              "offset": 650,
+              "length": 2
+            },
+            {
+              "offset": 652,
+              "length": 1
+            },
+            {
+              "offset": 653,
+              "length": 4
+            }
+          ],
+          "confidence": 0.917,
+          "source": "D(1,1.8915,4.9092,2.0767,4.9092,2.0767,5.0596,1.8915,5.0596);D(1,2.0816,4.9092,2.1285,4.9092,2.1285,5.0596,2.0816,5.0596);D(1,2.1335,4.9092,2.484,4.9092,2.484,5.0596,2.1335,5.0596)",
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "succeed"
+          }
+        },
+        "Requisitioner": {
+          "type": "string",
+          "confidence": 0.614,
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "skip"
+          }
+        },
+        "ShippedVia": {
+          "type": "string",
+          "confidence": 0.614,
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "skip"
+          }
+        },
+        "FobPoint": {
+          "type": "string",
+          "confidence": 0.614,
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "skip"
+          }
+        },
+        "Terms": {
+          "type": "string",
+          "confidence": 0.614,
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "skip"
+          }
+        }
+      }
+    },
+    "LineItems": {
+      "type": "array",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "skip"
+      },
+      "valueArray": [
+        {
+          "type": "object",
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "skip"
+          },
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2021-03-04",
+              "spans": [
+                {
+                  "offset": 871,
+                  "length": 8
+                }
+              ],
+              "confidence": 0.856,
+              "source": "D(1,0.5738,5.6652,1.215,5.6728,1.215,5.8339,0.5743,5.8264)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "A123",
+              "spans": [
+                {
+                  "offset": 889,
+                  "length": 4
+                }
+              ],
+              "confidence": 0.883,
+              "source": "D(1,1.5917,5.6772,1.9538,5.6772,1.9538,5.8248,1.5917,5.8229)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Consulting Services",
+              "spans": [
+                {
+                  "offset": 903,
+                  "length": 10
+                },
+                {
+                  "offset": 914,
+                  "length": 8
+                }
+              ],
+              "confidence": 0.77,
+              "source": "D(1,2.3201,5.6719,3.0386,5.6719,3.0386,5.8438,2.3201,5.8438);D(1,3.0755,5.6719,3.6378,5.6719,3.6378,5.8438,3.0755,5.8438)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "spans": [
+                {
+                  "offset": 932,
+                  "length": 1
+                }
+              ],
+              "confidence": 0.637,
+              "source": "D(1,4.582,5.6826,4.6775,5.6826,4.6775,5.8115,4.582,5.8115)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "spans": [
+                {
+                  "offset": 943,
+                  "length": 5
+                }
+              ],
+              "confidence": 0.739,
+              "source": "D(1,4.8186,5.6842,5.217,5.6841,5.217,5.8291,4.8186,5.8293)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 30,
+              "spans": [
+                {
+                  "offset": 958,
+                  "length": 1
+                },
+                {
+                  "offset": 959,
+                  "length": 5
+                }
+              ],
+              "confidence": 0.799,
+              "source": "D(1,5.9517,5.6665,6.0236,5.6665,6.0236,5.8276,5.9517,5.8276);D(1,6.0289,5.6665,6.4207,5.6665,6.4207,5.8276,6.0289,5.8276)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6,
+              "spans": [
+                {
+                  "offset": 974,
+                  "length": 1
+                },
+                {
+                  "offset": 975,
+                  "length": 4
+                }
+              ],
+              "confidence": 0.856,
+              "source": "D(1,6.6904,5.6719,6.7682,5.6719,6.7682,5.833,6.6904,5.833);D(1,6.7735,5.6719,7.0764,5.6719,7.0764,5.833,6.7735,5.833)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 60,
+              "spans": [
+                {
+                  "offset": 989,
+                  "length": 1
+                },
+                {
+                  "offset": 990,
+                  "length": 5
+                }
+              ],
+              "confidence": 0.808,
+              "source": "D(1,7.4458,5.6655,7.5217,5.6678,7.5217,5.8289,7.4458,5.8266);D(1,7.5299,5.6681,7.9231,5.6645,7.9231,5.8256,7.5299,5.8292)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "skip"
+          },
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2021-03-05",
+              "spans": [
+                {
+                  "offset": 1016,
+                  "length": 8
+                }
+              ],
+              "confidence": 0.792,
+              "source": "D(1,0.5748,5.9758,1.2171,5.9787,1.2171,6.1398,0.5753,6.1369)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "B456",
+              "spans": [
+                {
+                  "offset": 1034,
+                  "length": 4
+                }
+              ],
+              "confidence": 0.874,
+              "source": "D(1,1.6021,5.9774,1.9528,5.9755,1.9528,6.1177,1.6021,6.1177)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document Fee",
+              "spans": [
+                {
+                  "offset": 1048,
+                  "length": 8
+                },
+                {
+                  "offset": 1057,
+                  "length": 3
+                }
+              ],
+              "confidence": 0.727,
+              "source": "D(1,2.3263,5.9787,3.031,5.9756,3.031,6.126,2.3263,6.1291);D(1,3.0709,5.9761,3.3224,5.9793,3.3224,6.1296,3.0709,6.1265)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "spans": [
+                {
+                  "offset": 1070,
+                  "length": 1
+                }
+              ],
+              "confidence": 0.592,
+              "source": "D(1,4.5862,5.9834,4.6775,5.9834,4.6775,6.1123,4.5862,6.1123)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "confidence": 0.855,
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "skip"
+              }
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 10,
+              "spans": [
+                {
+                  "offset": 1091,
+                  "length": 1
+                },
+                {
+                  "offset": 1092,
+                  "length": 5
+                }
+              ],
+              "confidence": 0.786,
+              "source": "D(1,5.9475,5.9742,6.0254,5.9711,6.0254,6.1322,5.9475,6.1353);D(1,6.0362,5.9706,6.4207,5.9688,6.4207,6.1299,6.0362,6.1318)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 3,
+              "spans": [
+                {
+                  "offset": 1107,
+                  "length": 1
+                },
+                {
+                  "offset": 1108,
+                  "length": 4
+                }
+              ],
+              "confidence": 0.822,
+              "source": "D(1,6.6904,5.9652,6.7671,5.9648,6.7671,6.1237,6.6904,6.1225);D(1,6.7753,5.9647,7.0847,5.9681,7.0847,6.1284,6.7753,6.1239)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 30,
+              "spans": [
+                {
+                  "offset": 1122,
+                  "length": 1
+                },
+                {
+                  "offset": 1123,
+                  "length": 5
+                }
+              ],
+              "confidence": 0.786,
+              "source": "D(1,7.4458,5.9741,7.5217,5.9711,7.5217,6.1323,7.4458,6.1352);D(1,7.5271,5.9709,7.9231,5.9688,7.9231,6.1299,7.5271,6.132)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "kind": "predicted",
+          "metadata": {
+            "mapStatus": "skip"
+          },
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2021-03-06",
+              "spans": [
+                {
+                  "offset": 1149,
+                  "length": 8
+                }
+              ],
+              "confidence": 0.807,
+              "source": "D(1,0.5753,6.2681,1.215,6.2681,1.215,6.4292,0.5753,6.4292)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "C789",
+              "spans": [
+                {
+                  "offset": 1167,
+                  "length": 4
+                }
+              ],
+              "confidence": 0.843,
+              "source": "D(1,1.601,6.2716,1.9528,6.2647,1.9517,6.4151,1.601,6.422)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Printing Fee",
+              "spans": [
+                {
+                  "offset": 1181,
+                  "length": 8
+                },
+                {
+                  "offset": 1190,
+                  "length": 3
+                }
+              ],
+              "confidence": 0.716,
+              "source": "D(1,2.3221,6.2722,2.8571,6.2669,2.8571,6.4388,2.3221,6.4441);D(1,2.9028,6.2672,3.146,6.2698,3.146,6.4417,2.9028,6.4391)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 10,
+              "spans": [
+                {
+                  "offset": 1203,
+                  "length": 2
+                }
+              ],
+              "confidence": 0.608,
+              "source": "D(1,4.499,6.2788,4.6733,6.2788,4.6733,6.4186,4.499,6.4145)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "pages",
+              "spans": [
+                {
+                  "offset": 1215,
+                  "length": 5
+                }
+              ],
+              "confidence": 0.699,
+              "source": "D(1,4.8228,6.2946,5.2295,6.2963,5.2295,6.4441,4.8228,6.4466)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 1,
+              "spans": [
+                {
+                  "offset": 1230,
+                  "length": 1
+                },
+                {
+                  "offset": 1231,
+                  "length": 4
+                }
+              ],
+              "confidence": 0.791,
+              "source": "D(1,6.0305,6.2682,6.1072,6.2674,6.1072,6.4286,6.0305,6.4293);D(1,6.1154,6.2674,6.4248,6.2685,6.4248,6.4296,6.1154,6.4285)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 1,
+              "spans": [
+                {
+                  "offset": 1245,
+                  "length": 1
+                },
+                {
+                  "offset": 1246,
+                  "length": 4
+                }
+              ],
+              "confidence": 0.8,
+              "source": "D(1,6.6946,6.2717,6.7688,6.2698,6.7688,6.4268,6.6946,6.4278);D(1,6.7768,6.2695,7.0764,6.2694,7.0764,6.4279,6.7768,6.4267)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 10,
+              "spans": [
+                {
+                  "offset": 1260,
+                  "length": 1
+                },
+                {
+                  "offset": 1261,
+                  "length": 5
+                }
+              ],
+              "confidence": 0.779,
+              "source": "D(1,7.4458,6.2678,7.5244,6.2669,7.5244,6.428,7.4458,6.4289);D(1,7.5326,6.2668,7.9231,6.263,7.9231,6.4241,7.5326,6.4279)",
+              "kind": "predicted",
+              "metadata": {
+                "mapStatus": "succeed"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "SubtotalAmount": {
+      "type": "number",
+      "valueNumber": 100,
+      "spans": [
+        {
+          "offset": 1324,
+          "length": 1
+        },
+        {
+          "offset": 1325,
+          "length": 6
+        }
+      ],
+      "confidence": 0.877,
+      "source": "D(1,7.3669,6.8596,7.4451,6.8585,7.4451,7.0197,7.3669,7.0207);D(1,7.4558,6.8584,7.9272,6.8529,7.9272,7.0141,7.4558,7.0195)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "SalesTaxAmount": {
+      "type": "number",
+      "valueNumber": 10,
+      "spans": [
+        {
+          "offset": 1371,
+          "length": 1
+        },
+        {
+          "offset": 1372,
+          "length": 5
+        }
+      ],
+      "confidence": 0.904,
+      "source": "D(1,7.45,7.1595,7.5286,7.1585,7.5286,7.3197,7.45,7.3206);D(1,7.5394,7.1584,7.9272,7.1611,7.9272,7.3222,7.5394,7.3195)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "TotalAmount": {
+      "type": "number",
+      "valueNumber": 110,
+      "spans": [
+        {
+          "offset": 1413,
+          "length": 1
+        },
+        {
+          "offset": 1414,
+          "length": 6
+        }
+      ],
+      "confidence": 0.904,
+      "source": "D(1,7.3669,7.4559,7.4424,7.4553,7.4424,7.6162,7.3669,7.6162);D(1,7.4531,7.4552,7.9272,7.4593,7.9272,7.6162,7.4531,7.6162)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "PreviousUnpaidBalanceAmount": {
+      "type": "number",
+      "valueNumber": 500,
+      "spans": [
+        {
+          "offset": 1474,
+          "length": 1
+        },
+        {
+          "offset": 1475,
+          "length": 6
+        }
+      ],
+      "confidence": 0.923,
+      "source": "D(1,7.3586,7.7478,7.4407,7.7478,7.4407,7.9089,7.3586,7.9089);D(1,7.4434,7.7478,7.9272,7.7458,7.9272,7.907,7.4434,7.9089)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "AmountDueAmount": {
+      "type": "number",
+      "valueNumber": 610,
+      "spans": [
+        {
+          "offset": 1522,
+          "length": 1
+        },
+        {
+          "offset": 1523,
+          "length": 6
+        }
+      ],
+      "confidence": 0.904,
+      "source": "D(1,7.3628,8.0513,7.4415,8.0513,7.4415,8.2124,7.3628,8.2124);D(1,7.4496,8.0513,7.9272,8.0513,7.9272,8.2124,7.4496,8.2124)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    },
+    "RemitTo": {
+      "type": "string",
+      "valueString": "Contoso Billing 123 Remit St New York, NY, 10001",
+      "spans": [
+        {
+          "offset": 1592,
+          "length": 7
+        },
+        {
+          "offset": 1600,
+          "length": 7
+        },
+        {
+          "offset": 1608,
+          "length": 3
+        },
+        {
+          "offset": 1612,
+          "length": 5
+        },
+        {
+          "offset": 1618,
+          "length": 2
+        },
+        {
+          "offset": 1621,
+          "length": 3
+        },
+        {
+          "offset": 1625,
+          "length": 4
+        },
+        {
+          "offset": 1629,
+          "length": 1
+        },
+        {
+          "offset": 1631,
+          "length": 2
+        },
+        {
+          "offset": 1633,
+          "length": 1
+        },
+        {
+          "offset": 1635,
+          "length": 5
+        }
+      ],
+      "confidence": 0.791,
+      "source": "D(1,0.5717,9.3489,1.1317,9.3508,1.13,9.5169,0.5707,9.5159);D(1,1.1734,9.3507,1.5969,9.3468,1.5948,9.5181,1.1718,9.517);D(1,0.5774,9.5498,0.8166,9.5498,0.8166,9.7002,0.5774,9.7002);D(1,0.8659,9.5498,1.2604,9.5498,1.2604,9.7002,0.8659,9.7002);D(1,1.295,9.5498,1.4454,9.5498,1.4454,9.7002,1.295,9.7002);D(1,0.5733,9.7539,0.8683,9.7539,0.8683,9.9214,0.5733,9.919);D(1,0.9017,9.7539,1.2135,9.7539,1.2135,9.9237,0.9017,9.9217);D(1,1.2107,9.7539,1.2469,9.7539,1.2469,9.9239,1.2107,9.9237);D(1,1.297,9.7539,1.4807,9.7539,1.4807,9.9251,1.297,9.9242);D(1,1.4779,9.7539,1.5141,9.7539,1.5141,9.9253,1.4779,9.9251);D(1,1.567,9.7539,1.9984,9.7539,1.9984,9.9262,1.567,9.9254)",
+      "kind": "predicted",
+      "metadata": {
+        "mapStatus": "succeed"
+      }
+    }
+  },
+  "metadata": {
+    "displayName": "invoice.pdf",
+    "type": "application/pdf",
+    "createdOn": "1794372996605"
+  }
+}

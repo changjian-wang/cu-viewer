@@ -5,21 +5,25 @@ import type { ReviewSettings } from "../interaction/reviewFields";
 import { usePanelDismiss } from "../interaction/usePanelDismiss";
 import { ViewerIcon } from "./ViewerIcon";
 
-function LegendItems({ settings, onChange }: {
+function LegendItems({ settings, onChange, labelMode }: {
+    labelMode: boolean;
     settings: ReviewSettings; onChange: (settings: ReviewSettings) => void;
 }) {
     const id = useId();
     const groups = [
-        { setting: "showFields", label: "Show field highlights",
-            entries: [["field", false, 1, "Field value", "At or above threshold"]] },
-        { setting: "showTables", label: "Show table highlights",
-            entries: [["table", true, 1, "Table value", "At or above threshold"]] },
+        { setting: "showFields", label: labelMode ? "Show label highlights" : "Show field highlights",
+            entries: [["field", false, 1, labelMode ? "Field or object label" : "Field value",
+                labelMode ? "Reference label; not compared" : "At or above threshold"]] },
+        { setting: "showTables", label: labelMode ? "Show array label highlights" : "Show table highlights",
+            entries: [["table", true, 1, labelMode ? "Array label" : "Table value",
+                labelMode ? "Array rows and values; not compared" : "At or above threshold"]] },
         { setting: "highlightLow", label: "Show low confidence highlight", entries: [
             ["lowField", false, 0, "Low-confidence field", "Below threshold"],
             ["lowTable", true, 0, "Low-confidence table value", "Below threshold"],
         ] },
     ] as const;
-    return <ul className="cu-legend-items" aria-label="Highlighting legend entries">{groups.map(({ setting, label, entries }) =>
+    return <ul className="cu-legend-items" aria-label="Highlighting legend entries">{groups.filter(group =>
+        !labelMode || group.setting !== "highlightLow").map(({ setting, label, entries }) =>
         <li key={label} className={`cu-legend-group${setting === "highlightLow" ? " cu-legend-low-group" : ""}`}
             data-setting={setting} aria-labelledby={setting === "highlightLow" ? `${id}-low-heading` : undefined}>
             {setting === "highlightLow" && <h3 className="cu-legend-group-title" id={`${id}-low-heading`}>
@@ -28,8 +32,8 @@ function LegendItems({ settings, onChange }: {
             <div className="cu-legend-group-entries" id={`${id}-${setting}`}>
                 {entries.map(([category, table, confidence, name, description]) => {
                     const style = appearance({ confidence }, table,
-                        { ...settings, threshold: 0.7, highlightLow: true });
-                    const explanation = !settings.highlightLow && (category === "field" || category === "table") ?
+                        { ...settings, threshold: 0.7, highlightLow: true }, labelMode);
+                    const explanation = !labelMode && !settings.highlightLow && (category === "field" || category === "table") ?
                         "All scored values while low-confidence highlight is off" : description;
                     return <div key={category} className="cu-legend-item" data-legend-category={category}
                         title={`${name} - ${explanation}`}>
@@ -48,7 +52,8 @@ function LegendItems({ settings, onChange }: {
     )}</ul>;
 }
 
-function LegendPanel({ id, anchor, settings, onChange, onClose }: {
+function LegendPanel({ id, anchor, settings, onChange, onClose, labelMode }: {
+    labelMode: boolean;
     id: string; anchor: HTMLElement; settings: ReviewSettings; onChange: (settings: ReviewSettings) => void;
     onClose: (restoreFocus: boolean) => void;
 }) {
@@ -61,11 +66,12 @@ function LegendPanel({ id, anchor, settings, onChange, onClose }: {
         }}>
         <div className="cu-legend-heading"><h2 id={`${id}-title`}>Legend</h2><button type="button" className="cu-icon-button"
             aria-label="Close legend" onClick={() => onClose(true)}><ViewerIcon name="close" /></button></div>
-        <LegendItems settings={settings} onChange={onChange} />
+        <LegendItems settings={settings} onChange={onChange} labelMode={labelMode} />
     </section>;
 }
 
-export function HighlightLegend({ id, buttonRef, settings, onChange, open, onToggle, onClose }: {
+export function HighlightLegend({ id, buttonRef, settings, onChange, open, onToggle, onClose, labelMode = false }: {
+    labelMode?: boolean;
     id: string; buttonRef: RefObject<HTMLButtonElement | null>; settings: ReviewSettings; open: boolean;
     onChange: (settings: ReviewSettings) => void; onToggle: () => void; onClose: (restoreFocus: boolean) => void;
 }) {
@@ -76,7 +82,7 @@ export function HighlightLegend({ id, buttonRef, settings, onChange, open, onTog
                 Legend<ViewerIcon name="down" />
             </button>
             {open && buttonRef.current && <LegendPanel id={id} anchor={buttonRef.current}
-                settings={settings} onChange={onChange} onClose={onClose} />}
+                settings={settings} onChange={onChange} onClose={onClose} labelMode={labelMode} />}
         </div>
     </div>;
 }

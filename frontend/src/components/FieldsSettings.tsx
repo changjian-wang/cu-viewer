@@ -4,7 +4,8 @@ import { usePanelDismiss } from "../interaction/usePanelDismiss";
 import { ViewerIcon } from "./ViewerIcon";
 
 export function FieldsSettings({ id, anchor, settings, onSettings, onResetOrder, resetOrderDisabledReason,
-    onObjectExpansion, objectExpansionDisabledReason, onClose }: {
+    onObjectExpansion, objectExpansionDisabledReason, onClose, labelMode = false }: {
+    labelMode?: boolean;
     id: string; anchor: HTMLElement; settings: ReviewSettings; onSettings: (settings: ReviewSettings) => void;
     onResetOrder: () => void; resetOrderDisabledReason: string | null;
     onObjectExpansion: (open: boolean) => void; objectExpansionDisabledReason: string | null;
@@ -14,11 +15,11 @@ export function FieldsSettings({ id, anchor, settings, onSettings, onResetOrder,
     const panel = useRef<HTMLElement>(null);
     const onKeyDown = usePanelDismiss(panel, anchor, onClose);
     useLayoutEffect(() => { panel.current?.querySelector("input")?.focus({ preventScroll: true }); }, []);
-    return <section id={id} className="cu-fields-settings" ref={panel} role="dialog" aria-label="Fields settings" tabIndex={-1}
+    return <section id={id} className="cu-fields-settings" ref={panel} role="dialog" aria-label={labelMode ? "Label settings" : "Fields settings"} tabIndex={-1}
         onKeyDown={onKeyDown} onBlur={event => {
             if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget) && event.relatedTarget !== anchor) onClose(false);
         }}>
-        <header><h2>Settings</h2><button type="button" className="cu-icon-button" aria-label="Close fields settings"
+        <header><h2>Settings</h2><button type="button" className="cu-icon-button" aria-label={labelMode ? "Close label settings" : "Close fields settings"}
             onClick={() => onClose(true)}><ViewerIcon name="close" /></button></header>
         <label className="cu-switch-row cu-confidence-toggle" htmlFor={switchId}>
             <span>Show Confidence</span>

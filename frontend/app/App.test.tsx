@@ -7,6 +7,8 @@ import { App } from "./App";
 vi.mock("../src", () => ({
     ContentUnderstandingResultViewer: (props: ContentUnderstandingResultViewerProps) => <section aria-label="Viewer">
         <output data-testid="order">{JSON.stringify(props.fieldOrder) ?? "browser"}</output>
+        <output data-testid="labels">{JSON.stringify(props.labels) ?? "none"}</output>
+        <output data-testid="result">{JSON.stringify(props.result) ?? "none"}</output>
         <button disabled={!props.onFieldOrderChange}
             onClick={() => props.onFieldOrderChange?.({ $root: ["/B", "/A"] })}>B first</button>
         <button disabled={!props.onFieldOrderChange}
@@ -34,6 +36,27 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("CLI viewer field-order bridge", () => {
+    it("loads a local labels-only session without requiring an Analyze result or analyzer preferences", async () => {
+        const labels = { fieldLabels: { Name: { type: "string", valueString: "Local label" } } };
+        fetcher.mockResolvedValueOnce(json({ source: session.source, name: session.name, labels }));
+        render(<App />);
+        await screen.findByRole("region", { name: "Viewer" });
+        expect(JSON.parse(screen.getByTestId("labels").textContent ?? "")).toEqual(labels);
+        expect(screen.getByTestId("result").textContent).toBe("none");
+        expect(screen.getByRole<HTMLButtonElement>("button", { name: "B first" }).disabled).toBe(true);
+        expect(fetcher).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("rejects analyzer preferences on a labels-only session before fetching another resource", async () => {
+        fetcher.mockResolvedValueOnce(json({
+            source: session.source, name: session.name, labels: { fieldLabels: {} }, fieldOrderUrl: "./field-order",
+        }));
+        render(<App />);
+        expect((await screen.findByRole("alert")).textContent).toContain("label-only viewer session");
+        expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
     it("loads saved order without writing defaults and ignores stale paths and changed parent types", async () => {
         fetcher.mockResolvedValueOnce(json(session)).mockResolvedValueOnce(json({
             $root: ["/B", "/Removed", "/A"], "/Group": ["/Group/OldChild"], "/Missing": ["/Missing/Child"],
