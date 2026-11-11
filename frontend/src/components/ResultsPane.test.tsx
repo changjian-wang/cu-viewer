@@ -524,6 +524,9 @@ describe("structured Fields presentation", () => {
         fireEvent.keyDown(screen.getByRole("tab", { name: "Markdown" }), { key: "ArrowRight" });
         expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" }, { timeout: 5000 })).toBeTruthy();
         expect(screen.getByText(/rawOnly/)).toBeTruthy();
+        expect(screen.getByRole("group", { name: "Result toolbar" })).toBeTruthy();
+        expect(screen.getByRole("searchbox", { name: "Search JSON keys" })).toBeTruthy();
+        expect(screen.queryByText(/Original input JSON\./)).toBeNull();
 
         fireEvent.keyDown(screen.getByRole("tab", { name: "Result" }), { key: "Home" });
         expect(screen.getByRole("button", { name: "Collapse Rows" })).toBeTruthy();

@@ -3,7 +3,7 @@ import { usePanelDismiss } from "../interaction/usePanelDismiss";
 import { ViewerIcon } from "./ViewerIcon";
 
 export function ExpansionSettings({ id, anchor, label, closeLabel, items, disabledReason, onExpansion, onClose }: {
-    id: string; anchor: HTMLElement; label: string; closeLabel: string; items: "groups" | "pages";
+    id: string; anchor: HTMLElement; label: string; closeLabel: string; items: "groups" | "pages" | "JSON";
     disabledReason: string | null; onExpansion: (open: boolean) => void; onClose: (restoreFocus: boolean) => void;
 }) {
     const panel = useRef<HTMLElement>(null);

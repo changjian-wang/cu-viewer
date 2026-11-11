@@ -137,16 +137,24 @@
 .cu-markdown a { color: #004578; text-decoration: underline; }
 .cu-markdown-image-omitted { display: inline-block; border: 1px solid #d1d9e3; border-radius: 3px; padding: 2px 6px; color: #617087; font-size: 12px; }
 .cu-result-limit p { color: #7b4b00; }
-.cu-json-tree { min-width: max-content; margin: 0; color: #201f1e; font-size: 12px; line-height: 1.65; white-space: pre-wrap; word-wrap: break-word; }
+.cu-json-tree { min-width: max-content; margin: 0; padding: 0; list-style: none; color: #201f1e; font-size: 12px; line-height: 1.65; white-space: pre-wrap; word-wrap: break-word; }
 .cu-json-children { margin: 0; padding: 0 0 0 18px; list-style: none; }
 .cu-json-node { margin: 0; padding: 0; }
-.cu-json-expander { display: inline-flex; width: 18px; justify-content: center; margin-right: 2px; cursor: pointer; user-select: none; }
+.cu-json-node:focus-visible { outline: none; }
+.cu-json-node:focus-visible > .cu-json-line { outline: 2px solid var(--cu-focus); outline-offset: -2px; }
+.cu-json-line { width: max-content; }
+.cu-json-expander { display: inline-flex; width: 18px; justify-content: center; margin-right: 2px; padding: 0; border: 0; background: none; cursor: pointer; user-select: none; }
 .cu-json-expand::after { content: "\25B8"; }
 .cu-json-collapse::after { content: "\25BE"; }
 .cu-json-collapsed { margin-right: 3px; cursor: pointer; }
 .cu-json-collapsed::after { content: "..."; }
 .cu-json-label { margin-right: 5px; color: #004578; font-weight: 600; }
 .cu-json-clickable-label { cursor: pointer; }
+.cu-json-match { background: #fff1b8; }
+.cu-json-node.is-current > .cu-json-line > .cu-json-label { background: #dceeff; outline: 1px solid #0078d4; }
+.cu-json-closing { display: block; padding-left: 20px; }
+.cu-json-source { border: 0; padding: 0; background: none; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+.cu-json-source:disabled { text-decoration: none; }
 .cu-json-string { color: #0b6a0b; }
 .cu-json-number, .cu-json-boolean { color: #004e8c; }
 .cu-json-null, .cu-json-undefined { color: #a4262c; }

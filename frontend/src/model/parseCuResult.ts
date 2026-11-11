@@ -46,7 +46,7 @@ function isPageNumber(value: unknown): value is number {
     return isPositiveNumber(value) && Number.isSafeInteger(value);
 }
 
-function pointerSegment(value: string): string {
+export function pointerSegment(value: string): string {
     return value.replaceAll("~", "~0").replaceAll("/", "~1");
 }
 
@@ -210,7 +210,7 @@ interface FieldFrame {
     exit?: object;
 }
 
-function parseSource(
+export function parseSource(
     raw: unknown, content: CuContent, path: string, issues: CuParseIssue[],
     pages: ReadonlyMap<number, CuPage> = new Map(content.pages.map(page => [page.pageNumber, page])),
 ): { source?: string; regions: CuRegion[] } {

@@ -55,6 +55,7 @@ interface ResultsPaneProps {
     tableScope?: TableFieldLocation | null;
     onShowAllFields?: () => void;
     onLocate?: (field: CuField, regionIndex: number) => void;
+    onLocateSource?: (field: CuField, contentIndex: number) => void;
     onDismissPreview?: () => void;
 }
 
@@ -235,7 +236,8 @@ export function ResultsPane(props: ResultsPaneProps) {
                 <MarkdownPane markdown={props.content?.markdown} />
             </Suspense>}
             {view === "result" && <Suspense fallback={<div className="cu-state" role="status">Loading Result view…</div>}>
-                <JsonPane value={props.result} />
+                <JsonPane value={props.result} contents={props.contents} sourceReady={props.sourceReady}
+                    isPageAvailable={props.isPageAvailable} onLocateSource={props.onLocateSource} />
             </Suspense>}
             {view && view !== "fields" && view !== "markdown" && view !== "result" && <Suspense
                 fallback={<div className="cu-state" role="status">Loading {activeTab?.label} view…</div>}>
@@ -283,9 +285,8 @@ export function ResultsPane(props: ResultsPaneProps) {
                 { label: "Copy value", icon: "copy", disabled: !props.workflow.menu.field.hasValue,
                     run: () => { if (props.workflow.menu) void props.workflow.copy(props.workflow.menu.field); } },
             ]} />}
-        {view !== "fields" && view !== "info" && view !== "paragraphs" && <footer className="cu-results-footer">
+        {view !== "fields" && view !== "info" && view !== "paragraphs" && view !== "result" && <footer className="cu-results-footer">
             {view === "markdown" && "Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered."}
-            {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
             {["figures", "signatures"].includes(view ?? "") &&
                 "Select a returned item to locate its source. All regions on the active source page are highlighted; use document page navigation to view other pages."}
         </footer>}

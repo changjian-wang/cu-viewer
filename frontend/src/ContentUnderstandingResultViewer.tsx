@@ -28,6 +28,9 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         }
     }, [props.result]);
     const [contentChoice, setContentChoice] = useState<{ result: unknown; index: number }>({ result: props.result, index: 0 });
+    const [jsonSelection, setJsonSelection] = useState<{
+        result: unknown; source: ContentUnderstandingResultViewerProps["source"]; contentIndex: number; field: CuField;
+    } | null>(null);
     const contentIndex = contentChoice.result === props.result ? contentChoice.index : 0;
     const content = parsed.model?.contents[contentIndex];
     const fields = useMemo(() => selectableFields(content), [content]);
@@ -106,12 +109,16 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             path: `${content.id}/pages/${index}`,
             message: unavailableSourcePageMessage(page.pageNumber),
         }]) : [];
-    const selected = state.selected && fields.includes(state.selected) ? state.selected : null;
+    const jsonField = jsonSelection && jsonSelection.result === props.result && jsonSelection.source === props.source &&
+        jsonSelection.contentIndex === contentIndex ? jsonSelection.field : null;
+    const selected = state.selected && (fields.includes(state.selected) || state.selected === jsonField) ? state.selected : null;
     const tableLocation = tableLocationState?.context === context ? tableLocationState : null;
     const hovered = state.hovered && fields.includes(state.hovered) ? state.hovered : null;
     const candidate = hovered ?? selected;
-    const active = candidate && (view === "fields" ? !candidate.detailView || candidate === tableLocation?.table : candidate.detailView === view) ? candidate : null;
-    const pinned = selected && (view === "fields" ? !selected.detailView || selected === tableLocation?.table : selected.detailView === view) ? selected : null;
+    const visibleSelection = (field: CuField): boolean => view === "result" ? field === jsonField : field !== jsonField &&
+        (view === "fields" ? !field.detailView || field === tableLocation?.table : field.detailView === view);
+    const active = candidate && visibleSelection(candidate) ? candidate : null;
+    const pinned = selected && visibleSelection(selected) ? selected : null;
     const activeRegions = fieldRegions(active);
     const activeRegionIndex = hovered ? state.hoveredRegionIndex ??
         Math.max(0, activeRegions.findIndex(region => region.pageNumber === state.pageNumber)) : state.selectedRegionIndex;
@@ -126,6 +133,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         const next = parsed.model?.contents[index];
         if (!next) throw new Error("The chosen result content does not exist.");
         setContentChoice({ result: props.result, index });
+        setJsonSelection(null);
         setReveal(null);
         dispatch({ type: "clear" });
         workflow.clear();
@@ -156,7 +164,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         selectField(field, index, "source-table", revealSource);
     };
     const clearSelection = (): void => {
-        workflow.clear(); setReveal(null); setTableLocation(null); dispatch({ type: "clear" });
+        workflow.clear(); setReveal(null); setTableLocation(null); setJsonSelection(null); dispatch({ type: "clear" });
     };
     const previewField = (field: CuField, regionIndex?: number, origin: "pointer" | "focus" = "pointer"): void => {
         previewOrigin.current = origin;
@@ -222,6 +230,12 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             sourceSelection={reveal?.origin === "source"} sourceTableSelection={reveal?.origin === "source-table"}
             tableLocation={tableLocation} tableScope={tableLocation?.focused ? tableLocation : null}
             onShowAllFields={() => setTableLocation(current => current ? { ...current, focused: false } : current)} onLocate={selectField}
+            onLocateSource={(field, index) => {
+                if (index !== contentIndex) chooseContent(index);
+                setJsonSelection({ result: props.result, source: props.source, contentIndex: index, field });
+                setTableLocation(null);
+                selectField(field);
+            }}
             previewId={hovered && active && renderReady && available(active) &&
                 activeRegions[0]?.pageNumber === state.pageNumber ? previewId : undefined}
             source={source}
