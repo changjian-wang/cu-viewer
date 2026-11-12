@@ -3,6 +3,18 @@ import type { Locator, Page } from "@playwright/test";
 
 const SOURCE_READY_TIMEOUT_MS = 15000;
 
+export function contrast(first: string, second: string): number {
+    const luminance = (text: string): number => {
+        const parts = text.match(/[\d.]+/g);
+        if (!parts || parts.length < 3) throw new Error("Expected an RGB color.");
+        const values = parts.slice(0, 3).map(Number).map(value => value / 255)
+            .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+        return values[0]! * 0.2126 + values[1]! * 0.7152 + values[2]! * 0.0722;
+    };
+    const colors = [luminance(first), luminance(second)].sort((a, b) => b - a);
+    return (colors[0]! + 0.05) / (colors[1]! + 0.05);
+}
+
 export async function ready(page: Page): Promise<void> {
     await expect(page.getByRole("group", { name: "Source viewport", exact: true }))
         .toHaveAttribute("aria-disabled", "false", { timeout: SOURCE_READY_TIMEOUT_MS });

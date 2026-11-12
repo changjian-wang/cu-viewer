@@ -1,6 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
-import { inspectJson, MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "../model/resultLimits";
+import { inspectJson, validateLargeJson } from "../model/resultLimits";
+import type { JsonValidation } from "../model/resultLimits";
+import { PagedJsonTree } from "./PagedJsonTree";
 
 export { MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "../model/resultLimits";
 
@@ -34,20 +36,31 @@ interface JsonPaneProps {
 
 export function JsonPane({ value }: JsonPaneProps) {
     const inspection = useMemo(() => inspectJson(value), [value]);
-    if (inspection.status === "limit") {
-        const exceeded = inspection.values !== undefined && inspection.values > MAX_JSON_VALUES
-            ? `${inspection.values.toLocaleString("en-US")} values exceeds the ${MAX_JSON_VALUES.toLocaleString("en-US")}-value limit`
-            : `${inspection.characters?.toLocaleString("en-US") ?? "The result size"} exceeds the ${MAX_JSON_CHARACTERS.toLocaleString("en-US")}-character limit`;
-        return <div className="cu-state cu-result-limit" role="alert">
-            <h2>JSON is too large to render</h2>
-            <p>{exceeded}. Use the original saved result for full inspection.</p>
-        </div>;
-    }
-    if (inspection.status === "invalid") {
+    const [largeInspection, setLargeInspection] = useState<{ value: unknown; validation: JsonValidation } | null>(null);
+    useEffect(() => {
+        if (inspection.status !== "limit") return;
+        const controller = new AbortController();
+        void validateLargeJson(value, controller.signal).then(validation => {
+            if (!controller.signal.aborted) setLargeInspection({ value, validation });
+        }).catch((error: unknown) => {
+            if (!controller.signal.aborted) setLargeInspection({ value, validation: {
+                status: "invalid", message: error instanceof Error ? error.message : "The supplied result could not be inspected as JSON.",
+            } });
+        });
+        return () => controller.abort();
+    }, [inspection, value]);
+    const validation = largeInspection && largeInspection.value === value ? largeInspection.validation : null;
+    const error = inspection.status === "invalid" ? inspection.message :
+        inspection.status === "limit" && validation?.status === "invalid" ? validation.message : null;
+    if (error) {
         return <div className="cu-state cu-error" role="alert">
             <h2>JSON could not be displayed</h2>
-            <p>{inspection.message}</p>
+            <p>{error}</p>
         </div>;
+    }
+    if (inspection.status === "limit") {
+        return validation?.status === "ready" ? <div className="cu-rich-result-scroll"><PagedJsonTree value={value} /></div> :
+            <div className="cu-state" role="status">Validating large JSON without blocking the viewer...</div>;
     }
     if (typeof value !== "object" || value === null) {
         return <div className="cu-rich-result-scroll">

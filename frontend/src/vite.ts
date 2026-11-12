@@ -21,8 +21,11 @@ export function viewerAssets(outputPath?: string): Plugin {
     const packageRoot = dirname(createRequire(import.meta.url).resolve("pdfjs-dist/package.json"));
     const packagedHeifDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "heif");
     const hasPackagedHeif = existsSync(resolve(packagedHeifDirectory, "heif.worker.js"));
+    const packagedMarkdownDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "markdown");
+    const hasPackagedMarkdown = existsSync(resolve(packagedMarkdownDirectory, "markdown.worker.js"));
     let outputDirectory = "";
     let heifOutputDirectory = "";
+    let markdownOutputDirectory = "";
     return {
         name: "local-cu-viewer-assets",
         configResolved(config) {
@@ -34,14 +37,31 @@ export function viewerAssets(outputPath?: string): Plugin {
             }
             outputDirectory = target;
             heifOutputDirectory = resolve(dirname(target), "heif");
+            markdownOutputDirectory = resolve(dirname(target), "markdown");
             const heifChild = relative(root, heifOutputDirectory);
             if (!heifChild || heifChild === ".." || heifChild.startsWith(`..${sep}`) || isAbsolute(heifChild)) {
                 throw new Error("Viewer HEIF resources must use a non-root subdirectory of the host build output.");
+            }
+            const markdownChild = relative(root, markdownOutputDirectory);
+            if (!markdownChild || markdownChild === ".." || markdownChild.startsWith(`..${sep}`) || isAbsolute(markdownChild)) {
+                throw new Error("Viewer Markdown resources must use a non-root subdirectory of the host build output.");
             }
         },
         configureServer(server) {
             server.middlewares.use((request, response, next) => {
                 const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
+                if (/\/markdown\/markdown\.worker\.js$/.test(pathname) && hasPackagedMarkdown) {
+                    try {
+                        const bytes = readFileSync(resolve(packagedMarkdownDirectory, "markdown.worker.js"));
+                        response.setHeader("Content-Type", "text/javascript; charset=utf-8");
+                        response.end(bytes);
+                    } catch (error) {
+                        server.config.logger.error(`Viewer Markdown resource failed: ${error instanceof Error ? error.message : String(error)}`);
+                        response.statusCode = 500;
+                        response.end("Viewer Markdown resource loading failed.");
+                    }
+                    return;
+                }
                 const heifMatch = /\/heif\/([^/]+)$/.exec(pathname);
                 if (heifMatch && hasPackagedHeif) {
                     const filename = heifMatch[1];
@@ -94,6 +114,9 @@ export function viewerAssets(outputPath?: string): Plugin {
             copyFileSync(join(packageRoot, "LICENSE"), join(outputDirectory, "LICENSE"));
             if (hasPackagedHeif) {
                 cpSync(packagedHeifDirectory, heifOutputDirectory, { recursive: true });
+            }
+            if (hasPackagedMarkdown) {
+                cpSync(packagedMarkdownDirectory, markdownOutputDirectory, { recursive: true });
             }
         },
     };

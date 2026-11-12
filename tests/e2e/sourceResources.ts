@@ -84,6 +84,42 @@ export async function alive(page: Page): Promise<{ workers: number; bitmaps: num
     });
 }
 
+export async function monitorSourceRaster(page: Page) {
+    return page.getByTestId("rendered-page").evaluateHandle(frame => {
+        const canvas = frame.querySelector("canvas"), viewport = frame.closest(".cu-document-container");
+        const pane = frame.closest(".cu-source-pane");
+        const probe = document.createElement("canvas");
+        probe.width = probe.height = 48;
+        const context = probe.getContext("2d", { willReadFrequently: true });
+        if (!canvas || !context || !viewport || !pane) throw new Error("Painted source probe is unavailable.");
+        const stats = { frames: 0, hidden: 0, loading: 0, blank: 0, pending: 0, staleLayers: 0, minWidth: Infinity, maxWidth: 0 };
+        let frameId = 0;
+        const sample = (): void => {
+            stats.frames++;
+            const bounds = frame.getBoundingClientRect();
+            if (getComputedStyle(frame).visibility !== "visible" || bounds.width <= 0 || bounds.height <= 0) stats.hidden++;
+            if (viewport.querySelector(".cu-source-state")) stats.loading++;
+            if (pane.getAttribute("aria-busy") === "true") {
+                stats.pending++;
+                if (viewport.querySelector(".cu-overlay, .cu-source-popover")) stats.staleLayers++;
+            }
+            stats.minWidth = Math.min(stats.minWidth, bounds.width);
+            stats.maxWidth = Math.max(stats.maxWidth, bounds.width);
+            context.clearRect(0, 0, 48, 48);
+            context.drawImage(canvas, 0, 0, 48, 48);
+            const pixels = context.getImageData(0, 0, 48, 48).data;
+            let ink = 0;
+            for (let index = 0; index < pixels.length; index += 4) {
+                if (pixels[index + 3]! > 0 && Math.min(pixels[index]!, pixels[index + 1]!, pixels[index + 2]!) < 245) ink++;
+            }
+            if (ink === 0) stats.blank++;
+            frameId = requestAnimationFrame(sample);
+        };
+        sample();
+        return { stats, stop: () => { cancelAnimationFrame(frameId); probe.width = probe.height = 0; } };
+    });
+}
+
 export async function holdRequest(context: BrowserContext, pattern: string): Promise<{
     started: Promise<void>;
     requests: readonly Request[];

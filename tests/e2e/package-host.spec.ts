@@ -7,7 +7,7 @@ import { alive, trackSourceResources } from "./sourceResources";
 import { standardFontPdf } from "./pdfFixtures";
 
 const observations = new WeakMap<Page, {
-    errors: string[]; external: string[]; failed: string[]; workers: string[]; fonts: string[]; heif: string[];
+    errors: string[]; external: string[]; failed: string[]; workers: string[]; markdown: string[]; fonts: string[]; heif: string[];
 }>();
 const amountRow = '[data-field-id="/contents/0/fields/AmountDue/valueObject/Amount"]';
 const amountPoints = ([[7.3628, 8.0513], [7.9272, 8.0513], [7.9272, 8.2124], [7.3628, 8.2124]] as const)
@@ -38,8 +38,8 @@ test.beforeEach(async ({ page, context }, testInfo) => {
     const websocket = mode === "development" ? ` ws://127.0.0.1:${new URL(base).port}` : "";
     const wasm = testInfo.title.includes("HEIF") ? " 'wasm-unsafe-eval'" : "";
     const policy = `default-src 'self'; script-src 'self'${wasm}; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'${websocket}; object-src 'none'`;
-    const observed: { errors: string[]; external: string[]; failed: string[]; workers: string[]; fonts: string[]; heif: string[] } = {
-        errors: [], external: [], failed: [], workers: [], fonts: [], heif: [],
+    const observed: { errors: string[]; external: string[]; failed: string[]; workers: string[]; markdown: string[]; fonts: string[]; heif: string[] } = {
+        errors: [], external: [], failed: [], workers: [], markdown: [], fonts: [], heif: [],
     };
     observations.set(page, observed);
     page.on("pageerror", error => observed.errors.push(error.message));
@@ -48,6 +48,11 @@ test.beforeEach(async ({ page, context }, testInfo) => {
         if (response.status() >= 400) observed.failed.push(`${response.status()} ${url}`);
         if (url.includes("pdfjs/build/pdf.worker.mjs")) {
             observed.workers.push(url);
+            expect(response.headers()["content-security-policy"]).toBe(policy);
+        }
+        if (url.includes("/markdown/markdown.worker.js")) {
+            observed.markdown.push(url);
+            expect(response.headers()["content-type"]).toContain("javascript");
             expect(response.headers()["content-security-policy"]).toBe(policy);
         }
         if (url.includes("pdfjs/standard_fonts/")) observed.fonts.push(url);
@@ -124,6 +129,7 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
     await expect(pane.getByRole("heading", { name: "INVOICE", exact: true })).toBeVisible();
     await expect(pane.getByRole("table")).toHaveCount(9);
+    expect(observations.get(page)?.markdown.length).toBeGreaterThan(0);
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(pane.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();

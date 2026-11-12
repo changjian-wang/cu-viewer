@@ -24,9 +24,10 @@ export function useSourceRendering({ source, page, pageNumber, zoom, rotation, a
     const [renderError, setRenderError] = useState<string | null>(null);
     const renderKey = `${pageNumber}:${zoom}:${rotation}`;
     const dpr = window.devicePixelRatio;
-    const hasPreview = Boolean(rendered && rendered.source === source && rendered.page === page && rendered.rotation === rotation &&
+    const hasPreview = Boolean(rendered && rendered.source === source &&
         !loading && !error && !renderError);
-    const ready = Boolean(hasPreview && rendered?.key === renderKey && rendered.dpr === dpr);
+    const compatiblePreview = Boolean(hasPreview && rendered && rendered.page === page && rendered.rotation === rotation);
+    const ready = Boolean(compatiblePreview && rendered?.key === renderKey && rendered.dpr === dpr);
     const [layerFrame, setLayerFrame] = useState<{ raster: typeof rendered; size: PageSize } | null>(null);
 
     // Read the actual paper frame only after its new CSS dimensions commit.
@@ -42,7 +43,7 @@ export function useSourceRendering({ source, page, pageNumber, zoom, rotation, a
 
     useEffect(() => {
         const controller = new AbortController();
-        setRendered(previous => previous?.source === source && previous.page === page && previous.rotation === rotation ? previous : null);
+        setRendered(previous => previous?.source === source ? previous : null);
         setRenderError(null);
         onRenderReady(false);
         if (!source || !page) {
@@ -72,6 +73,8 @@ export function useSourceRendering({ source, page, pageNumber, zoom, rotation, a
         return () => controller.abort();
     }, [source, pageNumber, zoom, rotation, renderKey, dpr, page, onRenderReady]);
 
+    // Zoom may scale the compatible raster; page and rotation changes keep its committed size.
     return { canvas, renderedPage, renderKey, dpr, ready, hasPreview, renderError, layerFrame, layersReady, projectionSize,
-        size: ready ? rendered?.size : undefined };
+        displayedPageNumber: hasPreview ? rendered?.page.pageNumber : undefined,
+        size: hasPreview && (ready || !compatiblePreview) ? rendered?.size : undefined };
 }

@@ -6,6 +6,62 @@ export type JsonInspection =
     | { status: "limit"; characters?: number; values?: number }
     | { status: "invalid"; message: string };
 
+export type JsonValidation =
+    | { status: "ready" }
+    | { status: "invalid"; message: string }
+    | { status: "cancelled" };
+
+function* jsonChildren(value: object): Generator<unknown> {
+    if (Array.isArray(value)) {
+        const array: readonly unknown[] = value;
+        for (let index = 0; index < array.length; index++) yield array[index];
+    } else {
+        for (const key of Object.keys(value)) {
+            const child: unknown = Reflect.get(value, key);
+            yield child;
+        }
+    }
+}
+
+export async function validateLargeJson(value: unknown, signal: AbortSignal): Promise<JsonValidation> {
+    type Frame = { kind: "value"; value: unknown } | { kind: "children"; value: object; children: Iterator<unknown> };
+    const stack: Frame[] = [{ kind: "value", value }];
+    const active = new WeakSet<object>();
+    let deadline = performance.now() + 8;
+    let steps = 0;
+    while (stack.length) {
+        if (signal.aborted) return { status: "cancelled" };
+        const frame = stack.pop();
+        if (!frame) break;
+        if (frame.kind === "children") {
+            const next = frame.children.next();
+            if (next.done) active.delete(frame.value);
+            else stack.push(frame, { kind: "value", value: next.value });
+        } else {
+            const current = frame.value;
+            if (typeof current === "number" && !Number.isFinite(current)) {
+                return { status: "invalid", message: "The result contains a non-finite number and is not serialized JSON." };
+            }
+            if (current !== null && typeof current === "object") {
+                const prototype: unknown = Object.getPrototypeOf(current);
+                if (!Array.isArray(current) && prototype !== Object.prototype && prototype !== null) {
+                    return { status: "invalid", message: "The result contains an object that is not serialized JSON." };
+                }
+                if (active.has(current)) return { status: "invalid", message: "The result contains a circular reference." };
+                active.add(current);
+                stack.push({ kind: "children", value: current, children: jsonChildren(current) });
+            } else if (current !== null && !["string", "number", "boolean"].includes(typeof current)) {
+                return { status: "invalid", message: `The result contains a non-JSON ${typeof current} value.` };
+            }
+        }
+        if (++steps % 256 === 0 && performance.now() >= deadline) {
+            await new Promise<void>(resolve => setTimeout(resolve, 0));
+            deadline = performance.now() + 8;
+        }
+    }
+    return signal.aborted ? { status: "cancelled" } : { status: "ready" };
+}
+
 class JsonLimitError extends Error {
     constructor(
         readonly characters: number,

@@ -58,6 +58,7 @@ function fixture(t) {
         "assets/index-app.js": "export const viewer = true;",
         "assets/MarkdownPane-app.js": "markdown",
         "assets/JsonPane-app.js": "json",
+        "assets/markdown/markdown.worker.js": "markdown worker",
         "assets/pdfjs/LICENSE": "Apache",
         "assets/pdfjs/build/pdf.worker.mjs": "worker",
         "assets/pdfjs/standard_fonts/font.pfb": "font",
@@ -236,6 +237,7 @@ for (const version of [undefined, null, 1, ["1.0.0"], "1.0.0\n", "1.0.0\u0000"])
 }
 
 for (const name of [
+    "assets/markdown/markdown.worker.js",
     "assets/pdfjs/build/pdf.worker.mjs", "assets/heif/heic_decoder_bg.wasm",
     "assets/JsonPane-app.js", "assets/pdfjs/cmaps/font.bcmap",
 ]) {

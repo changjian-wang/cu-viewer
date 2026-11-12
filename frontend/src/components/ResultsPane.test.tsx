@@ -520,6 +520,9 @@ describe("structured Fields presentation", () => {
         fireEvent.click(screen.getByRole("tab", { name: "Markdown" }));
         expect(await screen.findByRole("heading", { name: "Extracted title" }, { timeout: 5000 })).toBeTruthy();
         expect(screen.getByRole("tab", { name: "Markdown" }).getAttribute("aria-selected")).toBe("true");
+        expect(screen.queryByText("Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered.")).toBeNull();
+        expect(document.querySelector(".cu-results-footer")).toBeNull();
+        expect(screen.queryByRole("group", { name: "Markdown pagination" })).toBeNull();
 
         fireEvent.keyDown(screen.getByRole("tab", { name: "Markdown" }), { key: "ArrowRight" });
         expect(await screen.findByRole("tree", { name: "Original Analyze result JSON" }, { timeout: 5000 })).toBeTruthy();

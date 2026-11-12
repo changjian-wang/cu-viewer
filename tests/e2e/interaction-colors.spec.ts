@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import { fieldRow, line1Id, loadReviewFixture, recipientId } from "./uiRedesignFixtures";
-import { expandField, locateGroup, ready, setShowConfidence } from "./viewerAssertions";
+import { contrast, expandField, locateGroup, ready, setShowConfidence } from "./viewerAssertions";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -12,18 +12,6 @@ const source = (page: Page, id: string, index = 0) =>
     page.getByTestId("result-overlay").locator(`polygon[data-outline-id="${id}"][data-region-index="${index}"]`);
 const pin = (page: Page) => page.getByTestId("source-overlay").locator("polygon").first();
 const preview = (page: Page) => page.getByTestId("preview-overlay").locator("polygon").first();
-
-function contrast(first: string, second: string): number {
-    const luminance = (text: string): number => {
-        const parts = text.match(/[\d.]+/g);
-        if (!parts || parts.length < 3) throw new Error("Expected an RGB color.");
-        const values = parts.slice(0, 3).map(Number).map(value => value / 255)
-            .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
-        return values[0]! * 0.2126 + values[1]! * 0.7152 + values[2]! * 0.0722;
-    };
-    const colors = [luminance(first), luminance(second)].sort((a, b) => b - a);
-    return (colors[0]! + 0.05) / (colors[1]! + 0.05);
-}
 
 async function expectReadable(score: Locator): Promise<void> {
     await expect(score).toHaveCSS("color", "rgb(82, 98, 118)");

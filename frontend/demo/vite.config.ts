@@ -2,12 +2,14 @@ import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import { heifAssets } from "../tooling/heifAssets.ts";
 import { pdfAssets } from "../tooling/pdfAssets.ts";
+import { markdownAssets } from "../tooling/markdownAssets.ts";
 
 export default defineConfig({
     root: import.meta.dirname,
     plugins: [
         pdfAssets("assets/pdfjs"),
         heifAssets("assets/heif"),
+        markdownAssets("assets/markdown"),
     ],
     server: {
         host: "127.0.0.1",

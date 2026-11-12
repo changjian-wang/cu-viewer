@@ -37,9 +37,9 @@ export default defineConfig({
     ],
     webServer: [
         {
-            command: "npm run dev",
+            command: "npm run dev -- --mode test",
             url: "http://127.0.0.1:5173",
-            reuseExistingServer: true,
+            reuseExistingServer: false,
         },
         {
             command: "node tests/e2e/cross-origin-server.mjs",

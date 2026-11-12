@@ -5,14 +5,23 @@ import pdfUrl from "../../tests/fixtures/mixed-financial-docs.pdf?url";
 import pdfResultUrl from "../../tests/fixtures/mixed-financial-docs.cu.json?url";
 import pngUrl from "../../tests/fixtures/receipt.png?url";
 import pngResultUrl from "../../tests/fixtures/receipt.cu.json?url";
+import largePdfUrl from "../../tests/fixtures/large-bank-statement.pdf?url";
+import largePdfResultUrl from "../../tests/fixtures/large-bank-statement.cu.json?url";
 
+const requestedSample = new URLSearchParams(window.location.search).get("sample");
 const samples = {
-    pdf: { source: pdfUrl, result: pdfResultUrl, name: "mixed-financial-docs.pdf", json: "mixed-financial-docs.cu.json", type: "application/pdf" },
-    png: { source: pngUrl, result: pngResultUrl, name: "receipt.png", json: "receipt.cu.json", type: "image/png" },
+    pdf: { label: "PDF", source: pdfUrl, result: pdfResultUrl, name: "mixed-financial-docs.pdf", json: "mixed-financial-docs.cu.json", type: "application/pdf" },
+    png: { label: "Receipt PNG", source: pngUrl, result: pngResultUrl, name: "receipt.png", json: "receipt.cu.json", type: "image/png" },
+    large: { label: "Large PDF", source: largePdfUrl, result: largePdfResultUrl,
+        name: "large-bank-statement.pdf", json: "large-bank-statement.cu.json", type: "application/pdf" },
 };
+type Sample = keyof typeof samples;
+const sampleChoices: readonly Sample[] = ["pdf", "png", "large"];
+const initialSample: Sample = requestedSample === "pdf" || requestedSample === "png" || requestedSample === "large"
+    ? requestedSample : "pdf";
 
 export function App() {
-    const [sample, setSample] = useState<"pdf" | "png">("pdf");
+    const [sample, setSample] = useState<Sample>(initialSample);
     const [reload, setReload] = useState(0);
     const [input, setInput] = useState<{
         source: ViewerSource; result: unknown; name: string; json: string; labels?: unknown; labelName?: string;
@@ -58,7 +67,7 @@ export function App() {
             setInput(current => current ? { ...current, result: undefined, json: file.name } : null);
         });
     };
-    const chooseSample = (choice: "pdf" | "png"): void => {
+    const chooseSample = (choice: Sample): void => {
         jsonGeneration.current++;
         labelGeneration.current++;
         setSample(choice);
@@ -112,8 +121,8 @@ export function App() {
                 }} />
             </label>
             <div className="prototype-samples"><span>Samples:</span>
-                <button type="button" aria-pressed={sample === "pdf"} onClick={() => chooseSample("pdf")}>PDF</button>
-                <button type="button" aria-pressed={sample === "png"} onClick={() => chooseSample("png")}>Receipt PNG</button>
+                {sampleChoices.map(choice => <button key={choice} type="button" aria-pressed={sample === choice}
+                    onClick={() => chooseSample(choice)}>{samples[choice].label}</button>)}
             </div>
         </div>
         </header>

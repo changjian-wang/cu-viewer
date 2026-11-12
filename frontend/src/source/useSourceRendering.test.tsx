@@ -26,7 +26,8 @@ function Harness({ source, onRenderReady, pageNumber = 1, zoom = 1, rotation = 0
     return <><div ref={rendering.renderedPage} data-testid="frame" data-ready={rendering.ready}
         data-preview={rendering.hasPreview} data-layers={rendering.layersReady}
         style={{ width: rendering.size?.width, height: rendering.size?.height, visibility: rendering.hasPreview ? "visible" : "hidden" }}>
-        <canvas ref={rendering.canvas} data-testid="canvas" />
+        <canvas ref={rendering.canvas} data-testid="canvas"
+            aria-label={`Rendered source page ${rendering.displayedPageNumber ?? pageNumber}`} />
     </div>
         {rendering.renderError && <span role="alert">{rendering.renderError}</span>}
     </>;
@@ -87,7 +88,7 @@ describe("source rendering ownership", () => {
         expect(jobs.every(job => job.canvas.width === 0 && job.canvas.height === 0)).toBe(true);
     });
 
-    it.each(["source", "page", "rotation"] as const)("never retains an incompatible %s preview", async change => {
+    it("never retains a previous document's preview", async () => {
         let first = true;
         const loaded = source((_page, canvas) => {
             canvas.width = 200; canvas.height = 100;
@@ -95,18 +96,53 @@ describe("source rendering ownership", () => {
             first = false;
             return Promise.resolve({ width: 100, height: 50 });
         });
-        loaded.pages.push({ pageNumber: 2, width: 100, height: 50 });
         const replacement = source(() => new Promise(() => {}));
         const onRenderReady = vi.fn();
         const { rerender } = render(<Harness source={loaded} onRenderReady={onRenderReady} />);
         await waitFor(() => expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("true"));
-        rerender(<Harness source={change === "source" ? replacement : loaded}
-            pageNumber={change === "page" ? 2 : 1} rotation={change === "rotation" ? 90 : 0} onRenderReady={onRenderReady} />);
+        rerender(<Harness source={replacement} onRenderReady={onRenderReady} />);
         expect(screen.getByTestId("frame").getAttribute("data-preview")).toBe("false");
         expect(screen.getByTestId("frame").style.visibility).toBe("hidden");
         expect(screen.getByTestId("frame").getAttribute("data-ready")).toBe("false");
         expect(onRenderReady).toHaveBeenLastCalledWith(false);
         expect(drawImage).toHaveBeenCalledOnce();
+    });
+
+    it.each(["page", "rotation"] as const)("retains the painted frame and its identity during a pending %s change", async change => {
+        const jobs: { finish: () => void }[] = [];
+        const loaded = source((page, canvas, _zoom, rotation) => {
+            const size = rotation === 90 ? { width: 50, height: 100 } :
+                page === 2 ? { width: 180, height: 90 } : { width: 100, height: 50 };
+            canvas.width = size.width * 2;
+            canvas.height = size.height * 2;
+            return new Promise(resolve => { jobs.push({ finish: () => resolve(size) }); });
+        });
+        loaded.pages.push({ pageNumber: 2, width: 180, height: 90 });
+        const onRenderReady = vi.fn();
+        const { rerender } = render(<Harness source={loaded} onRenderReady={onRenderReady} />);
+        await waitFor(() => expect(jobs).toHaveLength(1));
+        await act(async () => { jobs[0]!.finish(); await Promise.resolve(); });
+        await waitFor(() => expect(screen.getByTestId("frame").getAttribute("data-ready")).toBe("true"));
+        rerender(<Harness source={loaded} pageNumber={change === "page" ? 2 : 1}
+            rotation={change === "rotation" ? 90 : 0} onRenderReady={onRenderReady} />);
+        await waitFor(() => expect(jobs).toHaveLength(2));
+        const frame = screen.getByTestId("frame"), canvas = screen.getByTestId("canvas");
+        expect(frame.getAttribute("data-preview")).toBe("true");
+        expect(frame.getAttribute("data-ready")).toBe("false");
+        expect(frame.getAttribute("data-layers")).toBe("false");
+        expect(frame.style.visibility).toBe("visible");
+        expect(frame.style.width).toBe("100px");
+        expect(frame.style.height).toBe("50px");
+        expect(canvas.getAttribute("width")).toBe("200");
+        expect(canvas.getAttribute("aria-label")).toBe("Rendered source page 1");
+        expect(drawImage).toHaveBeenCalledOnce();
+        await act(async () => { jobs[1]!.finish(); await Promise.resolve(); });
+        await waitFor(() => expect(frame.getAttribute("data-ready")).toBe("true"));
+        expect(frame.getAttribute("data-layers")).toBe("true");
+        expect(frame.style.width).toBe(change === "page" ? "180px" : "50px");
+        expect(frame.style.height).toBe(change === "page" ? "90px" : "100px");
+        expect(canvas.getAttribute("aria-label")).toBe(`Rendered source page ${change === "page" ? 2 : 1}`);
+        expect(drawImage).toHaveBeenCalledTimes(2);
     });
 
     it.each(["loading", "error"] as const)("hides an existing preview during explicit source %s", async state => {

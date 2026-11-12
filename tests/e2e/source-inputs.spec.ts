@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { checkPolygon, expandField, ready } from "./viewerAssertions";
-import { alive, holdRequest, trackSourceResources } from "./sourceResources";
+import { alive, holdRequest, monitorSourceRaster, trackSourceResources } from "./sourceResources";
 
 const hostUrl = `/@fs/${resolve("tests", "e2e", "source-inputs.html").replaceAll("\\", "/")}`;
 const pdfUrl = `/@fs/${resolve("tests", "fixtures", "mixed-financial-docs.pdf").replaceAll("\\", "/")}`;
@@ -83,6 +83,49 @@ async function selectGrounded(page: Page, sample: keyof typeof fixtures): Promis
     await expect(page.getByTestId("source-overlay")).toBeVisible();
     await checkPolygon(page, fixtures[sample].points, 0);
 }
+
+test("Loading source appears only before a document's first painted frame, not during redraws", async ({ page, context }) => {
+    const initial = await holdRequest(context, "**/pdfjs/build/pdf.worker.mjs");
+    try {
+        await page.getByRole("button", { name: "Load PDF", exact: true }).click();
+        await initial.started;
+        await expect(page.getByRole("heading", { name: "Loading source...", exact: true })).toBeVisible();
+        await initial.release();
+        await ready(page);
+        const monitor = await monitorSourceRaster(page);
+        try {
+            await page.getByRole("button", { name: "Next page", exact: true }).click();
+            await ready(page);
+            await expect(page.getByRole("img", { name: "Rendered source page 2", exact: true })).toBeVisible();
+            await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption("150");
+            await ready(page);
+            await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+            await ready(page);
+            const stats = await monitor.evaluate(value => value.stats);
+            expect(stats.pending, JSON.stringify(stats)).toBeGreaterThan(0);
+            expect(stats.hidden, JSON.stringify(stats)).toBe(0);
+            expect(stats.loading, JSON.stringify(stats)).toBe(0);
+            expect(stats.blank, JSON.stringify(stats)).toBe(0);
+            expect(stats.staleLayers, JSON.stringify(stats)).toBe(0);
+        } finally {
+            await monitor.evaluate(value => value.stop());
+            await monitor.dispose();
+        }
+        await page.evaluate(() => { window.cuHoldImageDecode = true; });
+        await page.getByRole("button", { name: "Load PNG", exact: true }).click();
+        await expect(page.getByRole("heading", { name: "Loading source...", exact: true })).toBeVisible();
+        await page.evaluate(() => window.cuReleaseImageDecode());
+        await ready(page);
+        await page.getByRole("combobox", { name: "Source condition", exact: true }).selectOption("corrupt");
+        await page.getByRole("button", { name: "Load PDF", exact: true }).click();
+        await expect(page.getByRole("heading", { name: "Source could not be displayed", exact: true })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Loading source...", exact: true })).toHaveCount(0);
+        await releaseInput(page);
+    } finally {
+        await initial.release();
+        await page.evaluate(() => window.cuReleaseImageDecode());
+    }
+});
 
 for (const sample of ["PDF", "PNG"] as const) {
     test(`real ${sample} accepts all public source inputs without changing caller data or raster/grounding`, async ({ page }) => {

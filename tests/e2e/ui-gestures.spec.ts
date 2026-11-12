@@ -2,8 +2,36 @@ import { expect, test } from "@playwright/test";
 import { croppedRotatedPdf } from "./pdfFixtures";
 import { loadReviewFixture } from "./uiRedesignFixtures";
 import { fitSource, ready, rotateSource } from "./viewerAssertions";
+import { monitorSourceRaster } from "./sourceResources";
 
 test.use({ launchOptions: { ignoreDefaultArgs: ["--hide-scrollbars"] } });
+
+test("Large PDF keeps its painted source through page turns, zoom and rotation", async ({ page }) => {
+    await page.goto("/?sample=large");
+    await ready(page);
+    const monitor = await monitorSourceRaster(page);
+    try {
+        const input = page.getByRole("textbox", { name: "Page number", exact: true });
+        for (const number of [2, 5, 20, 41]) {
+            await input.fill(String(number));
+            await input.press("Enter");
+            await ready(page);
+            await expect(page.getByRole("img", { name: `Rendered source page ${number}`, exact: true })).toBeVisible();
+        }
+        await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption("150");
+        await ready(page);
+        await rotateSource(page);
+        const stats = await monitor.evaluate(value => value.stats);
+        expect(stats.pending, JSON.stringify(stats)).toBeGreaterThan(0);
+        expect(stats.hidden, JSON.stringify(stats)).toBe(0);
+        expect(stats.loading, JSON.stringify(stats)).toBe(0);
+        expect(stats.blank, JSON.stringify(stats)).toBe(0);
+        expect(stats.staleLayers, JSON.stringify(stats)).toBe(0);
+    } finally {
+        await monitor.evaluate(value => value.stop());
+        await monitor.dispose();
+    }
+});
 
 for (const dpr of [1, 2]) {
     test.describe(`real-source wheel at DPR ${dpr}`, () => {
@@ -92,34 +120,7 @@ for (const dpr of [1, 2]) {
                     const viewport = await page.getByRole("group", { name: "Source viewport", exact: true }).boundingBox();
                     if (!viewport) throw new Error("Source viewport is unavailable.");
                     await page.mouse.move(viewport.x + viewport.width / 2, viewport.y + viewport.height / 2);
-                    const monitor = await page.getByTestId("rendered-page").evaluateHandle(frame => {
-                        const canvas = frame.querySelector("canvas"), viewport = frame.closest(".cu-document-container");
-                        const probe = document.createElement("canvas");
-                        probe.width = probe.height = 48;
-                        const context = probe.getContext("2d", { willReadFrequently: true });
-                        if (!canvas || !context || !viewport) throw new Error("Painted source probe is unavailable.");
-                        const stats = { frames: 0, hidden: 0, loading: 0, blank: 0, minWidth: Infinity, maxWidth: 0 };
-                        let frameId = 0;
-                        const sample = (): void => {
-                            stats.frames++;
-                            const bounds = frame.getBoundingClientRect();
-                            if (getComputedStyle(frame).visibility !== "visible" || bounds.width <= 0 || bounds.height <= 0) stats.hidden++;
-                            if (viewport.querySelector(".cu-source-state")) stats.loading++;
-                            stats.minWidth = Math.min(stats.minWidth, bounds.width);
-                            stats.maxWidth = Math.max(stats.maxWidth, bounds.width);
-                            context.clearRect(0, 0, 48, 48);
-                            context.drawImage(canvas, 0, 0, 48, 48);
-                            const pixels = context.getImageData(0, 0, 48, 48).data;
-                            let ink = 0;
-                            for (let index = 0; index < pixels.length; index += 4) {
-                                if (pixels[index + 3]! > 0 && Math.min(pixels[index]!, pixels[index + 1]!, pixels[index + 2]!) < 245) ink++;
-                            }
-                            if (ink === 0) stats.blank++;
-                            frameId = requestAnimationFrame(sample);
-                        };
-                        sample();
-                        return { stats, stop: () => { cancelAnimationFrame(frameId); probe.width = probe.height = 0; } };
-                    });
+                    const monitor = await monitorSourceRaster(page);
                     try {
                         await page.keyboard.down(modifier);
                         for (const delta of [-120, -120, -90, 60, -60, 90, 120, 120]) await page.mouse.wheel(0, delta);

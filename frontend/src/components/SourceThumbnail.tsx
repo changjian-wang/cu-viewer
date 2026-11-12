@@ -1,35 +1,50 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPageGeometry, projectRegion } from "../source/geometry";
 import type { PageSize } from "../source/geometry";
 import type { LoadedSource } from "../source/source";
+import { validateSourceCrop } from "../source/source";
 import type { CuContent, CuRegion } from "../model/types";
 
-export function SourceThumbnail({ source, content, region, label }: {
-    source: LoadedSource | null; content: CuContent; region: CuRegion; label: string;
+function thumbnailLayout(source: LoadedSource | null, content: CuContent, region: CuRegion) {
+    if (!source) throw new Error("Source is not available for a thumbnail.");
+    const sourcePage = source.pages.find(page => page.pageNumber === region.pageNumber);
+    const cuPage = content.pages.find(page => page.pageNumber === region.pageNumber);
+    if (!sourcePage || !cuPage) throw new Error(`Page ${region.pageNumber} is not available for a thumbnail.`);
+    const points = projectRegion(region, createPageGeometry(cuPage, sourcePage,
+        { zoom: 1, rotation: 0, pan: { x: 0, y: 0 } })).polygon;
+    const x = Math.min(...points.map(point => point.x));
+    const y = Math.min(...points.map(point => point.y));
+    const crop = {
+        x, y, width: Math.max(...points.map(point => point.x)) - x,
+        height: Math.max(...points.map(point => point.y)) - y,
+    };
+    validateSourceCrop(crop, sourcePage, 0);
+    const zoom = Math.min(1, 320 / Math.max(crop.width, crop.height));
+    return { source, crop, zoom, size: { width: crop.width * zoom, height: crop.height * zoom } };
+}
+
+export function SourceThumbnail({ source, content, region, label, reserveSpace = false }: {
+    source: LoadedSource | null; content: CuContent; region: CuRegion; label: string; reserveSpace?: boolean;
 }) {
     const canvas = useRef<HTMLCanvasElement>(null);
     const [state, setState] = useState<{ status: "ready"; size: PageSize } | { status: "loading" | "error"; message?: string }>({ status: "loading" });
+    const plan = useMemo(() => {
+        try {
+            return { layout: thumbnailLayout(source, content, region) };
+        } catch (error: unknown) {
+            return { error: error instanceof Error ? error.message : String(error) };
+        }
+    }, [source, content, region]);
     useEffect(() => {
         const controller = new AbortController();
         const visible = canvas.current;
         const scratch = document.createElement("canvas");
         setState({ status: "loading" });
         void Promise.resolve().then(async () => {
-            if (!source) throw new Error("Source is not available for a thumbnail.");
-            const sourcePage = source.pages.find(page => page.pageNumber === region.pageNumber);
-            const cuPage = content.pages.find(page => page.pageNumber === region.pageNumber);
-            if (!sourcePage || !cuPage) throw new Error(`Page ${region.pageNumber} is not available for a thumbnail.`);
-            const points = projectRegion(region, createPageGeometry(cuPage, sourcePage,
-                { zoom: 1, rotation: 0, pan: { x: 0, y: 0 } })).polygon;
-            const x = Math.min(...points.map(point => point.x));
-            const y = Math.min(...points.map(point => point.y));
-            const crop = {
-                x, y, width: Math.max(...points.map(point => point.x)) - x,
-                height: Math.max(...points.map(point => point.y)) - y,
-            };
-            const zoom = Math.min(1, 320 / Math.max(crop.width, crop.height));
+            const layout = plan.layout;
+            if (!layout) throw new Error(plan.error);
             if (controller.signal.aborted) return;
-            const size = await source.render(region.pageNumber, scratch, zoom, 0, controller.signal, crop);
+            const size = await layout.source.render(region.pageNumber, scratch, layout.zoom, 0, controller.signal, layout.crop);
             if (controller.signal.aborted || !visible) return;
             visible.width = scratch.width;
             visible.height = scratch.height;
@@ -50,8 +65,10 @@ export function SourceThumbnail({ source, content, region, label }: {
                 visible.height = 0;
             }
         };
-    }, [source, content, region]);
-    return <span className="cu-source-thumbnail">
+    }, [plan, region.pageNumber]);
+    return <span className="cu-source-thumbnail" style={reserveSpace && plan.layout && state.status !== "error" ? {
+        width: plan.layout.size.width, maxWidth: "100%", aspectRatio: `${plan.layout.size.width} / ${plan.layout.size.height}`,
+    } : undefined}>
         <canvas ref={canvas} role="img" aria-label={label} data-testid="source-thumbnail"
             hidden={state.status !== "ready"} style={state.status === "ready" ? { width: state.size.width, height: state.size.height } : undefined} />
         {state.status === "loading" && <span role="status">Loading source preview…</span>}

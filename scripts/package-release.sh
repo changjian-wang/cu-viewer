@@ -141,6 +141,7 @@ declare -A present=()
 for name in "${names[@]}"; do present["$name"]=1; done
 (( ${#names[@]} <= 4096 )) || fail "The Viewer build exceeds its resource count limit."
 for name in index.html assets/pdfjs/LICENSE assets/pdfjs/build/pdf.worker.mjs \
+    assets/markdown/markdown.worker.js \
     assets/heif/heif.worker.js assets/heif/heic_decoder.js \
     assets/heif/heic_decoder_bg.wasm assets/heif/SBOM.json; do
     [[ ${present[$name]:-} ]] || fail "The Viewer build is incomplete: $name"

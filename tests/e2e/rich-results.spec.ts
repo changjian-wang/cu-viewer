@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "../../frontend/src/components/JsonPane";
-import { MAX_MARKDOWN_CHARACTERS } from "../../frontend/src/components/MarkdownPane";
-import { expandField, ready, rotateSource } from "./viewerAssertions";
+import { MARKDOWN_STATIC_CHARACTERS } from "../../frontend/src/components/MarkdownPane";
+import { contrast, expandField, ready, rotateSource } from "./viewerAssertions";
 
 const amountId = "/contents/0/fields/AmountDue/valueObject/Amount";
 const verifyProductScreenshots = process.env.CU_VERIFY_PRODUCT_SCREENSHOTS !== "false";
@@ -151,7 +151,7 @@ test("Markdown sanitizes active content while retaining headings, lists, tables 
     expect(pageErrors).toEqual([]);
 });
 
-test("missing, malformed and oversized rich results have explicit bounded states", async ({ page }, testInfo) => {
+test("missing and malformed results remain explicit while large content stays accessible", async ({ page }, testInfo) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
     await uploadResult(page, syntheticResult(), "no-markdown.json");
     await expect(pane.getByRole("tab", { name: "Markdown", exact: true })).toHaveCount(0);
@@ -160,23 +160,35 @@ test("missing, malformed and oversized rich results have explicit bounded states
     await expect(page.getByTestId("rendered-page")).toBeVisible();
 
     const markdownStart = Date.now();
-    await uploadResult(page, syntheticResult("x".repeat(MAX_MARKDOWN_CHARACTERS + 1)), "oversized-markdown.json");
+    await uploadResult(page, syntheticResult(`${"x".repeat(MARKDOWN_STATIC_CHARACTERS + 1)}markdown-tail`), "large-markdown.json");
     await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
-    await expect(pane.getByRole("alert")).toContainText("Markdown is too large to render");
+    const markdownScroll = pane.getByRole("region", { name: "Markdown content", exact: true });
+    await expect(markdownScroll).toBeVisible();
+    await markdownScroll.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await expect(markdownScroll).toContainText("markdown-tail");
+    await expect(pane.getByRole("alert")).toHaveCount(0);
     const markdownMilliseconds = Date.now() - markdownStart;
 
     const jsonStart = Date.now();
     await uploadResult(page, syntheticResult(undefined, {
-        oversized: "x".repeat(MAX_JSON_CHARACTERS + 1),
+        oversized: `${"x".repeat(MAX_JSON_CHARACTERS)}original-json-tail`,
     }), "oversized-json.json");
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
-    await expect(pane.getByRole("alert")).toContainText("JSON is too large to render");
+    await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
+    await pane.getByRole("button", { name: "Last JSON string at /oversized page", exact: true }).click();
+    await expect(pane.locator('[data-json-path="/oversized"] .cu-json-string')).toContainText("original-json-tail");
     const jsonMilliseconds = Date.now() - jsonStart;
 
     await uploadResult(page, syntheticResult(undefined, {
-        oversizedValues: Array.from({ length: MAX_JSON_VALUES + 1 }, () => 0),
+        oversizedValues: Array.from({ length: MAX_JSON_VALUES + 1 }, (_, index) =>
+            index === MAX_JSON_VALUES ? "last-original-value" : index),
     }), "too-many-json-values.json");
-    await expect(pane.getByRole("alert")).toContainText(`${MAX_JSON_VALUES.toLocaleString("en-US")}-value limit`);
+    const array = pane.locator('[data-json-path="/oversizedValues"]');
+    await array.getByRole("button", { name: "Expand JSON node", exact: true }).click();
+    await expect(array.getByRole("treeitem")).toHaveCount(100);
+    await array.getByRole("button", { name: "Last JSON entries at /oversizedValues page", exact: true }).click();
+    await expect(array).toContainText("last-original-value");
+    await expect(pane.getByRole("alert")).toHaveCount(0);
 
     await uploadResult(page, {
         apiVersion: "unsupported",
@@ -190,8 +202,102 @@ test("missing, malformed and oversized rich results have explicit bounded states
 
     testInfo.annotations.push({
         type: "large-result-observation",
-        description: `${testInfo.project.name}: Markdown ${markdownMilliseconds} ms; JSON ${jsonMilliseconds} ms. Limits: ${MAX_MARKDOWN_CHARACTERS} Markdown characters, ${MAX_JSON_CHARACTERS} JSON characters, ${MAX_JSON_VALUES} JSON values.`,
+        description: `${testInfo.project.name}: virtual Markdown ${markdownMilliseconds} ms; paged JSON ${jsonMilliseconds} ms. Static budgets: ${MARKDOWN_STATIC_CHARACTERS} Markdown characters, ${MAX_JSON_CHARACTERS} JSON characters, ${MAX_JSON_VALUES} JSON values.`,
     });
+});
+
+test("large CU Markdown reaches its last page and preserves that page across result tabs", async ({ page }) => {
+    const pane = page.getByRole("region", { name: "Extraction results" });
+    const markdown = Array.from({ length: 41 }, (_, index) =>
+        `# Large page ${index + 1}\n\n${"Saved document text.\n\n".repeat(80)}\n\n<table><tr><td>Page ${index + 1} cell</td></tr></table>\n`)
+        .join("\n<!-- PageBreak -->\n\n");
+    await page.getByRole("textbox", { name: "Page number", exact: true }).fill("4");
+    await page.getByRole("textbox", { name: "Page number", exact: true }).press("Enter");
+    await ready(page);
+    await uploadResult(page, syntheticResult(markdown), "large-paged-markdown.json");
+    await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
+    await expect(pane.getByRole("heading", { name: "Large page 1", exact: true })).toBeVisible();
+    await expect(pane.locator(".cu-markdown table")).toHaveCount(1);
+    const pagination = pane.getByRole("group", { name: "Markdown pagination", exact: true });
+    await expect(pane.locator(".cu-results-footer")).toHaveCount(0);
+    await expect(pagination.getByRole("button")).toHaveCount(2);
+    const input = pagination.getByRole("textbox", { name: "Markdown page number", exact: true });
+    for (const viewport of [{ width: 1030, height: 760 }, { width: 1440, height: 1000 }]) {
+        await page.setViewportSize(viewport);
+        await ready(page);
+        const bar = await pagination.boundingBox();
+        const source = await page.getByRole("group", { name: "Source document toolbar", exact: true }).boundingBox();
+        const paneBounds = await pane.boundingBox();
+        const controls = await pagination.locator(".cu-page-controls").boundingBox();
+        if (!bar || !source || !paneBounds || !controls) throw new Error("The document toolbars are not laid out.");
+        expect(bar.height).toBe(44);
+        expect(Math.abs(bar.y + bar.height - source.y - source.height)).toBeLessThanOrEqual(1);
+        expect(Math.abs(controls.x + controls.width / 2 - paneBounds.x - paneBounds.width / 2)).toBeLessThanOrEqual(1);
+        for (const control of [page.getByRole("textbox", { name: "Page number", exact: true }), input]) {
+            await pane.getByRole("tab", { name: "Markdown", exact: true }).focus();
+            await page.locator(".prototype-banner").hover();
+            await expect(control).toBeEnabled();
+            const bounds = await control.boundingBox();
+            const normal = await control.evaluate(element => {
+                const style = getComputedStyle(element);
+                const toolbar = element.closest(".cu-source-view-toolbar");
+                if (!toolbar) throw new Error("The page input toolbar is unavailable.");
+                const color = style.boxShadow.match(/rgba?\([^)]+\)/)?.[0];
+                const offset = style.boxShadow.replace(/rgba?\([^)]+\)/, "").match(/-?[\d.]+px/g)?.[1];
+                if (!color || offset === undefined || !style.boxShadow.includes("inset")) throw new Error("The page input hairline is unavailable.");
+                return { color, shadow: style.boxShadow, offset,
+                    lineHeight: Math.abs(Number.parseFloat(offset)), background: getComputedStyle(toolbar).backgroundColor,
+                    fill: style.backgroundColor, frame: [style.borderTopColor, style.borderRightColor, style.borderBottomColor, style.borderLeftColor] };
+            });
+            expect(normal.lineHeight).toBeGreaterThan(0);
+            expect(normal.lineHeight).toBeLessThan(1);
+            expect(normal.fill).toBe("rgba(0, 0, 0, 0)");
+            expect(normal.frame.every(color => color === "rgba(0, 0, 0, 0)")).toBe(true);
+            expect(contrast(normal.color, normal.background)).toBeGreaterThanOrEqual(3);
+            await control.hover();
+            expect(await control.evaluate(element => getComputedStyle(element).boxShadow)).not.toBe(normal.shadow);
+            expect(await control.evaluate(element => getComputedStyle(element).boxShadow)).toContain(normal.offset);
+            expect(await control.boundingBox()).toEqual(bounds);
+            await control.click();
+            await expect(control).toBeFocused();
+            await expect(control).toHaveCSS("outline-style", "none");
+            expect(await control.evaluate(element => getComputedStyle(element).boxShadow)).not.toBe(normal.shadow);
+            await control.press("Tab");
+            const next = control === input
+                ? pagination.getByRole("button", { name: "Next Markdown page", exact: true })
+                : page.getByRole("button", { name: "Next page", exact: true });
+            await expect(next).toBeFocused();
+            await expect(next).toHaveCSS("outline-style", "solid");
+            expect(await next.evaluate(element => Number.parseFloat(getComputedStyle(element).outlineWidth))).toBeGreaterThanOrEqual(2);
+            await page.keyboard.press("Shift+Tab");
+            await expect(control).toBeFocused();
+            await expect(control).toHaveCSS("outline-style", "none");
+            const focusColors = await control.evaluate(element => {
+                const style = getComputedStyle(element);
+                const line = style.boxShadow.match(/rgba?\([^)]+\)/)?.[0];
+                if (!line) throw new Error("The focused page input hairline is unavailable.");
+                return { line, caret: style.caretColor };
+            });
+            expect(focusColors.line).not.toBe(normal.color);
+            expect(contrast(focusColors.line, normal.background)).toBeGreaterThanOrEqual(3);
+            expect(contrast(focusColors.caret, normal.background)).toBeGreaterThanOrEqual(4.5);
+            expect(await control.evaluate(element => getComputedStyle(element).boxShadow)).toContain(normal.offset);
+            expect(await control.boundingBox()).toEqual(bounds);
+        }
+        const scroll = pane.locator(".cu-rich-result-scroll");
+        expect(await scroll.evaluate(element => element.scrollHeight - element.clientHeight)).toBeGreaterThan(0);
+        await scroll.evaluate(element => { element.scrollTop = element.scrollHeight; });
+        expect(await pagination.boundingBox()).toEqual(bar);
+    }
+    await input.fill("41");
+    await input.press("Enter");
+    await expect(pane.getByRole("heading", { name: "Large page 41", exact: true })).toBeVisible();
+    await expect(pane.getByRole("table")).toContainText("Page 41 cell");
+    await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue("4");
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
+    await pane.getByRole("tab", { name: "Markdown", exact: true }).click();
+    await expect(pane.getByRole("heading", { name: "Large page 41", exact: true })).toBeVisible();
+    await expect(pane.getByRole("alert")).toHaveCount(0);
 });
 
 test("GA and Preview derive Studio tabs from selected content without changing the source or inventing renderers", async ({ page }) => {

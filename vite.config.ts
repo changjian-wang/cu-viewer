@@ -2,9 +2,10 @@ import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 import { heifAssets } from "./frontend/tooling/heifAssets.ts";
 import { pdfAssets } from "./frontend/tooling/pdfAssets.ts";
+import { markdownAssets } from "./frontend/tooling/markdownAssets.ts";
 
 export default defineConfig({
-    plugins: [pdfAssets("pdfjs"), heifAssets("heif")],
+    plugins: [pdfAssets("pdfjs"), heifAssets("heif"), markdownAssets("markdown")],
     build: {
         lib: {
             entry: {
@@ -22,6 +23,7 @@ export default defineConfig({
     },
     test: {
         environment: "node",
+        setupFiles: ["./frontend/testSetup.ts"],
         include: ["frontend/src/**/*.test.{ts,tsx}", "frontend/app/**/*.test.{ts,tsx}"],
     },
 });

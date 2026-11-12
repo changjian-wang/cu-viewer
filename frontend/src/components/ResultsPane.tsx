@@ -16,6 +16,7 @@ import type { FieldsReviewState } from "./FieldsPane";
 import { ActionMenu } from "./ActionMenu";
 import { ValueDetails } from "./ValueActions";
 import { revealFieldTarget } from "../interaction/fieldNavigation";
+import { useMarkdownDocument } from "../markdown/client";
 
 const MarkdownPane = lazy(() => import("./MarkdownPane").then(module => ({ default: module.MarkdownPane })));
 const JsonPane = lazy(() => import("./JsonPane").then(module => ({ default: module.JsonPane })));
@@ -65,7 +66,15 @@ export function ResultsPane(props: ResultsPaneProps) {
     const content = props.view === "label" ? props.labelContent : props.content;
     const [review, setReview] = useState(() => initialFieldsReview(content?.fields ?? []));
     const [localSettings, setLocalSettings] = useState({ ...defaultReviewSettings });
+    const [markdownChoice, setMarkdownChoice] = useState({ context: props.workflow.context, page: 0 });
+    const markdownContext = useMemo(() => ({}), [props.result, props.content, props.source]);
+    const markdownClient = useMarkdownDocument(props.content?.markdown, markdownContext);
+    const markdownPage = markdownChoice.context === props.workflow.context ? markdownChoice.page : 0;
     const { view } = props;
+    useEffect(() => {
+        // Parse in parallel with loading the lazy Markdown UI.
+        if (view === "markdown") markdownClient?.ensure(markdownPage);
+    }, [view, markdownClient, markdownPage]);
     const settings = props.preferences?.settings ?? localSettings;
     const restoringFocus = useRef(false);
     const panel = useRef<HTMLDivElement>(null);
@@ -237,7 +246,10 @@ export function ResultsPane(props: ResultsPaneProps) {
                 onShowAllFields={props.onShowAllFields}
                 preferenceError={Boolean(props.preferences?.storageError)} />}
             {view === "markdown" && <Suspense fallback={<div className="cu-state" role="status">Loading Markdown view…</div>}>
-                <MarkdownPane markdown={props.content?.markdown} />
+                <MarkdownPane markdown={props.content?.markdown} content={props.content} source={props.source ?? null}
+                    {...(markdownClient ? { client: markdownClient } : {})}
+                    pageIndex={markdownPage}
+                    onPageChange={page => setMarkdownChoice({ context: props.workflow.context, page })} />
             </Suspense>}
             {view === "result" && <Suspense fallback={<div className="cu-state" role="status">Loading Result view…</div>}>
                 <JsonPane value={props.result} />
@@ -288,8 +300,7 @@ export function ResultsPane(props: ResultsPaneProps) {
                 { label: "Copy value", icon: "copy", disabled: !props.workflow.menu.field.hasValue,
                     run: () => { if (props.workflow.menu) void props.workflow.copy(props.workflow.menu.field); } },
             ]} />}
-        {!isFieldView(view) && view !== "info" && view !== "paragraphs" && <footer className="cu-results-footer">
-            {view === "markdown" && "Rendered from content.markdown. Unsafe markup, URLs and remote images are not rendered."}
+        {!isFieldView(view) && view !== "info" && view !== "paragraphs" && view !== "markdown" && <footer className="cu-results-footer">
             {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
             {["figures", "signatures"].includes(view ?? "") &&
                 "Select a returned item to locate its source. All regions on the active source page are highlighted; use document page navigation to view other pages."}

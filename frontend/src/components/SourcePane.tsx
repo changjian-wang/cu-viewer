@@ -78,7 +78,7 @@ export function SourcePane(props: SourcePaneProps) {
     const zoom = page && fit ? getFitZoom(page, available, rotation, fit) : manualZoom;
     const fitPageZoom = page ? getFitZoom(page, available, rotation, "page") : 1;
     const minZoom = Math.min(0.25, fitPageZoom, zoom), maxZoom = Math.max(3, fitPageZoom, zoom);
-    const { canvas, renderedPage, renderKey, dpr, ready, hasPreview, renderError, layerFrame, layersReady, projectionSize, size } =
+    const { canvas, renderedPage, renderKey, dpr, ready, hasPreview, renderError, layerFrame, layersReady, projectionSize, size, displayedPageNumber } =
         useSourceRendering({ source: props.source, page, pageNumber: props.pageNumber, zoom, rotation, available,
             loading: props.loading, error: props.error, onRenderReady: props.onRenderReady });
     const display = size ?? (page ? {
@@ -417,7 +417,7 @@ export function SourcePane(props: SourcePaneProps) {
                     style={{ width: display.width, height: display.height, visibility: hasPreview ? "visible" : "hidden",
                         left: Math.floor(layout.paper.x), top: Math.floor(layout.paper.y),
                         transform: `translate(${layout.paper.x % 1}px, ${layout.paper.y % 1}px)` }}>
-                    <canvas ref={canvas} role="img" aria-label={`Rendered source page ${props.pageNumber}`} data-testid="source-canvas" />
+                    <canvas ref={canvas} role="img" aria-label={`Rendered source page ${displayedPageNumber ?? props.pageNumber}`} data-testid="source-canvas" />
                     {layersReady && background.tables.length > 0 && <svg className="cu-overlay cu-source-tables" data-testid="source-tables"
                         width={layerFrame?.size.width} height={layerFrame?.size.height} role="group" aria-label="Source tables" focusable="false">
                         {background.tables.map((table, index) => <polygon key={table.key} data-table-id={table.field.id}

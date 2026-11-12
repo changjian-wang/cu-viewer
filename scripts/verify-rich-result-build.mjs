@@ -35,12 +35,29 @@ const library = files(resolve("dist"));
 const demo = files(resolve("dist-demo", "assets"));
 const libraryHeif = files(resolve("dist", "heif"));
 const demoHeif = files(resolve("dist-demo", "assets", "heif"));
+const libraryWorker = requireSingle(files(resolve("dist", "markdown")), /^markdown\.worker\.js$/, "library Markdown worker");
+const demoWorker = requireSingle(files(resolve("dist-demo", "assets", "markdown")), /^markdown\.worker\.js$/, "demo Markdown worker");
+for (const worker of [libraryWorker, demoWorker]) {
+    if (readFileSync(worker.path, "utf8").includes("document.createElement")) {
+        throw new Error("The Markdown worker must use worker-safe parser exports, not a DOM entity decoder.");
+    }
+}
 const libraryEntry = requireSingle(library, /^index\.js$/, "library entry");
 const libraryMarkdown = requireSingle(library, /^MarkdownPane-.*\.js$/, "library Markdown chunk");
 const libraryJson = requireSingle(library, /^JsonPane-.*\.js$/, "library JSON chunk");
 const demoEntry = requireSingle(demo, /^index-.*\.js$/, "demo entry");
 const demoMarkdown = requireSingle(demo, /^MarkdownPane-.*\.js$/, "demo Markdown chunk");
 const demoJson = requireSingle(demo, /^JsonPane-.*\.js$/, "demo JSON chunk");
+const largePdf = requireSingle(demo, /^large-bank-statement-.*\.pdf$/, "built-in Large PDF");
+const largeResult = requireSingle(demo, /^large-bank-statement\.cu-.*\.json$/, "built-in Large PDF result");
+for (const [asset, source] of [[largePdf, "large-bank-statement.pdf"], [largeResult, "large-bank-statement.cu.json"]]) {
+    const expected = createHash("sha256").update(readFileSync(resolve("tests", "fixtures", source))).digest("hex");
+    const actual = createHash("sha256").update(readFileSync(asset.path)).digest("hex");
+    if (actual !== expected) throw new Error(`The built-in Large PDF asset ${asset.name} does not match ${source}.`);
+}
+if (library.some(item => item.name.startsWith("large-bank-statement"))) {
+    throw new Error("Demo sample data must not be included in the reusable library.");
+}
 const detailPanes = ["ParagraphsPane", "FiguresPane", "SignaturesPane", "InfoPane"];
 if ([...library, ...demo].some(item => /^(?:TablesPane|TableGrid)-.*\.js$/.test(item.name))) {
     throw new Error("The removed standalone Tables view must not ship a native grid chunk.");
@@ -65,12 +82,16 @@ console.log(JSON.stringify({
     library: {
         entryBytes: libraryEntry.bytes,
         markdownChunkBytes: libraryMarkdown.bytes,
+        markdownWorkerBytes: libraryWorker.bytes,
         jsonChunkBytes: libraryJson.bytes,
     },
     demo: {
         entryBytes: demoEntry.bytes,
         markdownChunkBytes: demoMarkdown.bytes,
+        markdownWorkerBytes: demoWorker.bytes,
         jsonChunkBytes: demoJson.bytes,
+        largePdfBytes: largePdf.bytes,
+        largeResultBytes: largeResult.bytes,
     },
     detailChunks,
     heif: {

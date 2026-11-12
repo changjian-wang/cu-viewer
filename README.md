@@ -34,11 +34,31 @@ npm ci --ignore-scripts
 npm run dev
 ```
 
-打开 <http://127.0.0.1:5173/>。选择 PDF／Receipt PNG 使用真实配对样本，或分别选择本地源文件和保存的 JSON；不产生新的 CU 调用。文件选择属于演示宿主，不是组件公开 API。
+打开 <http://127.0.0.1:5173/>。选择 PDF／Receipt PNG／Large PDF 使用项目内置的配对样本，或分别选择本地源文件和保存的 JSON；不产生新的 CU 调用。文件选择属于演示宿主，不是组件公开 API。
 
 本地标签通过顶部 **Labels** 选择器加载：先选择配对 PDF，再选择 `.labels.json`，打开 **Label** tab。可使用[标签样本](tests/fixtures/labels)，无需配套分析结果文件；演示宿主允许另行加载 Analyze JSON，但阶段一不做两者比对。
 
 该页面由[演示宿主](frontend/demo)启动，直接使用[组件源码](frontend/src)。它用于开发和调试，实际 CLI 接入见[开发计划](docs/dev-plan.md)。
+
+### 内置示例
+
+三个入口都直接加载[项目样例资源](tests/fixtures)，开发服务与 `build:demo` 的行为一致，不依赖 Downloads、本机路径、环境变量或专用文件接口：
+
+| 入口 | 源文件／配套结果 | 用途 |
+| --- | --- | --- |
+| PDF | `mixed-financial-docs.pdf`／`mixed-financial-docs.cu.json` | 普通 PDF 示例。 |
+| Receipt PNG | `receipt.png`／`receipt.cu.json` | 票据图片示例。 |
+| Large PDF | `large-bank-statement.pdf`／`large-bank-statement.cu.json` | 当前 41 页的大文档分页、渲染和性能回归。 |
+
+默认打开普通 PDF，也可通过 `?sample=pdf`、`?sample=png`、`?sample=large` 直接选择示例。切换与刷新只读取项目内已保存的数据，不调用 Azure、不上传文件。缺少配套文件会在构建或加载时明确失败，不混用其他文档的结果。
+
+Large PDF 为任务所有者提供并授权纳入项目的测试配对数据，来源、权限说明、统计与完整性哈希见[样例清单](tests/fixtures/manifest.json)；不将其视为 Azure Samples 的 MIT 样例。内置样例随 Demo 构建，不打入通用 npm 组件或 CLI Release 的 Viewer 静态资源。
+
+大型结果采用[后台解析与按需渲染](#implementation-limits)：大 Markdown 按 CU 分页标记浏览，单页大内容及复杂表格虚拟化展示，Result 逐层展开、分页展示长数组和长文本；不截断或改写原始数据，也不通过提高同步渲染阈值掩盖问题。切换 Markdown 分页不改变左侧 PDF，往返结果标签保留当前 Markdown 分页。
+
+Markdown 不再显示底部渲染说明；多页内容使用底部固定的 44px 工具栏，居中放置与 PDF 相同样式的上一页箭头、页码输入／总页数及下一页箭头。输入页码后按 Enter 或离开输入框跳页，无效页码明确提示；正文独立滚动，首末页的 Markdown 箭头保持禁用，JSON 分页不变。
+
+PDF 与 Markdown 的页码输入统一使用 0.5px 发丝底线，以内阴影绘制避免细边框被取整成 1px。默认无外框和底色，底线颜色与工具栏背景对比度至少为 3:1；悬停加深底线，鼠标和键盘聚焦均以蓝色底线及输入光标提示，不再显示额外矩形蓝框，其他控件的焦点轮廓不变。错误与禁用状态分别区分，输入框尺寸、底栏高度、居中及翻页行为不变。
 
 ### 本地 Label 查看（第一阶段）
 
@@ -175,7 +195,7 @@ Go CU 宿主把用户实际自定义的顺序保存到 `azd config` 使用的用
 - Legend 在所有宽度下保留文字按钮，不再常驻简版色块。浮层保留字段／表格的正常和低置信度四种只读色板，分别对应原有三个开关。低置信度字段／表格归入带分隔线的 `Low confidence` 分组，副标题 `Fields & tables` 明确第三个开关同时作用两类值。三个开关位于同一右侧列：前两个对齐正常色块，第三个对齐共同的分组标题，两种低置信度色块位于其下且不增加独立开关。`Confidence unavailable` 图例说明已移除，但灰色无分数来源的渲染语义不变。色块和文字都不可点击或聚焦。
 - Legend 三个开关的视觉尺寸缩小 20%：轨道为 28×16.8px、滑块为 12px，居中保留原有 35×28px 点击区域。轨道外的热区仍可切换，Tab／Space 和清晰的焦点提示保留；颜色、状态含义及高亮／偏好逻辑不变。
 - 原 34px 提示行及常驻手势说明已移除，不留空行。按后续明确确认移除底部 X，不新增替代按钮；清除沿用已有 Esc／原文空白处点击，保持原操作逻辑。演示宿主的 Source／Result 文件选择区及右侧结果工具栏不属于此次 Source 工具栏合并范围。
-- PDF／图片在常规缩放期间保留当前页原文预览，新光栅离屏完成后替换，不用整块 Loading 占位覆盖。首次加载、换页／换文档及真实失败仍按实际状态提示，不显示不匹配的旧画面。
+- PDF／图片首次打开或更换文档、尚无可显示画面时显示 Loading source。同一文档翻页、缩放、旋转期间保留已绘制画面，新光栅离屏完成后直接替换，不清空画面或显示整块 Loading 占位。翻页／旋转等待期间保留旧帧尺寸及实际页码；来源框、命中交互和定位仍等待目标帧及其几何就绪，不能把旧画面当作新页使用。真实失败仍明确提示。
 - 固定百分比缩放后，页面四边都保留在实际可滚动范围内，滚动／拖动后仍可访问完整原文；不会为消除裁切而自动切回 Fit page 或改变所选比例、页码及关联字段范围。手势锚点、来源坐标和浮层定位与实际页面位置保持一致。
 - 所有支持的 Source 宽度均直接显示底部旋转按钮，不再通过 More 回退；顶部 More 和独立的 Reset layout widths 菜单入口已移除。分栏仍可拖动，双击来源／结果分隔条或字段列分隔条可分别恢复默认宽度；右侧字段及值操作菜单不受影响。
 - 字段／表格开关控制各自的全部来源填色，包括低置信度和无置信度来源，不删除来源命中或选择轮廓。低置信度开关关闭时，低分值按正常字段／表格色显示，右侧低置信度强调关闭；N/A 仍表示未返回分数，不等于真实 `0` 或值未返回。三个开关始终可操作，全部关闭后也能恢复。
@@ -231,9 +251,9 @@ export default defineConfig({
 });
 ```
 
-`viewerAssets()` 是仅在 Node 构建端导入的可选入口。它在开发时提供允许列表中的 PDF Worker、字体、CMap、WASM、ICC 及 HEIF 资源，构建时复制到输出目录；不提供任意文件读取或源文件服务器。
+`viewerAssets()` 是仅在 Node 构建端导入的可选入口。它在开发时提供允许列表中的 PDF Worker、字体、CMap、WASM、ICC、Markdown Worker 及 HEIF 资源，构建时复制到输出目录；不提供任意文件读取或源文件服务器。
 
-默认目录为 `build.assetsDir/pdfjs` 和同级 `heif`。可使用 `viewerAssets("assets/pdfjs")` 指定布局，但目录必须位于构建输出内，并与打包后 Viewer 入口解析的相对资源路径匹配。不要从源文件的跨域 origin 加载 Viewer 的 Worker/字体。
+默认目录为 `build.assetsDir/pdfjs` 和同级 `markdown`、`heif`。可使用 `viewerAssets("assets/pdfjs")` 指定布局，但目录必须位于构建输出内，并与打包后 Viewer 入口解析的相对资源路径匹配。不要从源文件的跨域 origin 加载 Viewer 的 Worker/字体。
 
 <a id="result-views"></a>
 ## 当前结果交互
@@ -246,7 +266,7 @@ Tab 栏按可用宽度展示，放不下的标签收进右侧 `...` 下拉菜单
 | --- | --- |
 | Fields | 双／三列表格展示真实层级及数组投影，对象默认折叠、非空数组默认展开；置信度使用值自身的分数，不继承父级。缺失过滤不隐藏 `0`、`false`、空字符串或 `null`，折叠不丢失单项或整组选择。只有原生表格而无提取字段时隐藏 Fields，不补造数据。 |
 | Label | 使用本地 `fieldLabels`，复用 Fields 的层级、数组表格、搜索及导航；普通／对象标签浅绿，数组标签浅蓝。参考颜色不受置信度影响，组级悬浮摘要使用子字段的真实值与来源。 |
-| Markdown | 渲染原始 Markdown、GFM 和经清理的 CU HTML 表格；脚本、危险 URL 等不能执行。 |
+| Markdown | 在 Worker 中完整解析 Markdown、GFM 和 CU HTML 表格并安全清理，再按页／块展示；跨页引用和表格先解析、后分页，脚本和危险 URL 等不能执行。 |
 | Paragraphs | 保留返回顺序、role/页码，选择定位真实来源。 |
 | Figures／Signatures | 使用已加载 source 的真实区域裁剪及返回 metadata；不补造图片或签名状态。 |
 | Info | 所有 content 的 metadata、usage、infos、warnings 按固定顺序展示；只读名称／值层次表默认全部展开，可折叠，无 Copy 控件，不改变原值。 |
@@ -270,8 +290,14 @@ Tab 栏按可用宽度展示，放不下的标签收进右侧 `...` 下拉菜单
 
 以下是当前实现边界，不是产品 SLA：
 
-- Markdown 同步渲染上限 50,000 字符；JSON 为 500,000 序列化字符／20,000 值，Tables 网格为 20,000 位置。超限明确提示，不截断或修改调用方数据。
-- 当前 Markdown 远程图片被替换为省略说明，不发起请求。
+- 所有 Markdown 均在同源静态 Worker 中完整解析和安全清理，再建立分页与内容块索引；不先切开原文解析，避免丢失跨页引用或 HTML 表格结构。超过 50,000 字符的文档按独占一行的 CU `<!-- PageBreak -->` 标记分页，小文档保留连续阅读；代码围栏内的同名文本不作为分页。
+- 50,000 字符／3,000 节点是普通页的静态展示预算，不是拒绝查看的限制。大型单页按块及长文本片段虚拟化，复杂表格按可见行列加载，保留表头和单元格跨度；长单元格具有独立滚动区，完整内容仍可到达，不以超限提示替代正文。
+- Worker 首次打开 Markdown 时与界面懒加载并行启动，主线程按需请求片段并使用有界缓存；往返标签复用文档，更换结果、content、source 或卸载时释放。Worker 或格式化异常仅影响 Markdown，明确显示错误并提供重试、原文查看，不卸载 PDF 或其他结果视图。
+- 虚拟化仅挂载可视内容；浏览器原生查找与锚点跳转不能保证覆盖离屏内容，不等同于全量搜索。极端文档仍受浏览器内存约束，不承诺任意体量的固定解析时间。
+- JSON 在 500,000 序列化字符／20,000 值以内沿用原树形查看；超过时分时验证完整数据，再按需展开，每个容器每页最多 100 项，长字符串每页最多 4,000 个 UTF-16 代码单元并保持代理对完整。首末页和前后页可访问全部原始内容；循环引用或非 JSON 值明确报错，不伪装成部分成功。
+- Info 的既有大小防护和 Tables 的 20,000 网格位置限制不变；所有分段与分页均不改写调用方数据。
+- Markdown 的 `figures/<id>`（或 `./figures/<id>`）图片引用按当前 content 的真实 Figure ID 与来源区域，复用已加载原文的本地裁剪预览；不请求图片链接，不改变左侧页码。沿用 Figures 预览的最长边 320 CSS px 上限，使用原文真实内容并保持比例，不附加卡片边框；多来源区域依返回顺序显示。
+- 本地图片预留真实裁剪比例，避免异步加载时撑开布局；图片密集页也纳入虚拟化预算，离屏／切页时取消裁剪并释放画布。缺失、重复 ID、无来源或裁剪失败只在图片位置明确提示，不隐藏正文。其他图片仍替换为省略说明，普通文字不会按名称猜测或替换成 Logo。
 - 剪贴板使用宿主 Clipboard API，权限不足或不可用明确报错，不伪装复制成功。
 - Worker、bitmap、URL 和画布按归属取消/清理；HEIF 解码有 30 秒截止保护，不代表解码延迟 SLA。HEIF 图像序列、AVIF 当前不支持。
 
@@ -290,7 +316,7 @@ connect-src 'self';
 object-src 'none'
 ```
 
-几何/布局使用内联样式；PDF 不要求脚本 eval 或 Blob Worker。HEIF Worker 编译 WebAssembly，其 `script-src` 需增加 `'wasm-unsafe-eval'`，不是通用 JavaScript `'unsafe-eval'`。Vite 开发宿主另需自己的 loopback HMR WebSocket origin。
+几何/布局使用内联样式；PDF 和 Markdown 不要求脚本 eval 或 Blob Worker。HEIF Worker 编译 WebAssembly，其 `script-src` 需增加 `'wasm-unsafe-eval'`，不是通用 JavaScript `'unsafe-eval'`。Vite 开发宿主另需自己的 loopback HMR WebSocket origin。
 
 <a id="validation"></a>
 ## 开发验证
@@ -308,6 +334,10 @@ npm run test:e2e
 npm run verify:performance
 npm run verify:consumer
 ```
+
+E2E 独占 `127.0.0.1:5173`，请先停止本机开发服务。它以 `test` 模式启动项目内置样例，不复用已有开发服务；Large PDF 回归同时验证开发与生产构建的资源加载。
+
+运行 `npm run verify:performance` 会固定检查内置 Large PDF 的每个 Markdown 分页、全部表格及 JSON 最后一个原始段落，并应用现有交互／主线程／内存预算。它直接选择 Large PDF 入口，无需配置环境变量或提供机器外部文件，不调用 Analyze。
 
 独立验证器构建 tgz，在仓库外安装 React 18/19 各自依赖并检查开发/生产、类型、资源和 CSP，不使用源码别名或共享 node_modules。默认 E2E 不包含该独立矩阵。几何、性能和压力测试沿用现有工程阈值，不将其扩展为产品 SLA。
 

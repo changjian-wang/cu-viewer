@@ -29,6 +29,7 @@ for (const entry of pack.files) {
 for (const path of [
     "dist/index.js", "dist/index.d.ts", "dist/vite.js", "dist/vite.d.ts", "dist/styles.css",
     "dist/pdfjs/build/pdf.worker.mjs", "dist/pdfjs/LICENSE",
+    "dist/markdown/markdown.worker.js",
     "dist/heif/heif.worker.js", "dist/heif/heic_decoder.js", "dist/heif/heic_decoder_bg.wasm",
     "dist/heif/LICENSE-heic-rs-MIT", "dist/heif/LICENSE-heic-rs-APACHE",
     "dist/heif/LICENSE-wasm-bindgen-MIT", "dist/heif/LICENSE-wasm-bindgen-APACHE",
@@ -87,7 +88,8 @@ for (const profile of profiles) {
     for (const name of ["styles.css", "index.html"]) {
         copyFileSync(join(repository, "frontend", "demo", name), join(directory, name));
     }
-    for (const name of ["mixed-financial-docs.pdf", "mixed-financial-docs.cu.json", "receipt.png", "receipt.cu.json", "LICENSE.txt"]) {
+    for (const name of ["mixed-financial-docs.pdf", "mixed-financial-docs.cu.json", "receipt.png", "receipt.cu.json",
+        "large-bank-statement.pdf", "large-bank-statement.cu.json", "manifest.json", "LICENSE.txt"]) {
         copyFileSync(join(repository, "tests", "fixtures", name), join(directory, "fixtures", name));
     }
     for (const name of ["example.heic", "example.synthetic.cu.json"]) {
