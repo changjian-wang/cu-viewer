@@ -59,7 +59,7 @@ describe("local label input", () => {
         } } }, source);
         const group = model.content.fields[0]!;
         expect(fieldRegions(group).map(region => region.polygon[0])).toEqual([{ x: 1, y: 1 }, { x: 4, y: 4 }]);
-        expect(sourceOutlines(model.content, "label", 1, false).map(outline => outline.field.id))
+        expect(sourceOutlines(model.content, "fields", 1, false).map(outline => outline.field.id))
             .toEqual([group.id, group.children[0]!.id]);
     });
 

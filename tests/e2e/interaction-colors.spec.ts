@@ -50,7 +50,7 @@ test("UI-48/51 source hover and pin have distinct violet outlines with linked Fi
     }))).toEqual(beforeChip);
     expect(await source(page, billing).getAttribute("fill")).toBe(fills);
     await expect(page.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(36, 52, 71)");
-    await expect(page.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(155, 28, 28)");
+    await expect(page.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(36, 52, 71)");
     await expect(row(page, shipping).locator(".cu-field-name")).toHaveAttribute("aria-pressed", "true");
     await expect(row(page, billing).locator(".cu-field-name")).toHaveAttribute("aria-pressed", "false");
     expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(frame);
@@ -108,8 +108,9 @@ test("UI-48 array-cell hover and whole-group selection preserve neighbors, opaqu
     await expect(grid.locator(".is-location-row")).toHaveCSS("background-color", related);
     await expect(grid.locator(".is-location-column")).toHaveCSS("background-color", related);
     await expect(grid.locator(":scope > tbody > tr > td").nth(2)).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(cell(first).locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(246, 197, 204)");
-    await expect(cell(first).locator(".cu-value-chip")).toHaveCSS("color", "rgb(155, 28, 28)");
+    await expect(cell(first).locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(cell(first).locator(".cu-value-chip")).toHaveCSS("color", "rgb(36, 52, 71)");
+    await expect(cell(first).locator(".cu-value-chip")).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(cell(first).locator(".cu-cell-value")).toHaveAttribute("aria-pressed", "true");
     await expect(cell(second).locator(".cu-cell-value")).toHaveAttribute("aria-pressed", "false");
     await locateGroup(page, array);
@@ -139,7 +140,8 @@ test("UI-48 related ranges stay pale while hover and the actual current value re
     await row(page, amount).locator(".cu-field-value").click();
     await expect(row(page, amount)).toHaveCSS("background-color", selected);
     await expect(row(page, currency)).toHaveCSS("background-color", related);
-    await expect(row(page, amount).locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(252, 232, 230)");
+    await expect(row(page, amount).locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(row(page, amount).locator(".cu-value-chip")).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(page.locator(".cu-table-scope")).toBeVisible();
 });
 
@@ -165,10 +167,7 @@ test("UI-51 violet outlines contrast with every semantic source fill without cha
         points: element.getAttribute("points"), fill: getComputedStyle(element).fill,
     })));
     const fills = [...new Set(before.map(region => region.fill))].sort();
-    expect(fills).toEqual([
-        "rgb(232, 241, 255)", "rgb(232, 245, 233)", "rgb(241, 243, 245)",
-        "rgb(246, 197, 204)", "rgb(252, 232, 230)",
-    ]);
+    expect(fills).toEqual(["rgb(236, 243, 252)"]);
     const canvas = page.getByTestId("source-canvas");
     const pixels = await canvas.evaluate(element => {
         if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected a source canvas.");

@@ -122,6 +122,12 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     if (process.platform === "win32" && verifyProductScreenshots) await expect(page).toHaveScreenshot("png-pinned.png", { fullPage: true });
     await expect.poll(() => alive(page)).toEqual({ workers: 0, bitmaps: 1, urls: 0 });
     await expect(page.getByRole("button", { name: "Clear", exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "PDF + Labels", exact: true }).click();
+    await ready(page);
+    await expect(page.getByLabel("Source information")).toContainText("invoice.pdf");
+    await expect(page.getByRole("button", { name: "Select label value of InvoiceNumber", exact: true })).toHaveText("INV-100");
+    await expect(page.getByRole("tab", { name: "Label", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "Result", exact: true })).toHaveCount(0);
 
     await page.getByRole("button", { name: "PDF", exact: true }).click();
     await ready(page);
@@ -132,7 +138,7 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     expect(observations.get(page)?.markdown.length).toBeGreaterThan(0);
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
-    await expect(pane.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();
+    await expect(pane.locator(".cu-json-label", { hasText: /^"?usage"?:$/ })).toBeVisible();
     await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
     await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).press("Enter");
     await expect(page.getByTestId("source-overlay")).toBeVisible();
@@ -283,8 +289,8 @@ test("isolated packed consumer loads local standard fonts rather than relying on
 test("isolated packed consumer decodes packaged HEIF under a WASM-only worker CSP", async ({ page }, testInfo) => {
     const directory: unknown = testInfo.project.metadata.consumerDirectory;
     if (typeof directory !== "string") throw new Error("The isolated consumer directory is unavailable.");
-    await page.getByLabel("Choose saved Analyze JSON").setInputFiles(join(directory, "fixtures", "example.synthetic.cu.json"));
     await page.getByLabel("Choose source file").setInputFiles(join(directory, "fixtures", "example.heic"));
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles(join(directory, "fixtures", "example.synthetic.cu.json"));
     await expect(page.getByLabel("Source information")).toContainText("example.heic");
     await ready(page);
     await expect(page.getByLabel("Source information")).toContainText("1280 × 854 px");

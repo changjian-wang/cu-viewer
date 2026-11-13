@@ -95,10 +95,10 @@ describe("CU page word sources", () => {
     });
 
     it.each([
-        ["mixed-financial-docs", [197, 95, 106, 140]],
-        ["receipt", [39]],
+        ["mixed-financial-docs.pdf", [197, 95, 106, 140]],
+        ["receipt.png", [39]],
     ] as const)("maps every saved %s page word without adding warnings or changing input", (filename, counts) => {
-        const raw: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", `${filename}.cu.json`), "utf8"));
+        const raw: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", `${filename}.result.json`), "utf8"));
         const before = JSON.stringify(raw);
         const model = parseCuResult(raw);
         const pages = model.contents[0]?.pages;

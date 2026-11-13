@@ -1,39 +1,36 @@
 import { useMemo, useRef, useState } from "react";
 import { ResultPagination } from "./ResultPagination";
+import { JSON_STRING_PREVIEW_THRESHOLD } from "../model/resultLimits";
+import { textBoundary } from "../markdown/model";
+import type { JsonStringSelection } from "./JsonStringDialog";
 
 const ENTRIES_PER_PAGE = 100;
-const STRING_CHARACTERS_PER_PAGE = 4_000;
+const STRING_SUMMARY_CHARACTERS = 240;
 
 interface JsonNodeProps {
     value: unknown;
     path: string;
     level: number;
     label?: string;
+    onViewString: (selection: JsonStringSelection) => void;
 }
 
-function stringBoundary(value: string, offset: number): number {
-    const before = value.charCodeAt(offset - 1), after = value.charCodeAt(offset);
-    return before >= 0xd800 && before <= 0xdbff && after >= 0xdc00 && after <= 0xdfff ? offset - 1 : offset;
-}
-
-function JsonScalar({ value, path, level, label }: JsonNodeProps) {
-    const [choice, setChoice] = useState({ value, page: 0 });
-    const page = choice.value === value ? choice.page : 0;
-    const pages = typeof value === "string" ? Math.max(1, Math.ceil(value.length / STRING_CHARACTERS_PER_PAGE)) : 1;
-    const start = typeof value === "string" ? stringBoundary(value, page * STRING_CHARACTERS_PER_PAGE) : 0;
-    const end = typeof value === "string" ? stringBoundary(value, Math.min(value.length, (page + 1) * STRING_CHARACTERS_PER_PAGE)) : 0;
-    const text = JSON.stringify(typeof value === "string" ? value.slice(start, end) : value);
+function JsonScalar({ value, path, level, label, onViewString }: JsonNodeProps) {
+    const long = typeof value === "string" && value.length > JSON_STRING_PREVIEW_THRESHOLD;
+    const text = JSON.stringify(long ? value.slice(0, textBoundary(value, STRING_SUMMARY_CHARACTERS)) : value);
     const style = value === null ? "null" : typeof value === "string" ? "string" : "number";
     return <li className="cu-json-node" role="treeitem" aria-level={level} data-json-path={path}>
         {label !== undefined && <span className="cu-json-label">{JSON.stringify(label)}:</span>}
         <span className={`cu-json-${style}`}>{text}</span>
-        {typeof value === "string" && <ResultPagination label={`JSON string at ${path || "/"}`} page={page} pages={pages}
-            summary={`Characters ${start + 1}-${end} of ${value.length}`}
-            onChange={next => setChoice({ value, page: next })} />}
+        {long && <><span aria-hidden="true">{"\u2026"}</span><span className="cu-json-string-actions">
+            <span>{value.length.toLocaleString("en-US")} characters</span>
+            <button type="button" aria-label={`View full text for ${path || "/"}`} aria-haspopup="dialog"
+                onClick={event => onViewString({ value, path, label, trigger: event.currentTarget })}>View Full Text</button>
+        </span></>}
     </li>;
 }
 
-function JsonContainer({ value, path, level, label }: JsonNodeProps & { value: object }) {
+function JsonContainer({ value, path, level, label, onViewString }: JsonNodeProps & { value: object }) {
     const [choice, setChoice] = useState({ value, expanded: level === 1, page: 0 });
     const expanded = choice.value === value ? choice.expanded : level === 1;
     const array = Array.isArray(value);
@@ -64,7 +61,7 @@ function JsonContainer({ value, path, level, label }: JsonNodeProps & { value: o
         <span>{array ? "[" : "{"}{expanded ? "" : "..."}</span>
         {expanded && <ul className="cu-json-children" role="group">
             {children.map(child => <JsonNode key={child.key} value={child.value} path={child.path}
-                level={level + 1} {...(array ? {} : { label: child.key })} />)}
+                level={level + 1} onViewString={onViewString} {...(array ? {} : { label: child.key })} />)}
         </ul>}
         {expanded && <ResultPagination label={`JSON entries at ${path || "/"}`} page={page} pages={pages}
             summary={`Entries ${start + 1}-${end} of ${count}`}
@@ -79,10 +76,10 @@ function JsonNode(props: JsonNodeProps) {
         : <JsonScalar {...props} />;
 }
 
-export function PagedJsonTree({ value }: { value: unknown }) {
+export function PagedJsonTree({ value, onViewString }: { value: unknown; onViewString: (selection: JsonStringSelection) => void }) {
     const root = useRef<HTMLUListElement>(null);
     return <>
-        <div className="cu-json-notice" role="status">Large JSON result. Expand nodes to inspect the original data; long collections and strings are paged.</div>
+        <div className="cu-json-notice" role="status">Expand nodes to inspect the original data. Collections are paged; long strings open in a full-text viewer.</div>
         <ul ref={root} className="cu-json-tree cu-json-paged" role="tree" aria-label="Original Analyze result JSON"
             onKeyDown={event => {
                 if (!(event.target instanceof HTMLElement) || !event.target.matches(".cu-json-toggle") ||
@@ -95,7 +92,7 @@ export function PagedJsonTree({ value }: { value: unknown }) {
                     (current + (event.key === "ArrowUp" ? -1 : 1) + controls.length) % controls.length;
                 controls[index]?.focus();
             }}>
-            <JsonNode value={value} path="" level={1} />
+            <JsonNode value={value} path="" level={1} onViewString={onViewString} />
         </ul>
     </>;
 }

@@ -1,8 +1,9 @@
 export const MAX_JSON_CHARACTERS = 500_000;
 export const MAX_JSON_VALUES = 20_000;
+export const JSON_STRING_PREVIEW_THRESHOLD = 4_000;
 
 export type JsonInspection =
-    | { status: "ready"; characters: number; values: number }
+    | { status: "ready"; characters: number; values: number; hasLongStrings: boolean }
     | { status: "limit"; characters?: number; values?: number }
     | { status: "invalid"; message: string };
 
@@ -73,9 +74,11 @@ class JsonLimitError extends Error {
 
 export function inspectJson(value: unknown): JsonInspection {
     let values = 0;
+    let hasLongStrings = false;
     try {
         const serialized = JSON.stringify(value, (_key, nested: unknown) => {
             values += 1;
+            if (typeof nested === "string" && nested.length > JSON_STRING_PREVIEW_THRESHOLD) hasLongStrings = true;
             if (typeof nested === "string" && nested.length > MAX_JSON_CHARACTERS) {
                 throw new JsonLimitError(nested.length, values);
             }
@@ -89,7 +92,7 @@ export function inspectJson(value: unknown): JsonInspection {
         });
         if (serialized === undefined) return { status: "invalid", message: "The supplied result is not a JSON value." };
         if (serialized.length > MAX_JSON_CHARACTERS) return { status: "limit", characters: serialized.length, values };
-        return { status: "ready", characters: serialized.length, values };
+        return { status: "ready", characters: serialized.length, values, hasLongStrings };
     } catch (error) {
         if (error instanceof JsonLimitError) return { status: "limit", characters: error.characters, values: error.values };
         return {

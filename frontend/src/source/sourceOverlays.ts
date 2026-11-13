@@ -1,7 +1,8 @@
 import { GeometryError } from "./geometry";
 import type { PageSize } from "./geometry";
 import { fieldRegions, isFieldGroup } from "../interaction/interaction";
-import { appearance, defaultReviewSettings, isTableValue } from "../interaction/reviewFields";
+import { appearance, defaultReviewSettings, fieldAppearance, isTableValue } from "../interaction/reviewFields";
+import type { FieldComparison } from "../model/fieldComparison";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ResultView } from "../model/resultViews";
 import { isFieldView } from "../model/resultViews";
@@ -29,6 +30,8 @@ export interface SourceOutline {
     color: string;
     enabled: boolean;
     regionIndex: number;
+    page?: CuPage | undefined;
+    low?: boolean;
 }
 
 export function isValueSourceField(view: ResultView | undefined, field: CuField | null): field is CuField {
@@ -37,7 +40,7 @@ export function isValueSourceField(view: ResultView | undefined, field: CuField 
 }
 
 export function sourceOutlines(content: CuContent | undefined, view: ResultView | undefined,
-    pageNumber: number, hideMissing: boolean, settings: ReviewSettings = defaultReviewSettings): SourceOutline[] {
+    pageNumber: number, hideMissing: boolean, settings: ReviewSettings = defaultReviewSettings, comparison?: FieldComparison): SourceOutline[] {
     if (!content) return [];
     let fields: CuField[] = [];
     if (isFieldView(view)) {
@@ -46,7 +49,8 @@ export function sourceOutlines(content: CuContent | undefined, view: ResultView 
             const field = stack.pop();
             if (!field) break;
             if (hideMissing && !field.hasValue) continue;
-            if (view === "label" || !isFieldGroup(field) || field.children.length === 0 ||
+            if (comparison?.comparable && !field.hasValue) continue;
+            if (field.origin === "label" || !isFieldGroup(field) || field.children.length === 0 ||
                 (field.regions.length > 0 && fieldRegions(field) === field.regions)) fields.push(field);
             stack.push(...field.children.slice().reverse());
         }
@@ -55,9 +59,13 @@ export function sourceOutlines(content: CuContent | undefined, view: ResultView 
     else if (view === "signatures") fields = (content.signatures ?? []).map(item => item.field);
     return fields.flatMap(field => {
         const container = isFieldGroup(field) || content.tables?.some(table => table.field === field);
-        const style = appearance(container ? {} : field, isTableValue(field), settings, view === "label");
+        const status = comparison?.byFieldId.get(field.id)?.status;
+        const style = isFieldView(view) ? fieldAppearance(field.origin === "label" ? {} : field, settings, status) :
+            appearance(container ? {} : field, isTableValue(field), settings);
+        const enabled = isTableValue(field) ? settings.showTables : settings.showFields;
         return field.regions.flatMap((region, index) => region.pageNumber === pageNumber ? [{
-            key: `${field.id}:${index}`, field, region, regionIndex: index, color: style.background, enabled: style.enabled,
+            key: `${field.id}:${index}`, field, region, regionIndex: index, color: style.background,
+            enabled, low: style.low, page: content.pages.find(page => page.pageNumber === region.pageNumber),
         }] : []);
     });
 }

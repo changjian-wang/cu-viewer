@@ -7,6 +7,9 @@ import { ResizeHandle } from "./components/ResizeHandle";
 import { fieldRegion, fieldRegions, initialInteraction, interaction, isFieldGroup, selectableFields } from "./interaction/interaction";
 import { CuResultParseError, parseCuResult } from "./model/parseCuResult";
 import { parseLabels } from "./model/parseLabels";
+import { compareFields } from "./model/fieldComparison";
+import { inspectJson, validateLargeJson } from "./model/resultLimits";
+import type { JsonValidation } from "./model/resultLimits";
 import type { LoadedSource } from "./source/source";
 import { hasSourcePage, loadSource, unavailableSourcePageMessage } from "./source/source";
 import type { CuField, CuParseIssue } from "./model/types";
@@ -26,7 +29,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const matchingSource = sourceState?.input === props.source ? sourceState : null;
     const source = matchingSource?.source ?? null;
     const parsed = useMemo(() => {
-        if (props.result === undefined && props.labels !== undefined) return { model: null, error: null };
+        if (props.result === undefined) return { model: null, error: null };
         try {
             return { model: parseCuResult(props.result), error: null };
         } catch (error) {
@@ -34,35 +37,64 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             return { model: null, error: `${error.message} (${error.code}${error.path ? ` at ${error.path}` : ""})` };
         }
     }, [props.result, props.labels]);
+    const labelInspection = useMemo(() => props.labels === undefined ? null : inspectJson(props.labels), [props.labels]);
+    const [labelValidation, setLabelValidation] = useState<{ input: unknown; result: JsonValidation } | null>(null);
+    const validatedLabels = labelValidation?.input === props.labels ? labelValidation?.result : null;
+    const labelPending = labelInspection?.status === "limit" && validatedLabels?.status !== "ready" && validatedLabels?.status !== "invalid";
+    useEffect(() => {
+        if (labelInspection?.status !== "limit") return;
+        const controller = new AbortController();
+        void validateLargeJson(props.labels, controller.signal).then(result => {
+            if (!controller.signal.aborted) setLabelValidation({ input: props.labels, result });
+        }).catch((failure: unknown) => {
+            if (!controller.signal.aborted) setLabelValidation({ input: props.labels, result: {
+                status: "invalid", message: failure instanceof Error ? failure.message : String(failure),
+            } });
+        });
+        return () => controller.abort();
+    }, [props.labels, labelInspection]);
     const labelData = useMemo(() => {
+        if (labelInspection?.status === "invalid") return { model: null, error: labelInspection.message };
+        if (validatedLabels?.status === "invalid") return { model: null, error: validatedLabels.message };
+        if (labelPending) return { model: null, error: null };
         if (props.labels === undefined || !matchingSource) return { model: null, error: null };
         try {
-            return { model: parseLabels(props.labels, source), error: null };
+            return { model: parseLabels(props.labels, source, true), error: null };
         } catch (error) {
             if (!(error instanceof CuResultParseError)) throw error;
             return { model: null, error: `${error.message} (${error.code}${error.path ? ` at ${error.path}` : ""})` };
         }
-    }, [props.labels, matchingSource, source]);
+    }, [props.labels, matchingSource, source, labelInspection, labelPending, validatedLabels]);
     const [contentChoice, setContentChoice] = useState<{ result: unknown; index: number }>({ result: props.result, index: 0 });
     const contentIndex = contentChoice.result === props.result ? contentChoice.index : 0;
     const analysisContent = parsed.model?.contents[contentIndex];
     const [state, dispatch] = useReducer(interaction, initialInteraction);
     const [requestedView, setView] = useState<ResultView | undefined>("fields");
     const hasLabels = props.labels !== undefined;
-    const tabs = availableResultTabs(analysisContent, props.result, parsed.model?.apiVersion, hasLabels);
+    const boundLabels = hasLabels && contentIndex === 0;
+    const tabs = availableResultTabs(analysisContent, props.result, parsed.model?.apiVersion, boundLabels);
     const view = (tabs.find(tab => tab.id === requestedView) ?? tabs[0])?.id;
-    const labelMode = view === "label";
-    const content = labelMode ? labelData.model?.content : analysisContent;
-    const fields = useMemo(() => selectableFields(content), [content]);
-    const preferences = useReviewPreferences(labelMode && props.result !== undefined ? { source: props.source } : props, content,
-        labelMode ? undefined : parsed.model?.apiVersion, labelMode ? undefined : parsed.model?.analyzerId);
-    const context = useMemo(() => ({}), [props.source, props.result, props.labels, content]);
+    const comparison = useMemo(() => boundLabels && labelData.model ?
+        compareFields(labelData.model.content.fields, analysisContent?.fields ?? [], Boolean(analysisContent?.fieldsDeclared)) : undefined,
+    [boundLabels, labelData.model, analysisContent]);
+    const referenceMode = boundLabels && !comparison?.comparable;
+    const fieldContent = useMemo(() => comparison?.comparable && analysisContent ?
+        { ...analysisContent, fields: comparison.fields } : boundLabels ? labelData.model?.content : analysisContent,
+    [comparison, analysisContent, boundLabels, labelData.model]);
+    const activeLabel = view === "fields" && (referenceMode || (state.hovered ?? state.selected)?.origin === "label");
+    const content = activeLabel ? labelData.model?.content : analysisContent;
+    const fields = useMemo(() => [...selectableFields(analysisContent),
+        ...(boundLabels ? selectableFields(labelData.model?.content) : [])], [analysisContent, boundLabels, labelData.model]);
+    const preferences = useReviewPreferences(boundLabels ? { source: props.source } : props, fieldContent,
+        boundLabels ? undefined : parsed.model?.apiVersion, boundLabels ? undefined : parsed.model?.analyzerId);
+    const context = useMemo(() => ({}), [props.source, props.result, props.labels, analysisContent, labelData.model]);
     const workflow = useValueWorkflow(context);
     useEffect(() => {
         if (view !== requestedView) setView(view);
     }, [view, requestedView]);
-    const outlines = useMemo(() => sourceOutlines(content, view, state.pageNumber, false, preferences.settings),
-        [content, view, state.pageNumber, preferences.settings]);
+    const outlineContent = view === "fields" && referenceMode ? labelData.model?.content : analysisContent;
+    const outlines = useMemo(() => sourceOutlines(outlineContent, view, state.pageNumber, false, preferences.settings, comparison),
+        [outlineContent, view, state.pageNumber, preferences.settings, comparison]);
     const previewId = useId();
     const viewer = useRef<HTMLDivElement>(null);
     const previewOrigin = useRef<"pointer" | "focus">("pointer");
@@ -175,7 +207,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     };
     const previewField = (field: CuField, regionIndex?: number, origin: "pointer" | "focus" = "pointer"): void => {
         previewOrigin.current = origin;
-        if (!workflow.menuOpen.current) dispatch({ type: "hover", field, pageAvailable: false, groupPreview: labelMode,
+        if (!workflow.menuOpen.current) dispatch({ type: "hover", field, pageAvailable: false, groupPreview: field.origin === "label",
             ...(regionIndex === undefined ? {} : { regionIndex }) });
     };
     const handleEscape = (): void => {
@@ -213,6 +245,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             pinned={pinned} pinnedRegions={fieldRegions(pinned)}
             hasSelection={Boolean(selected)}
             view={view} outlines={outlines} previewId={previewId}
+            comparison={view === "fields" ? comparison : undefined} referenceMode={view === "fields" && referenceMode}
             onDismissPreview={dismissPreview}
             regions={activeRegions} regionIndex={activeRegionIndex}
             summaryFieldIds={tableLocation?.focused ? tableFieldIds(tableLocation.match) : undefined}
@@ -232,7 +265,10 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             onChange={next => preferences.changeSettings({ ...preferences.settings, paneRatio: next / (width - 8) })} />
         <ResultsPane
             result={props.result}
-            hasLabels={hasLabels} labelContent={labelData.model?.content} labelLoading={hasLabels && !matchingSource}
+            hasLabels={hasLabels} labelContent={labelData.model?.content} labelLoading={hasLabels && (!matchingSource || labelPending)}
+            fieldContent={fieldContent} comparison={comparison} referenceMode={referenceMode}
+            warning={boundLabels && parsed.error ? `Comparison unavailable: ${parsed.error}. Showing reference labels without comparison.` :
+                hasLabels && contentIndex > 0 ? "Labels are associated with the first result content. This content is not compared." : null}
             view={view} onViewChange={next => { setView(next); dismissPreview(); }}
             workflow={workflow} preferences={preferences} selectionRequest={revealRequest}
             sourceSelection={reveal?.origin === "source"} sourceTableSelection={reveal?.origin === "source-table"}
@@ -242,8 +278,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
                 activeRegions.some(region => region.pageNumber === state.pageNumber) ? previewId : undefined}
             source={source}
             apiVersion={parsed.model?.apiVersion}
-            content={analysisContent} issues={[...(labelMode ? labelData.model?.issues ?? [] : parsed.model?.issues ?? []), ...sourceIssues]}
-            error={labelMode ? labelData.error : parsed.error}
+            content={analysisContent} issues={[...(boundLabels ? labelData.model?.issues ?? [] : []), ...(parsed.model?.issues ?? []), ...sourceIssues]}
+            error={boundLabels ? labelData.error : parsed.error}
             contents={parsed.model?.contents ?? []} contentIndex={contentIndex} onContentChange={chooseContent}
             selected={selected} hovered={hovered} sourceReady={Boolean(source)} isPageAvailable={isPageAvailable}
             pageNumber={state.pageNumber}

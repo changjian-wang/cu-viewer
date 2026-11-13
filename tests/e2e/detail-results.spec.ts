@@ -10,6 +10,20 @@ async function upload(page: Page, result: unknown): Promise<void> {
     });
 }
 
+function figureReviewResult() {
+    return {
+        apiVersion: "2025-11-01",
+        contents: [{ kind: "document", unit: "inch",
+            pages: [1, 2, 3, 4].map(pageNumber => ({ pageNumber, width: 8.5, height: 11 })),
+            figures: [
+                { id: "logo-a", kind: "image", description: "Alpha logo", source: "D(1,0,0,4,2)" },
+                { id: "chart-b", kind: "chart", caption: { content: "Beta caption" }, description: "Complete Beta description",
+                    footnotes: [{ content: "Returned Beta footnote" }], source: "D(2,0,0,4,2)" },
+                { id: "logo-c", description: "Alpha trailing logo", source: "D(1,4.5,0,3.5,2)" },
+            ] }],
+    };
+}
+
 test.beforeEach(async ({ page, context }) => {
     await trackSourceResources(page);
     await context.route("**/*", route => {
@@ -745,4 +759,94 @@ test("multi-region details reach all pages and raw merged/invalid native tables 
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(page.getByTestId("rendered-page")).toBeVisible();
+});
+
+test("Figures groups, search and navigation retain real previews and consume source requests once", async ({ page }) => {
+    const sourcePage = page.getByRole("textbox", { name: "Page number", exact: true });
+    await sourcePage.fill("4"); await sourcePage.press("Enter");
+    await ready(page);
+    await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption("125");
+    await ready(page);
+    await upload(page, figureReviewResult());
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    const toolbar = pane.getByRole("group", { name: "Figures toolbar", exact: true });
+    await expect(toolbar).toBeVisible();
+    await expect(pane.locator(".cu-results-footer")).toHaveCount(0);
+    await expect(pane.getByRole("heading")).toHaveText(["Page 1", "Page 2", "Page 1"]);
+    await expect(pane.getByRole("button", { name: /^Select Figure / })).toHaveCount(3);
+    const crop = pane.getByRole("img", { name: "Figure 2 region 1 preview on page 2", exact: true });
+    await expect(crop).toBeVisible();
+    const previous = await crop.elementHandle();
+    if (!previous) throw new Error("The selected figure's real crop is unavailable.");
+    await pane.getByRole("button", { name: "Select Figure 2", exact: true }).hover();
+    await expect(pane.getByRole("button", { name: "Select Figure 2", exact: true })).toHaveClass(/is-hovered/);
+    await expect(sourcePage).toHaveValue("4");
+    const search = pane.getByRole("searchbox", { name: "Search figures", exact: true });
+    await search.fill("Beta");
+    await expect(pane.getByRole("button", { name: /^Select Figure / })).toHaveCount(1);
+    await pane.getByRole("button", { name: "Previous figure", exact: true }).click();
+    await ready(page);
+    await expect(sourcePage).toHaveValue("2");
+    await expect(pane.getByRole("button", { name: "Select Figure 2", exact: true })).toBeFocused();
+    await expect(pane.getByLabel("Current figure position")).toHaveText("1 / 1 figures");
+    await expect(page.getByRole("combobox", { name: "Zoom", exact: true })).toHaveValue("125");
+    await search.fill("");
+    await pane.getByRole("button", { name: "Figures settings", exact: true }).click();
+    await pane.getByRole("button", { name: "Collapse all pages", exact: true }).click();
+    await expect(pane.getByRole("button", { name: /^Select Figure / })).toHaveCount(0);
+    await expect.poll(() => previous.evaluate(element =>
+        element instanceof HTMLCanvasElement && element.width === 0 && element.height === 0)).toBe(true);
+    await expect(page.getByTestId("source-overlay")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(pane.getByRole("button", { name: "Figures settings", exact: true })).toBeFocused();
+    await sourcePage.fill("1"); await sourcePage.press("Enter");
+    await ready(page);
+    await page.getByRole("button", { name: "Select source of Figure 1, region 1", exact: true }).click();
+    await expect(pane.getByRole("button", { name: "Select Figure 1", exact: true })).toBeVisible();
+    await expect(pane.getByRole("button", { name: "Expand Page 2", exact: true })).toBeVisible();
+    await expect(pane.getByRole("button", { name: "Expand Page 1", exact: true })).toBeVisible();
+    expect(await page.getByRole("region", { name: "Source document", exact: true })
+        .evaluate(element => element.contains(document.activeElement))).toBe(true);
+    await search.fill("Beta");
+    await page.getByRole("button", { name: "Select source of Figure 3, region 1", exact: true }).click();
+    await expect(pane.getByText("The selected figure is hidden by the current search.", { exact: true })).toBeVisible();
+    await expect(search).toHaveValue("Beta");
+    await search.fill("");
+    await expect(pane.getByRole("button", { name: "Select Figure 3", exact: true })).toHaveCount(0);
+    await expect(sourcePage).toHaveValue("1");
+    await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+test("Figures image rows and footer stay readable at narrow and wide result widths", async ({ page }) => {
+    await upload(page, figureReviewResult());
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    for (const width of [1030, 1440]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await ready(page);
+        const toolbar = pane.getByRole("group", { name: "Figures toolbar", exact: true });
+        const layout = await toolbar.evaluate(element => {
+            const bounds = element.getBoundingClientRect();
+            const children = [...element.children].filter(child => !child.matches('[role="dialog"]'))
+                .map(child => child.getBoundingClientRect());
+            return { height: bounds.height, contained: children.every(child => child.left >= bounds.left - 1 && child.right <= bounds.right + 1),
+                separated: children.every((child, index) => !index || child.left >= (children[index - 1]?.right ?? 0) - 1) };
+        });
+        expect(layout).toEqual({ height: 44, contained: true, separated: true });
+        const crop = pane.getByRole("img", { name: "Figure 1 region 1 preview on page 1", exact: true });
+        await expect(crop).toBeVisible();
+        const imageLayout = await crop.evaluate(element => {
+            const row = element.closest(".cu-figure-row")?.getBoundingClientRect();
+            if (!row) throw new Error("The figure row is unavailable.");
+            const rect = element.getBoundingClientRect(), style = getComputedStyle(element);
+            const width = Number.parseFloat(style.width) - Number.parseFloat(style.borderLeftWidth) - Number.parseFloat(style.borderRightWidth);
+            const height = Number.parseFloat(style.height) - Number.parseFloat(style.borderTopWidth) - Number.parseFloat(style.borderBottomWidth);
+            return { contained: rect.left >= row.left && rect.right <= row.right,
+                ratio: width / height };
+        });
+        expect(imageLayout.contained).toBe(true);
+        expect(imageLayout.ratio).toBeCloseTo(2, 2);
+        await expect(pane.getByText("Caption: Beta caption", { exact: true })).toBeVisible();
+        await expect(pane.getByText("Complete Beta description", { exact: true })).toBeVisible();
+        await expect(pane.getByText("Footnote: Returned Beta footnote", { exact: true })).toBeVisible();
+    }
 });

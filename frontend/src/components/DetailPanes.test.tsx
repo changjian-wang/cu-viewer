@@ -320,8 +320,10 @@ describe("dedicated result panes", () => {
         }).contents[0];
         if (!content?.figures) throw new Error("Expected figures.");
         render(<>
-            <FiguresPane figures={content.figures} content={content} source={null} selected={null} onSelect={vi.fn()} />
-            <FiguresPane figures={content.figures} content={content} source={null} selected={null} onSelect={vi.fn()} />
+            <FiguresPane figures={content.figures} content={content} source={null} selected={null} hovered={null}
+                onHover={vi.fn()} onLeave={vi.fn()} onSelect={vi.fn()} />
+            <FiguresPane figures={content.figures} content={content} source={null} selected={null} hovered={null}
+                onHover={vi.fn()} onLeave={vi.fn()} onSelect={vi.fn()} />
         </>);
         const ids: string[] = [];
         for (const button of screen.getAllByRole("button", { name: "Select Figure 1" })) {

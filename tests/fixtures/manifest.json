@@ -4,8 +4,8 @@
   "collectedOn": "2026-10-09",
   "acquisition": {
     "appliesTo": [
-      "mixed-financial-docs.cu.json",
-      "receipt.cu.json"
+      "mixed-financial-docs.pdf.result.json",
+      "receipt.png.result.json"
     ],
     "tool": "cu-cli",
     "version": "0.1.0b3",
@@ -28,6 +28,20 @@
     "license": "MIT",
     "licenseFile": "LICENSE.txt",
     "classification": "Public example documents; no customer files submitted."
+  },
+  "labelFixtures": {
+    "purpose": "Existing repository label example, used directly by the PDF + Labels Demo without generating analysis output.",
+    "mode": "reference-only; no paired saved analysis result is provided",
+    "source": {
+      "path": "labels/invoice.pdf",
+      "bytes": 151363,
+      "sha256": "4da941f20655cb852986df272a22f66aff47c97a18b103a1e8e44641cf581642"
+    },
+    "labels": {
+      "path": "labels/invoice.pdf.labels.json",
+      "bytes": 31038,
+      "sha256": "d660ea317c477b63f95c53a6e09cd568425cf242f6beb30a6db14e6e9385d8df"
+    }
   },
   "imageFixtures": {
     "generationNote": "Fixed, checked-in image fixtures; regression tests consume them directly without regeneration.",
@@ -214,7 +228,7 @@
         "verification": "Download size, PDF signature and SHA-256 checked; independent rendered-PDF review remains pending."
       },
       "result": {
-        "path": "mixed-financial-docs.cu.json",
+        "path": "mixed-financial-docs.pdf.result.json",
         "bytes": 393506,
         "sha256": "3aa12180bb396b78384f79f7577cdebb7b75e9711951fa85f54e0ea573f1b15b",
         "apiVersion": "2025-11-01",
@@ -371,7 +385,7 @@
         "verification": "PNG signature and dimensions checked with Windows image APIs; merchant heading visually inspected."
       },
       "result": {
-        "path": "receipt.cu.json",
+        "path": "receipt.png.result.json",
         "bytes": 29242,
         "sha256": "83bea171c872f1992ca1bce3362e0f73bdd7347dc6a78c033014fa3aa868626e",
         "apiVersion": "2025-11-01",
@@ -508,7 +522,7 @@
         "verification": "Copied byte-for-byte from the owner-provided document; the source original was not modified."
       },
       "result": {
-        "path": "large-bank-statement.cu.json",
+        "path": "large-bank-statement.pdf.result.json",
         "bytes": 6685521,
         "sha256": "7e7106210b0d1da799da88e688a0cb39c24176305d74d20c81f8e4144461b7b3",
         "apiVersion": "2025-11-01",

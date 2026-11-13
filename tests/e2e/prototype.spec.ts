@@ -7,7 +7,7 @@ import { croppedRotatedPdf, standardFontPdf } from "./pdfFixtures";
 
 const amountId = "/contents/0/fields/AmountDue/valueObject/Amount";
 const amountRow = `[data-field-id="${amountId}"]`;
-const realReceipt: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "receipt.cu.json"), "utf8"));
+const realReceipt: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "receipt.png.result.json"), "utf8"));
 
 async function leave(page: Page): Promise<void> {
     await page.locator(".prototype-banner").hover();

@@ -10,6 +10,7 @@ interface ViewerSession {
     labels: unknown;
     fieldOrder: ViewerFieldOrder | undefined;
     fieldOrderUrl: string | undefined;
+    warnings: readonly string[];
 }
 
 function sessionURL(value: string): URL {
@@ -65,6 +66,13 @@ export function App() {
             const source = sessionURL(data.source);
             const result = "result" in data ? data.result : undefined;
             const labels = "labels" in data ? data.labels : undefined;
+            const warnings: string[] = [];
+            if ("warnings" in data) {
+                if (!Array.isArray(data.warnings) || data.warnings.some((warning: unknown) => typeof warning !== "string")) {
+                    throw new Error("The CLI returned invalid viewer session warnings.");
+                }
+                for (const warning of data.warnings) if (typeof warning === "string") warnings.push(warning);
+            }
             let fieldOrder: ViewerFieldOrder | undefined;
             let fieldOrderUrl: string | undefined;
             if ("fieldOrderUrl" in data) {
@@ -87,7 +95,7 @@ export function App() {
             }
             if (controller.signal.aborted) return;
             confirmedOrder.current = fieldOrder ?? {};
-            setSession({ source: source.href, result, labels, fieldOrder, fieldOrderUrl });
+            setSession({ source: source.href, result, labels, fieldOrder, fieldOrderUrl, warnings });
         })().catch((failure: unknown) => {
             if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : String(failure));
         });
@@ -128,6 +136,7 @@ export function App() {
 
     return <main className="cli-host"><div className="cli-workspace">
         {error ? <p role="alert">{error}</p> : session ? <>
+            {session.warnings.map((warning, index) => <p role="alert" key={index}>{warning}</p>)}
             {orderError && <p role="alert">{orderError}</p>}
             <span className="cu-visually-hidden" role="status">{orderStatus}</span>
             <ContentUnderstandingResultViewer source={session.source} result={session.result} labels={session.labels}

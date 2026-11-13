@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { collapseAllNested, defaultStyles, JsonView } from "react-json-view-lite";
 import { inspectJson, validateLargeJson } from "../model/resultLimits";
 import type { JsonValidation } from "../model/resultLimits";
 import { PagedJsonTree } from "./PagedJsonTree";
+import { JsonStringDialog } from "./JsonStringDialog";
+import type { JsonStringSelection } from "./JsonStringDialog";
 
 export { MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "../model/resultLimits";
 
@@ -36,6 +38,9 @@ interface JsonPaneProps {
 
 export function JsonPane({ value }: JsonPaneProps) {
     const inspection = useMemo(() => inspectJson(value), [value]);
+    const [stringChoice, setStringChoice] = useState<{ root: unknown; selection: JsonStringSelection } | null>(null);
+    const onViewString = useCallback((selection: JsonStringSelection): void => setStringChoice({ root: value, selection }), [value]);
+    const closeString = useCallback((): void => setStringChoice(null), []);
     const [largeInspection, setLargeInspection] = useState<{ value: unknown; validation: JsonValidation } | null>(null);
     useEffect(() => {
         if (inspection.status !== "limit") return;
@@ -49,6 +54,7 @@ export function JsonPane({ value }: JsonPaneProps) {
         });
         return () => controller.abort();
     }, [inspection, value]);
+    if (stringChoice && stringChoice.root !== value) setStringChoice(null);
     const validation = largeInspection && largeInspection.value === value ? largeInspection.validation : null;
     const error = inspection.status === "invalid" ? inspection.message :
         inspection.status === "limit" && validation?.status === "invalid" ? validation.message : null;
@@ -58,9 +64,13 @@ export function JsonPane({ value }: JsonPaneProps) {
             <p>{error}</p>
         </div>;
     }
-    if (inspection.status === "limit") {
-        return validation?.status === "ready" ? <div className="cu-rich-result-scroll"><PagedJsonTree value={value} /></div> :
-            <div className="cu-state" role="status">Validating large JSON without blocking the viewer...</div>;
+    if (inspection.status === "limit" && validation?.status !== "ready") {
+        return <div className="cu-state" role="status">Validating large JSON without blocking the viewer...</div>;
+    }
+    if (inspection.status === "limit" || (inspection.status === "ready" && inspection.hasLongStrings)) {
+        return <><div className="cu-rich-result-scroll"><PagedJsonTree value={value} onViewString={onViewString} /></div>
+            {stringChoice && stringChoice.root === value && <JsonStringDialog selection={stringChoice.selection} onClose={closeString} />}
+        </>;
     }
     if (typeof value !== "object" || value === null) {
         return <div className="cu-rich-result-scroll">

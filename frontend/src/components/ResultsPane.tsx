@@ -17,6 +17,7 @@ import { ActionMenu } from "./ActionMenu";
 import { ValueDetails } from "./ValueActions";
 import { revealFieldTarget } from "../interaction/fieldNavigation";
 import { useMarkdownDocument } from "../markdown/client";
+import type { FieldComparison } from "../model/fieldComparison";
 
 const MarkdownPane = lazy(() => import("./MarkdownPane").then(module => ({ default: module.MarkdownPane })));
 const JsonPane = lazy(() => import("./JsonPane").then(module => ({ default: module.JsonPane })));
@@ -30,6 +31,10 @@ interface ResultsPaneProps {
     hasLabels?: boolean;
     labelContent?: CuContent | undefined;
     labelLoading?: boolean;
+    fieldContent?: CuContent | undefined;
+    comparison?: FieldComparison | undefined;
+    referenceMode?: boolean;
+    warning?: string | null;
     view: ResultView | undefined;
     onViewChange: (view: ResultView) => void;
     previewId: string | undefined;
@@ -63,7 +68,7 @@ interface ResultsPaneProps {
 }
 
 export function ResultsPane(props: ResultsPaneProps) {
-    const content = props.view === "label" ? props.labelContent : props.content;
+    const content = isFieldView(props.view) ? props.fieldContent ?? props.content : props.content;
     const [review, setReview] = useState(() => initialFieldsReview(content?.fields ?? []));
     const [localSettings, setLocalSettings] = useState({ ...defaultReviewSettings });
     const [markdownChoice, setMarkdownChoice] = useState({ context: props.workflow.context, page: 0 });
@@ -82,6 +87,7 @@ export function ResultsPane(props: ResultsPaneProps) {
     const tableScroll = useMemo(() => new Map<string, number>(), [props.workflow.context]);
     const fieldsReveal = useRef<number | null>(null);
     const paragraphsReveal = useRef<number | null>(null);
+    const figuresReveal = useRef<number | null>(null);
     const tableViewRequest = useRef<number | null>(null);
     const skipFieldsRestore = useRef<number | null>(null);
     const scopeSnapshot = useRef<{
@@ -93,6 +99,7 @@ export function ResultsPane(props: ResultsPaneProps) {
     if (fieldsContext.current !== props.workflow.context) {
         fieldsContext.current = props.workflow.context; fieldsReveal.current = null;
         paragraphsReveal.current = null;
+        figuresReveal.current = null;
         tableViewRequest.current = null; skipFieldsRestore.current = null;
         scopeSnapshot.current = null; pendingScopeRestore.current = null;
     }
@@ -117,8 +124,8 @@ export function ResultsPane(props: ResultsPaneProps) {
         setReview({ ...review, expanded: snapshot.expanded, focused: snapshot.focused });
     }
     const tabBaseId = useId();
-    const tabs = useMemo(() => availableResultTabs(props.content, props.result, props.apiVersion, props.hasLabels),
-        [props.content, props.result, props.apiVersion, props.hasLabels]);
+    const tabs = useMemo(() => availableResultTabs(props.content, props.result, props.apiVersion, props.hasLabels && props.contentIndex === 0),
+        [props.content, props.result, props.apiVersion, props.hasLabels, props.contentIndex]);
     const hasFieldsTab = tabs.some(tab => tab.id === "fields");
     const tableMessage = !hasFieldsTab && props.tableLocation ? tableLocationMessage(props.tableLocation) : null;
     const activeTab = tabs.find(tab => tab.id === view);
@@ -196,7 +203,7 @@ export function ResultsPane(props: ResultsPaneProps) {
         });
     });
     const panelId = `${tabBaseId}-panel`;
-    const contentSelector = view !== "label" && props.contents.length > 1 && <label className="cu-content-selector">Content
+    const contentSelector = props.contents.length > 1 && <label className="cu-content-selector">Content
         <select aria-label="Result content" value={props.contentIndex} onChange={event => props.onContentChange(Number(event.target.value))}>
             {props.contents.map((content, index) => <option key={content.id} value={index}>
                 {index + 1}: {content.kind}{content.startPageNumber ? ` · p. ${content.startPageNumber}` : ""}
@@ -223,16 +230,19 @@ export function ResultsPane(props: ResultsPaneProps) {
             }}
         >
             {props.error && <div className="cu-state cu-error" role="alert">
-                <h2>{view === "label" ? "Labels could not be read" : "Result could not be read"}</h2><p>{props.error}</p>
+                <h2>{props.hasLabels ? "Labels could not be read" : "Result could not be read"}</h2><p>{props.error}</p>
             </div>}
-            {view === "label" && props.labelLoading && <div className="cu-state" role="status">Loading labels and PDF geometry...</div>}
-            {!props.error && !content && view !== "info" && view !== "label" && <div className="cu-state">
+            {props.warning && <div className="cu-inline-error" role="alert">{props.warning}</div>}
+            {view === "fields" && props.labelLoading && <div className="cu-state" role="status">Loading labels and PDF geometry...</div>}
+            {!props.error && !content && view !== "info" && !props.hasLabels && <div className="cu-state">
                 <h2>No extracted fields</h2><p>The source can still be inspected. Inspect the original data in Result.</p>
             </div>}
-            {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} {view === "label" ? "label" : "result"} warnings</summary>
+            {props.issues.length > 0 && <details className="cu-issues"><summary>{props.issues.length} {props.hasLabels ? "label" : "result"} warnings</summary>
                 <ul>{props.issues.map((issue, index) => <li key={index}><strong>{issue.code}</strong>: {issue.message} <code>{issue.path}</code></li>)}</ul>
             </details>}
-            {isFieldView(view) && content && <FieldsPane fields={content.fields} settings={settings} labelMode={view === "label"}
+            {isFieldView(view) && content && !props.labelLoading && <FieldsPane fields={content.fields}
+                settings={props.referenceMode ? { ...settings, columns: 2 } : settings} labelMode={Boolean(props.referenceMode)}
+                comparison={props.comparison}
                 onSettings={props.preferences?.changeSettings ?? setLocalSettings}
                 order={props.preferences?.order ?? {}} onOrder={props.preferences?.changeOrder ?? (() => {})}
                 orderReadOnly={props.preferences?.orderReadOnly ?? true}
@@ -262,7 +272,10 @@ export function ResultsPane(props: ResultsPaneProps) {
                     handledReveal={paragraphsReveal}
                     onHover={props.onHover} onLeave={props.onLeave} onSelect={props.onSelect} />}
                 {view === "figures" && props.content && <FiguresPane figures={props.content.figures ?? []}
-                    content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
+                    content={props.content} source={props.source ?? null} selected={props.selected} hovered={props.hovered}
+                    onHover={props.onHover} onLeave={props.onLeave} onSelect={props.onSelect}
+                    selectionRequest={props.selectionRequest ?? null} sourceSelection={props.sourceSelection ?? false}
+                    handledReveal={figuresReveal} />}
                 {view === "signatures" && props.content && <SignaturesPane signatures={props.content.signatures ?? []}
                     content={props.content} source={props.source ?? null} selected={props.selected} onSelect={props.onSelect} />}
                 {view === "info" && <InfoPane result={props.result} />}
@@ -300,9 +313,9 @@ export function ResultsPane(props: ResultsPaneProps) {
                 { label: "Copy value", icon: "copy", disabled: !props.workflow.menu.field.hasValue,
                     run: () => { if (props.workflow.menu) void props.workflow.copy(props.workflow.menu.field); } },
             ]} />}
-        {!isFieldView(view) && view !== "info" && view !== "paragraphs" && view !== "markdown" && <footer className="cu-results-footer">
+        {!isFieldView(view) && view !== "info" && view !== "paragraphs" && view !== "figures" && view !== "markdown" && <footer className="cu-results-footer">
             {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
-            {["figures", "signatures"].includes(view ?? "") &&
+            {view === "signatures" &&
                 "Select a returned item to locate its source. All regions on the active source page are highlighted; use document page navigation to view other pages."}
         </footer>}
     </section>;

@@ -531,7 +531,7 @@ export function parseCuResult(input: unknown): CuResultModel {
         const content: CuContent = {
             id, kind: entry.kind,
             pages: parsePages(entry.pages, `${path}/pages`, model.issues),
-            fields: [],
+            fields: [], fieldsDeclared: Object.hasOwn(entry, "fields") && entry.fields !== undefined,
         };
         if (entry.kind !== "document") warn(model.issues, "unverified-content-kind", `${path}/kind`, "Fields are retained, but source geometry is only verified for document contents.");
         if (entry.unit === "inch" || entry.unit === "pixel") content.unit = entry.unit;

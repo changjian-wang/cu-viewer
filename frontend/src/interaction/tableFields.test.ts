@@ -106,7 +106,7 @@ describe("conservative native table to existing Fields association", () => {
     });
 
     it("associates the actual invoice tables by source geometry, not table names or indices", () => {
-        const raw: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "mixed-financial-docs.cu.json"), "utf8"));
+        const raw: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "mixed-financial-docs.pdf.result.json"), "utf8"));
         const content = parseCuResult(raw).contents[0]!;
         expect(match(content, 0).targets.map(field => field.name)).toEqual(["PONumber"]);
         expect(match(content, 1).targets.map(field => field.name)).toContain("LineItems");

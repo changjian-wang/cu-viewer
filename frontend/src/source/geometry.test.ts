@@ -95,8 +95,8 @@ describe("page-aware affine geometry", () => {
 
 describe("real CU fixture transformation matrix", () => {
     const scenarios = [
-        { name: "pdf", filename: "mixed-financial-docs.cu.json", id: "/contents/0/fields/AmountDue/valueObject/Amount", width: 816, height: 1056 },
-        { name: "png", filename: "receipt.cu.json", id: "/contents/0/fields/MerchantName", width: 1743, height: 878 },
+        { name: "pdf", filename: "mixed-financial-docs.pdf.result.json", id: "/contents/0/fields/AmountDue/valueObject/Amount", width: 816, height: 1056 },
+        { name: "png", filename: "receipt.png.result.json", id: "/contents/0/fields/MerchantName", width: 1743, height: 878 },
     ];
     const cases = scenarios.flatMap(scenario =>
         [0.5, 1, 2, 4].flatMap(zoom =>

@@ -194,7 +194,7 @@ test("large Markdown and JSON stay bounded while every page remains reachable", 
 });
 
 test("built-in Large PDF renders every Markdown page and the final original JSON paragraph", async ({ page }, testInfo) => {
-    const input: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "large-bank-statement.cu.json"), "utf8"));
+    const input: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "large-bank-statement.pdf.result.json"), "utf8"));
     const content = parseCuResult(input).contents[0];
     if (!content?.markdown || content.markdown.length <= MARKDOWN_STATIC_CHARACTERS ||
         content.pages.length < 2 || !content.paragraphs?.length) {
@@ -239,4 +239,40 @@ test("built-in Large PDF renders every Markdown page and the final original JSON
         type: "builtin-large-result-performance",
         description: JSON.stringify({ pages: content.pages.length, tables, paragraphCount, firstMarkdown, json }),
     });
+});
+
+test("comparison builds, filters and navigates thousand-row dual tables within production budgets", async ({ page }, testInfo) => {
+    await page.getByLabel("Choose source file", { exact: true }).setInputFiles(resolve("tests", "fixtures", "labels", "invoice.pdf"));
+    await ready(page);
+    const fields = (changed: boolean) => ({ Rows: { type: "array", valueArray: Array.from({ length: 1_000 }, (_, row) => ({
+        type: "object", valueObject: Object.fromEntries(Array.from({ length: 10 }, (_, column) => [
+            `C${column}`, { type: "number", valueNumber: changed && row === 999 && column === 9 ? -1 : row * 10 + column },
+        ])),
+    })) } });
+    await page.getByLabel("Choose local label JSON", { exact: true }).setInputFiles({
+        name: "synthetic-performance.labels.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({ fieldLabels: fields(false) })),
+    });
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    await pane.getByRole("treegrid", { name: "Labels", exact: true }).waitFor();
+    const cold = await measure(page,
+        () => uploadResult(page, "synthetic-comparison-performance.result.json", {
+            apiVersion: "2025-11-01", contents: [{ kind: "document", unit: "inch",
+                pages: [{ pageNumber: 1, width: 8.5, height: 11 }], fields: fields(true) }],
+        }),
+        () => pane.getByRole("button", { name: "Show incorrect fields (1 value)", exact: true }).waitFor());
+    expectWithinBudget(cold, COLD_VIEW_BUDGET_MS);
+    expect(await pane.locator("[data-comparison-row]").count()).toBeLessThan(200);
+    const filter = await measure(page,
+        () => pane.getByRole("button", { name: "Show incorrect fields (1 value)", exact: true }).click(),
+        () => expect(pane.getByLabel("Current field position")).toHaveText("— / 1"));
+    expectWithinBudget(filter, WARM_VIEW_BUDGET_MS);
+    const last = await measure(page,
+        () => pane.getByRole("button", { name: "Previous field", exact: true }).click(),
+        () => pane.locator('button[data-source-field-id="/contents/0/fields/Rows/valueArray/999/valueObject/C9"]').waitFor());
+    expectWithinBudget(last, WARM_VIEW_BUDGET_MS);
+    expect(await pane.locator("[data-comparison-row]").count()).toBeLessThan(200);
+    await expect(pane.getByRole("button", { name: "Show matching fields (9999 values)", exact: true })).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    testInfo.annotations.push({ type: "comparison-performance", description: JSON.stringify({ cold, filter, last }) });
 });

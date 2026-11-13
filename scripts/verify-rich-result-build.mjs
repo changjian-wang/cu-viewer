@@ -49,13 +49,16 @@ const demoEntry = requireSingle(demo, /^index-.*\.js$/, "demo entry");
 const demoMarkdown = requireSingle(demo, /^MarkdownPane-.*\.js$/, "demo Markdown chunk");
 const demoJson = requireSingle(demo, /^JsonPane-.*\.js$/, "demo JSON chunk");
 const largePdf = requireSingle(demo, /^large-bank-statement-.*\.pdf$/, "built-in Large PDF");
-const largeResult = requireSingle(demo, /^large-bank-statement\.cu-.*\.json$/, "built-in Large PDF result");
-for (const [asset, source] of [[largePdf, "large-bank-statement.pdf"], [largeResult, "large-bank-statement.cu.json"]]) {
+const largeResult = requireSingle(demo, /^large-bank-statement\.pdf\.result-.*\.json$/, "built-in Large PDF result");
+const labeledPdf = requireSingle(demo, /^invoice-.*\.pdf$/, "built-in labeled PDF");
+const labels = requireSingle(demo, /^invoice\.pdf\.labels-.*\.json$/, "built-in PDF labels");
+for (const [asset, source] of [[largePdf, "large-bank-statement.pdf"], [largeResult, "large-bank-statement.pdf.result.json"],
+    [labeledPdf, "labels/invoice.pdf"], [labels, "labels/invoice.pdf.labels.json"]]) {
     const expected = createHash("sha256").update(readFileSync(resolve("tests", "fixtures", source))).digest("hex");
     const actual = createHash("sha256").update(readFileSync(asset.path)).digest("hex");
-    if (actual !== expected) throw new Error(`The built-in Large PDF asset ${asset.name} does not match ${source}.`);
+    if (actual !== expected) throw new Error(`The built-in Demo asset ${asset.name} does not match ${source}.`);
 }
-if (library.some(item => item.name.startsWith("large-bank-statement"))) {
+if (library.some(item => /^(?:large-bank-statement|invoice)[.-]/.test(item.name))) {
     throw new Error("Demo sample data must not be included in the reusable library.");
 }
 const detailPanes = ["ParagraphsPane", "FiguresPane", "SignaturesPane", "InfoPane"];
@@ -92,6 +95,8 @@ console.log(JSON.stringify({
         jsonChunkBytes: demoJson.bytes,
         largePdfBytes: largePdf.bytes,
         largeResultBytes: largeResult.bytes,
+        labeledPdfBytes: labeledPdf.bytes,
+        labelsBytes: labels.bytes,
     },
     detailChunks,
     heif: {

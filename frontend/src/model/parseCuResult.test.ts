@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import { CuResultParseError, parseCuResult } from "./parseCuResult";
 import type { CuField, CuResultModel } from "./types";
 
-function fixture(name: "mixed-financial-docs" | "receipt"): unknown {
-    const value: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", `${name}.cu.json`), "utf8"));
+function fixture(name: "mixed-financial-docs.pdf" | "receipt.png"): unknown {
+    const value: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", `${name}.result.json`), "utf8"));
     return value;
 }
 
@@ -72,7 +72,7 @@ function deepFreeze(value: unknown): void {
 
 describe("verified CU result parsing", () => {
     it("parses the real four-page PDF without normalizing or mutating the input", () => {
-        const raw = fixture("mixed-financial-docs");
+        const raw = fixture("mixed-financial-docs.pdf");
         const before = JSON.stringify(raw);
         deepFreeze(raw);
         const model = parseCuResult(raw);
@@ -108,7 +108,7 @@ describe("verified CU result parsing", () => {
     });
 
     it("parses the real PNG with pixel units, nested fields and missing values", () => {
-        const model = parseCuResult(fixture("receipt"));
+        const model = parseCuResult(fixture("receipt.png"));
         const content = first(model.contents);
         const fields = flatten(model);
 
@@ -135,7 +135,7 @@ describe("verified CU result parsing", () => {
     });
 
     it("accepts the verified inner result and preserves stable field identities", () => {
-        const raw = fixture("receipt");
+        const raw = fixture("receipt.png");
         if (typeof raw !== "object" || raw === null || !("result" in raw)) throw new Error("Invalid real test fixture.");
         const wrapped = parseCuResult(raw);
         const inner = parseCuResult(raw.result);
@@ -185,8 +185,8 @@ describe("verified CU result parsing", () => {
     });
 
     it("retains real fixture paragraphs and tables for dynamic view availability", () => {
-        const invoice = first(parseCuResult(fixture("mixed-financial-docs")).contents);
-        const receipt = first(parseCuResult(fixture("receipt")).contents);
+        const invoice = first(parseCuResult(fixture("mixed-financial-docs.pdf")).contents);
+        const receipt = first(parseCuResult(fixture("receipt.png")).contents);
         expect(invoice.paragraphs?.length).toBeGreaterThan(0);
         expect(invoice.tables).toHaveLength(9);
         expect(receipt.paragraphs?.length).toBeGreaterThan(0);

@@ -7,6 +7,8 @@ import { hasSourcePage, unavailableSourcePageMessage } from "../source/source";
 import type { CuContent, CuField, CuPoint, CuRegion } from "../model/types";
 import { fieldLabel, isFieldGroup } from "../interaction/interaction";
 import type { ReviewSettings } from "../interaction/reviewFields";
+import { FIELD_REVIEW_COLORS } from "../interaction/reviewFields";
+import type { FieldComparison } from "../model/fieldComparison";
 import type { ResultView } from "../model/resultViews";
 import type { SourceOutline } from "../source/sourceOverlays";
 import { isValueSourceField, outsetSourceFrame, SOURCE_POPOVER_GAP, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
@@ -16,6 +18,8 @@ import { SourceToolbar } from "./SourceToolbar";
 import { SourceDocumentControls } from "./SourceDocumentControls";
 
 interface SourcePaneProps {
+    comparison?: FieldComparison | undefined;
+    referenceMode?: boolean;
     source: LoadedSource | null;
     loading: boolean;
     error: string | null;
@@ -122,7 +126,7 @@ export function SourcePane(props: SourcePaneProps) {
     const pinnedGroup = props.pinned ? isFieldGroup(props.pinned) : false;
     const wholeTable = props.content?.tables?.some(table => table.id === props.active?.id);
     const objectPreview = props.preview && ((props.view === "fields" && props.active?.type === "object") ||
-        (props.view === "label" && group));
+        (props.view === "fields" && props.active?.origin === "label" && group));
     const showCard = Boolean(props.preview && props.active && (!group || objectPreview) && !wholeTable &&
         (!props.active.detailView || props.active.detailView === "paragraphs"));
     const valuePreview = props.preview && isValueSourceField(props.view, props.active);
@@ -179,7 +183,11 @@ export function SourcePane(props: SourcePaneProps) {
         const outlines: ProjectedOutline[] = [], tables: ProjectedTable[] = [];
         if (!geometry.value) return { outlines, tables, error: geometry.error };
         try {
-            for (const outline of props.outlines) outlines.push({ ...outline, polygon: projectRegion(outline.region, geometry.value).polygon });
+            for (const outline of props.outlines) {
+                const ownGeometry = outline.page && projectionSize ? createPageGeometry(outline.page, projectionSize,
+                    { zoom: 1, rotation, pan: { x: 0, y: 0 } }) : geometry.value;
+                outlines.push({ ...outline, polygon: projectRegion(outline.region, ownGeometry).polygon });
+            }
             for (const table of props.content?.tables ?? []) table.field.regions.forEach((region, index) => {
                 if (region.pageNumber !== props.pageNumber) return;
                 tables.push({ key: `${table.id}:${index}`, field: table.field, regionIndex: index,
@@ -187,7 +195,7 @@ export function SourcePane(props: SourcePaneProps) {
             });
             return { outlines, tables, error: null };
         } catch (error) { return { outlines: [], tables: [], error: error instanceof Error ? error.message : String(error) }; }
-    }, [props.outlines, props.content, props.pageNumber, geometry]);
+    }, [props.outlines, props.content, props.pageNumber, geometry, projectionSize, rotation]);
     const selectedPolygons = useMemo(() => {
         const project = (field: CuField | null, regions: readonly CuRegion[]) =>
             !field || !geometry.value ? [] : regions.flatMap((region, regionIndex) =>
@@ -202,19 +210,19 @@ export function SourcePane(props: SourcePaneProps) {
                 return merge && pageGeometry ? sourceSelectionFrames(regions,
                     sourceOutlines(props.content, props.view, props.pageNumber, false)
                         .filter(outline => outline.field.id !== field.id)
-                        .map(outline => projectRegion(outline.region, pageGeometry).polygon), props.view === "label") :
+                        .map(outline => projectRegion(outline.region, pageGeometry).polygon), field.origin === "label") :
                     regions.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
             };
-            const decorate = (frames: ReturnType<typeof sourceSelectionFrames>) => props.view === "label" ?
+            const decorate = (frames: ReturnType<typeof sourceSelectionFrames>, field: CuField | null) => field?.origin === "label" ?
                 frames.map(frame => ({ ...frame, polygon: outsetSourceFrame(frame.polygon) })) : frames;
             const previewRegions = valuePreview || objectPreview || props.active?.detailView ? preview :
                 preview.filter(item => item.regionIndex === props.regionIndex);
             const objectFrame = objectPreview ? sourceObjectPreviewFrame(preview) : undefined;
             return {
-                pinned, preview, frames: decorate(framesFor(props.pinned, pinned)),
-                previewFrames: decorate(objectFrame ? [objectFrame] : framesFor(props.active, previewRegions)),
+                pinned, preview, frames: decorate(framesFor(props.pinned, pinned), props.pinned),
+                previewFrames: decorate(objectFrame ? [objectFrame] : framesFor(props.active, previewRegions), props.active),
                 card: showCard ? objectFrame?.polygon ??
-                    sourcePopoverPoints(props.preview ? preview : pinned, props.regionIndex, props.view === "label") : undefined,
+                    sourcePopoverPoints(props.preview ? preview : pinned, props.regionIndex, props.active?.origin === "label") : undefined,
                 error: null,
             };
         } catch (error) { return { pinned: [], preview: [], frames: [], previewFrames: [], card: undefined, error: error instanceof Error ? error.message : String(error) }; }
@@ -441,7 +449,8 @@ export function SourcePane(props: SourcePaneProps) {
                         <g className="cu-source-highlight-edges" aria-hidden="true" pointerEvents="none">
                             {background.outlines.filter(outline => outline.enabled).map(outline => <path key={outline.key} data-source-edge-id={outline.field.id}
                                 d={`M ${outline.polygon.map(point => `${point.x},${point.y}`).join(" L ")} Z`}
-                                fill="none" stroke={outline.color} strokeWidth={2} strokeLinejoin="round"
+                                fill="none" stroke={outline.low ? FIELD_REVIEW_COLORS.lowStroke : outline.color}
+                                data-low-confidence={outline.low || undefined} strokeWidth={outline.low ? 1.5 : 2} strokeLinejoin="round"
                                 vectorEffect="non-scaling-stroke" />)}
                         </g>
                         {background.outlines.map((outline, index) => <polygon key={outline.key} data-outline-id={outline.field.id}
@@ -471,9 +480,9 @@ export function SourcePane(props: SourcePaneProps) {
                             data-selection-frame={item.regionIndices.length > 1 ? "merged" : "region"}
                             points={item.polygon.map(point => `${point.x},${point.y}`).join(" ")} fill="none"
                             stroke="var(--cu-hover-stroke)"
-                            strokeWidth={props.view === "label" ? 1 : valuePreview || objectPreview ? 1.8 : 1.5}
-                            vectorEffect={props.view === "label" ? "non-scaling-stroke" : undefined}
-                            strokeLinejoin={props.view === "label" ? "round" : undefined}
+                            strokeWidth={props.active?.origin === "label" ? 1 : valuePreview || objectPreview ? 1.8 : 1.5}
+                            vectorEffect={props.active?.origin === "label" ? "non-scaling-stroke" : undefined}
+                            strokeLinejoin={props.active?.origin === "label" ? "round" : undefined}
                             strokeDasharray={valuePreview || objectPreview ? undefined : "3 2"} />)}
                     </svg>}
                     {layersReady && selectedPolygons.pinned.length > 0 && <svg className="cu-overlay cu-source-interaction" data-testid="source-overlay"
@@ -483,14 +492,16 @@ export function SourcePane(props: SourcePaneProps) {
                             data-region-indices={item.regionIndices.join(" ")}
                             data-selection-frame={item.regionIndices.length > 1 ? "merged" : "region"}
                             points={item.polygon.map(point => `${point.x},${point.y}`).join(" ")} fill="none"
-                            stroke="var(--cu-selected-stroke)" strokeWidth={props.view === "label" ? 1 : 1.8}
-                            vectorEffect={props.view === "label" ? "non-scaling-stroke" : undefined}
-                            strokeLinejoin={props.view === "label" ? "round" : undefined} />)}
+                            stroke="var(--cu-selected-stroke)" strokeWidth={props.pinned?.origin === "label" ? 1 : 1.8}
+                            vectorEffect={props.pinned?.origin === "label" ? "non-scaling-stroke" : undefined}
+                            strokeLinejoin={props.pinned?.origin === "label" ? "round" : undefined} />)}
                     </svg>}
                 </div>
             </div>
             {layersReady && showCard && props.active && cardPolygon && <SourcePopover id={props.previewId} field={props.active}
-                labelMode={props.view === "label"}
+                labelMode={props.active.origin === "label"}
+                comparison={props.comparison}
+                fieldReview={props.view === "fields"}
                 summaryFieldIds={props.summaryFieldIds}
                 settings={props.settings} points={cardPolygon} pan={pan ?? layout.paper} viewport={container} paper={renderedPage}
                 onMeasure={measureCard} />}
@@ -499,7 +510,8 @@ export function SourcePane(props: SourcePaneProps) {
             </div>}
         </div>
         <SourceToolbar source={props.source} summaryId={`${sourceId}-summary`} toolbarRef={toolbar}
-            labelMode={props.view === "label"}
+            labelMode={Boolean(props.referenceMode)} fieldReview={props.view === "fields"}
+            comparisonAvailable={Boolean(props.comparison?.comparable)}
             settings={props.settings} onSettings={props.onSettings} onControlFocus={captureControlFocus}>
             <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}
                 minZoom={minZoom} maxZoom={maxZoom} ready={ready} fit={fit} controlsRef={documentControls}

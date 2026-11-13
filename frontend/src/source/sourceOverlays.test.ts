@@ -49,7 +49,7 @@ describe("Studio view-specific source outlines", () => {
         const before = JSON.stringify(original);
         const outlines = sourceOutlines(content, "fields", 1, true);
         expect(outlines.map(item => item.field.name)).toEqual(["Name", "Value"]);
-        expect(outlines.map(item => item.color)).toEqual(["#F1F3F5", "#F1F3F5"]);
+        expect(outlines.map(item => item.color)).toEqual(["#ECF3FC", "#ECF3FC"]);
         expect(sourceOutlines(content, "fields", 2, true).map(item => item.field.name)).toEqual(["Value"]);
         expect(JSON.stringify(original)).toBe(before);
     });
@@ -88,7 +88,9 @@ describe("Studio view-specific source outlines", () => {
         }
         const normal = sourceOutlines(content, "fields", 1, false, { ...defaultReviewSettings, highlightLow: false });
         expect(normal.map(item => item.enabled)).toEqual([true, true, true, true, true]);
-        expect(normal.map(item => item.color)).toEqual(["#E8F5E9", "#E8F5E9", "#F1F3F5", "#E8F1FF", "#E8F1FF"]);
+        expect(normal.map(item => item.color)).toEqual(["#ECF3FC", "#ECF3FC", "#ECF3FC", "#ECF3FC", "#ECF3FC"]);
+        expect(baseline.map(item => item.low)).toEqual([false, true, false, false, true]);
+        expect(normal.every(item => !item.low)).toBe(true);
         expect(JSON.stringify(original)).toBe(before);
     });
 

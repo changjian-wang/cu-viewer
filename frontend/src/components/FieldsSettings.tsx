@@ -4,8 +4,9 @@ import { usePanelDismiss } from "../interaction/usePanelDismiss";
 import { ViewerIcon } from "./ViewerIcon";
 
 export function FieldsSettings({ id, anchor, settings, onSettings, onResetOrder, resetOrderDisabledReason,
-    onObjectExpansion, objectExpansionDisabledReason, onClose, labelMode = false }: {
+    onObjectExpansion, objectExpansionDisabledReason, onClose, labelMode = false, hideConfidence = false }: {
     labelMode?: boolean;
+    hideConfidence?: boolean;
     id: string; anchor: HTMLElement; settings: ReviewSettings; onSettings: (settings: ReviewSettings) => void;
     onResetOrder: () => void; resetOrderDisabledReason: string | null;
     onObjectExpansion: (open: boolean) => void; objectExpansionDisabledReason: string | null;
@@ -21,12 +22,12 @@ export function FieldsSettings({ id, anchor, settings, onSettings, onResetOrder,
         }}>
         <header><h2>Settings</h2><button type="button" className="cu-icon-button" aria-label={labelMode ? "Close label settings" : "Close fields settings"}
             onClick={() => onClose(true)}><ViewerIcon name="close" /></button></header>
-        <label className="cu-switch-row cu-confidence-toggle" htmlFor={switchId}>
+        {!hideConfidence && <label className="cu-switch-row cu-confidence-toggle" htmlFor={switchId}>
             <span>Show Confidence</span>
             <input id={switchId} type="checkbox" role="switch" checked={settings.columns === 3}
                 onChange={event => onSettings({ ...settings, columns: event.target.checked ? 3 : 2 })} />
             <span className="cu-switch-track" aria-hidden="true" />
-        </label>
+        </label>}
         <div className="cu-fields-settings-actions">
             <button type="button" className="cu-text-button" disabled={resetOrderDisabledReason !== null}
                 title={resetOrderDisabledReason ?? undefined} onClick={onResetOrder}>

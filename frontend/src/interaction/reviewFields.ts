@@ -1,6 +1,8 @@
 import type { ViewerFieldOrder } from "../index";
 import type { CuContent, CuField } from "../model/types";
 import { displayValue, fieldDisplayName, flattenFields, formatConfidence as formatScore, isFieldGroup } from "./interaction";
+import { isComparisonError } from "../model/fieldComparison";
+import type { ComparisonStatus } from "../model/fieldComparison";
 
 export { formatScore, isFieldGroup };
 
@@ -18,6 +20,20 @@ export const defaultReviewSettings: Readonly<ReviewSettings> = {
     threshold: 0.7, showFields: true, showTables: true, highlightLow: true,
     columns: 2, paneRatio: 0.58, fieldRatio: 0.46,
 };
+
+export const FIELD_REVIEW_COLORS = {
+    default: "#ECF3FC", matched: "#DCFBD7", error: "#FFDADD", lowStroke: "#B43C4B99",
+} as const;
+
+export function fieldAppearance(field: Pick<CuField, "confidence">, settings: ReviewSettings, status: ComparisonStatus = "uncompared") {
+    const low = field.confidence !== undefined && field.confidence < settings.threshold && settings.highlightLow;
+    return {
+        low, color: "#243447",
+        background: status === "matched" ? FIELD_REVIEW_COLORS.matched : isComparisonError(status) ?
+            FIELD_REVIEW_COLORS.error : FIELD_REVIEW_COLORS.default,
+        boxShadow: low ? `inset 0 0 0 1px ${FIELD_REVIEW_COLORS.lowStroke}` : undefined,
+    };
+}
 
 export function leafFields(fields: readonly CuField[]): CuField[] {
     return flattenFields([...fields]).filter(field => field.children.length === 0);

@@ -2,22 +2,37 @@ import { useEffect, useRef, useState } from "react";
 import { ContentUnderstandingResultViewer } from "../src";
 import type { ViewerSource } from "../src";
 import pdfUrl from "../../tests/fixtures/mixed-financial-docs.pdf?url";
-import pdfResultUrl from "../../tests/fixtures/mixed-financial-docs.cu.json?url";
+import pdfResultUrl from "../../tests/fixtures/mixed-financial-docs.pdf.result.json?url";
 import pngUrl from "../../tests/fixtures/receipt.png?url";
-import pngResultUrl from "../../tests/fixtures/receipt.cu.json?url";
+import pngResultUrl from "../../tests/fixtures/receipt.png.result.json?url";
 import largePdfUrl from "../../tests/fixtures/large-bank-statement.pdf?url";
-import largePdfResultUrl from "../../tests/fixtures/large-bank-statement.cu.json?url";
+import largePdfResultUrl from "../../tests/fixtures/large-bank-statement.pdf.result.json?url";
+import labeledPdfUrl from "../../tests/fixtures/labels/invoice.pdf?url";
+import labeledPdfLabelsUrl from "../../tests/fixtures/labels/invoice.pdf.labels.json?url";
+
+interface DemoSample {
+    label: string;
+    source: string;
+    name: string;
+    type: string;
+    result?: string;
+    json?: string;
+    labels?: string;
+    labelName?: string;
+}
 
 const requestedSample = new URLSearchParams(window.location.search).get("sample");
 const samples = {
-    pdf: { label: "PDF", source: pdfUrl, result: pdfResultUrl, name: "mixed-financial-docs.pdf", json: "mixed-financial-docs.cu.json", type: "application/pdf" },
-    png: { label: "Receipt PNG", source: pngUrl, result: pngResultUrl, name: "receipt.png", json: "receipt.cu.json", type: "image/png" },
+    pdf: { label: "PDF", source: pdfUrl, result: pdfResultUrl, name: "mixed-financial-docs.pdf", json: "mixed-financial-docs.pdf.result.json", type: "application/pdf" },
+    png: { label: "Receipt PNG", source: pngUrl, result: pngResultUrl, name: "receipt.png", json: "receipt.png.result.json", type: "image/png" },
     large: { label: "Large PDF", source: largePdfUrl, result: largePdfResultUrl,
-        name: "large-bank-statement.pdf", json: "large-bank-statement.cu.json", type: "application/pdf" },
+        name: "large-bank-statement.pdf", json: "large-bank-statement.pdf.result.json", type: "application/pdf" },
+    labels: { label: "PDF + Labels", source: labeledPdfUrl, labels: labeledPdfLabelsUrl, name: "invoice.pdf",
+        labelName: "invoice.pdf.labels.json", type: "application/pdf" },
 };
 type Sample = keyof typeof samples;
-const sampleChoices: readonly Sample[] = ["pdf", "png", "large"];
-const initialSample: Sample = requestedSample === "pdf" || requestedSample === "png" || requestedSample === "large"
+const sampleChoices: readonly Sample[] = ["pdf", "png", "large", "labels"];
+const initialSample: Sample = requestedSample === "pdf" || requestedSample === "png" || requestedSample === "large" || requestedSample === "labels"
     ? requestedSample : "pdf";
 
 export function App() {
@@ -33,22 +48,28 @@ export function App() {
         jsonGeneration.current++;
         labelGeneration.current++;
         const controller = new AbortController();
-        const pair = samples[sample];
+        const pair: DemoSample = samples[sample];
         setInput(null);
         setHostError(null);
+        const readSampleJson = async (url: string | undefined): Promise<unknown> => {
+            if (url === undefined) return undefined;
+            const response = await fetch(url, { signal: controller.signal });
+            if (!response.ok) throw new Error(`Sample JSON failed (${response.status}).`);
+            const data: unknown = await response.json();
+            return data;
+        };
         void Promise.all([
             fetch(pair.source, { signal: controller.signal }).then(async response => {
                 if (!response.ok) throw new Error(`Sample source failed (${response.status}).`);
                 return response.blob();
             }),
-            fetch(pair.result, { signal: controller.signal }).then(async response => {
-                if (!response.ok) throw new Error(`Sample result failed (${response.status}).`);
-                const data: unknown = await response.json();
-                return data;
-            }),
-        ]).then(([blob, result]) => {
+            readSampleJson(pair.result),
+            readSampleJson(pair.labels),
+        ]).then(([blob, result, labels]) => {
             if (controller.signal.aborted) return;
-            setInput({ source: new File([blob], pair.name, { type: pair.type }), result, name: pair.name, json: pair.json });
+            setInput({ source: new File([blob], pair.name, { type: pair.type }), result, labels,
+                name: pair.name, json: pair.json ?? "Choose .result.json",
+                ...(pair.labelName === undefined ? {} : { labelName: pair.labelName }) });
         }).catch((error: unknown) => {
             if (!controller.signal.aborted) setHostError(error instanceof Error ? error.message : String(error));
         });
@@ -97,7 +118,7 @@ export function App() {
                             jsonGeneration.current++;
                             labelGeneration.current++;
                             setHostError(null);
-                            setInput(current => current ? { ...current, source: file, name: file.name } : null);
+                            setInput({ source: file, name: file.name, result: undefined, json: "Choose .result.json" });
                             event.target.value = "";
                         }
                     }} />

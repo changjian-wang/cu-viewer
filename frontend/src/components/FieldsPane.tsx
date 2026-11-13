@@ -3,8 +3,8 @@ import type { Dispatch, KeyboardEvent, ReactNode, SetStateAction } from "react";
 import type { ViewerFieldOrder } from "../index";
 import { displayValue, fieldDisplayName, fieldLabel, fieldRegions } from "../interaction/interaction";
 import { emphasizeFieldTarget, revealFieldTarget } from "../interaction/fieldNavigation";
-import { appearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
-    isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, visibleFieldIds } from "../interaction/reviewFields";
+import { fieldAppearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
+    leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, visibleFieldIds } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
 import { tableFieldIds, tableLocationMessage } from "../interaction/tableFields";
@@ -14,6 +14,8 @@ import { ResizeHandle } from "./ResizeHandle";
 import { ValueMenuTrigger } from "./ValueActions";
 import { ViewerIcon } from "./ViewerIcon";
 import { FieldsSettings } from "./FieldsSettings";
+import type { FieldComparison } from "../model/fieldComparison";
+import { ComparisonFieldsPane } from "./ComparisonFieldsPane";
 
 export interface FieldsReviewState {
     expanded: Set<string>;
@@ -24,7 +26,8 @@ export interface FieldsReviewState {
 export const initialFieldsReview = (fields: readonly CuField[] = []): FieldsReviewState =>
     ({ expanded: initialExpandedFields(fields), query: "", focused: null });
 
-interface FieldsPaneProps {
+export interface FieldsPaneProps {
+    comparison?: FieldComparison | undefined;
     labelMode?: boolean;
     fields: readonly CuField[];
     settings: ReviewSettings;
@@ -58,6 +61,11 @@ interface FieldsPaneProps {
 }
 
 export function FieldsPane(props: FieldsPaneProps) {
+    return props.comparison ? <ComparisonFieldsPane {...props} comparison={props.comparison} /> :
+        <StandardFieldsPane {...props} />;
+}
+
+function StandardFieldsPane(props: FieldsPaneProps) {
     const { settings, fields, review } = props;
     const related = useMemo(() => new Set(props.tableLocation?.match.fields.map(field => field.id) ?? []), [props.tableLocation]);
     const relatedTargets = useMemo(() => new Set(props.tableLocation?.match.targets.map(field => field.id) ?? []), [props.tableLocation]);
@@ -223,10 +231,10 @@ export function FieldsPane(props: FieldsPaneProps) {
             ...entries.filter(entry => field.id.startsWith(`${entry.field.id}/`)).map(entry => entry.field.id)]) }));
         props.onSelect(field);
     };
-    const value = (field: CuField, inline = false): ReactNode => {
-        const style = appearance(field, inline || isTableValue(field), settings, props.labelMode);
+    const value = (field: CuField): ReactNode => {
+        const style = fieldAppearance(props.labelMode ? {} : field, settings);
         return <span className={`cu-value-chip${!field.hasValue ? " is-missing" : ""}`}
-            style={style.low ? { background: style.background, color: style.color } : undefined}
+            style={{ background: style.background, color: style.color, boxShadow: style.boxShadow }}
             title={props.labelMode ? "Reference label value" : confidenceDescription(field, settings.threshold)}>{displayValue(field)}</span>;
     };
     const cell = (field: CuField): ReactNode => <div className="cu-cell-content"
@@ -240,7 +248,7 @@ export function FieldsPane(props: FieldsPaneProps) {
             aria-pressed={props.selected?.id === field.id} data-review-focus={matches.has(field.id) ? field.id : undefined}
             tabIndex={review.focused === field.id ? 0 : -1}
             ref={button => { if (button) nameButtons.current.set(field.id, button); else nameButtons.current.delete(field.id); }}
-            onKeyDown={event => onFieldKey(event, field)} onClick={() => props.onSelect(field)}>{value(field, true)}</button>
+            onKeyDown={event => onFieldKey(event, field)} onClick={() => props.onSelect(field)}>{value(field)}</button>
         <ValueMenuTrigger field={field} workflow={props.workflow} menuId={props.menuId} onOpen={props.onMenu} />
         <span className="cu-visually-hidden" id={descriptionId(field)}>{description(field)}</span>
     </div>;
@@ -411,7 +419,7 @@ export function FieldsPane(props: FieldsPaneProps) {
                     value={columnWidth * settings.fieldRatio} min={columnWidth * 0.25} max={columnWidth * 0.7}
                     step={12} defaultValue={columnWidth * 0.46}
                     onChange={next => props.onSettings({ ...settings, fieldRatio: next / columnWidth })} /></th>
-                    <th scope="col">Value</th>{settings.columns === 3 && <th scope="col">Confidence</th>}</tr></thead>
+                    <th scope="col">{props.labelMode ? "Label Value" : "Value"}</th>{settings.columns === 3 && <th scope="col">Confidence</th>}</tr></thead>
                 <tbody>{rows}</tbody>
             </table>
             {fields.length === 0 ? <div className="cu-state"><h2>{props.labelMode ? "No labels" : "No extracted fields"}</h2>
@@ -459,6 +467,7 @@ export function FieldsPane(props: FieldsPaneProps) {
                     onClick={() => setSettingsOpen(current => !current)}><ViewerIcon name="settings" /></button>
             </div>
             {settingsOpen && settingsButton.current && <FieldsSettings id={`${id}-settings`} anchor={settingsButton.current}
+                hideConfidence={Boolean(props.labelMode)}
                 labelMode={Boolean(props.labelMode)}
                 settings={settings} onSettings={props.onSettings}
                 onResetOrder={() => props.onOrder({})}

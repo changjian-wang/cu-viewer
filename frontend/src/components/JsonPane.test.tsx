@@ -1,9 +1,24 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { JsonPane, MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "./JsonPane";
 
-afterEach(cleanup);
+const dialogShow = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "showModal");
+const dialogClose = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "close");
+
+beforeEach(() => {
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value(this: HTMLDialogElement) { this.open = true; } });
+    Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value(this: HTMLDialogElement) { this.open = false; } });
+});
+
+afterEach(() => {
+    cleanup();
+    if (dialogShow) Object.defineProperty(HTMLDialogElement.prototype, "showModal", dialogShow);
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
+    if (dialogClose) Object.defineProperty(HTMLDialogElement.prototype, "close", dialogClose);
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
+    vi.restoreAllMocks();
+});
 
 describe("original JSON result presentation", () => {
     it("shows the original object and lets nested objects and arrays expand", () => {
@@ -48,16 +63,66 @@ describe("original JSON result presentation", () => {
         expect(screen.queryByRole("alert")).toBeNull();
     });
 
-    it("pages a large string without cutting surrogate pairs or hiding its final characters", async () => {
-        const value = `${"x".repeat(3_999)}\u{1f600}${"y".repeat(MAX_JSON_CHARACTERS)}original-tail`;
-        const { container } = render(<JsonPane value={{ value }} />);
+    it("summarizes long strings safely and preserves JSON escapes in the full viewer without losing tree position", () => {
+        const value = `${"x".repeat(239)}\u{1f600}${"y".repeat(3_750)}\r\n\t"quoted"\\\n<img src="https://example.invalid/image">original-tail`;
+        const original = Object.freeze({ markdown: value, after: "Following field" });
+        const { container } = render(<JsonPane value={original} />);
+        expect(container.querySelector(".cu-json-string")?.textContent).toBe(JSON.stringify("x".repeat(239)));
+        expect(screen.queryByRole("button", { name: /JSON string.*page/ })).toBeNull();
+        const trigger = screen.getByRole("button", { name: "View full text for /markdown" });
+        const scroll = trigger.closest<HTMLElement>(".cu-rich-result-scroll");
+        if (!scroll) throw new Error("The JSON viewport is missing.");
+        scroll.scrollTop = 320; scroll.scrollLeft = 12;
+        fireEvent.click(trigger);
+        const dialog = screen.getByRole("dialog", { name: "markdown" });
+        const text = within(dialog).getByRole("region", { name: "Full JSON string" });
+        expect(text.textContent).toBe(JSON.stringify(value));
+        expect(text.textContent).not.toContain("\n");
+        expect(text.textContent).not.toContain("\t");
+        expect(text.querySelector(".cu-json-syntax-tag")).not.toBeNull();
+        expect(text.querySelector(".cu-json-syntax-escape")).not.toBeNull();
+        expect(dialog.querySelector("img")).toBeNull();
+        expect(document.activeElement).toBe(text);
+        scroll.scrollTop = 0;
+        fireEvent.click(within(dialog).getByRole("button", { name: "Close full text" }));
+        expect(screen.queryByRole("dialog")).toBeNull();
+        expect(document.activeElement).toBe(trigger);
+        expect(scroll.scrollTop).toBe(320);
+        expect(scroll.scrollLeft).toBe(12);
+        expect(original.markdown).toBe(value);
+        expect(screen.getByText('"Following field"')).toBeTruthy();
+    });
+
+    it("keeps a large string's tree preview bounded and opens the same full-value viewer", async () => {
+        const value = `${"x".repeat(MAX_JSON_CHARACTERS)}original-tail`;
+        const { container } = render(<JsonPane value={{ markdown: value }} />);
         await screen.findByRole("tree", { name: "Original Analyze result JSON" });
-        fireEvent.click(screen.getByRole("button", { name: "Next JSON string at /value page" }));
-        expect(container.querySelector(".cu-json-string")?.textContent?.startsWith('"\u{1f600}')).toBe(true);
-        fireEvent.click(screen.getByRole("button", { name: "Last JSON string at /value page" }));
-        expect(container.querySelector(".cu-json-string")?.textContent).toContain("original-tail");
-        expect(container.querySelector(".cu-json-string")?.textContent?.length).toBeLessThanOrEqual(4_002);
-        expect(screen.queryByRole("alert")).toBeNull();
+        expect(container.querySelector(".cu-json-string")?.textContent?.length).toBeLessThan(250);
+        fireEvent.click(screen.getByRole("button", { name: "View full text for /markdown" }));
+        expect(screen.getByRole("dialog", { name: "markdown" })).toBeTruthy();
+        expect(screen.getByText(`${value.length.toLocaleString("en-US")} characters`, { selector: ".cu-json-string-count" })).toBeTruthy();
+    });
+
+    it("closes on cancel without bubbling Escape and discards an open viewer when input changes", () => {
+        const onKeyDown = vi.fn();
+        const original = { value: "x".repeat(4_001) };
+        const { rerender } = render(<div onKeyDown={onKeyDown}><JsonPane value={original} /></div>);
+        const trigger = screen.getByRole("button", { name: "View full text for /value" });
+        fireEvent.click(trigger);
+        let dialog = screen.getByRole("dialog");
+        fireEvent.keyDown(dialog, { key: "Escape" });
+        expect(onKeyDown).not.toHaveBeenCalled();
+        fireEvent(dialog, new Event("cancel", { cancelable: true }));
+        expect(screen.queryByRole("dialog")).toBeNull();
+        expect(document.activeElement).toBe(trigger);
+        fireEvent.click(trigger);
+        dialog = screen.getByRole("dialog");
+        rerender(<div onKeyDown={onKeyDown}><JsonPane value={{ value: "Replacement" }} /></div>);
+        expect(dialog.hasAttribute("open")).toBe(false);
+        expect(screen.queryByRole("dialog")).toBeNull();
+        expect(screen.getByText('"Replacement"')).toBeTruthy();
+        rerender(<div onKeyDown={onKeyDown}><JsonPane value={original} /></div>);
+        expect(screen.queryByRole("dialog")).toBeNull();
     });
 
     it("validates the entire large input, including invalid values after the former limit", async () => {

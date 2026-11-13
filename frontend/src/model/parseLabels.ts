@@ -4,9 +4,9 @@ import type { CuContent, CuParseIssue } from "./types";
 import { PDF_CSS_UNITS_PER_INCH } from "../source/pdfSource";
 import type { LoadedSource } from "../source/source";
 
-export function parseLabels(input: unknown, source: Pick<LoadedSource, "kind" | "pages"> | null) {
-    const inspection = inspectJson(input);
-    if (inspection.status !== "ready") {
+export function parseLabels(input: unknown, source: Pick<LoadedSource, "kind" | "pages"> | null, validated = false) {
+    const inspection = validated ? null : inspectJson(input);
+    if (inspection && inspection.status !== "ready") {
         throw new CuResultParseError("invalid-labels", "",
             inspection.status === "limit" ? "Label JSON exceeds the viewer size limit." : inspection.message);
     }

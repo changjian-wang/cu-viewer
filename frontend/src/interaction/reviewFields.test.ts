@@ -272,7 +272,7 @@ describe("independent object and table initial expansion", () => {
     });
 
     it("uses the real invoice structure without hardcoded business names", () => {
-        const original: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "mixed-financial-docs.cu.json"), "utf8"));
+        const original: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "mixed-financial-docs.pdf.result.json"), "utf8"));
         const fields = parseCuResult(original).contents[0]!.fields;
         const expanded = initialExpandedFields(fields);
         expect(fields.filter(field => expanded.has(field.id)).map(field => field.name)).toEqual(["LineItems", "TaxDetails"]);
@@ -281,7 +281,7 @@ describe("independent object and table initial expansion", () => {
 
 describe("field-order projection and schema identity", () => {
     it("renders real nested-money LineItems as a business-order grid, not a scalar-only fixture shortcut", () => {
-        const original: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "mixed-financial-docs.cu.json"), "utf8"));
+        const original: unknown = JSON.parse(readFileSync(resolve("tests", "fixtures", "mixed-financial-docs.pdf.result.json"), "utf8"));
         const before = JSON.stringify(original);
         const value = parseCuResult(original).contents[0]!.fields.find(field => field.name === "LineItems")!;
         const projection = inlineArrayProjection(value)!;

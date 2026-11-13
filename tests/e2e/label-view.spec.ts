@@ -17,7 +17,7 @@ async function loadLabels(page: Page): Promise<void> {
     await page.getByLabel("Choose source file", { exact: true }).setInputFiles(pdf);
     await ready(page);
     await page.getByLabel("Choose local label JSON", { exact: true }).setInputFiles(labelFile);
-    await page.getByRole("tab", { name: "Label", exact: true }).click();
+    await page.getByRole("tab", { name: "Fields", exact: true }).click();
     await expect(page.getByRole("treegrid", { name: "Labels", exact: true })).toBeVisible();
     await expect(page.getByRole("alert")).toHaveCount(0);
 }
@@ -99,13 +99,13 @@ test("local labels retain typed values, nested objects and array rows with fixed
     await expect(grid.getByRole("button", { name: "InvoiceNumber", exact: true })).toBeVisible();
     await expect(grid.getByRole("button", { name: "InvoiceId", exact: true })).toHaveCount(0);
     await expect(grid.getByText("2019-11-15", { exact: true })).toBeVisible();
-    await expect(grid.getByRole("table", { name: "LineItems values", exact: true }).getByRole("row")).toHaveCount(4);
+    await expect(grid.getByRole("table", { name: "LineItems label values", exact: true }).getByRole("row")).toHaveCount(4);
     const outlines = page.getByTestId("result-overlay");
     await expect(outlines.locator(`polygon[data-outline-id="${invoice}"]`)).toHaveCount(3);
-    await expect(outlines.locator(`polygon[data-outline-id="${invoice}"]`).first()).toHaveAttribute("fill", "#E8F5E9");
+    await expect(outlines.locator(`polygon[data-outline-id="${invoice}"]`).first()).toHaveAttribute("fill", "#ECF3FC");
     await expect(outlines.locator(`polygon[data-outline-id="${labelId("SellerAddress")}"]`).first())
-        .toHaveAttribute("fill", "#E8F5E9");
-    await expect(outlines.locator(`polygon[data-outline-id="${date}"]`).first()).toHaveAttribute("fill", "#E8F1FF");
+        .toHaveAttribute("fill", "#ECF3FC");
+    await expect(outlines.locator(`polygon[data-outline-id="${date}"]`).first()).toHaveAttribute("fill", "#ECF3FC");
     await expandField(page, "OrderInformation");
     const missing = grid.locator(`[data-field-id="${labelId("OrderInformation/valueObject/Salesperson")}"]`);
     await expect(missing).toContainText("Not returned");
@@ -114,13 +114,14 @@ test("local labels retain typed values, nested objects and array rows with fixed
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
     await expect(legend.getByRole("switch")).toHaveCount(2);
-    await expect(legend.getByText("Reference label; not compared", { exact: true })).toBeVisible();
-    await expect(legend.getByRole("switch", { name: "Show array label highlights", exact: true })).toBeVisible();
+    await expect(legend.getByText("Not compared", { exact: true })).toBeVisible();
+    await expect(legend.getByRole("switch", { name: "Show array highlights", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Source settings", exact: true })).toHaveCount(0);
     await legend.getByRole("button", { name: "Close legend", exact: true }).click();
     await pane.getByRole("tab", { name: "Fields", exact: true }).click();
-    await expect(pane.getByRole("treegrid", { name: "Extracted fields", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Source settings", exact: true })).toBeVisible();
+    await expect(pane.getByRole("treegrid", { name: "Labels", exact: true })).toBeVisible();
+    await expect(pane.getByRole("tab", { name: "Label", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Source settings", exact: true })).toHaveCount(0);
 });
 
 test("label hovering and selection work in both directions for scalars, objects and arrays", async ({ page }) => {
@@ -142,12 +143,12 @@ test("label hovering and selection work in both directions for scalars, objects 
     await grid.getByRole("button", { name: "LineItems", exact: true }).hover();
     await expect(tooltip).toBeVisible();
     await expect(tooltip).toContainText("Item 1 / Date: 2021-03-04");
-    await grid.getByRole("button", { name: "Select value of LineItems / Item 1 / Date", exact: true }).click();
+    await grid.getByRole("button", { name: "Select label value of LineItems / Item 1 / Date", exact: true }).click();
     await expect(page.getByTestId("source-overlay").locator("polygon").first()).toHaveAttribute("data-source-id", date);
     const search = page.getByRole("searchbox", { name: "Search labels or values", exact: true });
     await search.fill("InvoiceDate");
-    await page.getByRole("button", { name: "Next label", exact: true }).click();
-    await expect(page.getByLabel("Current label position")).toHaveText("1 / 1 labels");
+    await page.getByRole("button", { name: "Next field", exact: true }).click();
+    await expect(page.getByLabel("Current field position")).toHaveText("1 / 1");
     await expect(page.getByTestId("source-overlay").locator("polygon").first())
         .toHaveAttribute("data-source-id", labelId("InvoiceDate"));
 });
@@ -167,8 +168,8 @@ test("the production session loads labels without an Analyze result, preference 
     await page.route("**/label-session/source/invoice.pdf", route => route.fulfill({ path: pdf, contentType: "application/pdf" }));
     await page.goto("/label-session/");
     await ready(page);
-    await expect(page.getByRole("tab", { name: "Label", exact: true })).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByRole("tab", { name: "Fields", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "Fields", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("tab", { name: "Label", exact: true })).toHaveCount(0);
     await expect(page.getByRole("tab", { name: "Result", exact: true })).toHaveCount(0);
     await expect(page.getByRole("treegrid", { name: "Labels", exact: true })).toContainText("InvoiceNumber");
     expect(requests.some(url => url.includes("field-order") || url.includes(".result.json"))).toBe(false);
@@ -180,7 +181,28 @@ test("invalid label JSON is reported without hiding a readable PDF", async ({ pa
     await page.getByLabel("Choose local label JSON", { exact: true }).setInputFiles({
         name: "invalid.labels.json", mimeType: "application/json", buffer: Buffer.from('{"fieldLabels":[]}'),
     });
+
     await expect(page.getByRole("alert")).toContainText("Labels could not be read");
     await expect(page.getByTestId("rendered-page")).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Label", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("tab", { name: "Fields", exact: true })).toHaveAttribute("aria-selected", "true");
+});
+
+test("the CLI page displays optional-result warnings and keeps the reference Fields view", async ({ page }) => {
+    const entry = `/@fs/${resolve("frontend", "app", "main.tsx").replaceAll("\\", "/")}`;
+    await page.route("**/label-warning/", route => route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><html><body><div id="root"></div><script type="module" src="${entry}"></script></body></html>`,
+    }));
+    await page.route("**/label-warning/session.json", route => route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ source: "./source/invoice.pdf", name: "invoice.pdf", labels: labelData,
+            warnings: ["The companion result could not be read. Showing labels without comparison."] }),
+    }));
+    await page.route("**/label-warning/source/invoice.pdf", route => route.fulfill({ path: pdf, contentType: "application/pdf" }));
+    await page.goto("/label-warning/");
+    await expect(page.getByTestId("rendered-page")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("alert")).toContainText("Showing labels without comparison");
+    await expect(page.getByRole("tab", { name: "Fields", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("columnheader", { name: "Label Value", exact: true })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Extracted Value", exact: true })).toHaveCount(0);
 });

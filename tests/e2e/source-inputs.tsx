@@ -3,9 +3,9 @@ import { createRoot } from "react-dom/client";
 import { ContentUnderstandingResultViewer } from "../../frontend/src";
 import type { ViewerFieldOrder, ViewerSource } from "../../frontend/src";
 import pdfUrl from "../fixtures/mixed-financial-docs.pdf?url";
-import pdfResultUrl from "../fixtures/mixed-financial-docs.cu.json?url";
+import pdfResultUrl from "../fixtures/mixed-financial-docs.pdf.result.json?url";
 import pngUrl from "../fixtures/receipt.png?url";
-import pngResultUrl from "../fixtures/receipt.cu.json?url";
+import pngResultUrl from "../fixtures/receipt.png.result.json?url";
 import heifUrl from "../fixtures/images/example.heic?url";
 import heifResultUrl from "../fixtures/images/example.synthetic.cu.json?url";
 

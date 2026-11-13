@@ -100,6 +100,7 @@ export interface CuContent {
     metadata?: Readonly<Record<string, string>>;
     pages: CuPage[];
     fields: CuField[];
+    fieldsDeclared?: boolean;
 }
 
 export interface CuParseIssue {

@@ -3,7 +3,6 @@ import { resultInfoEntries } from "./resultInfo";
 
 export const RESULT_TABS = [
     { id: "fields", label: "Fields" },
-    { id: "label", label: "Label" },
     { id: "markdown", label: "Markdown" },
     { id: "paragraphs", label: "Paragraphs" },
     { id: "figures", label: "Figures" },
@@ -16,7 +15,7 @@ export type ResultTab = typeof RESULT_TABS[number];
 export type ResultView = typeof RESULT_TABS[number]["id"];
 
 export function isFieldView(view: ResultView | undefined): boolean {
-    return view === "fields" || view === "label";
+    return view === "fields";
 }
 
 export function availableResultTabs(
@@ -26,8 +25,7 @@ export function availableResultTabs(
     hasLabels = false,
 ) {
     const available: Record<ResultView, boolean> = {
-        fields: (content?.fields.length ?? 0) > 0,
-        label: hasLabels,
+        fields: hasLabels || (content?.fields.length ?? 0) > 0,
         markdown: Boolean(content?.markdown?.trim()),
         paragraphs: (content?.paragraphs?.length ?? 0) > 0,
         figures: (content?.figures?.length ?? 0) > 0,

@@ -75,10 +75,10 @@ test("real Markdown and original JSON preserve source page, zoom, rotation and p
     await expect(pane.getByRole("tab", { name: "Result", exact: true })).toHaveAttribute("aria-selected", "true");
     const tree = pane.getByRole("tree", { name: "Original Analyze result JSON" });
     await expect(tree).toBeVisible();
-    await expect(tree.locator(".cu-json-label", { hasText: "id:" })).toBeVisible();
-    await expect(tree.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();
-    await tree.locator(".cu-json-label", { hasText: "result:" }).click();
-    await expect(tree.locator(".cu-json-label", { hasText: "analyzerId:" })).toBeVisible();
+    await expect(tree.locator(".cu-json-label", { hasText: /^"?id"?:$/ })).toBeVisible();
+    await expect(tree.locator(".cu-json-label", { hasText: /^"?usage"?:$/ })).toBeVisible();
+    await tree.locator(".cu-json-label", { hasText: /^"?result"?:$/ }).click();
+    await expect(tree.locator(".cu-json-label", { hasText: /^"?analyzerId"?:$/ })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Page number" })).toHaveValue("4");
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");
     const afterSwitchBounds = await page.getByTestId("rendered-page").boundingBox();
@@ -171,12 +171,23 @@ test("missing and malformed results remain explicit while large content stays ac
 
     const jsonStart = Date.now();
     await uploadResult(page, syntheticResult(undefined, {
-        oversized: `${"x".repeat(MAX_JSON_CHARACTERS)}original-json-tail`,
+        oversized: `${"x".repeat(4_095)}\u{1f600}${"x".repeat(MAX_JSON_CHARACTERS * 2)}original-json-tail`,
     }), "oversized-json.json");
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
-    await pane.getByRole("button", { name: "Last JSON string at /oversized page", exact: true }).click();
-    await expect(pane.locator('[data-json-path="/oversized"] .cu-json-string')).toContainText("original-json-tail");
+    const fullText = pane.getByRole("button", { name: "View full text for /oversized", exact: true });
+    await fullText.click();
+    const dialog = page.getByRole("dialog", { name: "oversized", exact: true });
+    const text = dialog.getByRole("region", { name: "Full JSON string", exact: true });
+    await expect(text).toBeVisible();
+    for (const fragment of await text.locator("pre").allTextContents()) {
+        expect(/^[\uDC00-\uDFFF]|[\uD800-\uDBFF]$/.test(fragment)).toBe(false);
+    }
+    await text.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await expect(text).toContainText("original-json-tail");
+    expect(await text.locator("pre").count()).toBeLessThan(8);
+    await dialog.getByRole("button", { name: "Close full text", exact: true }).click();
+    await expect(fullText).toBeFocused();
     const jsonMilliseconds = Date.now() - jsonStart;
 
     await uploadResult(page, syntheticResult(undefined, {
@@ -204,6 +215,83 @@ test("missing and malformed results remain explicit while large content stays ac
         type: "large-result-observation",
         description: `${testInfo.project.name}: virtual Markdown ${markdownMilliseconds} ms; paged JSON ${jsonMilliseconds} ms. Static budgets: ${MARKDOWN_STATIC_CHARACTERS} Markdown characters, ${MAX_JSON_CHARACTERS} JSON characters, ${MAX_JSON_VALUES} JSON values.`,
     });
+});
+
+test("Result long strings preserve colored JSON escapes across fragments and restore tree focus, scroll and source selection", async ({ page }) => {
+    const prefix = '# Not a rendered heading\r\n\t"quoted" C:\\fixtures\\sample\n\n';
+    const tagged = `${prefix}${"x".repeat(4_094 - (JSON.stringify(prefix).length - 1))}<table title="2 > 1">A</table><!-- PageBreak -->`;
+    const raw = `${tagged}${"y".repeat(8_191 - (JSON.stringify(tagged).length - 1))}\n${"Raw text remains literal.\n".repeat(1_500)}\n` +
+        '<img src="https://example.invalid/never-load"><script>window.__rawXss = true</script>\n\u{1f600}RAW_END';
+    await uploadResult(page, {
+        apiVersion: "2025-11-01", contents: [{ kind: "document", unit: "inch",
+            pages: [{ pageNumber: 1, width: 8.5, height: 11 }],
+            markdown: raw, fields: { Anchor: { type: "string", valueString: "Keep selection", source: "D(1,1,1,2,1)" } } }],
+    }, "raw-string-viewer.json");
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    await pane.getByRole("button", { name: "Anchor", exact: true }).click();
+    await ready(page);
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
+    for (const path of ["/contents", "/contents/0"]) {
+        await pane.locator(`[data-json-path="${path}"]`).getByRole("button", { name: "Expand JSON node", exact: true }).click();
+    }
+    const node = pane.locator('[data-json-path="/contents/0/markdown"]');
+    expect((await node.locator(".cu-json-string").textContent())?.length).toBeLessThan(300);
+    await expect(node.getByRole("group", { name: /pagination/ })).toHaveCount(0);
+    const trigger = node.getByRole("button", { name: "View full text for /contents/0/markdown", exact: true });
+    await trigger.scrollIntoViewIfNeeded();
+    const scroll = pane.locator(".cu-rich-result-scroll").first();
+    const position = await scroll.evaluate(element => ({ top: element.scrollTop, left: element.scrollLeft }));
+    await page.evaluate(() => {
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: {
+            writeText: (value: string): Promise<void> => { Reflect.set(globalThis, "__rawCopiedText", value); return Promise.resolve(); },
+        } });
+    });
+    await trigger.click();
+    const dialog = page.getByRole("dialog", { name: "markdown", exact: true });
+    const text = dialog.getByRole("region", { name: "Full JSON string", exact: true });
+    await expect(text).toBeFocused();
+    await expect(text).toContainText(JSON.stringify(raw).slice(0, 200));
+    const displayed = (await text.locator("pre").allTextContents()).join("");
+    expect(displayed).not.toContain("\n");
+    expect(displayed).not.toContain("\t");
+    expect(displayed).toContain("\\n");
+    expect(displayed).toContain("\\t");
+    expect(displayed).toContain('\\"');
+    expect(displayed).toContain("\\\\");
+    const first = text.locator('pre[data-index="0"]');
+    const second = text.locator('pre[data-index="1"]');
+    await expect(first.locator(".cu-json-syntax-tag")).toHaveText("<t");
+    await expect(second.locator(".cu-json-syntax-tag").first()).toHaveText("able title=");
+    await expect(second.locator(".cu-json-syntax-tag").filter({ hasText: "2 > 1" })).toHaveText("2 > 1");
+    const tagColor = await first.locator(".cu-json-syntax-tag").evaluate(element => getComputedStyle(element).color);
+    const escapeColor = await first.locator(".cu-json-syntax-escape").first().evaluate(element => getComputedStyle(element).color);
+    const background = await dialog.evaluate(element => getComputedStyle(element).backgroundColor);
+    expect(tagColor).not.toBe(escapeColor);
+    expect(contrast(tagColor, background)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(escapeColor, background)).toBeGreaterThanOrEqual(4.5);
+    await second.scrollIntoViewIfNeeded();
+    await expect(second.locator(".cu-json-syntax-escape").last()).toHaveText("\\");
+    await expect(text.locator('pre[data-index="2"] .cu-json-syntax-escape').first()).toHaveText("n");
+    await expect(dialog.getByRole("heading", { name: "Not a rendered heading", exact: true })).toHaveCount(0);
+    await expect(dialog.locator("img, script")).toHaveCount(0);
+    await dialog.getByRole("button", { name: "Copy full text", exact: true }).click();
+    expect(await page.evaluate(() => {
+        const copied: unknown = Reflect.get(globalThis, "__rawCopiedText");
+        return typeof copied === "string" ? copied : null;
+    })).toBe(raw);
+    await text.focus();
+    await text.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await expect(text).toContainText("RAW_END");
+    expect(await text.locator("pre").count()).toBeLessThan(8);
+    await page.keyboard.press("Shift+Tab");
+    await expect(dialog.getByRole("button", { name: "Close full text", exact: true })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    expect(await scroll.evaluate(element => ({ top: element.scrollTop, left: element.scrollLeft }))).toEqual(position);
+    await pane.getByRole("tab", { name: "Fields", exact: true }).click();
+    await expect(pane.getByRole("button", { name: "Anchor", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("source-overlay")).toBeVisible();
 });
 
 test("large CU Markdown reaches its last page and preserves that page across result tabs", async ({ page }) => {

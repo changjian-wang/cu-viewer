@@ -34,23 +34,26 @@ npm ci --ignore-scripts
 npm run dev
 ```
 
-打开 <http://127.0.0.1:5173/>。选择 PDF／Receipt PNG／Large PDF 使用项目内置的配对样本，或分别选择本地源文件和保存的 JSON；不产生新的 CU 调用。文件选择属于演示宿主，不是组件公开 API。
+打开 <http://127.0.0.1:5173/>。选择 PDF／Receipt PNG／Large PDF／PDF + Labels 使用项目内置样本，或分别选择本地源文件和保存的 JSON；不产生新的 CU 调用。文件选择属于演示宿主，不是组件公开 API。
 
-本地标签通过顶部 **Labels** 选择器加载：先选择配对 PDF，再选择 `.labels.json`，打开 **Label** tab。可使用[标签样本](tests/fixtures/labels)，无需配套分析结果文件；演示宿主允许另行加载 Analyze JSON，但阶段一不做两者比对。
+本地标签通过顶部 **Labels** 选择器加载：先选择配对 PDF，再选择 `.labels.json`，统一在 **Fields** 查看，不再有独立 Label tab。可使用[标签样本](tests/fixtures/labels)；仅标签时显示两列，另行加载同一 PDF 的有效 Analyze JSON 后显示标签／提取值三列对照。更换本地源文件会清除上一文档的标签和结果，避免误配；内置样例按钮仍加载项目内配对数据。
 
 该页面由[演示宿主](frontend/demo)启动，直接使用[组件源码](frontend/src)。它用于开发和调试，实际 CLI 接入见[开发计划](docs/dev-plan.md)。
 
 ### 内置示例
 
-三个入口都直接加载[项目样例资源](tests/fixtures)，开发服务与 `build:demo` 的行为一致，不依赖 Downloads、本机路径、环境变量或专用文件接口：
+四个入口都直接加载[项目样例资源](tests/fixtures)，开发服务与 `build:demo` 的行为一致，不依赖 Downloads、本机路径、环境变量或专用文件接口：
 
 | 入口 | 源文件／配套结果 | 用途 |
 | --- | --- | --- |
-| PDF | `mixed-financial-docs.pdf`／`mixed-financial-docs.cu.json` | 普通 PDF 示例。 |
-| Receipt PNG | `receipt.png`／`receipt.cu.json` | 票据图片示例。 |
-| Large PDF | `large-bank-statement.pdf`／`large-bank-statement.cu.json` | 当前 41 页的大文档分页、渲染和性能回归。 |
+| PDF | `mixed-financial-docs.pdf`／`mixed-financial-docs.pdf.result.json` | 普通 PDF 示例。 |
+| Receipt PNG | `receipt.png`／`receipt.png.result.json` | 票据图片示例。 |
+| Large PDF | `large-bank-statement.pdf`／`large-bank-statement.pdf.result.json` | 当前 41 页的大文档分页、渲染和性能回归。 |
+| PDF + Labels | `labels/invoice.pdf`／`labels/invoice.pdf.labels.json` | 直接查看项目现成标签示例，Fields 显示两列参考模式，不伪造分析结果。 |
 
-默认打开普通 PDF，也可通过 `?sample=pdf`、`?sample=png`、`?sample=large` 直接选择示例。切换与刷新只读取项目内已保存的数据，不调用 Azure、不上传文件。缺少配套文件会在构建或加载时明确失败，不混用其他文档的结果。
+默认打开普通 PDF，也可通过 `?sample=pdf`、`?sample=png`、`?sample=large`、`?sample=labels` 直接选择示例。切换与刷新只读取项目内已保存的数据，不调用 Azure、不上传文件。缺少声明的配套文件会在构建或加载时明确失败，不混用其他文档的结果。
+
+真实分析结果统一使用 `<源文件完整文件名>.result.json`，保留 `.pdf`／`.png` 后缀；旧 `.cu.json` 是项目内部样本名，不是服务返回格式。本次仅重命名三份真实结果，内容和 SHA-256 不变。PDF + Labels 没有现成配套结果，因此不会显示错误的匹配统计；可另行加载同一 PDF 的真实结果进行三列对照。
 
 Large PDF 为任务所有者提供并授权纳入项目的测试配对数据，来源、权限说明、统计与完整性哈希见[样例清单](tests/fixtures/manifest.json)；不将其视为 Azure Samples 的 MIT 样例。内置样例随 Demo 构建，不打入通用 npm 组件或 CLI Release 的 Viewer 静态资源。
 
@@ -60,19 +63,17 @@ Markdown 不再显示底部渲染说明；多页内容使用底部固定的 44px
 
 PDF 与 Markdown 的页码输入统一使用 0.5px 发丝底线，以内阴影绘制避免细边框被取整成 1px。默认无外框和底色，底线颜色与工具栏背景对比度至少为 3:1；悬停加深底线，鼠标和键盘聚焦均以蓝色底线及输入光标提示，不再显示额外矩形蓝框，其他控件的焦点轮廓不变。错误与禁用状态分别区分，输入框尺寸、底栏高度、居中及翻页行为不变。
 
-### 本地 Label 查看（第一阶段）
+### 本地标签与 Fields 对照
 
-配套开发版 Go CU 扩展新增：
+本轮实现范围仅为 `cu-viewer`：组件负责渲染和只读比对，Demo 直接加载项目样本，也支持手工选择配对文件。需求中的 azd 命令属于外部宿主集成场景，不代表本轮修改了 azd 命令或其内嵌资源；此前超出范围的 Go 改动已撤销。浏览器组件不擅自读取本地相邻文件。
 
-```powershell name="本地查看标签"
-azd ai cu label view invoice.pdf
-```
+标签按 `fieldLabels` 和相应 `value*` 解析。仅标签／结果未声明首个 content 的 `fields` 时，Fields 显示 `Field Name / Label Value`；有效 `fields: {}` 仍启用对照，标签值判为漏提取。结果和标签均有效时显示 `Field Name / Label Value / Extracted Value`，按完整字段路径和类型值精确比较，保留大小写、空白、`0`、`false`、空字符串和 `null` 的区别。数组按原始下标配对；对象不因 JSON 属性顺序不同而误判。
 
-命令读取同目录的 `invoice.pdf.labels.json`，保留 `.pdf` 后缀。只接受一份本地 PDF，不依赖 `.result.json`，不登录、不上传、不调用 Analyze，也不修改 PDF 或标签文件。标签文件限 500,000 UTF-8 字节；缺失、无效或过大的文件明确报错，不回退到分析。
+背景统一为未比较淡蓝、匹配绿、错误红，值不同／误提取／漏提取通过文字区分。低于当前阈值的提取 confidence 只添加透明红色描边，不改变匹配填色。漏提取仅在 Fields 标错，预览不常驻漏提取色块；点击任一列可定位该侧真实来源，不借用标签框冒充提取来源。标签来源按 PDF 实际页尺寸映射；没有来源时不补造区域。
 
-Label 按 `fieldLabels` 展示对象和数组；字符串、日期、数字等分别读取相应的 `value*`。每个有效 `source` 的全部 `D(...)` 区域都会映射到实际 PDF 页，页尺寸来自 PDF，而不是分析结果。普通／对象标签及其子字段为浅绿色，数组内标签为浅蓝色，不按置信度改变颜色。左右悬停、选中和定位联动；组级预览显示子字段名称和值的摘要。缺少值／来源时明确保留缺失状态，不补造高亮。
+数组显示标签在上、提取在下的双表，长数组按可见行挂载；缺行／缺列明确占位。搜索覆盖名称和两侧值，底栏正确／错误按钮按叶子值（含数组单元格）计数，容器不重复；数量为当前内容全量统计。正确筛选只保留全正确数组，错误筛选保留至少有一个错误的完整双表。比较仅关联首个 content，切换其他 content 不自动套用标签。
 
-这些是参考标签颜色，不表示匹配成功。此阶段不提供值比对、Mismatch、False Positive、False Negative 或标签编辑。该入口要求配套的新 Viewer 和 Go 扩展；现有已发布资源和已安装扩展不会自动更新。
+原始输入始终只读，不提供标签编辑。外部宿主可以传入 `source`、`labels`、可选 `result`，独立页面也支持显示宿主提供的可选 `warnings`；不要求宿主新增参数。已发布资源和已安装 CLI 不会因本仓库源码改变而自动更新。
 
 Label 的悬浮／固定选择外框使用 1 CSS px 描边，并在装饰层向外留出约 1 CSS px。同一标签同一行的紧邻词片段（包括短横线等窄标点）先合框，连续对齐多行也可合框；跨列、远距离或会圈入其他字段时仍保留独立外框。原始来源多边形、颜色填充、点击命中及原 PDF 文字不变，原 Fields 的外框样式保持不变。
 
@@ -135,7 +136,7 @@ export function AnalyzeResultView(props: ContentUnderstandingResultViewerProps) 
 | --- | --- |
 | `source` | `File \| Blob \| ArrayBuffer \| string`；从内容识别 PDF/JPEG/PNG/BMP/HEIF/HEIC，不只相信扩展名或 MIME。 |
 | `result?` | `unknown`，传入已解析的原始 CU JSON 对象；接受 Succeeded envelope 或 inner result，不要求宿主标准化或构造 SDK 模型。 |
-| `labels?` | `unknown`，传入已解析的本地 `.labels.json`，根级需要 `fieldLabels` 对象。当前标签来源仅支持 PDF；单独提供时默认进入 Label，不伪造 Fields 或 Analyze 结果。 |
+| `labels?` | `unknown`，传入已解析的本地 `.labels.json`，根级需要 `fieldLabels` 对象。当前标签来源仅支持 PDF；单独提供时默认进入 Fields 两列参考模式，与首个 content 的有效字段同时提供时自动对照，不伪造 Analyze 结果。 |
 
 可选字段顺序配置：
 
@@ -264,15 +265,17 @@ Tab 栏按可用宽度展示，放不下的标签收进右侧 `...` 下拉菜单
 
 | 视图 | 行为 |
 | --- | --- |
-| Fields | 双／三列表格展示真实层级及数组投影，对象默认折叠、非空数组默认展开；置信度使用值自身的分数，不继承父级。缺失过滤不隐藏 `0`、`false`、空字符串或 `null`，折叠不丢失单项或整组选择。只有原生表格而无提取字段时隐藏 Fields，不补造数据。 |
-| Label | 使用本地 `fieldLabels`，复用 Fields 的层级、数组表格、搜索及导航；普通／对象标签浅绿，数组标签浅蓝。参考颜色不受置信度影响，组级悬浮摘要使用子字段的真实值与来源。 |
+| Fields | 统一提取值、标签参考与三列对照；无独立 Label tab。数组按下标以双表呈现，搜索覆盖两侧值；按叶子值统计并筛选完整数组。置信度只取值自身的分数，匹配背景与低置信度描边独立。仅有原生表格且无标签／字段时仍不补造 Fields 数据。 |
 | Markdown | 在 Worker 中完整解析 Markdown、GFM 和 CU HTML 表格并安全清理，再按页／块展示；跨页引用和表格先解析、后分页，脚本和危险 URL 等不能执行。 |
 | Paragraphs | 保留返回顺序、role/页码，选择定位真实来源。 |
-| Figures／Signatures | 使用已加载 source 的真实区域裁剪及返回 metadata；不补造图片或签名状态。 |
+| Figures | 按连续来源页分组的轻量图文列表，保留真实裁剪、ID、类型、caption、description 和 footnotes；支持折叠、搜索、循环导航和双向来源联动。 |
+| Signatures | 使用已加载 source 的真实区域裁剪及返回 metadata；不补造图片或签名状态。 |
 | Info | 所有 content 的 metadata、usage、infos、warnings 按固定顺序展示；只读名称／值层次表默认全部展开，可折叠，无 Copy 控件，不改变原值。 |
-| Result | 完整原始输入/envelope，根展开、嵌套折叠，包括原有 usage，不显示内部标准化模型。 |
+| Result | 完整原始输入/envelope，根展开、嵌套折叠，包括原有 usage，不显示内部标准化模型；长字符串使用摘要与 View Full Text，不在字段值下放翻页工具栏。 |
 
 切换标签不重挂 Source，不重置页码、缩放、旋转、平移或固定项/区域索引；切换 content 是另一操作，会重算适用视图。
+
+Figures 参考 Paragraphs 的页分组和 44px 底部工具栏，但保留图片区：空间足够时图文并排，窄结果区自然换行，不裁去说明或拉伸预览。只折叠连续相同来源页集合，不重排或合并原始条目；无来源和跨页范围明确显示。搜索覆盖名称、ID、类型、role、完整 caption／description／footnotes 和页信息，过滤期间临时展开匹配项并禁用折叠，清空后恢复手动状态。前后导航循环选择并聚焦匹配项；新的原文选择只展开并揭示目标组一次，不抢走左侧焦点。被搜索隐藏的来源选择会提示，不自动清除搜索或事后重放定位。折叠和过滤会释放隐藏条目的裁剪画布，但不清除左侧固定选择或改写输入；这些查看状态不写入配置。Signatures 的卡片布局不变。
 
 原文叠加层分开绘制：
 
@@ -294,7 +297,8 @@ Tab 栏按可用宽度展示，放不下的标签收进右侧 `...` 下拉菜单
 - 50,000 字符／3,000 节点是普通页的静态展示预算，不是拒绝查看的限制。大型单页按块及长文本片段虚拟化，复杂表格按可见行列加载，保留表头和单元格跨度；长单元格具有独立滚动区，完整内容仍可到达，不以超限提示替代正文。
 - Worker 首次打开 Markdown 时与界面懒加载并行启动，主线程按需请求片段并使用有界缓存；往返标签复用文档，更换结果、content、source 或卸载时释放。Worker 或格式化异常仅影响 Markdown，明确显示错误并提供重试、原文查看，不卸载 PDF 或其他结果视图。
 - 虚拟化仅挂载可视内容；浏览器原生查找与锚点跳转不能保证覆盖离屏内容，不等同于全量搜索。极端文档仍受浏览器内存约束，不承诺任意体量的固定解析时间。
-- JSON 在 500,000 序列化字符／20,000 值以内沿用原树形查看；超过时分时验证完整数据，再按需展开，每个容器每页最多 100 项，长字符串每页最多 4,000 个 UTF-16 代码单元并保持代理对完整。首末页和前后页可访问全部原始内容；循环引用或非 JSON 值明确报错，不伪装成部分成功。
+- JSON 在 500,000 序列化字符／20,000 值以内且不含长字符串时沿用原树形查看；更大的数据分时验证后按需展开，集合每页最多 100 项。超过 4,000 个 UTF-16 代码单元的字符串显示约 240 单元的明确摘要、总字符数与 View Full Text，不修改原值或截断代理对；小结果中的长字符串也使用同样的入口。
+- 全文窗口以与 Result 一致的 JSON 字符串形式只读显示完整值，保留 `\n`、`\t`、`\"` 等转义文本，不展开为实际换行或制表符。HTML 标签／注释使用蓝色，JSON 转义使用紫色，跨可视分片保持颜色连续；只给安全文本添加颜色，不解析或执行 Markdown／HTML，也不加载字符串内的图片。Copy 保持复制完整原始字段值，不额外添加 JSON 引号或转义。Escape／关闭后恢复触发按钮和 JSON 树滚动位置，不清除源文档选择；更换数据会关闭旧窗口。虚拟化意味着原生查找／选择只保证覆盖已挂载片段，复制完整原值应使用 Copy。循环引用或非 JSON 值仍明确报错，不伪装成部分成功。
 - Info 的既有大小防护和 Tables 的 20,000 网格位置限制不变；所有分段与分页均不改写调用方数据。
 - Markdown 的 `figures/<id>`（或 `./figures/<id>`）图片引用按当前 content 的真实 Figure ID 与来源区域，复用已加载原文的本地裁剪预览；不请求图片链接，不改变左侧页码。沿用 Figures 预览的最长边 320 CSS px 上限，使用原文真实内容并保持比例，不附加卡片边框；多来源区域依返回顺序显示。
 - 本地图片预留真实裁剪比例，避免异步加载时撑开布局；图片密集页也纳入虚拟化预算，离屏／切页时取消裁剪并释放画布。缺失、重复 ID、无来源或裁剪失败只在图片位置明确提示，不隐藏正文。其他图片仍替换为省略说明，普通文字不会按名称猜测或替换成 Logo。
@@ -363,7 +367,7 @@ schema 2 清单包含 `viewerVersion`、`protocolVersion: 1`、归档及逐文�
 
 各原生宿主应按 SemVer 查找协议兼容、同时包含两份资源的非草稿 Release，验证后以原子活动记录启用缓存；损坏缓存明确报告并重新获取，失败更新保留旧活动版本。宿主运行不依赖 Node/npm/gh；Go 不依赖 Python。此处定义多语言契约，不代表本仓库实现了新的语言宿主。
 
-宿主提供页面同目录下的 `session.json`（`source`、`name`，以及 `result`／`labels` 至少一项）和指定源文件；`source` 必须属于同源、同会话路径，`result` 是同一次分析的完整 JSON，`labels` 是本地标签文件的完整 JSON。只有 `labels` 时不要求分析响应，也不提供 analyzer `fieldOrderUrl`；即使同时提供两类数据，Label 的显示顺序也不写入 analyzer 偏好。仅监听 loopback，校验 Host/Origin，按 CSP 提供已校验资源，不开放文件目录。分析后查看失败保留输出，不重新分析。`azd ai cu analyze <本地文件> --view` 首版只接受单一本地文件，不扩展批量、目录、URL 或 Python 的离线 `--result` 入口。
+宿主提供页面同目录下的 `session.json`（`source`、`name`，以及 `result`／`labels` 至少一项）和指定源文件；`source` 必须属于同源、同会话路径，`result` 是同一次分析的完整 JSON，`labels` 是本地标签文件的完整 JSON。可选 `warnings` 是需要页面明确显示的字符串数组。标签会话不要求分析响应，也不提供 analyzer `fieldOrderUrl`；即使同时提供两类数据，标签对照的显示顺序也不写入 analyzer 偏好。仅监听 loopback，校验 Host/Origin，按 CSP 提供已校验资源，不开放文件目录。分析后查看失败保留输出，不重新分析。`azd ai cu analyze <本地文件> --view` 首版只接受单一本地文件，不扩展批量、目录、URL 或 Python 的离线 `--result` 入口。
 
 ### 脚本与验证边界
 

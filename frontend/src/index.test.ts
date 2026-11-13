@@ -28,7 +28,7 @@ describe("public viewer input contract", () => {
 
     it("accepts the saved CLI JSON unchanged at the type boundary", () => {
         const rawResult: unknown = JSON.parse(
-            readFileSync(resolve("tests", "fixtures", "receipt.cu.json"), "utf8"),
+            readFileSync(resolve("tests", "fixtures", "receipt.png.result.json"), "utf8"),
         );
         const props: ContentUnderstandingResultViewerProps = {
             source: new Blob(["source bytes"]),

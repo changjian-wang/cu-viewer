@@ -88,12 +88,16 @@ for (const profile of profiles) {
     for (const name of ["styles.css", "index.html"]) {
         copyFileSync(join(repository, "frontend", "demo", name), join(directory, name));
     }
-    for (const name of ["mixed-financial-docs.pdf", "mixed-financial-docs.cu.json", "receipt.png", "receipt.cu.json",
-        "large-bank-statement.pdf", "large-bank-statement.cu.json", "manifest.json", "LICENSE.txt"]) {
+    for (const name of ["mixed-financial-docs.pdf", "mixed-financial-docs.pdf.result.json", "receipt.png", "receipt.png.result.json",
+        "large-bank-statement.pdf", "large-bank-statement.pdf.result.json", "manifest.json", "LICENSE.txt"]) {
         copyFileSync(join(repository, "tests", "fixtures", name), join(directory, "fixtures", name));
     }
     for (const name of ["example.heic", "example.synthetic.cu.json"]) {
         copyFileSync(join(repository, "tests", "fixtures", "images", name), join(directory, "fixtures", name));
+    }
+    mkdirSync(join(directory, "fixtures", "labels"));
+    for (const name of ["invoice.pdf", "invoice.pdf.labels.json"]) {
+        copyFileSync(join(repository, "tests", "fixtures", "labels", name), join(directory, "fixtures", "labels", name));
     }
     npm(["install", "--ignore-scripts", "--no-audit", "--no-fund"], profile.directory);
     npm(["run", "typecheck"], profile.directory);
