@@ -127,7 +127,7 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await expect(page.getByLabel("Source information")).toContainText("invoice.pdf");
     await expect(page.getByRole("button", { name: "Select label value of InvoiceNumber", exact: true })).toHaveText("INV-100");
     await expect(page.getByRole("tab", { name: "Label", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("tab", { name: "Result", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "Result", exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "PDF", exact: true }).click();
     await ready(page);

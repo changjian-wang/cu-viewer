@@ -522,7 +522,7 @@ test("pointer previews dismiss with the clock paused and never resurrect the sel
     await page.clock.resume();
 });
 
-test("the purple preview is pointer-transparent and immediately exposes another source field behind it", async ({ page }) => {
+test("the state-colored preview is pointer-transparent and immediately exposes another source field behind it", async ({ page }) => {
     await synthetic(page);
     await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
         name: "synthetic-overlapping-preview.json", mimeType: "application/json",
@@ -540,13 +540,13 @@ test("the purple preview is pointer-transparent and immediately exposes another 
     const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
     await expect(popup).toBeVisible();
     await expect(popup).toHaveCSS("pointer-events", "none");
-    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(229, 218, 255)");
-    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("color", "rgb(76, 29, 149)");
+    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("color", "rgb(36, 52, 71)");
     await expect(popup.locator(".cu-popover-heading")).toHaveCSS("font-size", "12.5px");
     await expect(popup.locator(".cu-flyover-value")).toHaveCSS("color", "rgb(36, 52, 71)");
     await expect(popup.locator(".cu-flyover-value")).toHaveCSS("font-size", "12.5px");
     await expect(popup.locator(".cu-flyover-confidence")).toHaveCSS("font-size", "11px");
-    expect(await popup.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(229, 218, 255)");
+    expect(await popup.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(236, 243, 252)");
     const box = await popup.boundingBox();
     const second = await regions.locator('[data-outline-id="/contents/0/fields/Second"]').boundingBox();
     if (!box || !second) throw new Error("Expected both the preview and the underlying source field.");

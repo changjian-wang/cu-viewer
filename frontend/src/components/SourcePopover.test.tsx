@@ -4,6 +4,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { SourcePopover } from "./SourcePopover";
 import type { CuField } from "../model/types";
+import { compareFields } from "../model/fieldComparison";
+import type { FieldComparison } from "../model/fieldComparison";
 
 beforeEach(() => {
     vi.stubGlobal("ResizeObserver", class {
@@ -15,7 +17,7 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>) {
+function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>, comparison?: FieldComparison) {
     const viewport = createRef<HTMLDivElement>(), paper = createRef<HTMLDivElement>();
     const element = document.createElement("div");
     Object.defineProperties(element, {
@@ -24,7 +26,7 @@ function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>) {
     });
     viewport.current = element;
     paper.current = element;
-    const view = render(<SourcePopover id="source-preview" field={field} summaryFieldIds={summaryFieldIds}
+    const view = render(<SourcePopover id="source-preview" field={field} summaryFieldIds={summaryFieldIds} comparison={comparison}
         points={[{ x: 50, y: 200 }, { x: 150, y: 200 }, { x: 150, y: 220 }, { x: 50, y: 220 }]}
         pan={{ x: 0, y: 0 }} viewport={viewport} paper={paper} />);
     return { ...view, viewport, paper };
@@ -40,6 +42,35 @@ const object: CuField = { ...field, id: "/contents/0/fields/AmountDue", name: "A
     type: "object", value: { Amount: 610, Currency: "USD" }, children: [amount, currency] };
 
 describe("Studio source preview content", () => {
+    it("keeps comparison labels neutral and puts the matching color and confidence badge beside the extracted value", () => {
+        const label: CuField = { ...field, id: "/labels/fields/Zero", origin: "label", confidence: 1 };
+        setup(field, undefined, compareFields([label], [field], true));
+        const popup = screen.getByRole("tooltip", { name: "Field preview" });
+        const body = popup.querySelector<HTMLElement>(".cu-flyover-comparison")!;
+        expect(body.style.background).toBe("");
+        expect(body.children).toHaveLength(2);
+        const labelValue = body.querySelector<HTMLElement>('[data-comparison-side="label"] .cu-flyover-comparison-value')!;
+        const extractedValue = body.querySelector<HTMLElement>('[data-comparison-side="extracted"] .cu-flyover-comparison-value')!;
+        expect(labelValue.textContent).toBe("0");
+        expect(labelValue.style.background).toBe("");
+        expect(extractedValue.textContent).toBe("0");
+        expect(extractedValue.style.background).toBe("rgb(220, 251, 215)");
+        expect(extractedValue.style.boxShadow).toBe("inset 0 0 0 1px #B43C4B99");
+        expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("rgb(220, 251, 215)");
+        expect(popup.style.getPropertyValue("--cu-preview-banner-bg")).toBe("#DCFBD7");
+        expect(body.querySelector('[data-comparison-side="extracted"] .cu-flyover-confidence')?.textContent).toBe("0.00");
+    });
+
+    it("uses the distinct missing-extraction color for the banner and placeholder without borrowing label confidence", () => {
+        const label: CuField = { ...field, id: "/labels/fields/Zero", origin: "label", confidence: 0 };
+        setup(label, undefined, compareFields([label], [], true));
+        const popup = screen.getByRole("tooltip");
+        expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("rgb(248, 192, 200)");
+        expect(popup.querySelector<HTMLElement>('[data-comparison-side="extracted"] .cu-flyover-comparison-value')!.style.background)
+            .toBe("rgb(248, 192, 200)");
+        expect(popup.querySelector(".cu-flyover-confidence")).toBeNull();
+    });
+
     it("shows an object's returned value summary without inheriting or fabricating group confidence", () => {
         const before = JSON.stringify(object);
         setup(object);

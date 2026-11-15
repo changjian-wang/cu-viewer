@@ -11,7 +11,7 @@ import { FIELD_REVIEW_COLORS } from "../interaction/reviewFields";
 import type { FieldComparison } from "../model/fieldComparison";
 import type { ResultView } from "../model/resultViews";
 import type { SourceOutline } from "../source/sourceOverlays";
-import { isValueSourceField, outsetSourceFrame, SOURCE_POPOVER_GAP, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
+import { isValueSourceField, outsetSourceFrame, SOURCE_POPOVER_GAP, sourceObjectPreviewFrame, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
 import { SourcePopover } from "./SourcePopover";
 import { useSourceRendering } from "../source/useSourceRendering";
 import { SourceToolbar } from "./SourceToolbar";
@@ -24,6 +24,7 @@ interface SourcePaneProps {
     loading: boolean;
     error: string | null;
     content: CuContent | undefined;
+    labelContent?: CuContent | undefined;
     pageNumber: number;
     active: CuField | null;
     preview: boolean;
@@ -174,11 +175,12 @@ export function SourcePane(props: SourcePaneProps) {
     useEffect(() => { if (!props.hasSelection) setReserve(0); }, [props.hasSelection]);
     useEffect(captureControlFocus, [props.source, props.pageNumber, zoom, rotation, renderKey, dpr]);
     const geometry = useMemo(() => {
-        const cuPage = props.content?.pages.find(value => value.pageNumber === props.pageNumber);
+        const cuPage = props.content?.pages.find(value => value.pageNumber === props.pageNumber) ??
+            props.labelContent?.pages.find(value => value.pageNumber === props.pageNumber);
         if (!ready || !projectionSize || !cuPage) return { value: null, error: null };
         try { return { value: createPageGeometry(cuPage, projectionSize, { zoom: 1, rotation, pan: { x: 0, y: 0 } }), error: null }; }
         catch (error) { return { value: null, error: error instanceof Error ? error.message : String(error) }; }
-    }, [props.content, props.pageNumber, ready, projectionSize, rotation]);
+    }, [props.content, props.labelContent, props.pageNumber, ready, projectionSize, rotation]);
     const background = useMemo(() => {
         const outlines: ProjectedOutline[] = [], tables: ProjectedTable[] = [];
         if (!geometry.value) return { outlines, tables, error: geometry.error };
@@ -197,20 +199,23 @@ export function SourcePane(props: SourcePaneProps) {
         } catch (error) { return { outlines: [], tables: [], error: error instanceof Error ? error.message : String(error) }; }
     }, [props.outlines, props.content, props.pageNumber, geometry, projectionSize, rotation]);
     const selectedPolygons = useMemo(() => {
-        const project = (field: CuField | null, regions: readonly CuRegion[]) =>
-            !field || !geometry.value ? [] : regions.flatMap((region, regionIndex) =>
-                region.pageNumber === props.pageNumber ?
-                    [{ regionIndex, polygon: projectRegion(region, geometry.value).polygon }] : []);
+        const project = (field: CuField | null, regions: readonly CuRegion[]) => {
+            if (!field || !projectionSize) return [];
+            const content = field.origin === "label" ? props.labelContent ?? props.content : props.content;
+            const cuPage = content?.pages.find(value => value.pageNumber === props.pageNumber);
+            if (!cuPage) return [];
+            const ownGeometry = createPageGeometry(cuPage, projectionSize, { zoom: 1, rotation, pan: { x: 0, y: 0 } });
+            return regions.flatMap((region, regionIndex) => region.pageNumber === props.pageNumber ?
+                [{ regionIndex, polygon: projectRegion(region, ownGeometry).polygon }] : []);
+        };
         try {
             const pinned = project(props.pinned, props.pinnedRegions);
             const preview = props.preview ? project(props.active, props.regions) : [];
-            const pageGeometry = geometry.value;
             const framesFor = (field: CuField | null, regions: typeof pinned) => {
                 const merge = isValueSourceField(props.view, field) && regions.length > 1;
-                return merge && pageGeometry ? sourceSelectionFrames(regions,
-                    sourceOutlines(props.content, props.view, props.pageNumber, false)
-                        .filter(outline => outline.field.id !== field.id)
-                        .map(outline => projectRegion(outline.region, pageGeometry).polygon), field.origin === "label") :
+                return merge ? sourceSelectionFrames(regions,
+                    background.outlines.filter(outline => outline.field.id !== field.id).map(outline => outline.polygon),
+                    field.origin === "label") :
                     regions.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
             };
             const decorate = (frames: ReturnType<typeof sourceSelectionFrames>, field: CuField | null) => field?.origin === "label" ?
@@ -226,8 +231,8 @@ export function SourcePane(props: SourcePaneProps) {
                 error: null,
             };
         } catch (error) { return { pinned: [], preview: [], frames: [], previewFrames: [], card: undefined, error: error instanceof Error ? error.message : String(error) }; }
-    }, [geometry, props.content, props.view, props.pinned, props.pinnedRegions, props.preview,
-        props.active, props.regions, props.regionIndex, props.pageNumber, showCard, valuePreview, objectPreview]);
+    }, [background, projectionSize, rotation, props.content, props.labelContent, props.view, props.pinned, props.pinnedRegions,
+        props.preview, props.active, props.regions, props.regionIndex, props.pageNumber, showCard, valuePreview, objectPreview]);
     const activePolygons = props.preview ? selectedPolygons.preview : selectedPolygons.pinned;
     const cardPolygon = selectedPolygons.card;
     const measureCard = useCallback((next: PageSize): void => {

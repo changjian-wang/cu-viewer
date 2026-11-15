@@ -30,8 +30,8 @@
     "classification": "Public example documents; no customer files submitted."
   },
   "labelFixtures": {
-    "purpose": "Existing repository label example, used directly by the PDF + Labels Demo without generating analysis output.",
-    "mode": "reference-only; no paired saved analysis result is provided",
+    "purpose": "Existing invoice and labels paired with one owner-authorized real analysis for the PDF + Labels Demo.",
+    "mode": "read-only label and extracted value comparison",
     "source": {
       "path": "labels/invoice.pdf",
       "bytes": 151363,
@@ -41,6 +41,29 @@
       "path": "labels/invoice.pdf.labels.json",
       "bytes": 31038,
       "sha256": "d660ea317c477b63f95c53a6e09cd568425cf242f6beb30a6db14e6e9385d8df"
+    },
+    "result": {
+      "path": "labels/invoice.pdf.result.json",
+      "bytes": 24412,
+      "sha256": "8876e3459a384656d3e0cf3a5a8d7544b5a53c234f4ece585f6f2c6835d289e7",
+      "apiVersion": "2025-11-01",
+      "analyzerId": "yslin_sample_invoice",
+      "status": "Succeeded",
+      "synthetic": false,
+      "preservedCliOutput": true,
+      "pageCount": 1,
+      "topLevelFieldCount": 19
+    },
+    "acquisition": {
+      "collectedOn": "2026-11-13",
+      "tool": "azd ai cu",
+      "version": "0.1.1-preview",
+      "actualAnalyzeCalls": 1,
+      "authorization": "Task owner requested one real analysis and saving it in the Demo.",
+      "authentication": "Existing Microsoft Entra session; no credentials stored.",
+      "newResourcesCreated": false,
+      "customAnalyzersCreated": false,
+      "modelDefaultsChanged": false
     }
   },
   "imageFixtures": {

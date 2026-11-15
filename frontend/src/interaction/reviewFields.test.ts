@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseCuResult } from "../model/parseCuResult";
 import { fieldRegions, interaction, initialInteraction } from "./interaction";
-import { appearance, collapsedValue, confidenceDescription, copyValue, defaultReviewSettings, fieldEntries, formatScore, leafFields,
+import { appearance, collapsedValue, confidenceDescription, copyValue, defaultReviewSettings, fieldAppearance, fieldEntries, formatScore, leafFields,
     formatThreshold, initialExpandedFields, inlineArrayProjection, matchingLeaves, moveField, orderedFields, orderedLeafFields, parseThreshold, schemaIdentity,
     validateFieldOrder, validateOrderParents } from "./reviewFields";
 
@@ -16,6 +16,21 @@ function content(fields: Record<string, unknown>, analyzerId = "test") {
 const text = (value: string, confidence?: number) => ({ type: "string", valueString: value, confidence });
 
 describe("approved review semantics", () => {
+    it("distinguishes default array blue and missing-extraction red without replacing match colors or low-confidence outlines", () => {
+        const scalar = fieldAppearance({ confidence: 0.4 }, defaultReviewSettings);
+        const array = fieldAppearance({ confidence: 0.4 }, defaultReviewSettings, "uncompared", true);
+        expect(array.background).not.toBe(scalar.background);
+        expect(array.boxShadow).toBe(scalar.boxShadow);
+        const matched = fieldAppearance({ confidence: 0.4 }, defaultReviewSettings, "matched", true);
+        expect(matched.background).toBe("#DCFBD7");
+        expect(matched.boxShadow).toBeTruthy();
+        const missing = fieldAppearance({}, defaultReviewSettings, "missing");
+        const different = fieldAppearance({}, defaultReviewSettings, "different");
+        expect(missing.background).not.toBe(different.background);
+        expect(missing.boxShadow).toBeUndefined();
+        expect(fieldAppearance({ confidence: 0.7 }, defaultReviewSettings, "matched").boxShadow).toBeUndefined();
+    });
+
     it.each(["", " ", "NaN", "Infinity", "-0.1", "1.01"])("rejects invalid threshold %j", value => {
         expect(() => parseThreshold(value)).toThrow();
     });

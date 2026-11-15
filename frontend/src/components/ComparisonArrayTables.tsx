@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { fieldLabel } from "../interaction/interaction";
+import { displayValue, fieldLabel } from "../interaction/interaction";
 import { inlineArrayProjection } from "../interaction/reviewFields";
 import type { FieldComparison, FieldComparisonNode } from "../model/fieldComparison";
 import type { FieldsPaneProps } from "./FieldsPane";
@@ -8,8 +8,9 @@ import { ComparisonValue } from "./ComparisonValue";
 
 type Projection = NonNullable<ReturnType<typeof inlineArrayProjection>>;
 
-function ArrayTable({ node, side, projection, comparison, props, request, onReveal }: {
+function ArrayTable({ node, side, projection, columnWidths, comparison, props, request, onReveal }: {
     node: FieldComparisonNode; side: "label" | "extracted"; projection: Projection; comparison: FieldComparison;
+    columnWidths: readonly number[];
     props: FieldsPaneProps; request: number | null; onReveal: () => void;
 }) {
     const scroll = useRef<HTMLDivElement>(null);
@@ -17,7 +18,7 @@ function ArrayTable({ node, side, projection, comparison, props, request, onReve
     const count = projection.rows.length;
     const virtual = count > 100;
     const virtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
-        count: virtual ? count : 0, getScrollElement: () => scroll.current, estimateSize: () => 36, overscan: 4,
+        count: virtual ? count : 0, getScrollElement: () => scroll.current, estimateSize: () => 28, overscan: 4,
         useAnimationFrameWithResizeObserver: true,
     });
     const items = virtualizer.getVirtualItems();
@@ -34,6 +35,7 @@ function ArrayTable({ node, side, projection, comparison, props, request, onReve
         onReveal();
     }, [request, props.selected, items, rowIndex, virtual, onReveal]);
     const field = node[side];
+    const itemCount = field?.children.length ?? 0;
     const caption = side === "label" ? "Label Value" : "Extracted Value";
     const cacheKey = `${node.path}:${side}`;
     const attachScroll = useCallback((element: HTMLDivElement | null): void => {
@@ -46,13 +48,16 @@ function ArrayTable({ node, side, projection, comparison, props, request, onReve
     const visible = virtual ? items.map(item => ({ index: item.index, start: item.start, size: item.size })) :
         projection.rows.map((_, index) => ({ index, start: 0, size: 0 }));
     return <section className="cu-comparison-array">
-        <h3>{caption} <span>{field?.children.length ?? 0} items</span></h3>
+        <h3>{caption} <span>{"\u2014"} {itemCount} {itemCount === 1 ? "item" : "items"}</span></h3>
         <div className="cu-inline-table-wrap cu-comparison-array-scroll" ref={attachScroll} data-array-id={cacheKey}
             onScroll={event => {
                 props.tableScroll.set(cacheKey, event.currentTarget.scrollLeft);
                 props.tableScroll.set(`${cacheKey}:top`, event.currentTarget.scrollTop);
             }}>
-            <table className="cu-items-table" aria-label={`${fieldLabel(node.field)} ${side} values`}>
+            <table className="cu-items-table" aria-label={`${fieldLabel(node.field)} ${side} values`}
+                style={{ width: 29 + columnWidths.reduce((sum, width) => sum + width, 0) }}>
+                <colgroup><col style={{ width: 29 }} />{projection.columns.map((column, index) =>
+                    <col key={column.key} style={{ width: columnWidths[index] }} />)}</colgroup>
                 <thead><tr><th scope="col">#</th>{projection.columns.map(column =>
                     <th key={column.key} scope="col">{column.label}</th>)}</tr></thead>
                 <tbody>
@@ -83,10 +88,45 @@ export function ComparisonArrayTables({ node, comparison, props, request, onReve
     node: FieldComparisonNode; comparison: FieldComparison; props: FieldsPaneProps;
     request: number | null; onReveal: () => void;
 }) {
+    const pair = useRef<HTMLDivElement>(null);
+    const horizontalKey = `${node.path}:horizontal`;
+    const synchronizeHorizontal = useCallback((requested: number): void => {
+        const scrollers = pair.current?.querySelectorAll<HTMLDivElement>(
+            ":scope > .cu-comparison-array > .cu-comparison-array-scroll");
+        if (!scrollers?.length) return;
+        const maximum = Math.min(...[...scrollers].map(element => Math.max(0, element.scrollWidth - element.clientWidth)));
+        const left = Math.max(0, Math.min(requested, maximum));
+        props.tableScroll.set(horizontalKey, left);
+        for (const element of scrollers) {
+            if (element.dataset.arrayId) props.tableScroll.set(element.dataset.arrayId, left);
+            if (element.scrollLeft !== left) element.scrollLeft = left;
+        }
+    }, [horizontalKey, props.tableScroll]);
+    useLayoutEffect(() => {
+        synchronizeHorizontal(props.tableScroll.get(horizontalKey) ?? props.tableScroll.get(`${node.path}:label`) ??
+            props.tableScroll.get(`${node.path}:extracted`) ?? 0);
+    }, [horizontalKey, node.path, props.tableScroll, synchronizeHorizontal]);
     const projection = useMemo(() => inlineArrayProjection(node.field), [node.field]);
+    const columnWidths = useMemo(() => projection?.columns.map(column => {
+        let length = column.label.length;
+        for (const row of projection.rows) {
+            const cell = row.cells.get(column.key);
+            const pair = cell && comparison.byFieldId.get(cell.id);
+            for (const field of [pair?.label, pair?.extracted]) if (field?.hasValue) length = Math.max(length, displayValue(field).length);
+        }
+        return Math.max(48, Math.min(180, length * 6 + 20));
+    }) ?? [], [projection, comparison]);
     if (!projection) throw new Error("Nested arrays must be expanded as comparison fields.");
     const sides: ("label" | "extracted")[] = comparison.comparable ? ["label", "extracted"] : ["label"];
-    return <div className="cu-comparison-arrays">{sides.map(side =>
-        <ArrayTable key={side} node={node} side={side} projection={projection} comparison={comparison}
+    const selected = props.selected && comparison.byFieldId.get(props.selected.id);
+    const containsSelection = selected === node || selected?.path.startsWith(`${node.path}/`);
+    return <div ref={pair} className={`cu-comparison-arrays${containsSelection ? " is-selected" : ""}`}
+        onScrollCapture={event => {
+            const element = event.target;
+            if (!(element instanceof HTMLDivElement) || !element.classList.contains("cu-comparison-array-scroll") ||
+                element.closest(".cu-comparison-arrays") !== event.currentTarget) return;
+            if (element.scrollLeft !== props.tableScroll.get(horizontalKey)) synchronizeHorizontal(element.scrollLeft);
+        }}>{sides.map(side =>
+        <ArrayTable key={side} node={node} side={side} projection={projection} columnWidths={columnWidths} comparison={comparison}
             props={props} request={request} onReveal={onReveal} />)}</div>;
 }

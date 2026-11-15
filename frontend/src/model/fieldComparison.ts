@@ -88,7 +88,9 @@ export function compareFields(labels: readonly CuField[], extracted: readonly Cu
         if (node.children.length) {
             node.matched = node.children.reduce((sum, child) => sum + child.matched, 0);
             node.errors = node.children.reduce((sum, child) => sum + child.errors, 0);
-            node.status = node.errors ? "different" : node.matched ? "matched" : "uncompared";
+            node.status = comparable && node.label?.hasValue && !node.extracted?.hasValue ? "missing" :
+                comparable && !node.label?.hasValue && node.extracted?.hasValue ? "extra" :
+                    node.errors ? "different" : node.matched ? "matched" : "uncompared";
         } else {
             node.matched = Number(node.status === "matched");
             node.errors = Number(isComparisonError(node.status));

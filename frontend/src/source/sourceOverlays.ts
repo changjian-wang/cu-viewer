@@ -40,7 +40,8 @@ export function isValueSourceField(view: ResultView | undefined, field: CuField 
 }
 
 export function sourceOutlines(content: CuContent | undefined, view: ResultView | undefined,
-    pageNumber: number, hideMissing: boolean, settings: ReviewSettings = defaultReviewSettings, comparison?: FieldComparison): SourceOutline[] {
+    pageNumber: number, hideMissing: boolean, settings: ReviewSettings = defaultReviewSettings, comparison?: FieldComparison,
+    labelContent?: CuContent): SourceOutline[] {
     if (!content) return [];
     let fields: CuField[] = [];
     if (isFieldView(view)) {
@@ -54,18 +55,24 @@ export function sourceOutlines(content: CuContent | undefined, view: ResultView 
                 (field.regions.length > 0 && fieldRegions(field) === field.regions)) fields.push(field);
             stack.push(...field.children.slice().reverse());
         }
+        if (comparison?.comparable && labelContent) {
+            for (const node of comparison.nodes) {
+                if (!node.children.length && node.status === "missing" && node.label?.hasValue) fields.push(node.label);
+            }
+        }
     } else if (view === "paragraphs") fields = (content.paragraphs ?? []).map(item => item.field);
     else if (view === "figures") fields = (content.figures ?? []).map(item => item.field);
     else if (view === "signatures") fields = (content.signatures ?? []).map(item => item.field);
     return fields.flatMap(field => {
         const container = isFieldGroup(field) || content.tables?.some(table => table.field === field);
         const status = comparison?.byFieldId.get(field.id)?.status;
-        const style = isFieldView(view) ? fieldAppearance(field.origin === "label" ? {} : field, settings, status) :
+        const style = isFieldView(view) ? fieldAppearance(field.origin === "label" ? {} : field, settings, status, isTableValue(field)) :
             appearance(container ? {} : field, isTableValue(field), settings);
         const enabled = isTableValue(field) ? settings.showTables : settings.showFields;
         return field.regions.flatMap((region, index) => region.pageNumber === pageNumber ? [{
             key: `${field.id}:${index}`, field, region, regionIndex: index, color: style.background,
-            enabled, low: style.low, page: content.pages.find(page => page.pageNumber === region.pageNumber),
+            enabled, low: style.low, page: (field.origin === "label" ? labelContent ?? content : content).pages
+                .find(page => page.pageNumber === region.pageNumber),
         }] : []);
     });
 }

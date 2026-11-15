@@ -101,7 +101,7 @@ for (const mode of ["development", "production"] as const) {
 }
 
 for (const mode of ["development", "production"] as const) {
-    test(`${mode}: PDF + Labels loads the existing project pair without inventing analysis results`, async ({ page, baseURL }) => {
+    test(`${mode}: PDF + Labels loads the real saved invoice comparison without service calls`, async ({ page, baseURL }) => {
         const origin = mode === "production" ? productionOrigin : baseURL;
         if (!origin) throw new Error("The demo origin is unavailable.");
         await page.setViewportSize({ width: 1030, height: 900 });
@@ -112,7 +112,8 @@ for (const mode of ["development", "production"] as const) {
             if (!response.url().includes("invoice")) return;
             const type = response.headers()["content-type"] ?? "";
             if (type.includes("application/pdf")) assets.set("invoice.pdf", response.url());
-            if (type.includes("application/json")) assets.set("invoice.pdf.labels.json", response.url());
+            if (type.includes("application/json") && response.url().includes("invoice.pdf.labels")) assets.set("invoice.pdf.labels.json", response.url());
+            if (type.includes("application/json") && response.url().includes("invoice.pdf.result")) assets.set("invoice.pdf.result.json", response.url());
         });
         await page.route("**/*", route => {
             const url = new URL(route.request().url());
@@ -126,15 +127,15 @@ for (const mode of ["development", "production"] as const) {
         await expect(sample).toHaveAttribute("aria-pressed", "true");
         await expect(page.getByLabel("Source information")).toContainText("invoice.pdf");
         await expect(page.locator(".prototype-picker").filter({ hasText: "Labels" })).toContainText("invoice.pdf.labels.json");
-        await expect(page.locator(".prototype-picker").filter({ hasText: "Result" })).toContainText("Choose .result.json");
+        await expect(page.locator(".prototype-picker").filter({ hasText: "Result" })).toContainText("invoice.pdf.result.json");
         const pane = page.getByRole("region", { name: "Extraction results", exact: true });
         await expect(pane.getByRole("tab", { name: "Fields", exact: true })).toHaveAttribute("aria-selected", "true");
-        await expect(pane.locator(".cu-comparison-fields > thead th")).toHaveText(["Field Name", "Label Value"]);
+        await expect(pane.locator(".cu-comparison-fields > thead th")).toHaveText(["Field Name", "Label Value", "Extracted Value"]);
         await expect(pane.getByRole("tab", { name: "Label", exact: true })).toHaveCount(0);
-        await expect(pane.getByRole("tab", { name: "Result", exact: true })).toHaveCount(0);
-        await expect(pane.getByRole("button", { name: /Show matching fields/ })).toHaveCount(0);
+        await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeVisible();
+        await expect(pane.getByRole("button", { name: /Show matching fields/ })).toBeVisible();
         await expect(pane.getByRole("button", { name: "Select label value of InvoiceNumber", exact: true })).toHaveText("INV-100");
-        for (const name of ["invoice.pdf", "invoice.pdf.labels.json"]) {
+        for (const name of ["invoice.pdf", "invoice.pdf.labels.json", "invoice.pdf.result.json"]) {
             const url = assets.get(name);
             if (!url) throw new Error(`The labeled sample did not load ${name}.`);
             const response = await page.request.get(url);
@@ -154,7 +155,7 @@ for (const mode of ["development", "production"] as const) {
         await expect(page.locator(".prototype-picker").filter({ hasText: "Result" })).toContainText("mixed-financial-docs.pdf.result.json");
         await sample.click();
         await ready(page);
-        await expect(pane.locator(".cu-comparison-fields > thead th")).toHaveText(["Field Name", "Label Value"]);
+        await expect(pane.locator(".cu-comparison-fields > thead th")).toHaveText(["Field Name", "Label Value", "Extracted Value"]);
         expect(external).toEqual([]);
         expect(errors).toEqual([]);
     });

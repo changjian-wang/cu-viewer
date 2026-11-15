@@ -22,15 +22,16 @@ export const defaultReviewSettings: Readonly<ReviewSettings> = {
 };
 
 export const FIELD_REVIEW_COLORS = {
-    default: "#ECF3FC", matched: "#DCFBD7", error: "#FFDADD", lowStroke: "#B43C4B99",
+    default: "#ECF3FC", array: "#DEE9FA", matched: "#DCFBD7", error: "#FFDADD", missing: "#F8C0C8", lowStroke: "#B43C4B99",
 } as const;
 
-export function fieldAppearance(field: Pick<CuField, "confidence">, settings: ReviewSettings, status: ComparisonStatus = "uncompared") {
+export function fieldAppearance(field: Pick<CuField, "confidence">, settings: ReviewSettings,
+    status: ComparisonStatus = "uncompared", table = false) {
     const low = field.confidence !== undefined && field.confidence < settings.threshold && settings.highlightLow;
     return {
         low, color: "#243447",
-        background: status === "matched" ? FIELD_REVIEW_COLORS.matched : isComparisonError(status) ?
-            FIELD_REVIEW_COLORS.error : FIELD_REVIEW_COLORS.default,
+        background: status === "matched" ? FIELD_REVIEW_COLORS.matched : status === "missing" ? FIELD_REVIEW_COLORS.missing :
+            isComparisonError(status) ? FIELD_REVIEW_COLORS.error : table ? FIELD_REVIEW_COLORS.array : FIELD_REVIEW_COLORS.default,
         boxShadow: low ? `inset 0 0 0 1px ${FIELD_REVIEW_COLORS.lowStroke}` : undefined,
     };
 }

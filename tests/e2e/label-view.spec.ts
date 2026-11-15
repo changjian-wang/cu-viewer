@@ -105,7 +105,7 @@ test("local labels retain typed values, nested objects and array rows with fixed
     await expect(outlines.locator(`polygon[data-outline-id="${invoice}"]`).first()).toHaveAttribute("fill", "#ECF3FC");
     await expect(outlines.locator(`polygon[data-outline-id="${labelId("SellerAddress")}"]`).first())
         .toHaveAttribute("fill", "#ECF3FC");
-    await expect(outlines.locator(`polygon[data-outline-id="${date}"]`).first()).toHaveAttribute("fill", "#ECF3FC");
+    await expect(outlines.locator(`polygon[data-outline-id="${date}"]`).first()).toHaveAttribute("fill", "#DEE9FA");
     await expandField(page, "OrderInformation");
     const missing = grid.locator(`[data-field-id="${labelId("OrderInformation/valueObject/Salesperson")}"]`);
     await expect(missing).toContainText("Not returned");
@@ -114,7 +114,7 @@ test("local labels retain typed values, nested objects and array rows with fixed
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
     await expect(legend.getByRole("switch")).toHaveCount(2);
-    await expect(legend.getByText("Not compared", { exact: true })).toBeVisible();
+    await expect(legend.getByText("Reference field or object label", { exact: true })).toBeVisible();
     await expect(legend.getByRole("switch", { name: "Show array highlights", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Source settings", exact: true })).toHaveCount(0);
     await legend.getByRole("button", { name: "Close legend", exact: true }).click();

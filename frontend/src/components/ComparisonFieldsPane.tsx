@@ -176,22 +176,23 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         <footer className="cu-fields-review-footer" role="group" aria-label="Fields toolbar">
             <label className="cu-search-box"><ViewerIcon name="search" /><input type="search"
                 aria-label={comparable ? "Search field names, label values or extracted values" : "Search labels or values"}
-                placeholder={comparable ? "Search name, label or extracted value..." : "Search label names or values..."}
+                placeholder={comparable ? "Search field name, label value or extracted value..." : "Search label names or values..."}
+                title={comparable ? "Search field name, label value or extracted value" : "Search label names or values"}
                 value={review.query} onChange={event => props.setReview(current => ({ ...current, query: event.target.value }))} /></label>
             <div className="cu-field-navigation" role="group" aria-label="Field navigation">
                 <button type="button" className="cu-icon-button" aria-label="Previous field" disabled={!navigation.length} onClick={() => chooseNext(-1)}><ViewerIcon name="left" /></button>
-                <span aria-label="Current field position" aria-live="polite">{currentIndex < 0 ? "—" : currentIndex + 1} / {navigation.length}</span>
+                <span aria-label="Current field position" aria-live="polite">{currentIndex < 0 ? "—" : currentIndex + 1} / {navigation.length}{comparable ? " fields" : ""}</span>
                 <button type="button" className="cu-icon-button" aria-label="Next field" disabled={!navigation.length} onClick={() => chooseNext(1)}><ViewerIcon name="right" /></button>
             </div>
             {comparable && <div className="cu-comparison-filters">
                 <button type="button" className="cu-match-filter" aria-label={`Show matching fields (${comparison.matched} ${comparison.matched === 1 ? "value" : "values"})`}
                     style={{ background: FIELD_REVIEW_COLORS.matched }}
                     aria-pressed={filter === "matched"} title="Matching leaf values in this content; array cells count individually."
-                    onClick={() => toggleFilter("matched")}>{"\u2713"} {comparison.matched}</button>
+                    onClick={() => toggleFilter("matched")}><ViewerIcon name="checkCircle" />{comparison.matched}</button>
                 <button type="button" className="cu-error-filter" aria-label={`Show incorrect fields (${comparison.errors} ${comparison.errors === 1 ? "value" : "values"})`}
                     style={{ background: FIELD_REVIEW_COLORS.error }}
                     aria-pressed={filter === "errors"} title="Incorrect leaf values in this content; arrays with any error stay together."
-                    onClick={() => toggleFilter("errors")}>{"\u00d7"} {comparison.errors}</button>
+                    onClick={() => toggleFilter("errors")}><ViewerIcon name="close" />{comparison.errors}</button>
             </div>}
             <div className="cu-fields-toolbar-actions"><button type="button" className="cu-icon-button" ref={settingsButton}
                 aria-label="Fields settings" aria-haspopup="dialog" aria-expanded={settingsOpen}

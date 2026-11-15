@@ -12,6 +12,17 @@ const object = (value: unknown) => ({ type: "object", valueObject: value });
 const array = (value: unknown[]) => ({ type: "array", valueArray: value });
 
 describe("read-only field comparison", () => {
+    it("marks absent extracted objects and arrays as label-only without counting their containers twice", () => {
+        const labels = fields({
+            group: object({ child: string("Expected") }),
+            rows: array([object({ code: string("A") })]),
+        }, true);
+        const compared = compareFields(labels, [], true);
+        expect(compared.roots.map(node => node.status)).toEqual(["missing", "missing"]);
+        expect([compared.matched, compared.errors]).toEqual([0, 2]);
+        expect(compareFields(labels, [], false).roots.every(node => node.status === "uncompared")).toBe(true);
+    });
+
     it("compares typed values exactly while keeping missing, null and falsy values distinct", () => {
         const labels = fields({
             same: { ...string("John Smith"), confidence: 0.1 }, different: string("John Smith"),

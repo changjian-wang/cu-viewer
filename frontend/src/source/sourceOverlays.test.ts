@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseCuResult } from "../model/parseCuResult";
+import { parseLabels } from "../model/parseLabels";
+import { compareFields } from "../model/fieldComparison";
 import { defaultReviewSettings } from "../interaction/reviewFields";
 import { isValueSourceField, outsetSourceFrame, popoverPosition, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames, sourceWordOutlines, WORD_LAYER_COLOR } from "./sourceOverlays";
 
@@ -28,6 +30,27 @@ function fixture() {
 }
 
 describe("Studio view-specific source outlines", () => {
+    it("uses a missing label's own PDF geometry and darker color without inventing extracted regions or label confidence", () => {
+        const { content, original } = fixture();
+        const labels = parseLabels({ fieldLabels: {
+            Missing: { type: "string", valueString: "Expected", confidence: 0, source: "D(1,1,1,1,0.2)" },
+            Ungrounded: { type: "string", valueString: "No invented box" },
+        } }, { kind: "pdf", pages: [{ pageNumber: 1, width: 816, height: 1056 }] }).content;
+        const comparison = compareFields(labels.fields, content.fields, true);
+        const before = JSON.stringify(original);
+        const outlines = sourceOutlines(content, "fields", 1, false, defaultReviewSettings, comparison, labels);
+        const missing = outlines.find(item => item.field.id === "/labels/fields/Missing");
+        expect(missing).toBeDefined();
+        expect(missing!.field).toBe(labels.fields[0]);
+        expect(missing!.page).toBe(labels.pages[0]);
+        expect(missing!.page!.width).toBe(8.5);
+        expect(missing!.low).toBe(false);
+        expect(missing!.color).not.toBe(outlines.find(item => item.field.name === "Name")!.color);
+        expect(outlines.some(item => item.field.id === "/contents/0/fields/Missing")).toBe(false);
+        expect(outlines.some(item => item.field.name === "Ungrounded")).toBe(false);
+        expect(JSON.stringify(original)).toBe(before);
+    });
+
     it("shares value-source interaction rules only between leaf Fields and Paragraphs", () => {
         const { content, original } = fixture(), before = JSON.stringify(original);
         const field = content.fields[0]!, paragraph = content.paragraphs![0]!.field;
@@ -88,7 +111,7 @@ describe("Studio view-specific source outlines", () => {
         }
         const normal = sourceOutlines(content, "fields", 1, false, { ...defaultReviewSettings, highlightLow: false });
         expect(normal.map(item => item.enabled)).toEqual([true, true, true, true, true]);
-        expect(normal.map(item => item.color)).toEqual(["#ECF3FC", "#ECF3FC", "#ECF3FC", "#ECF3FC", "#ECF3FC"]);
+        expect(normal.map(item => item.color)).toEqual(["#ECF3FC", "#ECF3FC", "#ECF3FC", "#DEE9FA", "#DEE9FA"]);
         expect(baseline.map(item => item.low)).toEqual([false, true, false, false, true]);
         expect(normal.every(item => !item.low)).toBe(true);
         expect(JSON.stringify(original)).toBe(before);

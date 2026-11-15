@@ -14,16 +14,25 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
     const id = useId();
     const switches: ("showFields" | "showTables" | "highlightLow")[] =
         labelMode ? ["showFields", "showTables"] : ["showFields", "showTables", "highlightLow"];
-    if (fieldReview) return <ul className="cu-legend-items" aria-label="Highlighting legend entries">
+    if (fieldReview) return <ul className="cu-legend-items cu-field-review-legend" aria-label="Highlighting legend entries">
         {([
-            ["default", "Not compared", FIELD_REVIEW_COLORS.default],
+            ["default", labelMode ? "Reference field or object label" : "Extracted field or object value", FIELD_REVIEW_COLORS.default],
+            ["array", labelMode ? "Reference array label" : "Extracted array value", FIELD_REVIEW_COLORS.array],
             ...(comparisonAvailable ? [["matched", "Matches label", FIELD_REVIEW_COLORS.matched],
-                ["error", "Different, extra or missing value", FIELD_REVIEW_COLORS.error]] : []),
+                ["error", "Different or extra extracted value", FIELD_REVIEW_COLORS.error],
+                ["missing", "Label only; not extracted", FIELD_REVIEW_COLORS.missing]] : []),
         ]).map(([key, name, background]) => <li className="cu-legend-group" key={key}>
             <div className="cu-legend-item" data-legend-category={key}><span className="cu-legend-swatch" aria-hidden="true" style={{ background }} />
                 <span className="cu-legend-label"><span className="cu-legend-name">{name}</span></span></div></li>)}
+        {!labelMode && <li className="cu-legend-group">
+            <div className="cu-legend-item" data-legend-category="low-outline">
+                <span className="cu-legend-outline-swatch" aria-hidden="true" style={{ borderColor: FIELD_REVIEW_COLORS.lowStroke }} />
+                <span className="cu-legend-label"><span className="cu-legend-name">Low confidence</span>
+                    <span className="cu-legend-description">Confidence below threshold; matching color is unchanged.</span></span>
+            </div>
+        </li>}
         {switches.map(setting =>
-            <li className="cu-legend-group" key={setting}><label className="cu-switch-row cu-legend-switch">
+            <li className="cu-legend-group" key={setting}><label className="cu-switch-row cu-legend-review-toggle">
                 <span>{setting === "showFields" ? "Show field highlights" : setting === "showTables" ? "Show array highlights" : "Show low confidence outlines"}</span>
                 <input type="checkbox" role="switch" checked={settings[setting]}
                     onChange={event => onChange({ ...settings, [setting]: event.target.checked })} />
@@ -105,7 +114,7 @@ export function HighlightLegend({ id, buttonRef, settings, onChange, open, onTog
         <div className="cu-legend-control">
             <button type="button" ref={buttonRef} className="cu-legend-toggle" aria-label="Highlighting legend"
                 aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={onToggle}>
-                Legend<ViewerIcon name="down" />
+                <ViewerIcon name="info" />Legend
             </button>
             {open && buttonRef.current && <LegendPanel id={id} anchor={buttonRef.current}
                 settings={settings} onChange={onChange} onClose={onClose} labelMode={labelMode}

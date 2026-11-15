@@ -1,5 +1,5 @@
 import { displayValue, fieldLabel, isFieldGroup } from "../interaction/interaction";
-import { collapsedValue, confidenceDescription, fieldAppearance } from "../interaction/reviewFields";
+import { collapsedValue, confidenceDescription, fieldAppearance, isTableValue } from "../interaction/reviewFields";
 import { comparisonStatusText } from "../model/fieldComparison";
 import type { FieldComparisonNode } from "../model/fieldComparison";
 import type { FieldsPaneProps } from "./FieldsPane";
@@ -11,11 +11,12 @@ export function ComparisonValue({ node, side, props }: {
     const field = node[side];
     const status = comparisonStatusText(node.status);
     const appearance = side === "extracted" || !props.comparison?.comparable ?
-        fieldAppearance(side === "extracted" ? field ?? {} : {}, props.settings, node.status) : undefined;
+        fieldAppearance(side === "extracted" ? field ?? {} : {}, props.settings, node.status, isTableValue(node.field)) : undefined;
     const style = appearance ? { background: appearance.background, color: appearance.color, boxShadow: appearance.boxShadow } : undefined;
     if (!field?.hasValue) return <span className="cu-comparison-value is-missing" style={style}
-        title={status} data-comparison-status={node.status}>{side === "label" ?
-            props.comparison?.comparable ? "No label" : "Not returned" : "Not extracted"}</span>;
+        title={status} aria-label={side === "label" ?
+            props.comparison?.comparable ? "No label" : "Not returned" : "Not extracted"}
+        data-comparison-status={node.status}>{props.comparison?.comparable ? "\u2014" : "Not returned"}</span>;
     const name = fieldLabel(field);
     return <div className={`cu-comparison-value${props.selected === field ? " is-selected" : ""}`}
         style={style} data-field-id={field.id} data-comparison-status={node.status}
@@ -27,7 +28,11 @@ export function ComparisonValue({ node, side, props }: {
             aria-label={`Select ${side === "label" ? "label" : "extracted"} value of ${name}`}
             aria-pressed={props.selected === field}
             title={`${status}${side === "extracted" ? `; ${confidenceDescription(field, props.settings.threshold)}` : "; Label value"}`}
-            onClick={event => { event.stopPropagation(); props.onSelect(field); }}
+            onClick={event => {
+                event.stopPropagation();
+                props.onSelect(field);
+                props.onHover(field, event.detail === 0 ? false : undefined);
+            }}
             onKeyDown={event => {
                 if (event.key === "F2") { event.preventDefault(); props.workflow.inspect(field, true); }
                 if (event.shiftKey && event.key === "F10") { event.preventDefault(); props.onMenu(field, event.currentTarget); }

@@ -77,26 +77,35 @@ export function SourcePopover(props: SourcePopoverProps) {
     const object = props.field.type === "object";
     const settings = props.settings ?? defaultReviewSettings;
     const style = appearance(props.field, isTableValue(props.field), settings);
-    const reviewStyle = props.fieldReview ? fieldAppearance(props.labelMode ? {} : props.field, settings) : undefined;
+    const reviewStyle = props.fieldReview ? fieldAppearance(props.labelMode ? {} : props.field, settings, "uncompared", isTableValue(props.field)) : undefined;
     const pair = props.comparison?.comparable ? props.comparison.byFieldId.get(props.field.id) : undefined;
-    const pairStyle = pair ? fieldAppearance(pair.extracted ?? {}, settings, pair.status) : undefined;
+    const pairStyle = pair ? fieldAppearance(pair.extracted ?? {}, settings, pair.status, isTableValue(pair.field)) : undefined;
+    const bannerStyle = pairStyle ?? reviewStyle;
     const valueText = (field: CuField | undefined): string => !field?.hasValue ? "Not returned" :
         field.type === "object" ? collapsedValue(field) || "{}" : displayValue(field);
     return <>
         <aside id={props.id} ref={element} role="tooltip" aria-label={props.labelMode ? "Label preview" : paragraph ? "Paragraph preview" : "Field preview"}
-            className="cu-source-popover"
-            style={{ left: position?.x ?? 0, top: position?.y ?? 0, visibility: position ? "visible" : "hidden" }}>
-            {!paragraph && <span className="cu-popover-heading">
+            className={`cu-source-popover${pair ? " cu-source-comparison-popover" : ""}`}
+            style={{ left: position?.x ?? 0, top: position?.y ?? 0, visibility: position ? "visible" : "hidden",
+                ...(bannerStyle ? { "--cu-preview-banner-bg": bannerStyle.background } : {}) }}>
+            {!paragraph && <span className="cu-popover-heading" style={bannerStyle ?
+                { background: bannerStyle.background, color: bannerStyle.color } : undefined}>
                 {fieldLabel(props.field)}
             </span>}
             <dl id={`${props.id}-content`} className={`cu-flyover-body${pair ? " cu-flyover-comparison" : ""}`}
                 aria-label={pair ? comparisonStatusText(pair.status) : undefined}
-                style={pairStyle ? { background: pairStyle.background, boxShadow: pairStyle.boxShadow } :
-                    reviewStyle ? { background: reviewStyle.background, boxShadow: reviewStyle.boxShadow } : undefined}>
-                {pair && <><div><dt>Label Value</dt><dd>{valueText(pair.label)}</dd></div>
-                        <div><dt>Extracted Value</dt><dd>{valueText(pair.extracted)}</dd></div>
-                        {pair.extracted?.confidence !== undefined && <div><dt>Confidence</dt>
-                            <dd>{formatConfidence(pair.extracted.confidence, settings.threshold)}</dd></div>}
+                style={!pair && reviewStyle ? { background: reviewStyle.background, boxShadow: reviewStyle.boxShadow } : undefined}>
+                {pair && <><div data-comparison-side="label"><dt>Label Value</dt>
+                        <dd><span className="cu-flyover-comparison-value">{valueText(pair.label)}</span></dd></div>
+                    <div data-comparison-side="extracted"><dt>Extracted Value</dt><dd>
+                        <span className="cu-flyover-comparison-value" style={pairStyle ?
+                            { background: pairStyle.background, boxShadow: pairStyle.boxShadow } : undefined}>{valueText(pair.extracted)}</span>
+                        {pair.extracted?.confidence !== undefined && <span className={`cu-flyover-confidence${pairStyle?.low ? " is-low" : ""}`}
+                            aria-label={confidenceDescription(pair.extracted, settings.threshold)}
+                            title={confidenceDescription(pair.extracted, settings.threshold)}>
+                            <ViewerIcon name="gauge" />{formatConfidence(pair.extracted.confidence, settings.threshold)}
+                        </span>}
+                    </dd></div>
                 </>}
                 {!pair && <div className="cu-flyover-value"><dt className="cu-visually-hidden">{paragraph ? "Content" : "Value"}</dt>
                     <dd>{props.labelMode ? labelSummary(props.field) : object ? collapsedValue(props.field, props.summaryFieldIds) : displayValue(props.field)}</dd></div>

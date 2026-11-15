@@ -3,7 +3,7 @@ import type { Dispatch, KeyboardEvent, ReactNode, SetStateAction } from "react";
 import type { ViewerFieldOrder } from "../index";
 import { displayValue, fieldDisplayName, fieldLabel, fieldRegions } from "../interaction/interaction";
 import { emphasizeFieldTarget, revealFieldTarget } from "../interaction/fieldNavigation";
-import { fieldAppearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
+import { fieldAppearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup, isTableValue,
     leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, visibleFieldIds } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
@@ -232,7 +232,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         props.onSelect(field);
     };
     const value = (field: CuField): ReactNode => {
-        const style = fieldAppearance(props.labelMode ? {} : field, settings);
+        const style = fieldAppearance(props.labelMode ? {} : field, settings, "uncompared", isTableValue(field));
         return <span className={`cu-value-chip${!field.hasValue ? " is-missing" : ""}`}
             style={{ background: style.background, color: style.color, boxShadow: style.boxShadow }}
             title={props.labelMode ? "Reference label value" : confidenceDescription(field, settings.threshold)}>{displayValue(field)}</span>;

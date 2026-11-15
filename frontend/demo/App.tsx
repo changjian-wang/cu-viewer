@@ -9,6 +9,7 @@ import largePdfUrl from "../../tests/fixtures/large-bank-statement.pdf?url";
 import largePdfResultUrl from "../../tests/fixtures/large-bank-statement.pdf.result.json?url";
 import labeledPdfUrl from "../../tests/fixtures/labels/invoice.pdf?url";
 import labeledPdfLabelsUrl from "../../tests/fixtures/labels/invoice.pdf.labels.json?url";
+import labeledPdfResultUrl from "../../tests/fixtures/labels/invoice.pdf.result.json?url";
 
 interface DemoSample {
     label: string;
@@ -27,8 +28,8 @@ const samples = {
     png: { label: "Receipt PNG", source: pngUrl, result: pngResultUrl, name: "receipt.png", json: "receipt.png.result.json", type: "image/png" },
     large: { label: "Large PDF", source: largePdfUrl, result: largePdfResultUrl,
         name: "large-bank-statement.pdf", json: "large-bank-statement.pdf.result.json", type: "application/pdf" },
-    labels: { label: "PDF + Labels", source: labeledPdfUrl, labels: labeledPdfLabelsUrl, name: "invoice.pdf",
-        labelName: "invoice.pdf.labels.json", type: "application/pdf" },
+    labels: { label: "PDF + Labels", source: labeledPdfUrl, labels: labeledPdfLabelsUrl, result: labeledPdfResultUrl,
+        name: "invoice.pdf", labelName: "invoice.pdf.labels.json", json: "invoice.pdf.result.json", type: "application/pdf" },
 };
 type Sample = keyof typeof samples;
 const sampleChoices: readonly Sample[] = ["pdf", "png", "large", "labels"];

@@ -81,8 +81,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const fieldContent = useMemo(() => comparison?.comparable && analysisContent ?
         { ...analysisContent, fields: comparison.fields } : boundLabels ? labelData.model?.content : analysisContent,
     [comparison, analysisContent, boundLabels, labelData.model]);
-    const activeLabel = view === "fields" && (referenceMode || (state.hovered ?? state.selected)?.origin === "label");
-    const content = activeLabel ? labelData.model?.content : analysisContent;
+    const content = view === "fields" && referenceMode ? labelData.model?.content : analysisContent;
     const fields = useMemo(() => [...selectableFields(analysisContent),
         ...(boundLabels ? selectableFields(labelData.model?.content) : [])], [analysisContent, boundLabels, labelData.model]);
     const preferences = useReviewPreferences(boundLabels ? { source: props.source } : props, fieldContent,
@@ -93,8 +92,9 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         if (view !== requestedView) setView(view);
     }, [view, requestedView]);
     const outlineContent = view === "fields" && referenceMode ? labelData.model?.content : analysisContent;
-    const outlines = useMemo(() => sourceOutlines(outlineContent, view, state.pageNumber, false, preferences.settings, comparison),
-        [outlineContent, view, state.pageNumber, preferences.settings, comparison]);
+    const outlines = useMemo(() => sourceOutlines(outlineContent, view, state.pageNumber, false, preferences.settings, comparison,
+        boundLabels ? labelData.model?.content : undefined),
+    [outlineContent, view, state.pageNumber, preferences.settings, comparison, boundLabels, labelData.model]);
     const previewId = useId();
     const viewer = useRef<HTMLDivElement>(null);
     const previewOrigin = useRef<"pointer" | "focus">("pointer");
@@ -241,7 +241,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         <SourcePane
             key={source?.name ?? "loading"}
             source={source} loading={!matchingSource} error={matchingSource?.error ?? null}
-            content={content} pageNumber={state.pageNumber} active={active} preview={Boolean(hovered)}
+            content={content} labelContent={boundLabels ? labelData.model?.content : undefined}
+            pageNumber={state.pageNumber} active={active} preview={Boolean(hovered)}
             pinned={pinned} pinnedRegions={fieldRegions(pinned)}
             hasSelection={Boolean(selected)}
             view={view} outlines={outlines} previewId={previewId}
