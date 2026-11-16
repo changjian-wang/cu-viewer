@@ -36,7 +36,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
             if (needle) {
                 const values = [node.label, node.extracted].map(field => !field ? "" :
                     field.type === "object" ? collapsedValue(field) : displayValue(field));
-                if (!`${node.path} ${values.join(" ")}`.toLocaleLowerCase().includes(needle)) continue;
+                if (!`${fieldLabel(node.field)} ${node.path} ${values.join(" ")}`.toLocaleLowerCase().includes(needle)) continue;
             }
             if (props.tableScope && !props.tableScope.match.fields.some(field => comparison.byFieldId.get(field.id) === node)) continue;
             if (filter === "errors" && !isComparisonError(node.status)) continue;

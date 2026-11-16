@@ -66,12 +66,14 @@ export function sourceOutlines(content: CuContent | undefined, view: ResultView 
     return fields.flatMap(field => {
         const container = isFieldGroup(field) || content.tables?.some(table => table.field === field);
         const status = comparison?.byFieldId.get(field.id)?.status;
-        const style = isFieldView(view) ? fieldAppearance(field.origin === "label" ? {} : field, settings, status, isTableValue(field)) :
+        const labelReview = isFieldView(view) && comparison !== undefined;
+        const style = labelReview ? fieldAppearance(field.origin === "label" ? { hasValue: field.hasValue } : field,
+            settings, status, isTableValue(field)) :
             appearance(container ? {} : field, isTableValue(field), settings);
         const enabled = isTableValue(field) ? settings.showTables : settings.showFields;
         return field.regions.flatMap((region, index) => region.pageNumber === pageNumber ? [{
             key: `${field.id}:${index}`, field, region, regionIndex: index, color: style.background,
-            enabled, low: style.low, page: (field.origin === "label" ? labelContent ?? content : content).pages
+            enabled, low: labelReview && style.low, page: (field.origin === "label" ? labelContent ?? content : content).pages
                 .find(page => page.pageNumber === region.pageNumber),
         }] : []);
     });

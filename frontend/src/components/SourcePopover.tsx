@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { displayValue, fieldLabel, formatConfidence } from "../interaction/interaction";
-import { appearance, collapsedValue, confidenceDescription, defaultReviewSettings, fieldAppearance, isTableValue, labelSummary } from "../interaction/reviewFields";
+import { appearance, collapsedValue, confidenceDescription, defaultReviewSettings, fieldAppearance, FIELD_REVIEW_COLORS, isLowConfidence, isTableValue, labelSummary } from "../interaction/reviewFields";
 import { comparisonStatusText } from "../model/fieldComparison";
 import type { FieldComparison } from "../model/fieldComparison";
 import type { ReviewSettings } from "../interaction/reviewFields";
@@ -77,9 +77,11 @@ export function SourcePopover(props: SourcePopoverProps) {
     const object = props.field.type === "object";
     const settings = props.settings ?? defaultReviewSettings;
     const style = appearance(props.field, isTableValue(props.field), settings);
-    const reviewStyle = props.fieldReview ? fieldAppearance(props.labelMode ? {} : props.field, settings, "uncompared", isTableValue(props.field)) : undefined;
+    const reviewStyle = props.fieldReview ? fieldAppearance(props.labelMode ? { hasValue: props.field.hasValue } : props.field,
+        settings, "uncompared", isTableValue(props.field)) : undefined;
     const pair = props.comparison?.comparable ? props.comparison.byFieldId.get(props.field.id) : undefined;
-    const pairStyle = pair ? fieldAppearance(pair.extracted ?? {}, settings, pair.status, isTableValue(pair.field)) : undefined;
+    const pairStyle = pair ? fieldAppearance(pair.extracted, settings, pair.status, isTableValue(pair.field)) : undefined;
+    const scoreLow = pair?.extracted ? isLowConfidence(pair.extracted, settings.threshold) : false;
     const bannerStyle = pairStyle ?? reviewStyle;
     const valueText = (field: CuField | undefined): string => !field?.hasValue ? "Not returned" :
         field.type === "object" ? collapsedValue(field) || "{}" : displayValue(field);
@@ -100,7 +102,9 @@ export function SourcePopover(props: SourcePopoverProps) {
                     <div data-comparison-side="extracted"><dt>Extracted Value</dt><dd>
                         <span className="cu-flyover-comparison-value" style={pairStyle ?
                             { background: pairStyle.background, boxShadow: pairStyle.boxShadow } : undefined}>{valueText(pair.extracted)}</span>
-                        {pair.extracted?.confidence !== undefined && <span className={`cu-flyover-confidence${pairStyle?.low ? " is-low" : ""}`}
+                        {pair.extracted?.confidence !== undefined && <span className={`cu-flyover-confidence${scoreLow ? " is-low" : ""}`}
+                            style={{ background: scoreLow ? FIELD_REVIEW_COLORS.confidenceBadgeBackground : FIELD_REVIEW_COLORS.default,
+                                color: scoreLow ? FIELD_REVIEW_COLORS.confidenceBadgeText : "#526276" }}
                             aria-label={confidenceDescription(pair.extracted, settings.threshold)}
                             title={confidenceDescription(pair.extracted, settings.threshold)}>
                             <ViewerIcon name="gauge" />{formatConfidence(pair.extracted.confidence, settings.threshold)}

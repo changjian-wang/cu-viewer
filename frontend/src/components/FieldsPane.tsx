@@ -3,8 +3,8 @@ import type { Dispatch, KeyboardEvent, ReactNode, SetStateAction } from "react";
 import type { ViewerFieldOrder } from "../index";
 import { displayValue, fieldDisplayName, fieldLabel, fieldRegions } from "../interaction/interaction";
 import { emphasizeFieldTarget, revealFieldTarget } from "../interaction/fieldNavigation";
-import { fieldAppearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup, isTableValue,
-    leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, visibleFieldIds } from "../interaction/reviewFields";
+import { appearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
+    isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, visibleFieldIds } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
 import { tableFieldIds, tableLocationMessage } from "../interaction/tableFields";
@@ -231,10 +231,10 @@ function StandardFieldsPane(props: FieldsPaneProps) {
             ...entries.filter(entry => field.id.startsWith(`${entry.field.id}/`)).map(entry => entry.field.id)]) }));
         props.onSelect(field);
     };
-    const value = (field: CuField): ReactNode => {
-        const style = fieldAppearance(props.labelMode ? {} : field, settings, "uncompared", isTableValue(field));
+    const value = (field: CuField, inline = false): ReactNode => {
+        const style = appearance(field, inline || isTableValue(field), settings, props.labelMode);
         return <span className={`cu-value-chip${!field.hasValue ? " is-missing" : ""}`}
-            style={{ background: style.background, color: style.color, boxShadow: style.boxShadow }}
+            style={style.low ? { background: style.background, color: style.color } : undefined}
             title={props.labelMode ? "Reference label value" : confidenceDescription(field, settings.threshold)}>{displayValue(field)}</span>;
     };
     const cell = (field: CuField): ReactNode => <div className="cu-cell-content"
@@ -248,7 +248,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
             aria-pressed={props.selected?.id === field.id} data-review-focus={matches.has(field.id) ? field.id : undefined}
             tabIndex={review.focused === field.id ? 0 : -1}
             ref={button => { if (button) nameButtons.current.set(field.id, button); else nameButtons.current.delete(field.id); }}
-            onKeyDown={event => onFieldKey(event, field)} onClick={() => props.onSelect(field)}>{value(field)}</button>
+            onKeyDown={event => onFieldKey(event, field)} onClick={() => props.onSelect(field)}>{value(field, true)}</button>
         <ValueMenuTrigger field={field} workflow={props.workflow} menuId={props.menuId} onOpen={props.onMenu} />
         <span className="cu-visually-hidden" id={descriptionId(field)}>{description(field)}</span>
     </div>;

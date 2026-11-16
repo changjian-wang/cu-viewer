@@ -17,10 +17,13 @@ import { availableResultTabs, isFieldView } from "./model/resultViews";
 import type { ResultView } from "./model/resultViews";
 import { sourceOutlines } from "./source/sourceOverlays";
 import { useReviewPreferences } from "./interaction/useReviewPreferences";
+import { defaultReviewSettings, FIELD_REVIEW_COLORS } from "./interaction/reviewFields";
 import { useValueWorkflow } from "./interaction/useValueWorkflow";
 import { matchTableFields, tableFieldIds } from "./interaction/tableFields";
 import type { TableFieldLocation } from "./interaction/tableFields";
 import "./styles.css";
+
+const comparisonReviewSettings = { ...defaultReviewSettings, paneRatio: 0.45 };
 
 export function ContentUnderstandingResultViewer(props: ContentUnderstandingResultViewerProps) {
     const [sourceState, setSourceState] = useState<{
@@ -84,8 +87,9 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const content = view === "fields" && referenceMode ? labelData.model?.content : analysisContent;
     const fields = useMemo(() => [...selectableFields(analysisContent),
         ...(boundLabels ? selectableFields(labelData.model?.content) : [])], [analysisContent, boundLabels, labelData.model]);
+    const reviewDefaults = comparison?.comparable ? comparisonReviewSettings : defaultReviewSettings;
     const preferences = useReviewPreferences(boundLabels ? { source: props.source } : props, fieldContent,
-        boundLabels ? undefined : parsed.model?.apiVersion, boundLabels ? undefined : parsed.model?.analyzerId);
+        boundLabels ? undefined : parsed.model?.apiVersion, boundLabels ? undefined : parsed.model?.analyzerId, reviewDefaults);
     const context = useMemo(() => ({}), [props.source, props.result, props.labels, analysisContent, labelData.model]);
     const workflow = useValueWorkflow(context);
     useEffect(() => {
@@ -207,7 +211,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     };
     const previewField = (field: CuField, regionIndex?: number, origin: "pointer" | "focus" = "pointer"): void => {
         previewOrigin.current = origin;
-        if (!workflow.menuOpen.current) dispatch({ type: "hover", field, pageAvailable: false, groupPreview: field.origin === "label",
+        if (!workflow.menuOpen.current) dispatch({ type: "hover", field, pageAvailable: false,
+            groupPreview: field.origin === "label" || (view === "fields" && comparison !== undefined),
             ...(regionIndex === undefined ? {} : { regionIndex }) });
     };
     const handleEscape = (): void => {
@@ -228,7 +233,17 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         element.ownerDocument.addEventListener("keydown", escape);
         return () => element.ownerDocument.removeEventListener("keydown", escape);
     }, []);
-    const layout: CSSProperties & { "--cu-pane-ratio": number } = { "--cu-pane-ratio": preferences.settings.paneRatio };
+    const layout: CSSProperties & {
+        "--cu-pane-ratio": number;
+        "--cu-hover-stroke"?: string;
+        "--cu-selected-stroke"?: string;
+    } = {
+        "--cu-pane-ratio": preferences.settings.paneRatio,
+        ...(view === "fields" && comparison ? {
+            "--cu-hover-stroke": FIELD_REVIEW_COLORS.hoverStroke,
+            "--cu-selected-stroke": FIELD_REVIEW_COLORS.selectedStroke,
+        } : {}),
+    };
     return <div className="cu-viewer" ref={viewer} style={layout} onKeyDown={event => {
         if (event.key !== "Escape" || event.defaultPrevented || event.nativeEvent.isComposing ||
             (event.target instanceof Element && event.target.closest("dialog[open]"))) return;
@@ -262,7 +277,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         />
         <ResizeHandle label="Source and results width" className="cu-pane-resizer"
             value={Math.max(570, Math.min(width - 448, (width - 8) * preferences.settings.paneRatio))}
-            min={570} max={width - 448} step={24} defaultValue={(width - 8) * 0.58}
+            min={570} max={width - 448} step={24} defaultValue={(width - 8) * reviewDefaults.paneRatio}
             onChange={next => preferences.changeSettings({ ...preferences.settings, paneRatio: next / (width - 8) })} />
         <ResultsPane
             result={props.result}

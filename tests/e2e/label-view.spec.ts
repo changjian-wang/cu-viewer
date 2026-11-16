@@ -102,10 +102,10 @@ test("local labels retain typed values, nested objects and array rows with fixed
     await expect(grid.getByRole("table", { name: "LineItems label values", exact: true }).getByRole("row")).toHaveCount(4);
     const outlines = page.getByTestId("result-overlay");
     await expect(outlines.locator(`polygon[data-outline-id="${invoice}"]`)).toHaveCount(3);
-    await expect(outlines.locator(`polygon[data-outline-id="${invoice}"]`).first()).toHaveAttribute("fill", "#ECF3FC");
+    await expect(outlines.locator(`polygon[data-outline-id="${invoice}"]`).first()).toHaveAttribute("fill", "#E3F2FD");
     await expect(outlines.locator(`polygon[data-outline-id="${labelId("SellerAddress")}"]`).first())
-        .toHaveAttribute("fill", "#ECF3FC");
-    await expect(outlines.locator(`polygon[data-outline-id="${date}"]`).first()).toHaveAttribute("fill", "#DEE9FA");
+        .toHaveAttribute("fill", "#E3F2FD");
+    await expect(outlines.locator(`polygon[data-outline-id="${date}"]`).first()).toHaveAttribute("fill", "#BBDEFB");
     await expandField(page, "OrderInformation");
     const missing = grid.locator(`[data-field-id="${labelId("OrderInformation/valueObject/Salesperson")}"]`);
     await expect(missing).toContainText("Not returned");

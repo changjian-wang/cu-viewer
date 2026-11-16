@@ -1,4 +1,4 @@
-import { displayValue, fieldLabel, isFieldGroup } from "../interaction/interaction";
+import { displayValue, fieldLabel, fieldRegions, isFieldGroup } from "../interaction/interaction";
 import { collapsedValue, confidenceDescription, fieldAppearance, isTableValue } from "../interaction/reviewFields";
 import { comparisonStatusText } from "../model/fieldComparison";
 import type { FieldComparisonNode } from "../model/fieldComparison";
@@ -11,7 +11,8 @@ export function ComparisonValue({ node, side, props }: {
     const field = node[side];
     const status = comparisonStatusText(node.status);
     const appearance = side === "extracted" || !props.comparison?.comparable ?
-        fieldAppearance(side === "extracted" ? field ?? {} : {}, props.settings, node.status, isTableValue(node.field)) : undefined;
+        fieldAppearance(side === "extracted" ? field : { hasValue: field?.hasValue ?? false },
+            props.settings, node.status, isTableValue(node.field)) : undefined;
     const style = appearance ? { background: appearance.background, color: appearance.color, boxShadow: appearance.boxShadow } : undefined;
     if (!field?.hasValue) return <span className="cu-comparison-value is-missing" style={style}
         title={status} aria-label={side === "label" ?
@@ -27,7 +28,8 @@ export function ComparisonValue({ node, side, props }: {
         <button type="button" className="cu-field-value" data-review-focus={field.id} data-source-field-id={field.id}
             aria-label={`Select ${side === "label" ? "label" : "extracted"} value of ${name}`}
             aria-pressed={props.selected === field}
-            title={`${status}${side === "extracted" ? `; ${confidenceDescription(field, props.settings.threshold)}` : "; Label value"}`}
+            title={`${status}${side === "extracted" ? `; ${confidenceDescription(field, props.settings.threshold)}` : "; Label value"}${
+                fieldRegions(field).length ? "" : "; No source region"}`}
             onClick={event => {
                 event.stopPropagation();
                 props.onSelect(field);

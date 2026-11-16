@@ -16,8 +16,8 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
         labelMode ? ["showFields", "showTables"] : ["showFields", "showTables", "highlightLow"];
     if (fieldReview) return <ul className="cu-legend-items cu-field-review-legend" aria-label="Highlighting legend entries">
         {([
-            ["default", labelMode ? "Reference field or object label" : "Extracted field or object value", FIELD_REVIEW_COLORS.default],
-            ["array", labelMode ? "Reference array label" : "Extracted array value", FIELD_REVIEW_COLORS.array],
+            ["default", labelMode ? "Reference field or object label" : "Default field or object value", FIELD_REVIEW_COLORS.default],
+            ["array", labelMode ? "Reference array label" : "Default array value", FIELD_REVIEW_COLORS.array],
             ...(comparisonAvailable ? [["matched", "Matches label", FIELD_REVIEW_COLORS.matched],
                 ["error", "Different or extra extracted value", FIELD_REVIEW_COLORS.error],
                 ["missing", "Label only; not extracted", FIELD_REVIEW_COLORS.missing]] : []),
@@ -26,7 +26,8 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
                 <span className="cu-legend-label"><span className="cu-legend-name">{name}</span></span></div></li>)}
         {!labelMode && <li className="cu-legend-group">
             <div className="cu-legend-item" data-legend-category="low-outline">
-                <span className="cu-legend-outline-swatch" aria-hidden="true" style={{ borderColor: FIELD_REVIEW_COLORS.lowStroke }} />
+                <span className="cu-legend-outline-swatch" aria-hidden="true"
+                    style={{ background: FIELD_REVIEW_COLORS.matched, borderColor: FIELD_REVIEW_COLORS.lowStroke }}>123</span>
                 <span className="cu-legend-label"><span className="cu-legend-name">Low confidence</span>
                     <span className="cu-legend-description">Confidence below threshold; matching color is unchanged.</span></span>
             </div>
@@ -112,9 +113,9 @@ export function HighlightLegend({ id, buttonRef, settings, onChange, open, onTog
 }) {
     return <div className="cu-toolbar-legend">
         <div className="cu-legend-control">
-            <button type="button" ref={buttonRef} className="cu-legend-toggle" aria-label="Highlighting legend"
+            <button type="button" ref={buttonRef} className={`cu-legend-toggle${fieldReview ? " cu-label-legend-toggle" : ""}`} aria-label="Highlighting legend"
                 aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined} onClick={onToggle}>
-                <ViewerIcon name="info" />Legend
+                {fieldReview ? <><ViewerIcon name="info" />Legend</> : <>Legend<ViewerIcon name="down" /></>}
             </button>
             {open && buttonRef.current && <LegendPanel id={id} anchor={buttonRef.current}
                 settings={settings} onChange={onChange} onClose={onClose} labelMode={labelMode}

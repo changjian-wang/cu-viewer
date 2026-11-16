@@ -7,7 +7,7 @@ import { hasSourcePage, unavailableSourcePageMessage } from "../source/source";
 import type { CuContent, CuField, CuPoint, CuRegion } from "../model/types";
 import { fieldLabel, isFieldGroup } from "../interaction/interaction";
 import type { ReviewSettings } from "../interaction/reviewFields";
-import { FIELD_REVIEW_COLORS } from "../interaction/reviewFields";
+import { FIELD_REVIEW_COLORS, isLowConfidence } from "../interaction/reviewFields";
 import type { FieldComparison } from "../model/fieldComparison";
 import type { ResultView } from "../model/resultViews";
 import type { SourceOutline } from "../source/sourceOverlays";
@@ -126,8 +126,8 @@ export function SourcePane(props: SourcePaneProps) {
     const group = props.active ? isFieldGroup(props.active) : false;
     const pinnedGroup = props.pinned ? isFieldGroup(props.pinned) : false;
     const wholeTable = props.content?.tables?.some(table => table.id === props.active?.id);
-    const objectPreview = props.preview && ((props.view === "fields" && props.active?.type === "object") ||
-        (props.view === "fields" && props.active?.origin === "label" && group));
+    const objectPreview = props.preview && props.view === "fields" &&
+        (props.active?.type === "object" || (group && (props.active?.origin === "label" || Boolean(props.comparison))));
     const showCard = Boolean(props.preview && props.active && (!group || objectPreview) && !wholeTable &&
         (!props.active.detailView || props.active.detailView === "paragraphs"));
     const valuePreview = props.preview && isValueSourceField(props.view, props.active);
@@ -213,13 +213,22 @@ export function SourcePane(props: SourcePaneProps) {
             const preview = props.preview ? project(props.active, props.regions) : [];
             const framesFor = (field: CuField | null, regions: typeof pinned) => {
                 const merge = isValueSourceField(props.view, field) && regions.length > 1;
+                const compared = field && props.comparison?.byFieldId.get(field.id);
                 return merge ? sourceSelectionFrames(regions,
-                    background.outlines.filter(outline => outline.field.id !== field.id).map(outline => outline.polygon),
+                    background.outlines.filter(outline => outline.field.id !== field.id &&
+                        (!compared || props.comparison?.byFieldId.get(outline.field.id) !== compared)).map(outline => outline.polygon),
                     field.origin === "label") :
                     regions.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
             };
-            const decorate = (frames: ReturnType<typeof sourceSelectionFrames>, field: CuField | null) => field?.origin === "label" ?
-                frames.map(frame => ({ ...frame, polygon: outsetSourceFrame(frame.polygon) })) : frames;
+            const decorate = (frames: ReturnType<typeof sourceSelectionFrames>, field: CuField | null) => {
+                const extracted = field && props.comparison?.byFieldId.get(field.id)?.extracted;
+                const confidenceFrame = extracted && background.outlines.some(outline =>
+                    outline.field.hasValue && isLowConfidence(outline.field, props.settings.threshold) &&
+                    (outline.field.id === extracted.id || outline.field.id.startsWith(`${extracted.id}/`)));
+                // Leave room for both strokes and their antialiased edges.
+                const padding = confidenceFrame ? 3 : field?.origin === "label" ? 1 : 0;
+                return padding ? frames.map(frame => ({ ...frame, polygon: outsetSourceFrame(frame.polygon, padding) })) : frames;
+            };
             const previewRegions = valuePreview || objectPreview || props.active?.detailView ? preview :
                 preview.filter(item => item.regionIndex === props.regionIndex);
             const objectFrame = objectPreview ? sourceObjectPreviewFrame(preview) : undefined;
@@ -232,7 +241,8 @@ export function SourcePane(props: SourcePaneProps) {
             };
         } catch (error) { return { pinned: [], preview: [], frames: [], previewFrames: [], card: undefined, error: error instanceof Error ? error.message : String(error) }; }
     }, [background, projectionSize, rotation, props.content, props.labelContent, props.view, props.pinned, props.pinnedRegions,
-        props.preview, props.active, props.regions, props.regionIndex, props.pageNumber, showCard, valuePreview, objectPreview]);
+        props.preview, props.active, props.regions, props.regionIndex, props.pageNumber, props.comparison, props.settings.threshold,
+        showCard, valuePreview, objectPreview]);
     const activePolygons = props.preview ? selectedPolygons.preview : selectedPolygons.pinned;
     const cardPolygon = selectedPolygons.card;
     const measureCard = useCallback((next: PageSize): void => {
@@ -506,7 +516,7 @@ export function SourcePane(props: SourcePaneProps) {
             {layersReady && showCard && props.active && cardPolygon && <SourcePopover id={props.previewId} field={props.active}
                 labelMode={props.active.origin === "label"}
                 comparison={props.comparison}
-                fieldReview={props.view === "fields"}
+                fieldReview={props.view === "fields" && Boolean(props.comparison)}
                 summaryFieldIds={props.summaryFieldIds}
                 settings={props.settings} points={cardPolygon} pan={pan ?? layout.paper} viewport={container} paper={renderedPage}
                 onMeasure={measureCard} />}
@@ -515,7 +525,7 @@ export function SourcePane(props: SourcePaneProps) {
             </div>}
         </div>
         <SourceToolbar source={props.source} summaryId={`${sourceId}-summary`} toolbarRef={toolbar}
-            labelMode={Boolean(props.referenceMode)} fieldReview={props.view === "fields"}
+            labelMode={Boolean(props.referenceMode)} fieldReview={props.view === "fields" && Boolean(props.comparison)}
             comparisonAvailable={Boolean(props.comparison?.comparable)}
             settings={props.settings} onSettings={props.onSettings} onControlFocus={captureControlFocus}>
             <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}

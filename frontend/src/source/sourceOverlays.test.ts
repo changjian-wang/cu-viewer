@@ -72,9 +72,22 @@ describe("Studio view-specific source outlines", () => {
         const before = JSON.stringify(original);
         const outlines = sourceOutlines(content, "fields", 1, true);
         expect(outlines.map(item => item.field.name)).toEqual(["Name", "Value"]);
-        expect(outlines.map(item => item.color)).toEqual(["#ECF3FC", "#ECF3FC"]);
+        expect(outlines.map(item => item.color)).toEqual(["#F1F3F5", "#F1F3F5"]);
         expect(sourceOutlines(content, "fields", 2, true).map(item => item.field.name)).toEqual(["Value"]);
         expect(JSON.stringify(original)).toBe(before);
+    });
+
+    it("keeps ordinary confidence fills separate from label matching colors and outlines", () => {
+        const content = parseCuResult({ apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 100, height: 100 }],
+            fields: { Value: { type: "string", valueString: "Same", confidence: 0.2, source: "D(1,1,1,10,5)" } },
+        }] }).contents[0]!;
+        const labels = parseLabels({ fieldLabels: { Value: { type: "string", valueString: "Same" } } },
+            { kind: "pdf", pages: [{ pageNumber: 1, width: 816, height: 1056 }] }).content;
+        const comparison = compareFields(labels.fields, content.fields, true);
+        expect(sourceOutlines(content, "fields", 1, false)[0]).toMatchObject({ color: "#FCE8E6", low: false });
+        expect(sourceOutlines(content, "fields", 1, false, defaultReviewSettings, comparison, labels)[0])
+            .toMatchObject({ color: "#C8E6C9", low: true });
     });
 
     it("keeps missing-field filtering in sync with the result pane", () => {
@@ -100,6 +113,7 @@ describe("Studio view-specific source outlines", () => {
         const content = parseCuResult(original).contents[0];
         const before = JSON.stringify(original), baseline = sourceOutlines(content, "fields", 1, false);
         expect(baseline).toHaveLength(5);
+        expect(baseline.map(item => item.color)).toEqual(["#E8F5E9", "#FCE8E6", "#F1F3F5", "#E8F1FF", "#F6C5CC"]);
         for (const [key, enabled] of [
             ["showFields", [false, false, false, true, true]],
             ["showTables", [true, true, true, false, false]],
@@ -111,8 +125,8 @@ describe("Studio view-specific source outlines", () => {
         }
         const normal = sourceOutlines(content, "fields", 1, false, { ...defaultReviewSettings, highlightLow: false });
         expect(normal.map(item => item.enabled)).toEqual([true, true, true, true, true]);
-        expect(normal.map(item => item.color)).toEqual(["#ECF3FC", "#ECF3FC", "#ECF3FC", "#DEE9FA", "#DEE9FA"]);
-        expect(baseline.map(item => item.low)).toEqual([false, true, false, false, true]);
+        expect(normal.map(item => item.color)).toEqual(["#E8F5E9", "#E8F5E9", "#F1F3F5", "#E8F1FF", "#E8F1FF"]);
+        expect(baseline.map(item => item.low)).toEqual([false, false, false, false, false]);
         expect(normal.every(item => !item.low)).toBe(true);
         expect(JSON.stringify(original)).toBe(before);
     });

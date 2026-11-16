@@ -16,19 +16,42 @@ function content(fields: Record<string, unknown>, analyzerId = "test") {
 const text = (value: string, confidence?: number) => ({ type: "string", valueString: value, confidence });
 
 describe("approved review semantics", () => {
+    it("does not paint an absent extraction as an unpaired value or a low-confidence value", () => {
+        const absent = content({ Missing: { type: "string", confidence: 0.2 } }).fields[0]!;
+        for (const table of [false, true]) {
+            const empty = fieldAppearance(absent, defaultReviewSettings, "uncompared", table);
+            expect(empty.background).toBe("transparent");
+            expect(empty.low).toBe(false);
+            expect(empty.boxShadow).toBeUndefined();
+        }
+        const missing = fieldAppearance(absent, defaultReviewSettings, "missing");
+        expect(missing.low).toBe(false);
+        expect(missing.boxShadow).toBeUndefined();
+    });
+
+    it("retains confidence outlines for genuine zero, false, empty-string and null values", () => {
+        const values = content({
+            Zero: { type: "number", valueNumber: 0, confidence: 0.2 },
+            False: { type: "boolean", valueBoolean: false, confidence: 0.2 },
+            Empty: { type: "string", valueString: "", confidence: 0.2 },
+            Null: { type: "string", valueString: null, confidence: 0.2 },
+        }).fields;
+        for (const field of values) expect(fieldAppearance(field, defaultReviewSettings, "matched").low).toBe(true);
+    });
+
     it("distinguishes default array blue and missing-extraction red without replacing match colors or low-confidence outlines", () => {
-        const scalar = fieldAppearance({ confidence: 0.4 }, defaultReviewSettings);
-        const array = fieldAppearance({ confidence: 0.4 }, defaultReviewSettings, "uncompared", true);
+        const scalar = fieldAppearance({ hasValue: true, confidence: 0.4 }, defaultReviewSettings);
+        const array = fieldAppearance({ hasValue: true, confidence: 0.4 }, defaultReviewSettings, "uncompared", true);
         expect(array.background).not.toBe(scalar.background);
         expect(array.boxShadow).toBe(scalar.boxShadow);
-        const matched = fieldAppearance({ confidence: 0.4 }, defaultReviewSettings, "matched", true);
-        expect(matched.background).toBe("#DCFBD7");
+        const matched = fieldAppearance({ hasValue: true, confidence: 0.4 }, defaultReviewSettings, "matched", true);
+        expect(matched.background).toBe("#C8E6C9");
         expect(matched.boxShadow).toBeTruthy();
-        const missing = fieldAppearance({}, defaultReviewSettings, "missing");
-        const different = fieldAppearance({}, defaultReviewSettings, "different");
+        const missing = fieldAppearance(undefined, defaultReviewSettings, "missing");
+        const different = fieldAppearance({ hasValue: true }, defaultReviewSettings, "different");
         expect(missing.background).not.toBe(different.background);
         expect(missing.boxShadow).toBeUndefined();
-        expect(fieldAppearance({ confidence: 0.7 }, defaultReviewSettings, "matched").boxShadow).toBeUndefined();
+        expect(fieldAppearance({ hasValue: true, confidence: 0.7 }, defaultReviewSettings, "matched").boxShadow).toBeUndefined();
     });
 
     it.each(["", " ", "NaN", "Infinity", "-0.1", "1.01"])("rejects invalid threshold %j", value => {

@@ -209,13 +209,19 @@
 .cu-viewer .cu-comparison-fields .cu-field-name { padding: 2px 0; }
 .cu-viewer .cu-comparison-fields .cu-expand { height: 24px; }
 .cu-comparison-value { position: relative; display: flex; align-items: center; min-width: 0; min-height: 24px; gap: 4px; padding: 1px 4px; border-radius: 5px; overflow-wrap: anywhere; }
-.cu-comparison-value:has(> button:focus-visible) { outline: 1px solid var(--cu-focus); outline-offset: -1px; }
+.cu-comparison-value:has(> button:focus-visible) { outline: 1px solid var(--cu-focus); outline-offset: 0; }
+.cu-viewer .cu-comparison-value > button:focus-visible { outline: none; }
 .cu-viewer .cu-comparison-value > .cu-field-value { flex: 1; width: auto; min-width: 0; margin: 0; padding: 0 2px; color: inherit; text-align: left; overflow: hidden; text-overflow: ellipsis; }
-.cu-viewer .cu-comparison-value > .cu-value-menu-trigger { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 20px; height: 22px; padding: 3px; border-radius: 3px; background: inherit; }
+.cu-viewer .cu-comparison-value > .cu-value-menu-trigger { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 20px; height: 22px; padding: 3px; border-radius: 3px; background: transparent; }
 .cu-comparison-value:is(:hover, :focus-within) > .cu-field-value { padding-right: 20px; }
 .cu-comparison-value:hover > .cu-value-menu-trigger, .cu-comparison-value:focus-within > .cu-value-menu-trigger { visibility: visible; }
-.cu-comparison-arrays { display: grid; gap: 8px; padding: 6px; margin: 3px 0; border: 1px solid transparent; border-radius: 8px; }
+.cu-comparison-arrays { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 6px; margin: 3px 0; border: 1px solid transparent; border-radius: 8px; }
+.cu-comparison-arrays.is-side-by-side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .cu-comparison-arrays.is-selected { border-color: var(--cu-hover-stroke); }
+.cu-array-layout-controls { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 2px; }
+.cu-viewer .cu-array-layout-controls > button { min-height: 24px; padding: 2px 8px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #526276; font-size: 11px; }
+.cu-viewer .cu-array-layout-controls > button:hover { background: #f5f8fc; }
+.cu-viewer .cu-array-layout-controls > button[aria-pressed="true"] { border-color: #bac8d9; background: #e8eef8; color: #243447; }
 .cu-comparison-array { min-width: 0; }
 .cu-comparison-array h3 { margin: 0; padding: 3px 8px; border-radius: 5px 5px 0 0; background: #e8eef8; font-size: 12px; line-height: 20px; }
 .cu-comparison-array h3 > span { margin-left: 3px; color: #526276; font-size: 11px; font-weight: 400; }
@@ -239,8 +245,7 @@
 .cu-flyover-comparison dt { color: #526278; font-size: 10px; line-height: 18px; }
 .cu-flyover-comparison dd { display: flex; gap: 4px; align-items: flex-start; min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: 11px; line-height: 18px; }
 .cu-flyover-comparison-value { flex: 1; min-width: 0; max-height: 72px; overflow: hidden; padding: 0 3px; border-radius: 3px; }
-.cu-flyover-comparison .cu-flyover-confidence { display: inline-flex; align-items: center; gap: 2px; color: #526276; background: #ecf3fc; }
-.cu-flyover-comparison .cu-flyover-confidence.is-low { color: #9b1c1c; background: #ffdadd; }
+.cu-flyover-comparison .cu-flyover-confidence { display: inline-flex; align-items: center; gap: 2px; }
 .cu-fields-review-footer:has(.cu-comparison-filters) .cu-search-box { min-width: 80px; }
 .cu-fields-review-footer:has(.cu-comparison-filters) { grid-template-columns: minmax(80px, 1fr) auto auto auto; gap: 4px; }
 .cu-fields-review-footer:has(.cu-comparison-filters) .cu-field-navigation > span { min-width: 68px; text-align: center; }
@@ -525,7 +530,7 @@
 .cu-legend-label { min-width: 0; }
 .cu-legend-description { display: block; font-size: 10px; color: #626f80; margin-top: 2px; }
 .cu-legend-swatch { display: block; position: relative; overflow: hidden; width: 33px; height: 28px; border-radius: 4px; flex: none; }
-.cu-legend-outline-swatch { width: 33px; height: 24px; border: 1px solid; border-radius: 4px; flex: none; }
+.cu-legend-outline-swatch { display: inline-flex; align-items: center; justify-content: center; width: 33px; height: 24px; border: 1px solid; border-radius: 4px; flex: none; color: #243447; font-size: 11px; font-weight: 600; }
 .cu-field-review-legend .cu-legend-item { grid-column: 1 / -1; }
 .cu-switch-row.cu-legend-review-toggle { grid-column: 1 / -1; justify-content: space-between; min-height: 28px; margin: 0; font-size: 12px; }
 .cu-legend-review-toggle input { right: 0; top: 0; width: 35px; height: 28px; cursor: pointer; }
@@ -560,7 +565,8 @@
 .cu-source-toolbar-bottom .cu-view-controls { margin-left: auto; }
 .cu-source-utilities { display: flex; align-items: center; gap: 6px; flex: none; }
 .cu-source-toolbar-bottom .cu-legend-toggle { font-size: 11px; }
-.cu-source-toolbar-bottom .cu-legend-toggle .cu-icon { transform: none; }
+.cu-source-toolbar-bottom .cu-legend-toggle .cu-icon { transform: rotate(180deg); }
+.cu-source-toolbar-bottom .cu-label-legend-toggle .cu-icon { transform: none; }
 .cu-source-toolbar-bottom .cu-legend-panel { top: auto; bottom: calc(100% + 17px); max-height: min(520px, calc(var(--cu-source-viewport-height, 528px) - 8px)); }
 .cu-source-toolbar-bottom > .cu-highlighting-settings { top: auto; bottom: calc(100% + 8px); max-height: calc(var(--cu-source-viewport-height, 100vh) - 8px); box-shadow: 0 -8px 30px #20334c24; }
 @container cu-source (max-width: 900px) {
@@ -571,8 +577,10 @@
     .cu-source-toolbar-bottom .cu-view-controls .cu-zoom-select { width: 52px; height: 26px; padding-left: 2px; font-size: 11px; }
     .cu-source-toolbar-bottom .cu-source-utilities { gap: 4px; }
     .cu-source-toolbar-bottom .cu-source-utilities > .cu-icon-button { width: 24px; height: 26px; padding: 3px; }
-    .cu-source-toolbar-bottom .cu-legend-toggle { height: 26px; padding: 4px; gap: 3px; font-size: 10px; }
-    .cu-source-toolbar-bottom .cu-legend-toggle .cu-icon { display: block; }
+    .cu-source-toolbar-bottom .cu-legend-toggle { height: 26px; padding: 4px; gap: 0; font-size: 10px; }
+    .cu-source-toolbar-bottom .cu-legend-toggle .cu-icon { display: none; }
+    .cu-source-toolbar-bottom .cu-label-legend-toggle { gap: 3px; }
+    .cu-source-toolbar-bottom .cu-label-legend-toggle .cu-icon { display: block; }
 }
 @container cu-markdown-toolbar (max-width: 900px) {
     .cu-page-controls { gap: 3px; font-size: 11px; }

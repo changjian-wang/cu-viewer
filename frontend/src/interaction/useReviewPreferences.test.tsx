@@ -14,6 +14,25 @@ const schema = schemaIdentity(content, "2025-11-01");
 afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); });
 
 describe("controlled and browser-owned field order", () => {
+    it("changes unsaved mode defaults without overwriting a saved layout or confidence setting", () => {
+        const comparisonDefaults = { ...defaultReviewSettings, paneRatio: 0.45 };
+        const { result, rerender } = renderHook(({ defaults }) =>
+            useReviewPreferences(base, content, "2025-11-01", undefined, defaults),
+        { initialProps: { defaults: defaultReviewSettings } });
+        rerender({ defaults: comparisonDefaults });
+        expect(result.current.settings.paneRatio).toBe(0.45);
+        expect(localStorage.length).toBe(0);
+        act(() => result.current.changeSettings({ ...result.current.settings, paneRatio: 0.62, columns: 3 }));
+        const saved = localStorage.getItem(preferenceKey(schema));
+        rerender({ defaults: defaultReviewSettings });
+        expect(result.current.settings).toMatchObject({ paneRatio: 0.62, columns: 3 });
+        rerender({ defaults: comparisonDefaults });
+        expect(result.current.settings).toMatchObject({ paneRatio: 0.62, columns: 3 });
+        expect(localStorage.getItem(preferenceKey(schema))).toBe(saved);
+        act(() => result.current.reset());
+        expect(result.current.settings.paneRatio).toBe(0.45);
+    });
+
     it("gives a saved same-schema order precedence over the initial configuration", () => {
         writePreferences(localStorage, schema, { settings: { ...defaultReviewSettings }, order: { $root: ["/B", "/A"] } });
         const { result } = renderHook(() => useReviewPreferences({ ...base, defaultFieldOrder: { $root: ["/A"] } }, content, "2025-11-01", undefined));

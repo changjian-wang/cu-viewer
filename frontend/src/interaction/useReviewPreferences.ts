@@ -8,12 +8,13 @@ import type { ReviewPreferences } from "./reviewPreferences";
 
 interface PreferenceState extends ReviewPreferences {
     schema: string;
+    defaults: Readonly<ReviewSettings>;
     error: string | null;
     blocked: boolean;
 }
 
 export function useReviewPreferences(props: ContentUnderstandingResultViewerProps, content: CuContent | undefined,
-    apiVersion: string | undefined, analyzerId: string | undefined) {
+    apiVersion: string | undefined, analyzerId: string | undefined, defaults: Readonly<ReviewSettings> = defaultReviewSettings) {
     const schema = useMemo(() => schemaIdentity(content, apiVersion, analyzerId), [content, apiVersion, analyzerId]);
     const entries = useMemo(() => fieldEntries(content?.fields ?? []), [content]);
     const configured = useMemo(() => {
@@ -29,17 +30,17 @@ export function useReviewPreferences(props: ContentUnderstandingResultViewerProp
         try {
             const saved = readPreferences(window.localStorage, schema);
             if (saved) validateOrderParents(saved.order, entries);
-            return { schema, settings: saved?.settings ?? { ...defaultReviewSettings },
+            return { schema, defaults, settings: saved?.settings ?? { ...defaults },
                 order: saved?.order ?? (props.fieldOrder === undefined ? configured.order : {}), error: null, blocked: false };
         } catch (error) {
-            return { schema, settings: { ...defaultReviewSettings }, order: configured.order,
+            return { schema, defaults, settings: { ...defaults }, order: configured.order,
                 error: `Browser preferences could not be read: ${error instanceof Error ? error.message : String(error)}`,
                 blocked: true };
         }
     };
     const [state, setState] = useState<PreferenceState>(load);
-    if (state.schema !== schema) setState(load());
-    const current = state.schema === schema ? state : { ...state, schema };
+    if (state.schema !== schema || state.defaults !== defaults) setState(load());
+    const current = state.schema === schema && state.defaults === defaults ? state : { ...state, schema, defaults };
     const controlled = props.fieldOrder !== undefined;
     const order = controlled ? configured.order : current.order;
     const persist = (next: PreferenceState): void => {
@@ -69,7 +70,7 @@ export function useReviewPreferences(props: ContentUnderstandingResultViewerProp
         reset: (): void => {
             try {
                 window.localStorage.removeItem(preferenceKey(schema));
-                const next = { schema, settings: { ...defaultReviewSettings }, order: {}, error: null, blocked: false };
+                const next = { schema, defaults, settings: { ...defaults }, order: {}, error: null, blocked: false };
                 persist(next);
                 if (!controlled) props.onFieldOrderChange?.({});
             } catch (error) {

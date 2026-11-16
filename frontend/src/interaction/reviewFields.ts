@@ -21,17 +21,21 @@ export const defaultReviewSettings: Readonly<ReviewSettings> = {
     columns: 2, paneRatio: 0.58, fieldRatio: 0.46,
 };
 
+// MUI palette; CC keeps the red 800 confidence outline at 80% opacity.
 export const FIELD_REVIEW_COLORS = {
-    default: "#ECF3FC", array: "#DEE9FA", matched: "#DCFBD7", error: "#FFDADD", missing: "#F8C0C8", lowStroke: "#B43C4B99",
+    default: "#E3F2FD", array: "#BBDEFB", matched: "#C8E6C9", error: "#FFCDD2", missing: "#EF9A9A",
+    lowStroke: "#C62828CC", confidenceBadgeBackground: "#FFEBEE", confidenceBadgeText: "#C62828",
+    hoverStroke: "#5E35B1", selectedStroke: "#4527A0",
 } as const;
 
-export function fieldAppearance(field: Pick<CuField, "confidence">, settings: ReviewSettings,
+export function fieldAppearance(field: Pick<CuField, "confidence" | "hasValue"> | undefined, settings: ReviewSettings,
     status: ComparisonStatus = "uncompared", table = false) {
-    const low = field.confidence !== undefined && field.confidence < settings.threshold && settings.highlightLow;
+    const low = field?.hasValue === true && field.confidence !== undefined && field.confidence < settings.threshold && settings.highlightLow;
     return {
         low, color: "#243447",
         background: status === "matched" ? FIELD_REVIEW_COLORS.matched : status === "missing" ? FIELD_REVIEW_COLORS.missing :
-            isComparisonError(status) ? FIELD_REVIEW_COLORS.error : table ? FIELD_REVIEW_COLORS.array : FIELD_REVIEW_COLORS.default,
+            isComparisonError(status) ? FIELD_REVIEW_COLORS.error : !field?.hasValue ? "transparent" :
+                table ? FIELD_REVIEW_COLORS.array : FIELD_REVIEW_COLORS.default,
         boxShadow: low ? `inset 0 0 0 1px ${FIELD_REVIEW_COLORS.lowStroke}` : undefined,
     };
 }
