@@ -10,6 +10,9 @@ import largePdfResultUrl from "../../tests/fixtures/large-bank-statement.pdf.res
 import labeledPdfUrl from "../../tests/fixtures/labels/invoice.pdf?url";
 import labeledPdfLabelsUrl from "../../tests/fixtures/labels/invoice.pdf.labels.json?url";
 import labeledPdfResultUrl from "../../tests/fixtures/labels/invoice.pdf.result.json?url";
+import multipagePdfUrl from "../../tests/fixtures/labels/invoice-multipage.pdf?url";
+import multipageLabelsUrl from "../../tests/fixtures/labels/invoice-multipage.pdf.labels.json?url";
+import multipageResultUrl from "../../tests/fixtures/labels/invoice-multipage.pdf.result.json?url";
 
 interface DemoSample {
     label: string;
@@ -30,10 +33,14 @@ const samples = {
         name: "large-bank-statement.pdf", json: "large-bank-statement.pdf.result.json", type: "application/pdf" },
     labels: { label: "PDF + Labels", source: labeledPdfUrl, labels: labeledPdfLabelsUrl, result: labeledPdfResultUrl,
         name: "invoice.pdf", labelName: "invoice.pdf.labels.json", json: "invoice.pdf.result.json", type: "application/pdf" },
+    multipage: { label: "Multi-page Invoice", source: multipagePdfUrl, labels: multipageLabelsUrl, result: multipageResultUrl,
+        name: "invoice-multipage.pdf", labelName: "invoice-multipage.pdf.labels.json",
+        json: "invoice-multipage.pdf.result.json", type: "application/pdf" },
 };
 type Sample = keyof typeof samples;
-const sampleChoices: readonly Sample[] = ["pdf", "png", "large", "labels"];
-const initialSample: Sample = requestedSample === "pdf" || requestedSample === "png" || requestedSample === "large" || requestedSample === "labels"
+const sampleChoices: readonly Sample[] = ["pdf", "png", "large", "labels", "multipage"];
+const initialSample: Sample = requestedSample === "pdf" || requestedSample === "png" || requestedSample === "large" ||
+    requestedSample === "labels" || requestedSample === "multipage"
     ? requestedSample : "pdf";
 
 export function App() {

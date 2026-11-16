@@ -34,7 +34,7 @@ npm ci --ignore-scripts
 npm run dev
 ```
 
-打开 <http://127.0.0.1:5173/>。选择 PDF／Receipt PNG／Large PDF／PDF + Labels 使用项目内置样本，或分别选择本地源文件和保存的 JSON；不产生新的 CU 调用。文件选择属于演示宿主，不是组件公开 API。
+打开 <http://127.0.0.1:5173/>。选择 PDF／Receipt PNG／Large PDF／PDF + Labels／Multi-page Invoice 使用项目内置样本，或分别选择本地源文件和保存的 JSON；不产生新的 CU 调用。文件选择属于演示宿主，不是组件公开 API。
 
 本地标签通过顶部 **Labels** 选择器加载：先选择配对 PDF，再选择 `.labels.json`，统一在 **Fields** 查看，不再有独立 Label tab。可使用[标签样本](tests/fixtures/labels)；仅标签时显示两列，加载同一 PDF 的有效 Analyze JSON 后显示标签／提取值三列对照。**PDF + Labels** 已包含同一 invoice PDF 的真实分析结果，可直接查看完整对照。更换本地源文件会清除上一文档的标签和结果，避免误配；内置样例按钮仍加载项目内配对数据。
 
@@ -42,18 +42,21 @@ npm run dev
 
 ### 内置示例
 
-四个入口都直接加载[项目样例资源](tests/fixtures)，开发服务与 `build:demo` 的行为一致，不依赖 Downloads、本机路径、环境变量或专用文件接口：
+五个入口都直接加载[项目样例资源](tests/fixtures)，开发服务与 `build:demo` 的行为一致，不依赖 Downloads、本机路径、环境变量或专用文件接口：
 
 | 入口 | 源文件／配套结果 | 用途 |
 | --- | --- | --- |
 | PDF | `mixed-financial-docs.pdf`／`mixed-financial-docs.pdf.result.json` | 普通 PDF 示例。 |
 | Receipt PNG | `receipt.png`／`receipt.png.result.json` | 票据图片示例。 |
 | Large PDF | `large-bank-statement.pdf`／`large-bank-statement.pdf.result.json` | 当前 41 页的大文档分页、渲染和性能回归。 |
-| PDF + Labels | `labels/invoice.pdf`／`labels/invoice.pdf.labels.json`／`labels/invoice.pdf.result.json` | 标注与同文档真实提取结果的三列对照、数组上下双表和匹配统计。 |
+| PDF + Labels | `labels/invoice.pdf`／`labels/invoice.pdf.labels.json`／`labels/invoice.pdf.result.json` | 单页标注与同文档真实提取结果的三列对照、数组双表和匹配统计。 |
+| Multi-page Invoice | `labels/invoice-multipage.pdf`／对应 `.labels.json`、`.result.json` | 12 页同一张发票、120 条跨页明细、独立真值和真实提取结果，覆盖首／中／末页定位与长数组。 |
 
-默认打开普通 PDF，也可通过 `?sample=pdf`、`?sample=png`、`?sample=large`、`?sample=labels` 直接选择示例。切换与刷新只读取项目内已保存的数据，不调用 Azure、不上传文件。缺少声明的配套文件会在构建或加载时明确失败，不混用其他文档的结果。
+默认打开普通 PDF，也可通过 `?sample=pdf`、`?sample=png`、`?sample=large`、`?sample=labels`、`?sample=multipage` 直接选择示例。切换与刷新只读取项目内已保存的数据，不调用 Azure、不上传文件。缺少声明的配套文件会在构建或加载时明确失败，不混用其他文档的结果。
 
-真实分析结果统一使用 `<源文件完整文件名>.result.json`，保留 `.pdf`／`.png` 后缀；旧 `.cu.json` 是项目内部样本名，不是服务返回格式。既有三份结果的内容和 SHA-256 不变。invoice 配套结果由用户授权于 2026-11-13 调用一次真实服务获得，使用现有同字段结构 analyzer，原始响应未修改；再次打开 Demo 只读取保存结果，不重新分析。来源、授权及完整性哈希见[样例清单](tests/fixtures/manifest.json)。
+真实分析结果统一使用 `<源文件完整文件名>.result.json`，保留 `.pdf`／`.png` 后缀；旧 `.cu.json` 是项目内部样本名，不是服务返回格式。既有结果的内容和 SHA-256 不变。invoice 配套结果由用户授权于 2026-11-13 调用一次真实服务获得，使用现有同字段结构 analyzer，原始响应未修改；再次打开 Demo 只读取保存结果，不重新分析。来源、授权及完整性哈希见[样例清单](tests/fixtures/manifest.json)。
+
+Multi-page Invoice 是参照原 invoice 字段结构新制作的虚构测试文档，不是简单重复拼接单页发票。其 984 个标签值及来源坐标在分析前独立生成；2026-11-16 经用户授权，仅调用现有 `yslin_sample_invoice` 一次取得保存结果，未新建资源或修改模型。真实不匹配按原样展示，不根据返回值回填标签以制造全绿。需要重新制作 PDF／labels 时，可执行 `node scripts/generate-multipage-invoice.mjs <空目录>`；脚本不调用服务，并拒绝覆盖已有真实结果的配对目录，避免让旧结果与新 PDF 失配。
 
 Large PDF 为任务所有者提供并授权纳入项目的测试配对数据，来源、权限说明、统计与完整性哈希见[样例清单](tests/fixtures/manifest.json)；不将其视为 Azure Samples 的 MIT 样例。内置样例随 Demo 构建，不打入通用 npm 组件或 CLI Release 的 Viewer 静态资源。
 

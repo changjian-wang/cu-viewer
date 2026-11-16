@@ -39,7 +39,8 @@
 
 - 本轮配套更新 `cu-viewer` 与 azure-dev：Go `azd ai cu label show <PDF>` 自动发现 `<PDF>.labels.json` 和可选 `<PDF>.result.json`，保留 `label view` 别名，不增加加载选项。组件只消费明确提供的数据，不自行读取相邻文件。
 - Demo 新增 PDF + Labels，直接读取项目 `labels/invoice.pdf` 与 `labels/invoice.pdf.labels.json`，支持 `?sample=labels`。没有真实配套结果时显示两列，不生成或借用其他文档的分析结果。
-- 三份真实结果样本按 `<源文件完整文件名>.result.json` 命名，保留源扩展名，重命名不改变内容、哈希或已确认的 Analyze 调用记录。
+- Multi-page Invoice 通过 `?sample=multipage` 单独加载 12 页同一张发票、120 条明细及配对 JSON，保留单页入口。984 个标签值和真实 PDF 坐标在分析前独立生成，保存一次授权分析的原始结果；打开或刷新不再调用服务，首／中／末页标签可定位，长数组按需挂载，不按服务输出修改真值。
+- 真实结果样本均按 `<源文件完整文件名>.result.json` 命名，保留源扩展名，重命名不改变内容、哈希或已确认的 Analyze 调用记录。
 - 标签根级为 `fieldLabels`。按类型读取 `valueString`、`valueDate`、`valueNumber` 等，保留对象、数组、缺失、零、false、空字符串及 null，不改写输入。没有标签值或来源时明确保留缺失状态。
 - 不保留独立 Label tab。Fields 在仅标签时显示名称／标签值两列；首个 content 声明有效 fields 时显示名称／标签值／提取值三列，空 fields 对应漏提取，缺少 fields 则不启用比对。
 - 无标签模式必须保持标签对照加入前的查看体验：原有可选 Confidence 列、单数组表、置信度填色、紫色浮层标题、四项 Legend 及保存设置不受影响。以下五态颜色和独立描边只用于有标签的 Fields。

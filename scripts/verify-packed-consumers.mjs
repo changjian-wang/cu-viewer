@@ -96,7 +96,8 @@ for (const profile of profiles) {
         copyFileSync(join(repository, "tests", "fixtures", "images", name), join(directory, "fixtures", name));
     }
     mkdirSync(join(directory, "fixtures", "labels"));
-    for (const name of ["invoice.pdf", "invoice.pdf.labels.json", "invoice.pdf.result.json"]) {
+    for (const name of ["invoice.pdf", "invoice.pdf.labels.json", "invoice.pdf.result.json",
+        "invoice-multipage.pdf", "invoice-multipage.pdf.labels.json", "invoice-multipage.pdf.result.json"]) {
         copyFileSync(join(repository, "tests", "fixtures", "labels", name), join(directory, "fixtures", "labels", name));
     }
     npm(["install", "--ignore-scripts", "--no-audit", "--no-fund"], profile.directory);

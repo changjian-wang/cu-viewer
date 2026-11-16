@@ -1,0 +1,5549 @@
+{
+  "$schema": "https://schema.ai.azure.com/mmi/2024-12-01-preview/labels.json",
+  "fileId": "invoice-multipage.pdf",
+  "fieldLabels": {
+    "InvoiceNumber": {
+      "type": "string",
+      "valueString": "INV-MP-2026-012",
+      "source": "D(1,6.89518,0.87077,1.16732,0.16667);D(2,6.89518,0.87077,1.16732,0.16667);D(3,6.89518,0.87077,1.16732,0.16667);D(4,6.89518,0.87077,1.16732,0.16667);D(5,6.89518,0.87077,1.16732,0.16667);D(6,6.89518,0.87077,1.16732,0.16667);D(7,6.89518,0.87077,1.16732,0.16667);D(8,6.89518,0.87077,1.16732,0.16667);D(9,6.89518,0.87077,1.16732,0.16667);D(10,6.89518,0.87077,1.16732,0.16667);D(11,6.89518,0.87077,1.16732,0.16667);D(12,6.89518,0.87077,1.16732,0.16667)"
+    },
+    "InvoiceDate": {
+      "type": "date",
+      "valueDate": "2026-11-01",
+      "source": "D(1,0.43750,1.78727,0.57764,0.12500)"
+    },
+    "DueDate": {
+      "type": "date",
+      "valueDate": "2026-12-01",
+      "source": "D(1,4.37500,1.78727,0.58626,0.12500)"
+    },
+    "SellerName": {
+      "type": "string",
+      "valueString": "Example Services Ltd.",
+      "source": "D(1,0.43750,0.44792,2.54362,0.27083);D(2,0.43750,0.44792,2.54362,0.27083);D(3,0.43750,0.44792,2.54362,0.27083);D(4,0.43750,0.44792,2.54362,0.27083);D(5,0.43750,0.44792,2.54362,0.27083);D(6,0.43750,0.44792,2.54362,0.27083);D(7,0.43750,0.44792,2.54362,0.27083);D(8,0.43750,0.44792,2.54362,0.27083);D(9,0.43750,0.44792,2.54362,0.27083);D(10,0.43750,0.44792,2.54362,0.27083);D(11,0.43750,0.44792,2.54362,0.27083);D(12,0.43750,0.44792,2.54362,0.27083)"
+    },
+    "SellerAddress": {
+      "type": "string",
+      "valueString": "100 Example Avenue, Sample City, WA 98000",
+      "source": "D(1,0.43750,0.83219,2.12907,0.11458)"
+    },
+    "CustomerName": {
+      "type": "string",
+      "valueString": "Sample Research Group",
+      "source": "D(1,0.43750,2.21842,1.26107,0.12500)"
+    },
+    "CustomerId": {
+      "type": "string",
+      "valueString": "CUST-MP-012",
+      "source": "D(1,4.37500,2.21842,0.74512,0.12500)"
+    },
+    "ServicePeriod": {
+      "type": "object",
+      "valueObject": {
+        "StartDate": {
+          "type": "date",
+          "valueDate": "2026-10-01",
+          "source": "D(1,0.43750,2.64958,0.58626,0.12500)"
+        },
+        "EndDate": {
+          "type": "date",
+          "valueDate": "2026-10-31",
+          "source": "D(1,4.37500,2.64958,0.58626,0.12500)"
+        }
+      }
+    },
+    "BillTo": {
+      "type": "string",
+      "valueString": "Sample Research Group, 200 Test Road, Sample City, WA 98000",
+      "source": "D(1,0.43750,3.08073,3.32259,0.12500)"
+    },
+    "ShipTo": {
+      "type": "string",
+      "valueString": "Sample Research Group, 210 Test Road, Sample City, WA 98000",
+      "source": "D(1,4.37500,3.08073,3.32259,0.12500)"
+    },
+    "ServiceAddress": {
+      "type": "string",
+      "valueString": "300 Demo Lane, Sample City, WA 98000",
+      "source": "D(1,0.43750,3.51188,2.07650,0.12500)"
+    },
+    "OrderInformation": {
+      "type": "object",
+      "valueObject": {
+        "Salesperson": {
+          "type": "string",
+          "valueString": "Demo Agent",
+          "source": "D(2,0.43750,2.20589,0.63070,0.12500)"
+        },
+        "PurchaseOrderNumber": {
+          "type": "string",
+          "valueString": "PO-MP-120",
+          "source": "D(2,4.37500,2.20589,0.60498,0.12500)"
+        },
+        "Requisitioner": {
+          "type": "string",
+          "valueString": "Test Coordinator",
+          "source": "D(2,0.43750,2.63704,0.84082,0.12500)"
+        },
+        "ShippedVia": {
+          "type": "string",
+          "valueString": "Electronic delivery",
+          "source": "D(2,4.37500,2.63704,0.92985,0.12500)"
+        },
+        "FobPoint": {
+          "type": "string",
+          "valueString": "Service location",
+          "source": "D(2,0.43750,3.06820,0.80892,0.12500)"
+        },
+        "Terms": {
+          "type": "string",
+          "valueString": "Net 30",
+          "source": "D(2,4.37500,3.06820,0.33773,0.12500)"
+        }
+      }
+    },
+    "LineItems": {
+      "type": "array",
+      "valueArray": [
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-01",
+              "source": "D(1,0.50000,4.60645,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-001",
+              "source": "D(1,1.41553,4.60645,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 001",
+              "source": "D(1,2.07813,4.60645,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(1,4.55615,4.60645,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,4.60645,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 20,
+              "source": "D(1,5.82308,4.60645,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(1,6.67611,4.60645,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 20,
+              "source": "D(1,7.73926,4.60645,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-02",
+              "source": "D(1,0.50000,4.93978,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-002",
+              "source": "D(1,1.41553,4.93978,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 002",
+              "source": "D(1,2.07813,4.93978,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(1,4.55615,4.93978,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,4.93978,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 20.5,
+              "source": "D(1,5.82308,4.93978,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 4.1,
+              "source": "D(1,6.67611,4.93978,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 41,
+              "source": "D(1,7.73926,4.93978,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-03",
+              "source": "D(1,0.50000,5.27311,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-003",
+              "source": "D(1,1.41553,5.27311,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 003",
+              "source": "D(1,2.07813,5.27311,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(1,4.55615,5.27311,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,5.27311,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 21,
+              "source": "D(1,5.82308,5.27311,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6.3,
+              "source": "D(1,6.67611,5.27311,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 63,
+              "source": "D(1,7.73926,5.27311,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-04",
+              "source": "D(1,0.50000,5.60645,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-004",
+              "source": "D(1,1.41553,5.60645,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 004",
+              "source": "D(1,2.07813,5.60645,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(1,4.55615,5.60645,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,5.60645,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 21.5,
+              "source": "D(1,5.82308,5.60645,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 8.6,
+              "source": "D(1,6.67611,5.60645,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 86,
+              "source": "D(1,7.73926,5.60645,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-05",
+              "source": "D(1,0.50000,5.93978,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-005",
+              "source": "D(1,1.41553,5.93978,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 005",
+              "source": "D(1,2.07813,5.93978,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(1,4.55615,5.93978,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,5.93978,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 22,
+              "source": "D(1,5.82308,5.93978,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 2.2,
+              "source": "D(1,6.67611,5.93978,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 22,
+              "source": "D(1,7.73926,5.93978,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-06",
+              "source": "D(1,0.50000,6.27311,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-006",
+              "source": "D(1,1.41553,6.27311,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 006",
+              "source": "D(1,2.07813,6.27311,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(1,4.55615,6.27311,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,6.27311,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 22.5,
+              "source": "D(1,5.82308,6.27311,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 4.5,
+              "source": "D(1,6.67611,6.27311,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 45,
+              "source": "D(1,7.73926,6.27311,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-07",
+              "source": "D(1,0.50000,6.60645,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-007",
+              "source": "D(1,1.41553,6.60645,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 007",
+              "source": "D(1,2.07813,6.60645,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(1,4.55615,6.60645,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,6.60645,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 23,
+              "source": "D(1,5.82308,6.60645,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6.9,
+              "source": "D(1,6.67611,6.60645,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 69,
+              "source": "D(1,7.73926,6.60645,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-08",
+              "source": "D(1,0.50000,6.93978,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-008",
+              "source": "D(1,1.41553,6.93978,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 008",
+              "source": "D(1,2.07813,6.93978,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(1,4.55615,6.93978,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,6.93978,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 23.5,
+              "source": "D(1,5.82308,6.93978,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 9.4,
+              "source": "D(1,6.67611,6.93978,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 94,
+              "source": "D(1,7.73926,6.93978,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-09",
+              "source": "D(1,0.50000,7.27311,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-009",
+              "source": "D(1,1.41553,7.27311,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 009",
+              "source": "D(1,2.07813,7.27311,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(1,4.55615,7.27311,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,7.27311,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 24,
+              "source": "D(1,5.82308,7.27311,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 2.4,
+              "source": "D(1,6.67611,7.27311,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 24,
+              "source": "D(1,7.73926,7.27311,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-10",
+              "source": "D(1,0.50000,7.60645,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-010",
+              "source": "D(1,1.41553,7.60645,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 010",
+              "source": "D(1,2.07813,7.60645,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(1,4.55615,7.60645,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(1,4.72868,7.60645,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 24.5,
+              "source": "D(1,5.82308,7.60645,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 4.9,
+              "source": "D(1,6.67611,7.60645,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 49,
+              "source": "D(1,7.73926,7.60645,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-11",
+              "source": "D(2,0.50000,4.16276,0.52523,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-011",
+              "source": "D(2,1.41553,4.16276,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 011",
+              "source": "D(2,2.07813,4.16276,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(2,4.55615,4.16276,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,4.16276,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 25,
+              "source": "D(2,5.82308,4.16276,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 7.5,
+              "source": "D(2,6.67611,4.16276,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 75,
+              "source": "D(2,7.73926,4.16276,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-12",
+              "source": "D(2,0.50000,4.49609,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-012",
+              "source": "D(2,1.41553,4.49609,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 012",
+              "source": "D(2,2.07813,4.49609,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(2,4.55615,4.49609,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,4.49609,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 25.5,
+              "source": "D(2,5.82308,4.49609,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 10.2,
+              "source": "D(2,6.61816,4.49609,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 102,
+              "source": "D(2,7.68132,4.49609,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-13",
+              "source": "D(2,0.50000,4.82943,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-013",
+              "source": "D(2,1.41553,4.82943,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 013",
+              "source": "D(2,2.07813,4.82943,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(2,4.55615,4.82943,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,4.82943,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 26,
+              "source": "D(2,5.82308,4.82943,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 2.6,
+              "source": "D(2,6.67611,4.82943,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 26,
+              "source": "D(2,7.73926,4.82943,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-14",
+              "source": "D(2,0.50000,5.16276,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-014",
+              "source": "D(2,1.41553,5.16276,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 014",
+              "source": "D(2,2.07813,5.16276,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(2,4.55615,5.16276,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,5.16276,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 26.5,
+              "source": "D(2,5.82308,5.16276,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 5.3,
+              "source": "D(2,6.67611,5.16276,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 53,
+              "source": "D(2,7.73926,5.16276,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-15",
+              "source": "D(2,0.50000,5.49609,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-015",
+              "source": "D(2,1.41553,5.49609,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 015",
+              "source": "D(2,2.07813,5.49609,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(2,4.55615,5.49609,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,5.49609,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 27,
+              "source": "D(2,5.82308,5.49609,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 8.1,
+              "source": "D(2,6.67611,5.49609,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 81,
+              "source": "D(2,7.73926,5.49609,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-16",
+              "source": "D(2,0.50000,5.82943,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-016",
+              "source": "D(2,1.41553,5.82943,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 016",
+              "source": "D(2,2.07813,5.82943,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(2,4.55615,5.82943,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,5.82943,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 27.5,
+              "source": "D(2,5.82308,5.82943,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 11,
+              "source": "D(2,6.62581,5.82943,0.25309,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 110,
+              "source": "D(2,7.68913,5.82943,0.31087,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-17",
+              "source": "D(2,0.50000,6.16276,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-017",
+              "source": "D(2,1.41553,6.16276,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 017",
+              "source": "D(2,2.07813,6.16276,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(2,4.55615,6.16276,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,6.16276,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 28,
+              "source": "D(2,5.82308,6.16276,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 2.8,
+              "source": "D(2,6.67611,6.16276,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 28,
+              "source": "D(2,7.73926,6.16276,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-18",
+              "source": "D(2,0.50000,6.49609,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-018",
+              "source": "D(2,1.41553,6.49609,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 018",
+              "source": "D(2,2.07813,6.49609,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(2,4.55615,6.49609,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,6.49609,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 28.5,
+              "source": "D(2,5.82308,6.49609,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 5.7,
+              "source": "D(2,6.67611,6.49609,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 57,
+              "source": "D(2,7.73926,6.49609,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-19",
+              "source": "D(2,0.50000,6.82943,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-019",
+              "source": "D(2,1.41553,6.82943,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 019",
+              "source": "D(2,2.07813,6.82943,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(2,4.55615,6.82943,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,6.82943,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 29,
+              "source": "D(2,5.82308,6.82943,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 8.7,
+              "source": "D(2,6.67611,6.82943,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 87,
+              "source": "D(2,7.73926,6.82943,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-20",
+              "source": "D(2,0.50000,7.16276,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-020",
+              "source": "D(2,1.41553,7.16276,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 020",
+              "source": "D(2,2.07813,7.16276,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(2,4.55615,7.16276,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(2,4.72868,7.16276,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 29.5,
+              "source": "D(2,5.82308,7.16276,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 11.8,
+              "source": "D(2,6.62581,7.16276,0.25309,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 118,
+              "source": "D(2,7.68913,7.16276,0.31087,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-21",
+              "source": "D(3,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-021",
+              "source": "D(3,1.41553,2.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 021",
+              "source": "D(3,2.07813,2.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(3,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 30,
+              "source": "D(3,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(3,6.67611,2.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 30,
+              "source": "D(3,7.73926,2.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-22",
+              "source": "D(3,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-022",
+              "source": "D(3,1.41553,2.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 022",
+              "source": "D(3,2.07813,2.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(3,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 30.5,
+              "source": "D(3,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6.1,
+              "source": "D(3,6.67611,2.70068,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 61,
+              "source": "D(3,7.73926,2.70068,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-23",
+              "source": "D(3,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-023",
+              "source": "D(3,1.41553,3.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 023",
+              "source": "D(3,2.07813,3.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(3,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 31,
+              "source": "D(3,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 9.3,
+              "source": "D(3,6.67611,3.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 93,
+              "source": "D(3,7.73926,3.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-24",
+              "source": "D(3,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-024",
+              "source": "D(3,1.41553,3.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 024",
+              "source": "D(3,2.07813,3.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(3,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 31.5,
+              "source": "D(3,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 12.6,
+              "source": "D(3,6.61816,3.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 126,
+              "source": "D(3,7.68132,3.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-25",
+              "source": "D(3,0.50000,3.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-025",
+              "source": "D(3,1.41553,3.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 025",
+              "source": "D(3,2.07813,3.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(3,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 32,
+              "source": "D(3,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 3.2,
+              "source": "D(3,6.67611,3.70068,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 32,
+              "source": "D(3,7.73926,3.70068,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-26",
+              "source": "D(3,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-026",
+              "source": "D(3,1.41553,4.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 026",
+              "source": "D(3,2.07813,4.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(3,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 32.5,
+              "source": "D(3,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6.5,
+              "source": "D(3,6.67611,4.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 65,
+              "source": "D(3,7.73926,4.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-27",
+              "source": "D(3,0.50000,4.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-027",
+              "source": "D(3,1.41553,4.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 027",
+              "source": "D(3,2.07813,4.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(3,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 33,
+              "source": "D(3,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 9.9,
+              "source": "D(3,6.67611,4.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 99,
+              "source": "D(3,7.73926,4.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-28",
+              "source": "D(3,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-028",
+              "source": "D(3,1.41553,4.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 028",
+              "source": "D(3,2.07813,4.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(3,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 33.5,
+              "source": "D(3,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 13.4,
+              "source": "D(3,6.61816,4.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 134,
+              "source": "D(3,7.68132,4.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-01",
+              "source": "D(3,0.50000,5.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-029",
+              "source": "D(3,1.41553,5.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 029",
+              "source": "D(3,2.07813,5.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(3,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 34,
+              "source": "D(3,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 3.4,
+              "source": "D(3,6.67611,5.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 34,
+              "source": "D(3,7.73926,5.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-02",
+              "source": "D(3,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-030",
+              "source": "D(3,1.41553,5.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 030",
+              "source": "D(3,2.07813,5.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(3,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(3,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 34.5,
+              "source": "D(3,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6.9,
+              "source": "D(3,6.67611,5.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 69,
+              "source": "D(3,7.73926,5.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-03",
+              "source": "D(4,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-031",
+              "source": "D(4,1.41553,2.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 031",
+              "source": "D(4,2.07813,2.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(4,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 35,
+              "source": "D(4,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 10.5,
+              "source": "D(4,6.61816,2.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 105,
+              "source": "D(4,7.68132,2.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-04",
+              "source": "D(4,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-032",
+              "source": "D(4,1.41553,2.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 032",
+              "source": "D(4,2.07813,2.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(4,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 35.5,
+              "source": "D(4,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 14.2,
+              "source": "D(4,6.61816,2.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 142,
+              "source": "D(4,7.68132,2.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-05",
+              "source": "D(4,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-033",
+              "source": "D(4,1.41553,3.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 033",
+              "source": "D(4,2.07813,3.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(4,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 36,
+              "source": "D(4,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 3.6,
+              "source": "D(4,6.67611,3.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 36,
+              "source": "D(4,7.73926,3.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-06",
+              "source": "D(4,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-034",
+              "source": "D(4,1.41553,3.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 034",
+              "source": "D(4,2.07813,3.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(4,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 36.5,
+              "source": "D(4,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 7.3,
+              "source": "D(4,6.67611,3.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 73,
+              "source": "D(4,7.73926,3.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-07",
+              "source": "D(4,0.50000,3.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-035",
+              "source": "D(4,1.41553,3.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 035",
+              "source": "D(4,2.07813,3.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(4,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 37,
+              "source": "D(4,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 11.1,
+              "source": "D(4,6.62581,3.70068,0.25309,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 111,
+              "source": "D(4,7.69678,3.70068,0.30322,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-08",
+              "source": "D(4,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-036",
+              "source": "D(4,1.41553,4.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 036",
+              "source": "D(4,2.07813,4.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(4,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 37.5,
+              "source": "D(4,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 15,
+              "source": "D(4,6.61816,4.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 150,
+              "source": "D(4,7.68132,4.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-09",
+              "source": "D(4,0.50000,4.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-037",
+              "source": "D(4,1.41553,4.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 037",
+              "source": "D(4,2.07813,4.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(4,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 38,
+              "source": "D(4,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 3.8,
+              "source": "D(4,6.67611,4.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 38,
+              "source": "D(4,7.73926,4.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-10",
+              "source": "D(4,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-038",
+              "source": "D(4,1.41553,4.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 038",
+              "source": "D(4,2.07813,4.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(4,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 38.5,
+              "source": "D(4,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 7.7,
+              "source": "D(4,6.67611,4.70068,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 77,
+              "source": "D(4,7.73926,4.70068,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-11",
+              "source": "D(4,0.50000,5.03402,0.52523,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-039",
+              "source": "D(4,1.41553,5.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 039",
+              "source": "D(4,2.07813,5.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(4,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 39,
+              "source": "D(4,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 11.7,
+              "source": "D(4,6.62581,5.03402,0.25309,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 117,
+              "source": "D(4,7.68913,5.03402,0.31087,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-12",
+              "source": "D(4,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-040",
+              "source": "D(4,1.41553,5.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 040",
+              "source": "D(4,2.07813,5.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(4,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(4,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 39.5,
+              "source": "D(4,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 15.8,
+              "source": "D(4,6.61816,5.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 158,
+              "source": "D(4,7.68132,5.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-13",
+              "source": "D(5,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-041",
+              "source": "D(5,1.41553,2.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 041",
+              "source": "D(5,2.07813,2.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(5,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 40,
+              "source": "D(5,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(5,6.67611,2.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 40,
+              "source": "D(5,7.73926,2.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-14",
+              "source": "D(5,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-042",
+              "source": "D(5,1.41553,2.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 042",
+              "source": "D(5,2.07813,2.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(5,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 40.5,
+              "source": "D(5,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 8.1,
+              "source": "D(5,6.67611,2.70068,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 81,
+              "source": "D(5,7.73926,2.70068,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-15",
+              "source": "D(5,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-043",
+              "source": "D(5,1.41553,3.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 043",
+              "source": "D(5,2.07813,3.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(5,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 41,
+              "source": "D(5,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 12.3,
+              "source": "D(5,6.61816,3.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 123,
+              "source": "D(5,7.68132,3.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-16",
+              "source": "D(5,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-044",
+              "source": "D(5,1.41553,3.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 044",
+              "source": "D(5,2.07813,3.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(5,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 41.5,
+              "source": "D(5,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 16.6,
+              "source": "D(5,6.61816,3.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 166,
+              "source": "D(5,7.68132,3.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-17",
+              "source": "D(5,0.50000,3.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-045",
+              "source": "D(5,1.41553,3.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 045",
+              "source": "D(5,2.07813,3.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(5,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 42,
+              "source": "D(5,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 4.2,
+              "source": "D(5,6.67611,3.70068,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 42,
+              "source": "D(5,7.73926,3.70068,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-18",
+              "source": "D(5,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-046",
+              "source": "D(5,1.41553,4.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 046",
+              "source": "D(5,2.07813,4.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(5,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 42.5,
+              "source": "D(5,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 8.5,
+              "source": "D(5,6.67611,4.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 85,
+              "source": "D(5,7.73926,4.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-19",
+              "source": "D(5,0.50000,4.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-047",
+              "source": "D(5,1.41553,4.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 047",
+              "source": "D(5,2.07813,4.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(5,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 43,
+              "source": "D(5,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 12.9,
+              "source": "D(5,6.61816,4.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 129,
+              "source": "D(5,7.68132,4.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-20",
+              "source": "D(5,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-048",
+              "source": "D(5,1.41553,4.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 048",
+              "source": "D(5,2.07813,4.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(5,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 43.5,
+              "source": "D(5,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 17.4,
+              "source": "D(5,6.61816,4.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 174,
+              "source": "D(5,7.68132,4.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-21",
+              "source": "D(5,0.50000,5.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-049",
+              "source": "D(5,1.41553,5.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 049",
+              "source": "D(5,2.07813,5.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(5,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 44,
+              "source": "D(5,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 4.4,
+              "source": "D(5,6.67611,5.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 44,
+              "source": "D(5,7.73926,5.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-22",
+              "source": "D(5,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-050",
+              "source": "D(5,1.41553,5.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 050",
+              "source": "D(5,2.07813,5.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(5,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(5,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 44.5,
+              "source": "D(5,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 8.9,
+              "source": "D(5,6.67611,5.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 89,
+              "source": "D(5,7.73926,5.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-23",
+              "source": "D(6,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-051",
+              "source": "D(6,1.41553,2.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 051",
+              "source": "D(6,2.07813,2.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(6,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 45,
+              "source": "D(6,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 13.5,
+              "source": "D(6,6.61816,2.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 135,
+              "source": "D(6,7.68132,2.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-24",
+              "source": "D(6,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-052",
+              "source": "D(6,1.41553,2.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 052",
+              "source": "D(6,2.07813,2.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(6,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 45.5,
+              "source": "D(6,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 18.2,
+              "source": "D(6,6.61816,2.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 182,
+              "source": "D(6,7.68132,2.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-25",
+              "source": "D(6,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-053",
+              "source": "D(6,1.41553,3.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 053",
+              "source": "D(6,2.07813,3.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(6,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 46,
+              "source": "D(6,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 4.6,
+              "source": "D(6,6.67611,3.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 46,
+              "source": "D(6,7.73926,3.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-26",
+              "source": "D(6,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-054",
+              "source": "D(6,1.41553,3.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 054",
+              "source": "D(6,2.07813,3.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(6,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 46.5,
+              "source": "D(6,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 9.3,
+              "source": "D(6,6.67611,3.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 93,
+              "source": "D(6,7.73926,3.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-27",
+              "source": "D(6,0.50000,3.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-055",
+              "source": "D(6,1.41553,3.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 055",
+              "source": "D(6,2.07813,3.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(6,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 47,
+              "source": "D(6,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 14.1,
+              "source": "D(6,6.61816,3.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 141,
+              "source": "D(6,7.68132,3.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-28",
+              "source": "D(6,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-056",
+              "source": "D(6,1.41553,4.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 056",
+              "source": "D(6,2.07813,4.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(6,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 47.5,
+              "source": "D(6,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 19,
+              "source": "D(6,6.61816,4.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 190,
+              "source": "D(6,7.68132,4.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-01",
+              "source": "D(6,0.50000,4.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-057",
+              "source": "D(6,1.41553,4.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 057",
+              "source": "D(6,2.07813,4.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(6,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 48,
+              "source": "D(6,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 4.8,
+              "source": "D(6,6.67611,4.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 48,
+              "source": "D(6,7.73926,4.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-02",
+              "source": "D(6,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-058",
+              "source": "D(6,1.41553,4.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 058",
+              "source": "D(6,2.07813,4.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(6,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 48.5,
+              "source": "D(6,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 9.7,
+              "source": "D(6,6.67611,4.70068,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 97,
+              "source": "D(6,7.73926,4.70068,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-03",
+              "source": "D(6,0.50000,5.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-059",
+              "source": "D(6,1.41553,5.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 059",
+              "source": "D(6,2.07813,5.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(6,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 49,
+              "source": "D(6,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 14.7,
+              "source": "D(6,6.61816,5.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 147,
+              "source": "D(6,7.68132,5.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-04",
+              "source": "D(6,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-060",
+              "source": "D(6,1.41553,5.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 060",
+              "source": "D(6,2.07813,5.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(6,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(6,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 49.5,
+              "source": "D(6,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 19.8,
+              "source": "D(6,6.61816,5.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 198,
+              "source": "D(6,7.68132,5.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-05",
+              "source": "D(7,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-061",
+              "source": "D(7,1.41553,2.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 061",
+              "source": "D(7,2.07813,2.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(7,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 50,
+              "source": "D(7,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 5,
+              "source": "D(7,6.67611,2.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 50,
+              "source": "D(7,7.73926,2.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-06",
+              "source": "D(7,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-062",
+              "source": "D(7,1.41553,2.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 062",
+              "source": "D(7,2.07813,2.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(7,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 50.5,
+              "source": "D(7,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 10.1,
+              "source": "D(7,6.61816,2.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 101,
+              "source": "D(7,7.68132,2.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-07",
+              "source": "D(7,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-063",
+              "source": "D(7,1.41553,3.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 063",
+              "source": "D(7,2.07813,3.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(7,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 51,
+              "source": "D(7,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 15.3,
+              "source": "D(7,6.61816,3.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 153,
+              "source": "D(7,7.68132,3.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-08",
+              "source": "D(7,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-064",
+              "source": "D(7,1.41553,3.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 064",
+              "source": "D(7,2.07813,3.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(7,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 51.5,
+              "source": "D(7,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 20.6,
+              "source": "D(7,6.61816,3.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 206,
+              "source": "D(7,7.68132,3.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-09",
+              "source": "D(7,0.50000,3.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-065",
+              "source": "D(7,1.41553,3.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 065",
+              "source": "D(7,2.07813,3.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(7,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 52,
+              "source": "D(7,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 5.2,
+              "source": "D(7,6.67611,3.70068,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 52,
+              "source": "D(7,7.73926,3.70068,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-10",
+              "source": "D(7,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-066",
+              "source": "D(7,1.41553,4.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 066",
+              "source": "D(7,2.07813,4.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(7,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 52.5,
+              "source": "D(7,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 10.5,
+              "source": "D(7,6.61816,4.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 105,
+              "source": "D(7,7.68132,4.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-11",
+              "source": "D(7,0.50000,4.36735,0.52523,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-067",
+              "source": "D(7,1.41553,4.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 067",
+              "source": "D(7,2.07813,4.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(7,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 53,
+              "source": "D(7,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 15.9,
+              "source": "D(7,6.61816,4.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 159,
+              "source": "D(7,7.68132,4.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-12",
+              "source": "D(7,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-068",
+              "source": "D(7,1.41553,4.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 068",
+              "source": "D(7,2.07813,4.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(7,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 53.5,
+              "source": "D(7,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 21.4,
+              "source": "D(7,6.61816,4.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 214,
+              "source": "D(7,7.68132,4.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-13",
+              "source": "D(7,0.50000,5.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-069",
+              "source": "D(7,1.41553,5.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 069",
+              "source": "D(7,2.07813,5.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(7,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 54,
+              "source": "D(7,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 5.4,
+              "source": "D(7,6.67611,5.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 54,
+              "source": "D(7,7.73926,5.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-14",
+              "source": "D(7,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-070",
+              "source": "D(7,1.41553,5.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 070",
+              "source": "D(7,2.07813,5.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(7,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(7,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 54.5,
+              "source": "D(7,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 10.9,
+              "source": "D(7,6.61816,5.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 109,
+              "source": "D(7,7.68132,5.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-15",
+              "source": "D(8,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-071",
+              "source": "D(8,1.41553,2.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 071",
+              "source": "D(8,2.07813,2.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(8,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 55,
+              "source": "D(8,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 16.5,
+              "source": "D(8,6.61816,2.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 165,
+              "source": "D(8,7.68132,2.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-16",
+              "source": "D(8,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-072",
+              "source": "D(8,1.41553,2.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 072",
+              "source": "D(8,2.07813,2.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(8,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 55.5,
+              "source": "D(8,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 22.2,
+              "source": "D(8,6.61816,2.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 222,
+              "source": "D(8,7.68132,2.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-17",
+              "source": "D(8,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-073",
+              "source": "D(8,1.41553,3.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 073",
+              "source": "D(8,2.07813,3.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(8,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 56,
+              "source": "D(8,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 5.6,
+              "source": "D(8,6.67611,3.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 56,
+              "source": "D(8,7.73926,3.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-18",
+              "source": "D(8,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-074",
+              "source": "D(8,1.41553,3.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 074",
+              "source": "D(8,2.07813,3.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(8,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 56.5,
+              "source": "D(8,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 11.3,
+              "source": "D(8,6.62581,3.36735,0.25309,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 113,
+              "source": "D(8,7.68913,3.36735,0.31087,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-19",
+              "source": "D(8,0.50000,3.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-075",
+              "source": "D(8,1.41553,3.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 075",
+              "source": "D(8,2.07813,3.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(8,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 57,
+              "source": "D(8,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 17.1,
+              "source": "D(8,6.61816,3.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 171,
+              "source": "D(8,7.68132,3.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-20",
+              "source": "D(8,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-076",
+              "source": "D(8,1.41553,4.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 076",
+              "source": "D(8,2.07813,4.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(8,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 57.5,
+              "source": "D(8,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 23,
+              "source": "D(8,6.61816,4.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 230,
+              "source": "D(8,7.68132,4.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-21",
+              "source": "D(8,0.50000,4.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-077",
+              "source": "D(8,1.41553,4.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 077",
+              "source": "D(8,2.07813,4.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(8,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 58,
+              "source": "D(8,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 5.8,
+              "source": "D(8,6.67611,4.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 58,
+              "source": "D(8,7.73926,4.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-22",
+              "source": "D(8,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-078",
+              "source": "D(8,1.41553,4.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 078",
+              "source": "D(8,2.07813,4.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(8,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 58.5,
+              "source": "D(8,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 11.7,
+              "source": "D(8,6.62581,4.70068,0.25309,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 117,
+              "source": "D(8,7.68913,4.70068,0.31087,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-23",
+              "source": "D(8,0.50000,5.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-079",
+              "source": "D(8,1.41553,5.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 079",
+              "source": "D(8,2.07813,5.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(8,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 59,
+              "source": "D(8,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 17.7,
+              "source": "D(8,6.61816,5.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 177,
+              "source": "D(8,7.68132,5.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-24",
+              "source": "D(8,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-080",
+              "source": "D(8,1.41553,5.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 080",
+              "source": "D(8,2.07813,5.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(8,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(8,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 59.5,
+              "source": "D(8,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 23.8,
+              "source": "D(8,6.61816,5.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 238,
+              "source": "D(8,7.68132,5.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-25",
+              "source": "D(9,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-081",
+              "source": "D(9,1.41553,2.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 081",
+              "source": "D(9,2.07813,2.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(9,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 60,
+              "source": "D(9,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6,
+              "source": "D(9,6.67611,2.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 60,
+              "source": "D(9,7.73926,2.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-26",
+              "source": "D(9,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-082",
+              "source": "D(9,1.41553,2.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 082",
+              "source": "D(9,2.07813,2.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(9,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 60.5,
+              "source": "D(9,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 12.1,
+              "source": "D(9,6.61816,2.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 121,
+              "source": "D(9,7.68132,2.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-27",
+              "source": "D(9,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-083",
+              "source": "D(9,1.41553,3.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 083",
+              "source": "D(9,2.07813,3.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(9,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 61,
+              "source": "D(9,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 18.3,
+              "source": "D(9,6.61816,3.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 183,
+              "source": "D(9,7.68132,3.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-28",
+              "source": "D(9,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-084",
+              "source": "D(9,1.41553,3.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 084",
+              "source": "D(9,2.07813,3.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(9,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 61.5,
+              "source": "D(9,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 24.6,
+              "source": "D(9,6.61816,3.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 246,
+              "source": "D(9,7.68132,3.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-01",
+              "source": "D(9,0.50000,3.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-085",
+              "source": "D(9,1.41553,3.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 085",
+              "source": "D(9,2.07813,3.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(9,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 62,
+              "source": "D(9,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6.2,
+              "source": "D(9,6.67611,3.70068,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 62,
+              "source": "D(9,7.73926,3.70068,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-02",
+              "source": "D(9,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-086",
+              "source": "D(9,1.41553,4.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 086",
+              "source": "D(9,2.07813,4.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(9,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 62.5,
+              "source": "D(9,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 12.5,
+              "source": "D(9,6.61816,4.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 125,
+              "source": "D(9,7.68132,4.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-03",
+              "source": "D(9,0.50000,4.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-087",
+              "source": "D(9,1.41553,4.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 087",
+              "source": "D(9,2.07813,4.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(9,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 63,
+              "source": "D(9,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 18.9,
+              "source": "D(9,6.61816,4.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 189,
+              "source": "D(9,7.68132,4.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-04",
+              "source": "D(9,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-088",
+              "source": "D(9,1.41553,4.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 088",
+              "source": "D(9,2.07813,4.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(9,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 63.5,
+              "source": "D(9,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 25.4,
+              "source": "D(9,6.61816,4.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 254,
+              "source": "D(9,7.68132,4.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-05",
+              "source": "D(9,0.50000,5.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-089",
+              "source": "D(9,1.41553,5.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 089",
+              "source": "D(9,2.07813,5.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(9,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 64,
+              "source": "D(9,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6.4,
+              "source": "D(9,6.67611,5.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 64,
+              "source": "D(9,7.73926,5.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-06",
+              "source": "D(9,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-090",
+              "source": "D(9,1.41553,5.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 090",
+              "source": "D(9,2.07813,5.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(9,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(9,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 64.5,
+              "source": "D(9,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 12.9,
+              "source": "D(9,6.61816,5.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 129,
+              "source": "D(9,7.68132,5.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-07",
+              "source": "D(10,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-091",
+              "source": "D(10,1.41553,2.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 091",
+              "source": "D(10,2.07813,2.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(10,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 65,
+              "source": "D(10,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 19.5,
+              "source": "D(10,6.61816,2.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 195,
+              "source": "D(10,7.68132,2.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-08",
+              "source": "D(10,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-092",
+              "source": "D(10,1.41553,2.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 092",
+              "source": "D(10,2.07813,2.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(10,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 65.5,
+              "source": "D(10,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 26.2,
+              "source": "D(10,6.61816,2.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 262,
+              "source": "D(10,7.68132,2.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-09",
+              "source": "D(10,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-093",
+              "source": "D(10,1.41553,3.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 093",
+              "source": "D(10,2.07813,3.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(10,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 66,
+              "source": "D(10,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6.6,
+              "source": "D(10,6.67611,3.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 66,
+              "source": "D(10,7.73926,3.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-10",
+              "source": "D(10,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-094",
+              "source": "D(10,1.41553,3.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 094",
+              "source": "D(10,2.07813,3.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(10,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 66.5,
+              "source": "D(10,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 13.3,
+              "source": "D(10,6.61816,3.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 133,
+              "source": "D(10,7.68132,3.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-11",
+              "source": "D(10,0.50000,3.70068,0.52523,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-095",
+              "source": "D(10,1.41553,3.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 095",
+              "source": "D(10,2.07813,3.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(10,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 67,
+              "source": "D(10,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 20.1,
+              "source": "D(10,6.61816,3.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 201,
+              "source": "D(10,7.68132,3.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-12",
+              "source": "D(10,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-096",
+              "source": "D(10,1.41553,4.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 096",
+              "source": "D(10,2.07813,4.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(10,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 67.5,
+              "source": "D(10,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 27,
+              "source": "D(10,6.61816,4.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 270,
+              "source": "D(10,7.68132,4.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-13",
+              "source": "D(10,0.50000,4.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-097",
+              "source": "D(10,1.41553,4.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 097",
+              "source": "D(10,2.07813,4.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(10,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 68,
+              "source": "D(10,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 6.8,
+              "source": "D(10,6.67611,4.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 68,
+              "source": "D(10,7.73926,4.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-14",
+              "source": "D(10,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-098",
+              "source": "D(10,1.41553,4.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 098",
+              "source": "D(10,2.07813,4.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(10,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 68.5,
+              "source": "D(10,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 13.7,
+              "source": "D(10,6.61816,4.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 137,
+              "source": "D(10,7.68132,4.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-15",
+              "source": "D(10,0.50000,5.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-099",
+              "source": "D(10,1.41553,5.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 099",
+              "source": "D(10,2.07813,5.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(10,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 69,
+              "source": "D(10,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 20.7,
+              "source": "D(10,6.61816,5.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 207,
+              "source": "D(10,7.68132,5.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-16",
+              "source": "D(10,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-100",
+              "source": "D(10,1.41553,5.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 100",
+              "source": "D(10,2.07813,5.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(10,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(10,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 69.5,
+              "source": "D(10,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 27.8,
+              "source": "D(10,6.61816,5.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 278,
+              "source": "D(10,7.68132,5.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-17",
+              "source": "D(11,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-101",
+              "source": "D(11,1.41553,2.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 101",
+              "source": "D(11,2.07813,2.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(11,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 70,
+              "source": "D(11,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 7,
+              "source": "D(11,6.67611,2.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 70,
+              "source": "D(11,7.73926,2.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-18",
+              "source": "D(11,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-102",
+              "source": "D(11,1.41553,2.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 102",
+              "source": "D(11,2.07813,2.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(11,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 70.5,
+              "source": "D(11,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 14.1,
+              "source": "D(11,6.61816,2.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 141,
+              "source": "D(11,7.68132,2.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-19",
+              "source": "D(11,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-103",
+              "source": "D(11,1.41553,3.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 103",
+              "source": "D(11,2.07813,3.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(11,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 71,
+              "source": "D(11,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 21.3,
+              "source": "D(11,6.61816,3.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 213,
+              "source": "D(11,7.68132,3.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-20",
+              "source": "D(11,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-104",
+              "source": "D(11,1.41553,3.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 104",
+              "source": "D(11,2.07813,3.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(11,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 71.5,
+              "source": "D(11,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 28.6,
+              "source": "D(11,6.61816,3.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 286,
+              "source": "D(11,7.68132,3.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-21",
+              "source": "D(11,0.50000,3.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-105",
+              "source": "D(11,1.41553,3.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 105",
+              "source": "D(11,2.07813,3.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(11,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 72,
+              "source": "D(11,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 7.2,
+              "source": "D(11,6.67611,3.70068,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 72,
+              "source": "D(11,7.73926,3.70068,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-22",
+              "source": "D(11,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-106",
+              "source": "D(11,1.41553,4.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 106",
+              "source": "D(11,2.07813,4.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(11,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 72.5,
+              "source": "D(11,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 14.5,
+              "source": "D(11,6.61816,4.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 145,
+              "source": "D(11,7.68132,4.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-23",
+              "source": "D(11,0.50000,4.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-107",
+              "source": "D(11,1.41553,4.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 107",
+              "source": "D(11,2.07813,4.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(11,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 73,
+              "source": "D(11,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 21.9,
+              "source": "D(11,6.61816,4.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 219,
+              "source": "D(11,7.68132,4.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-24",
+              "source": "D(11,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-108",
+              "source": "D(11,1.41553,4.70068,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 108",
+              "source": "D(11,2.07813,4.70068,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(11,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 73.5,
+              "source": "D(11,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 29.4,
+              "source": "D(11,6.61816,4.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 294,
+              "source": "D(11,7.68132,4.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-25",
+              "source": "D(11,0.50000,5.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-109",
+              "source": "D(11,1.41553,5.03402,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 109",
+              "source": "D(11,2.07813,5.03402,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(11,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 74,
+              "source": "D(11,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 7.4,
+              "source": "D(11,6.67611,5.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 74,
+              "source": "D(11,7.73926,5.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-26",
+              "source": "D(11,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-110",
+              "source": "D(11,1.41553,5.36735,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 110",
+              "source": "D(11,2.07813,5.36735,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(11,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(11,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 74.5,
+              "source": "D(11,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 14.9,
+              "source": "D(11,6.61816,5.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 149,
+              "source": "D(11,7.68132,5.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-27",
+              "source": "D(12,0.50000,2.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-111",
+              "source": "D(12,1.41553,2.36735,0.34928,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 111",
+              "source": "D(12,2.07813,2.36735,1.35091,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(12,4.55615,2.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,2.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 75,
+              "source": "D(12,5.82308,2.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 22.5,
+              "source": "D(12,6.61816,2.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 225,
+              "source": "D(12,7.68132,2.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-28",
+              "source": "D(12,0.50000,2.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-112",
+              "source": "D(12,1.41553,2.70068,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 112",
+              "source": "D(12,2.07813,2.70068,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(12,4.55615,2.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,2.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 75.5,
+              "source": "D(12,5.82308,2.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 30.2,
+              "source": "D(12,6.61816,2.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 302,
+              "source": "D(12,7.68132,2.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-01",
+              "source": "D(12,0.50000,3.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-113",
+              "source": "D(12,1.41553,3.03402,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 113",
+              "source": "D(12,2.07813,3.03402,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(12,4.55615,3.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,3.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 76,
+              "source": "D(12,5.82308,3.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 7.6,
+              "source": "D(12,6.67611,3.03402,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 76,
+              "source": "D(12,7.73926,3.03402,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-02",
+              "source": "D(12,0.50000,3.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-114",
+              "source": "D(12,1.41553,3.36735,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 114",
+              "source": "D(12,2.07813,3.36735,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(12,4.55615,3.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,3.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 76.5,
+              "source": "D(12,5.82308,3.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 15.3,
+              "source": "D(12,6.61816,3.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 153,
+              "source": "D(12,7.68132,3.36735,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-03",
+              "source": "D(12,0.50000,3.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-115",
+              "source": "D(12,1.41553,3.70068,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 115",
+              "source": "D(12,2.07813,3.70068,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(12,4.55615,3.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,3.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 77,
+              "source": "D(12,5.82308,3.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 23.1,
+              "source": "D(12,6.61816,3.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 231,
+              "source": "D(12,7.68132,3.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-04",
+              "source": "D(12,0.50000,4.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-116",
+              "source": "D(12,1.41553,4.03402,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 116",
+              "source": "D(12,2.07813,4.03402,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(12,4.55615,4.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,4.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 77.5,
+              "source": "D(12,5.82308,4.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 31,
+              "source": "D(12,6.61816,4.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 310,
+              "source": "D(12,7.68132,4.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-05",
+              "source": "D(12,0.50000,4.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-117",
+              "source": "D(12,1.41553,4.36735,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 117",
+              "source": "D(12,2.07813,4.36735,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 1,
+              "source": "D(12,4.55615,4.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,4.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 78,
+              "source": "D(12,5.82308,4.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 7.8,
+              "source": "D(12,6.67611,4.36735,0.20280,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 78,
+              "source": "D(12,7.73926,4.36735,0.26074,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-06",
+              "source": "D(12,0.50000,4.70068,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-118",
+              "source": "D(12,1.41553,4.70068,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 118",
+              "source": "D(12,2.07813,4.70068,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 2,
+              "source": "D(12,4.55615,4.70068,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,4.70068,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 78.5,
+              "source": "D(12,5.82308,4.70068,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 15.7,
+              "source": "D(12,6.61816,4.70068,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 157,
+              "source": "D(12,7.68132,4.70068,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-07",
+              "source": "D(12,0.50000,5.03402,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-119",
+              "source": "D(12,1.41553,5.03402,0.35710,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 119",
+              "source": "D(12,2.07813,5.03402,1.35872,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 3,
+              "source": "D(12,4.55615,5.03402,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,5.03402,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 79,
+              "source": "D(12,5.82308,5.03402,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 23.7,
+              "source": "D(12,6.61816,5.03402,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 237,
+              "source": "D(12,7.68132,5.03402,0.31868,0.11458)"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "valueObject": {
+            "Date": {
+              "type": "date",
+              "valueDate": "2026-10-08",
+              "source": "D(12,0.50000,5.36735,0.53288,0.11458)"
+            },
+            "ItemCode": {
+              "type": "string",
+              "valueString": "MP-120",
+              "source": "D(12,1.41553,5.36735,0.36475,0.11458)"
+            },
+            "Description": {
+              "type": "string",
+              "valueString": "Document review service 120",
+              "source": "D(12,2.07813,5.36735,1.36637,0.11458)"
+            },
+            "Quantity": {
+              "type": "number",
+              "valueNumber": 4,
+              "source": "D(12,4.55615,5.36735,0.05794,0.11458)"
+            },
+            "UnitOfMeasure": {
+              "type": "string",
+              "valueString": "hours",
+              "source": "D(12,4.72868,5.36735,0.26058,0.11458)"
+            },
+            "UnitPriceAmount": {
+              "type": "number",
+              "valueNumber": 79.5,
+              "source": "D(12,5.82308,5.36735,0.26074,0.11458)"
+            },
+            "TaxAmount": {
+              "type": "number",
+              "valueNumber": 31.8,
+              "source": "D(12,6.61816,5.36735,0.26074,0.11458)"
+            },
+            "LineAmount": {
+              "type": "number",
+              "valueNumber": 318,
+              "source": "D(12,7.68132,5.36735,0.31868,0.11458)"
+            }
+          }
+        }
+      ]
+    },
+    "SubtotalAmount": {
+      "type": "number",
+      "valueNumber": 15000,
+      "source": "D(12,7.50114,5.88298,0.47803,0.12500)"
+    },
+    "SalesTaxAmount": {
+      "type": "number",
+      "valueNumber": 1500,
+      "source": "D(12,7.56494,6.17871,0.41423,0.12500)"
+    },
+    "TotalAmount": {
+      "type": "number",
+      "valueNumber": 16500,
+      "source": "D(12,7.50114,6.47445,0.47803,0.12500)"
+    },
+    "PreviousUnpaidBalanceAmount": {
+      "type": "number",
+      "valueNumber": 125,
+      "source": "D(12,7.62858,6.77018,0.35059,0.12500)"
+    },
+    "AmountDueAmount": {
+      "type": "number",
+      "valueNumber": 16625,
+      "source": "D(12,7.41423,7.06592,0.56494,0.15625)"
+    },
+    "RemitTo": {
+      "type": "string",
+      "valueString": "Example Services Ltd., 400 Sample Way, Sample City, WA 98000",
+      "source": "D(12,0.43750,6.10368,3.32438,0.12500)"
+    }
+  },
+  "metadata": {
+    "provenance": "Independently authored synthetic ground truth; not copied from an Analyze response.",
+    "generator": "scripts/generate-multipage-invoice.mjs",
+    "pageCount": 12,
+    "lineItemCount": 120,
+    "leafValueCount": 984,
+    "sourceCoordinates": "Authored text rectangles in PDF inches, measured before any service analysis."
+  }
+}

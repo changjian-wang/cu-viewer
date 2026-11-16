@@ -66,6 +66,54 @@
       "modelDefaultsChanged": false
     }
   },
+  "multiPageLabelFixtures": {
+    "purpose": "A twelve-page original synthetic invoice with independent ground truth and one unchanged real analysis.",
+    "generator": "scripts/generate-multipage-invoice.mjs",
+    "source": {
+      "path": "labels/invoice-multipage.pdf",
+      "bytes": 172984,
+      "sha256": "c30b47399fad60e3a598dd901907134a5b4ed6d39a526ac73c551dbb7176957e",
+      "pageCount": 12,
+      "lineItemCount": 120,
+      "classification": "Original synthetic fixture with fictitious company, address, order and billing data.",
+      "rightsNote": "Authored for this repository; no external invoice artwork, logo or customer document copied."
+    },
+    "labels": {
+      "path": "labels/invoice-multipage.pdf.labels.json",
+      "bytes": 185460,
+      "sha256": "07a81c751f4bebcb83368c59e7388c090db09fc20c3fcf803f3aea011623801f",
+      "independentGroundTruth": true,
+      "authoredBeforeAnalysis": true,
+      "derivedFromAnalyzeResult": false,
+      "leafValueCount": 984,
+      "sourceCoordinates": "Authored text rectangles measured in PDF inches before analysis; all 120 item-code regions verified against PDF text."
+    },
+    "result": {
+      "path": "labels/invoice-multipage.pdf.result.json",
+      "bytes": 511570,
+      "sha256": "73689b1bb583ad84adb12f4d4b4af3e2a8a0500b85d6b7a2a2567c5f8b0ebac7",
+      "apiVersion": "2025-11-01",
+      "analyzerId": "yslin_sample_invoice",
+      "status": "Succeeded",
+      "synthetic": false,
+      "preservedCliOutput": true,
+      "contentCount": 1,
+      "pageCount": 12,
+      "topLevelFieldCount": 19,
+      "lineItemCount": 120
+    },
+    "acquisition": {
+      "collectedOn": "2026-11-16",
+      "tool": "azd ai cu",
+      "version": "0.1.1-preview",
+      "actualAnalyzeCalls": 1,
+      "authorization": "Task owner approved more than ten pages, independent labels, one existing-analyzer call and a separate Demo.",
+      "authentication": "Existing Microsoft Entra session; no credentials stored.",
+      "newResourcesCreated": false,
+      "customAnalyzersCreated": false,
+      "modelDefaultsChanged": false
+    }
+  },
   "imageFixtures": {
     "generationNote": "Fixed, checked-in image fixtures; regression tests consume them directly without regeneration.",
     "derivedSource": "receipt.png; original full canvas flattened onto white, no new Analyze JSON.",

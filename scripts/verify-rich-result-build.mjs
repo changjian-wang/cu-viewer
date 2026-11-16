@@ -50,10 +50,15 @@ const demoMarkdown = requireSingle(demo, /^MarkdownPane-.*\.js$/, "demo Markdown
 const demoJson = requireSingle(demo, /^JsonPane-.*\.js$/, "demo JSON chunk");
 const largePdf = requireSingle(demo, /^large-bank-statement-.*\.pdf$/, "built-in Large PDF");
 const largeResult = requireSingle(demo, /^large-bank-statement\.pdf\.result-.*\.json$/, "built-in Large PDF result");
-const labeledPdf = requireSingle(demo, /^invoice-.*\.pdf$/, "built-in labeled PDF");
+const labeledPdf = requireSingle(demo, /^invoice-(?!multipage-).*\.pdf$/, "built-in labeled PDF");
 const labels = requireSingle(demo, /^invoice\.pdf\.labels-.*\.json$/, "built-in PDF labels");
+const multipagePdf = requireSingle(demo, /^invoice-multipage-.*\.pdf$/, "built-in multi-page invoice");
+const multipageLabels = requireSingle(demo, /^invoice-multipage\.pdf\.labels-.*\.json$/, "built-in multi-page labels");
+const multipageResult = requireSingle(demo, /^invoice-multipage\.pdf\.result-.*\.json$/, "built-in multi-page result");
 for (const [asset, source] of [[largePdf, "large-bank-statement.pdf"], [largeResult, "large-bank-statement.pdf.result.json"],
-    [labeledPdf, "labels/invoice.pdf"], [labels, "labels/invoice.pdf.labels.json"]]) {
+    [labeledPdf, "labels/invoice.pdf"], [labels, "labels/invoice.pdf.labels.json"],
+    [multipagePdf, "labels/invoice-multipage.pdf"], [multipageLabels, "labels/invoice-multipage.pdf.labels.json"],
+    [multipageResult, "labels/invoice-multipage.pdf.result.json"]]) {
     const expected = createHash("sha256").update(readFileSync(resolve("tests", "fixtures", source))).digest("hex");
     const actual = createHash("sha256").update(readFileSync(asset.path)).digest("hex");
     if (actual !== expected) throw new Error(`The built-in Demo asset ${asset.name} does not match ${source}.`);
@@ -97,6 +102,9 @@ console.log(JSON.stringify({
         largeResultBytes: largeResult.bytes,
         labeledPdfBytes: labeledPdf.bytes,
         labelsBytes: labels.bytes,
+        multipagePdfBytes: multipagePdf.bytes,
+        multipageLabelsBytes: multipageLabels.bytes,
+        multipageResultBytes: multipageResult.bytes,
     },
     detailChunks,
     heif: {

@@ -54,7 +54,7 @@ for (const mode of ["development", "production"] as const) {
         });
         await page.goto(origin);
         await ready(page);
-        await expect(page.locator(".prototype-samples button")).toHaveText(["PDF", "Receipt PNG", "Large PDF", "PDF + Labels"]);
+        await expect(page.locator(".prototype-samples button")).toHaveText(["PDF", "Receipt PNG", "Large PDF", "PDF + Labels", "Multi-page Invoice"]);
         await expect(page.getByRole("button", { name: "PDF", exact: true })).toHaveAttribute("aria-pressed", "true");
         expect(assets.size).toBe(0);
 
@@ -101,6 +101,75 @@ for (const mode of ["development", "production"] as const) {
 }
 
 for (const mode of ["development", "production"] as const) {
+    test(`${mode}: Multi-page Invoice compares independent labels and locates the first, middle and last pages`, async ({ page, baseURL }) => {
+        const origin = mode === "production" ? productionOrigin : baseURL;
+        if (!origin) throw new Error("The demo origin is unavailable.");
+        const errors: string[] = [], external: string[] = [];
+        const assets = new Map<string, string>();
+        page.on("pageerror", error => errors.push(error.message));
+        page.on("response", response => {
+            const name = decodeURIComponent(new URL(response.url()).pathname).split("/").at(-1)?.split("?")[0];
+            if (name?.startsWith("invoice-multipage")) assets.set(name, response.url());
+        });
+        await page.route("**/*", route => {
+            const url = new URL(route.request().url());
+            if (url.origin === origin || url.protocol === "blob:" || url.protocol === "data:") return route.continue();
+            external.push(url.origin);
+            return route.abort();
+        });
+        await page.goto(`${origin}/?sample=multipage`);
+        await ready(page);
+        await expect(page.getByLabel("Source information")).toHaveText("invoice-multipage.pdf · PDF · 12 pages");
+        await expect(page.getByRole("button", { name: "Multi-page Invoice", exact: true })).toHaveAttribute("aria-pressed", "true");
+        const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+        await expect(pane.locator(".cu-comparison-fields > thead th")).toHaveText(["Field Name", "Label Value", "Extracted Value"]);
+        for (const name of ["invoice-multipage.pdf", "invoice-multipage.pdf.labels.json", "invoice-multipage.pdf.result.json"]) {
+            const asset = [...assets.entries()].find(([key]) => key.startsWith(name.replace(/\.([^.]+)$/, "-")) ||
+                key === name)?.[1];
+            if (!asset) throw new Error(`The multi-page sample did not load ${name}.`);
+            const response = await page.request.get(asset);
+            expect(response.ok()).toBe(true);
+            expect(createHash("sha256").update(await response.body()).digest("hex")).toBe(
+                createHash("sha256").update(readFileSync(resolve("tests", "fixtures", "labels", name))).digest("hex"),
+            );
+        }
+        const counts = await pane.locator(".cu-comparison-filters button").allTextContents();
+        const incorrect = pane.getByRole("button", { name: "Show incorrect fields (1 value)", exact: true });
+        await incorrect.click();
+        const missing = pane.locator('[data-comparison-path="/OrderInformation/FobPoint"]');
+        await expect(missing.getByRole("button", { name: "Select label value of OrderInformation / FobPoint", exact: true }))
+            .toHaveText("Service location");
+        await expect(missing.getByLabel("Not extracted", { exact: true })).toBeVisible();
+        await missing.getByRole("button", { name: "Select label value of OrderInformation / FobPoint", exact: true }).click();
+        await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue("2");
+        await ready(page);
+        await incorrect.click();
+        const targets = [
+            { pageNumber: 1, path: "/InvoiceDate", source: "InvoiceDate" },
+            { pageNumber: 6, path: "/LineItems/50/ItemCode", source: "LineItems/valueArray/50/valueObject/ItemCode" },
+            { pageNumber: 12, path: "/LineItems/119/ItemCode", source: "LineItems/valueArray/119/valueObject/ItemCode" },
+        ];
+        const search = pane.getByRole("searchbox", { name: "Search field names, label values or extracted values", exact: true });
+        for (const target of targets) {
+            await search.fill(target.path);
+            await pane.getByRole("button", { name: "Next field", exact: true }).click();
+            const id = `/labels/fields/${target.source}`;
+            await pane.locator(`button.cu-field-value[data-source-field-id="${id}"]`).click();
+            await expect(page.getByRole("textbox", { name: "Page number", exact: true })).toHaveValue(String(target.pageNumber));
+            await ready(page);
+            await expect(page.getByTestId("source-overlay").locator(`polygon[data-source-id="${id}"]`).first()).toBeVisible();
+            expect(await pane.locator("[data-comparison-row]").count()).toBeLessThan(200);
+        }
+        expect(await pane.locator(".cu-comparison-filters button").allTextContents()).toEqual(counts);
+        await search.fill("");
+        await page.getByRole("button", { name: "PDF + Labels", exact: true }).click();
+        await ready(page);
+        await expect(page.getByLabel("Source information")).toContainText("invoice.pdf");
+        await expect(page.getByRole("button", { name: "Next page", exact: true })).toBeDisabled();
+        expect(external).toEqual([]);
+        expect(errors).toEqual([]);
+    });
+
     test(`${mode}: PDF + Labels loads the real saved invoice comparison without service calls`, async ({ page, baseURL }) => {
         const origin = mode === "production" ? productionOrigin : baseURL;
         if (!origin) throw new Error("The demo origin is unavailable.");
