@@ -3,7 +3,7 @@ import type { Dispatch, KeyboardEvent, ReactNode, SetStateAction } from "react";
 import type { ViewerFieldOrder } from "../index";
 import { displayValue, fieldDisplayName, fieldLabel, fieldRegions } from "../interaction/interaction";
 import { emphasizeFieldTarget, revealFieldTarget } from "../interaction/fieldNavigation";
-import { appearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
+import { appearance, collapsedValue, confidenceDescription, fieldAppearance, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
     isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, visibleFieldIds } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
@@ -29,6 +29,7 @@ export const initialFieldsReview = (fields: readonly CuField[] = []): FieldsRevi
 export interface FieldsPaneProps {
     comparison?: FieldComparison | undefined;
     labelMode?: boolean;
+    fieldReview?: boolean | undefined;
     fields: readonly CuField[];
     settings: ReviewSettings;
     onSettings: (settings: ReviewSettings) => void;
@@ -234,10 +235,16 @@ function StandardFieldsPane(props: FieldsPaneProps) {
     const value = (field: CuField, inline = false): ReactNode => {
         const style = appearance(field, inline || isTableValue(field), settings, props.labelMode);
         return <span className={`cu-value-chip${!field.hasValue ? " is-missing" : ""}`}
-            style={style.low ? { background: style.background, color: style.color } : undefined}
+            style={!props.fieldReview && style.low ? { background: style.background, color: style.color } : undefined}
             title={props.labelMode ? "Reference label value" : confidenceDescription(field, settings.threshold)}>{displayValue(field)}</span>;
     };
-    const cell = (field: CuField): ReactNode => <div className="cu-cell-content"
+    const valueStyle = (field: CuField) => {
+        if (!props.fieldReview) return undefined;
+        const style = fieldAppearance(field, settings, "uncompared", isTableValue(field));
+        return { background: style.background, color: field.hasValue ? style.color : undefined, boxShadow: style.boxShadow };
+    };
+    const reviewClass = props.fieldReview ? " cu-comparison-value" : "";
+    const cell = (field: CuField): ReactNode => <div className={`cu-cell-content${reviewClass}`} style={valueStyle(field)}
         data-field-id={field.id} data-field-type={field.type}
         onPointerMove={() => { if (!props.workflow.menuOpen.current) props.onHover(field); }}
         onPointerLeave={() => props.onLeave(field)}
@@ -375,7 +382,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                         onFocus={() => setFocus(field.id)} onKeyDown={event => onFieldKey(event, field)}
                         onClick={() => group ? expand() : props.onSelect(field)}>{name}</button>
                 </div></td>
-                <td><div className="cu-field-value-content">
+                <td><div className={`cu-field-value-content${reviewClass}`} style={valueStyle(field)}>
                     {collapsed ? <button type="button" className="cu-field-value cu-summary-value" tabIndex={-1}
                         aria-label={`View full value of ${fieldLabel(field)}`} aria-describedby={descriptionId(field)}
                         title="View full value and confidence (F2)"
@@ -412,7 +419,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                 }}>Show all</button>
         </div>}
         <div className="cu-fields-scroll" ref={viewport}>
-            <table className="cu-fields-table" role="treegrid" aria-label={props.labelMode ? "Labels" : "Extracted fields"}>
+            <table className={`cu-fields-table${props.fieldReview ? " cu-field-review-fields" : ""}`} role="treegrid" aria-label={props.labelMode ? "Labels" : "Extracted fields"}>
                 <colgroup><col style={{ width: `${settings.fieldRatio * (settings.columns === 3 ? 83 : 100)}%` }} /><col />
                     {settings.columns === 3 && <col style={{ width: "17%" }} />}</colgroup>
                 <thead><tr><th scope="col">Field<ResizeHandle label="Field column width" className="cu-column-resizer"

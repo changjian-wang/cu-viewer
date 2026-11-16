@@ -189,14 +189,15 @@ test("UI-32 reduced motion retains static cues and the low-confidence value colo
     await page.getByRole("button", { name: "Expand LineItems", exact: true }).click();
     const id = `${arrayId}/valueArray/0/valueObject/Column1`;
     const content = page.locator(`.cu-cell-content${fieldRow(id)}`);
-    const before = await content.locator(".cu-value-chip").evaluate(element => getComputedStyle(element).backgroundColor);
+    const before = await content.evaluate(element => getComputedStyle(element).backgroundColor);
     await selectSource(page, id);
     await expect(content.locator(".cu-cell-value")).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator(".cu-items-table td.is-selected-cell")).toHaveCount(1);
     await expect(page.locator(".cu-items-table .is-location-column")).toHaveText("Column1");
     await expectNoPulse(page.locator(".cu-fields-scroll"));
-    expect(await content.locator(".cu-value-chip").evaluate(element => getComputedStyle(element).backgroundColor)).toBe(before);
-    expect(before).toBe("rgb(246, 197, 204)");
+    expect(await content.evaluate(element => getComputedStyle(element).backgroundColor)).toBe(before);
+    expect(before).toBe("rgb(187, 222, 251)");
+    await expect(content).toHaveCSS("box-shadow", /198, 40, 40/);
 });
 
 test("UI-32 source keyboard selection preserves focus and Fields keyboard browsing avoids sticky headers", async ({ page }) => {
@@ -321,7 +322,8 @@ test("UI-42 ordinary whole-array selection keeps its body and opaque pinned indi
         getComputedStyle(element).backgroundColor === "rgb(229, 218, 255)" &&
         getComputedStyle(element).position === "sticky"))).toBe(true);
     await expect(wrapper.locator("..")).toHaveCSS("background-color", "rgb(229, 218, 255)");
-    await expect(cells.first().locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(246, 197, 204)");
+    await expect(cells.first().locator(".cu-cell-content")).toHaveCSS("background-color", "rgb(187, 222, 251)");
+    await expect(cells.first().locator(".cu-cell-content")).toHaveCSS("box-shadow", /198, 40, 40/);
     await expect(page.locator(".cu-table-scope")).toHaveCount(0);
     await cells.first().locator(".cu-cell-value").click();
     await expect(cells.first()).toHaveCSS("background-color", "rgb(229, 218, 255)");
@@ -348,7 +350,8 @@ test("UI-42 ordinary keyboard selection keeps a distinct focus cue without resto
     await name.press("ArrowDown");
     await expect(page.getByRole("button", { name: "CustomerAddress", exact: true })).toBeFocused();
     await expectSelectedRow(row);
-    await expect(row.locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(252, 232, 230)");
+    await expect(row.locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(227, 242, 253)");
+    await expect(row.locator(".cu-field-value-content")).toHaveCSS("box-shadow", /198, 40, 40/);
 });
 
 test("UI-42 reduced-motion ordinary source selection keeps the static background and confidence chip", async ({ page }) => {
@@ -358,5 +361,6 @@ test("UI-42 reduced-motion ordinary source selection keeps the static background
     await selectSource(page, recipientId);
     await expectSelectedRow(row);
     await expectNoPulse(row);
-    await expect(row.locator(".cu-value-chip")).toHaveCSS("background-color", "rgb(252, 232, 230)");
+    await expect(row.locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(227, 242, 253)");
+    await expect(row.locator(".cu-field-value-content")).toHaveCSS("box-shadow", /198, 40, 40/);
 });

@@ -4,7 +4,8 @@ import type { ReviewSettings } from "../interaction/reviewFields";
 import { usePanelDismiss } from "../interaction/usePanelDismiss";
 import { ViewerIcon } from "./ViewerIcon";
 
-export function HighlightSettings({ anchor, settings, onChange, onClose }: {
+export function HighlightSettings({ anchor, settings, onChange, onClose, fieldReview = false }: {
+    fieldReview?: boolean;
     anchor: HTMLElement; settings: ReviewSettings; onChange: (settings: ReviewSettings) => void; onClose: (restore: boolean) => void;
 }) {
     const id = useId();
@@ -30,6 +31,7 @@ export function HighlightSettings({ anchor, settings, onChange, onClose }: {
             <span id={`${id}-range`}>0 to 1</span>
         </div>
         {error && <p id={`${id}-error`} className="cu-input-error" role="alert">{error}</p>}
-        <p id={`${id}-hint`} className="cu-setting-hint">Values below <strong>{formatThreshold(settings.threshold)}</strong> receive low-confidence highlight.</p>
+        <p id={`${id}-hint`} className="cu-setting-hint">Values below <strong>{formatThreshold(settings.threshold)}</strong>
+            {fieldReview ? " receive a low-confidence outline." : " receive low-confidence highlight."}</p>
     </section>;
 }

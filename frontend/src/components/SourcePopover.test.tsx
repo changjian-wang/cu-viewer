@@ -17,7 +17,7 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>, comparison?: FieldComparison) {
+function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>, comparison?: FieldComparison, fieldReview = false) {
     const viewport = createRef<HTMLDivElement>(), paper = createRef<HTMLDivElement>();
     const element = document.createElement("div");
     Object.defineProperties(element, {
@@ -26,7 +26,7 @@ function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>, comparison
     });
     viewport.current = element;
     paper.current = element;
-    const view = render(<SourcePopover id="source-preview" field={field} summaryFieldIds={summaryFieldIds} comparison={comparison}
+    const view = render(<SourcePopover id="source-preview" field={field} summaryFieldIds={summaryFieldIds} comparison={comparison} fieldReview={fieldReview}
         points={[{ x: 50, y: 200 }, { x: 150, y: 200 }, { x: 150, y: 220 }, { x: 50, y: 220 }]}
         pan={{ x: 0, y: 0 }} viewport={viewport} paper={paper} />);
     return { ...view, viewport, paper };
@@ -42,6 +42,22 @@ const object: CuField = { ...field, id: "/contents/0/fields/AmountDue", name: "A
     type: "object", value: { Amount: 610, Currency: "USD" }, children: [amount, currency] };
 
 describe("Studio source preview content", () => {
+    it("keeps an unlabeled PDF value blue with a separate low-confidence outline and score badge", () => {
+        setup(field, undefined, undefined, true);
+        const popup = screen.getByRole("tooltip", { name: "Field preview" });
+        const value = popup.querySelector<HTMLElement>(".cu-flyover-value dd")!;
+        const score = popup.querySelector<HTMLElement>(".cu-flyover-confidence")!;
+        expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("rgb(227, 242, 253)");
+        expect(popup.style.getPropertyValue("--cu-preview-banner-bg")).toBe("#E3F2FD");
+        expect(value.style.background).toBe("rgb(227, 242, 253)");
+        expect(value.style.boxShadow).toBe("inset 0 0 0 1px #C62828CC");
+        expect(score.style.background).toBe("rgb(255, 235, 238)");
+        expect(score.style.color).toBe("rgb(198, 40, 40)");
+        expect(score.textContent).toContain("0.00");
+        expect(popup.querySelector(".cu-flyover-comparison")).toBeNull();
+        expect(popup.querySelector<HTMLElement>(".cu-flyover-body")!.style.background).toBe("");
+    });
+
     it("keeps comparison labels neutral and puts the matching color and confidence badge beside the extracted value", () => {
         const label: CuField = { ...field, id: "/labels/fields/Zero", origin: "label", confidence: 1 };
         setup(field, undefined, compareFields([label], [field], true));
@@ -54,10 +70,10 @@ describe("Studio source preview content", () => {
         expect(labelValue.textContent).toBe("0");
         expect(labelValue.style.background).toBe("");
         expect(extractedValue.textContent).toBe("0");
-        expect(extractedValue.style.background).toBe("rgb(220, 251, 215)");
-        expect(extractedValue.style.boxShadow).toBe("inset 0 0 0 1px #B43C4B99");
-        expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("rgb(220, 251, 215)");
-        expect(popup.style.getPropertyValue("--cu-preview-banner-bg")).toBe("#DCFBD7");
+        expect(extractedValue.style.background).toBe("rgb(200, 230, 201)");
+        expect(extractedValue.style.boxShadow).toBe("inset 0 0 0 1px #C62828CC");
+        expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("rgb(200, 230, 201)");
+        expect(popup.style.getPropertyValue("--cu-preview-banner-bg")).toBe("#C8E6C9");
         expect(body.querySelector('[data-comparison-side="extracted"] .cu-flyover-confidence')?.textContent).toBe("0.00");
     });
 
@@ -65,9 +81,9 @@ describe("Studio source preview content", () => {
         const label: CuField = { ...field, id: "/labels/fields/Zero", origin: "label", confidence: 0 };
         setup(label, undefined, compareFields([label], [], true));
         const popup = screen.getByRole("tooltip");
-        expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("rgb(248, 192, 200)");
+        expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("rgb(239, 154, 154)");
         expect(popup.querySelector<HTMLElement>('[data-comparison-side="extracted"] .cu-flyover-comparison-value')!.style.background)
-            .toBe("rgb(248, 192, 200)");
+            .toBe("rgb(239, 154, 154)");
         expect(popup.querySelector(".cu-flyover-confidence")).toBeNull();
     });
 

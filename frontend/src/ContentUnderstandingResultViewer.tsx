@@ -80,6 +80,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const comparison = useMemo(() => boundLabels && labelData.model ?
         compareFields(labelData.model.content.fields, analysisContent?.fields ?? [], Boolean(analysisContent?.fieldsDeclared)) : undefined,
     [boundLabels, labelData.model, analysisContent]);
+    const fieldReview = view === "fields" && (source?.kind === "pdf" || comparison !== undefined);
     const referenceMode = boundLabels && !comparison?.comparable;
     const fieldContent = useMemo(() => comparison?.comparable && analysisContent ?
         { ...analysisContent, fields: comparison.fields } : boundLabels ? labelData.model?.content : analysisContent,
@@ -97,8 +98,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     }, [view, requestedView]);
     const outlineContent = view === "fields" && referenceMode ? labelData.model?.content : analysisContent;
     const outlines = useMemo(() => sourceOutlines(outlineContent, view, state.pageNumber, false, preferences.settings, comparison,
-        boundLabels ? labelData.model?.content : undefined),
-    [outlineContent, view, state.pageNumber, preferences.settings, comparison, boundLabels, labelData.model]);
+        boundLabels ? labelData.model?.content : undefined, fieldReview),
+    [outlineContent, view, state.pageNumber, preferences.settings, comparison, boundLabels, labelData.model, fieldReview]);
     const previewId = useId();
     const viewer = useRef<HTMLDivElement>(null);
     const previewOrigin = useRef<"pointer" | "focus">("pointer");
@@ -239,7 +240,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         "--cu-selected-stroke"?: string;
     } = {
         "--cu-pane-ratio": preferences.settings.paneRatio,
-        ...(view === "fields" && comparison ? {
+        ...(fieldReview ? {
             "--cu-hover-stroke": FIELD_REVIEW_COLORS.hoverStroke,
             "--cu-selected-stroke": FIELD_REVIEW_COLORS.selectedStroke,
         } : {}),
@@ -261,6 +262,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             pinned={pinned} pinnedRegions={fieldRegions(pinned)}
             hasSelection={Boolean(selected)}
             view={view} outlines={outlines} previewId={previewId}
+            fieldReview={fieldReview}
             comparison={view === "fields" ? comparison : undefined} referenceMode={view === "fields" && referenceMode}
             onDismissPreview={dismissPreview}
             regions={activeRegions} regionIndex={activeRegionIndex}
@@ -282,7 +284,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         <ResultsPane
             result={props.result}
             hasLabels={hasLabels} labelContent={labelData.model?.content} labelLoading={hasLabels && (!matchingSource || labelPending)}
-            fieldContent={fieldContent} comparison={comparison} referenceMode={referenceMode}
+            fieldContent={fieldContent} comparison={comparison} referenceMode={referenceMode} fieldReview={fieldReview}
             warning={boundLabels && parsed.error ? `Comparison unavailable: ${parsed.error}. Showing reference labels without comparison.` :
                 hasLabels && contentIndex > 0 ? "Labels are associated with the first result content. This content is not compared." : null}
             view={view} onViewChange={next => { setView(next); dismissPreview(); }}

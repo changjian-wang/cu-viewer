@@ -420,14 +420,14 @@ test("reference labels keep distinct scalar and array blues in Fields, Preview a
     expect(await popup.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(187, 222, 251)");
 });
 
-test("label comparison does not change ordinary confidence colors, columns, arrays or Legend", async ({ page }) => {
+test("label comparison preserves the unlabeled PDF palette, confidence column and single-array layout", async ({ page }) => {
     await page.goto("/");
     await ready(page);
     await setShowConfidence(page, true);
     const pane = page.getByRole("region", { name: "Extraction results", exact: true });
-    const billing = pane.locator('[data-field-id="/contents/0/fields/BillingAddress"] .cu-value-chip');
-    await expect(billing).toHaveCSS("background-color", "rgb(252, 232, 230)");
-    await expect(billing).toHaveCSS("box-shadow", "none");
+    const billing = pane.locator('[data-field-id="/contents/0/fields/BillingAddress"] .cu-field-value-content');
+    await expect(billing).toHaveCSS("background-color", "rgb(227, 242, 253)");
+    await expect(billing).toHaveCSS("box-shadow", /198, 40, 40/);
     await expect(pane.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "PDF + Labels", exact: true }).click();
     await ready(page);
@@ -436,17 +436,17 @@ test("label comparison does not change ordinary confidence colors, columns, arra
     await page.getByRole("button", { name: "PDF", exact: true }).click();
     await ready(page);
     await expect(pane.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
-    await expect(billing).toHaveCSS("background-color", "rgb(252, 232, 230)");
+    await expect(billing).toHaveCSS("background-color", "rgb(227, 242, 253)");
     await expect(pane.getByRole("table", { name: "LineItems values", exact: true })).toHaveCount(1);
     await expect(pane.locator(".cu-comparison-arrays,.cu-comparison-filters")).toHaveCount(0);
     await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/BillingAddress"]').first())
-        .toHaveAttribute("fill", "#FCE8E6");
+        .toHaveAttribute("fill", "#E3F2FD");
     await pane.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/BillingAddress"] .cu-field-name').hover();
-    await expect(page.getByTestId("preview-overlay").locator("polygon").first()).toHaveCSS("stroke", "rgb(128, 99, 181)");
+    await expect(page.getByTestId("preview-overlay").locator("polygon").first()).toHaveCSS("stroke", "rgb(94, 53, 177)");
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
-    await expect(legend.locator(".cu-legend-swatch")).toHaveCount(4);
-    await expect(legend.getByRole("switch", { name: "Show low confidence highlight", exact: true })).toBeVisible();
+    await expect(legend.locator(".cu-legend-swatch")).toHaveCount(2);
+    await expect(legend.getByRole("switch", { name: "Show low confidence outlines", exact: true })).toBeVisible();
     await expect(legend.getByText("Matches label", { exact: true })).toHaveCount(0);
 });
 

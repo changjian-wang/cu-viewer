@@ -103,15 +103,15 @@ test("UI-04/05 highlighting validation and category precedence preserve real sou
     const threshold = page.getByRole("spinbutton", { name: "Confidence threshold", exact: true });
     await threshold.fill("");
     await expect(page.getByRole("alert")).toContainText("Enter a confidence threshold");
-    await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/Boundary"]')).toHaveAttribute("fill", "#FCE8E6");
+    await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/Boundary"]')).toHaveAttribute("fill", "#E3F2FD");
     await threshold.fill("0");
-    await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/Zero"]')).toHaveAttribute("fill", "#E8F5E9");
+    await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/Zero"]')).toHaveAttribute("fill", "#E3F2FD");
     await threshold.fill("0.70");
     await page.getByRole("button", { name: "Close source settings", exact: true }).click();
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     await page.getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
-    await page.getByRole("switch", { name: "Show low confidence highlight", exact: true }).uncheck();
-    await page.getByRole("switch", { name: "Show low confidence highlight", exact: true }).check();
+    await page.getByRole("switch", { name: "Show low confidence outlines", exact: true }).uncheck();
+    await page.getByRole("switch", { name: "Show low confidence outlines", exact: true }).check();
     await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/Zero"]')).toHaveAttribute("fill", "none");
     await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await page.getByRole("button", { name: "Zero", exact: true }).click();
@@ -132,34 +132,34 @@ test("UI-45 the popover field name stays regular while its value and confidence 
         color: getComputedStyle(element).color, background: getComputedStyle(element).backgroundColor,
     }));
     const source = page.getByTestId("result-overlay").locator(`[data-outline-id="${id}"]`);
-    await expect(source).toHaveAttribute("fill", "#FCE8E6");
+    await expect(source).toHaveAttribute("fill", "#E3F2FD");
     await row.locator(".cu-field-name").hover();
     const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
     await expect(popup.locator(".cu-popover-heading")).toHaveText("ServiceAddressRecipient");
     await expect(popup.locator(".cu-popover-heading")).toHaveCSS("font-weight", "400");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveText("Microsoft Services");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(36, 52, 71)");
-    await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("font-size", "12.5px");
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("font-size", "11px");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("font-weight", "600");
     await expect(popup.locator(".cu-flyover-confidence dd")).toHaveText("0.31");
-    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(155, 28, 28)");
-    await expect(popup.locator(".cu-flyover-confidence")).toHaveCSS("background-color", "rgb(252, 232, 230)");
+    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(198, 40, 40)");
+    await expect(popup.locator(".cu-flyover-confidence")).toHaveCSS("background-color", "rgb(255, 235, 238)");
     await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("font-size", "11px");
     expect(await row.locator(".cu-value-chip").evaluate(element => ({
         color: getComputedStyle(element).color, background: getComputedStyle(element).backgroundColor,
     }))).toEqual(before);
-    await expect(source).toHaveAttribute("fill", "#FCE8E6");
+    await expect(source).toHaveAttribute("fill", "#E3F2FD");
 });
 
-test("UI-45 low, normal, unknown and array values share one text color without changing badge colors", async ({ page }) => {
+test("UI-45 low, normal, unknown and array values share one text color with independent confidence badges", async ({ page }) => {
     await loadReviewFixture(page);
     await expandField(page, "LineItems");
     for (const [id, inline, color, background] of [
-        ["/contents/0/fields/InvoiceId", false, "rgb(30, 58, 42)", "rgb(232, 245, 233)"],
-        [recipientId, false, "rgb(155, 28, 28)", "rgb(252, 232, 230)"],
-        ["/contents/0/fields/Unknown", false, "rgb(55, 65, 81)", "rgb(241, 243, 245)"],
-        ["/contents/0/fields/LineItems/valueArray/0/valueObject/Column1", true, "rgb(155, 28, 28)", "rgb(246, 197, 204)"],
-        ["/contents/0/fields/LineItems/valueArray/0/valueObject/Column2", true, "rgb(30, 64, 175)", "rgb(232, 241, 255)"],
+        ["/contents/0/fields/InvoiceId", false, "rgb(82, 98, 118)", "rgb(227, 242, 253)"],
+        [recipientId, false, "rgb(198, 40, 40)", "rgb(255, 235, 238)"],
+        ["/contents/0/fields/Unknown", false, "rgb(82, 98, 118)", "rgb(227, 242, 253)"],
+        ["/contents/0/fields/LineItems/valueArray/0/valueObject/Column1", true, "rgb(198, 40, 40)", "rgb(255, 235, 238)"],
+        ["/contents/0/fields/LineItems/valueArray/0/valueObject/Column2", true, "rgb(82, 98, 118)", "rgb(227, 242, 253)"],
     ] as const) {
         await page.locator(fieldRow(id)).locator(inline ? ".cu-cell-value" : ".cu-field-name").hover();
         const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
@@ -175,22 +175,22 @@ test("UI-45 confidence threshold and highlight changes never recolor the value t
     await target.hover();
     const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(36, 52, 71)");
-    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(155, 28, 28)");
+    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(198, 40, 40)");
     await page.getByRole("button", { name: "Source settings", exact: true }).click();
     await page.getByRole("spinbutton", { name: "Confidence threshold", exact: true }).fill("0.20");
     await page.getByRole("button", { name: "Close source settings", exact: true }).click();
     await target.hover();
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(36, 52, 71)");
-    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(30, 58, 42)");
+    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(82, 98, 118)");
     await page.getByRole("button", { name: "Source settings", exact: true }).click();
     await page.getByRole("spinbutton", { name: "Confidence threshold", exact: true }).fill("0.70");
     await page.getByRole("button", { name: "Close source settings", exact: true }).click();
     await target.hover();
-    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(155, 28, 28)");
+    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(198, 40, 40)");
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
-    await page.getByRole("switch", { name: "Show low confidence highlight", exact: true }).uncheck();
+    await page.getByRole("switch", { name: "Show low confidence outlines", exact: true }).uncheck();
     await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await target.hover();
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(36, 52, 71)");
-    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(30, 58, 42)");
+    await expect(popup.locator(".cu-flyover-confidence dd")).toHaveCSS("color", "rgb(198, 40, 40)");
 });

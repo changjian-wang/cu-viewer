@@ -27,9 +27,12 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
         {!labelMode && <li className="cu-legend-group">
             <div className="cu-legend-item" data-legend-category="low-outline">
                 <span className="cu-legend-outline-swatch" aria-hidden="true"
-                    style={{ background: FIELD_REVIEW_COLORS.matched, borderColor: FIELD_REVIEW_COLORS.lowStroke }}>123</span>
+                    style={{ background: comparisonAvailable ? FIELD_REVIEW_COLORS.matched : FIELD_REVIEW_COLORS.default,
+                        borderColor: FIELD_REVIEW_COLORS.lowStroke }}>123</span>
                 <span className="cu-legend-label"><span className="cu-legend-name">Low confidence</span>
-                    <span className="cu-legend-description">Confidence below threshold; matching color is unchanged.</span></span>
+                    <span className="cu-legend-description">{comparisonAvailable ?
+                        "Confidence below threshold; matching color is unchanged." :
+                        "Confidence below threshold; field or array color is unchanged."}</span></span>
             </div>
         </li>}
         {switches.map(setting =>
@@ -38,7 +41,9 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
                 <input type="checkbox" role="switch" checked={settings[setting]}
                     onChange={event => onChange({ ...settings, [setting]: event.target.checked })} />
                 <span className="cu-switch-track" aria-hidden="true" />
-            </label>{setting === "highlightLow" && <span className="cu-legend-description">Red outline below the confidence threshold; background still indicates matching.</span>}</li>)}
+            </label>{setting === "highlightLow" && <span className="cu-legend-description">{comparisonAvailable ?
+                "Red outline below the confidence threshold; background still indicates matching." :
+                "Red outline below the confidence threshold; background still indicates the field type."}</span>}</li>)}
     </ul>;
     const groups = [
         { setting: "showFields", label: labelMode ? "Show label highlights" : "Show field highlights",

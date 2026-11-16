@@ -34,6 +34,7 @@ interface ResultsPaneProps {
     fieldContent?: CuContent | undefined;
     comparison?: FieldComparison | undefined;
     referenceMode?: boolean;
+    fieldReview?: boolean;
     warning?: string | null;
     view: ResultView | undefined;
     onViewChange: (view: ResultView) => void;
@@ -242,7 +243,7 @@ export function ResultsPane(props: ResultsPaneProps) {
             </details>}
             {isFieldView(view) && content && !props.labelLoading && <FieldsPane fields={content.fields}
                 settings={props.referenceMode ? { ...settings, columns: 2 } : settings} labelMode={Boolean(props.referenceMode)}
-                comparison={props.comparison}
+                comparison={props.comparison} fieldReview={props.fieldReview}
                 onSettings={props.preferences?.changeSettings ?? setLocalSettings}
                 order={props.preferences?.order ?? {}} onOrder={props.preferences?.changeOrder ?? (() => {})}
                 orderReadOnly={props.preferences?.orderReadOnly ?? true}

@@ -51,7 +51,7 @@ export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSetti
                     title="Source settings" aria-expanded={overlay === "settings"} onClick={() => setOverlay(overlay === "settings" ? null : "settings")}><ViewerIcon name="settings" /></button>}
             </div>
             {!labelMode && overlay === "settings" && settingsButton.current && <HighlightSettings anchor={settingsButton.current}
-                settings={settings} onChange={onSettings} onClose={close} />}
+                settings={settings} onChange={onSettings} onClose={close} fieldReview={fieldReview} />}
         </footer>
     </>;
 }

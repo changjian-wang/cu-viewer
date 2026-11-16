@@ -17,13 +17,13 @@ test("simplified Legend and field summary preserve missing values and the field 
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
     await expect(legend.getByText("Confidence unavailable", { exact: true })).toHaveCount(0);
     await expect(legend.getByText("No score was supplied", { exact: true })).toHaveCount(0);
-    await expect(legend.locator(".cu-legend-swatch")).toHaveCount(4);
+    await expect(legend.locator(".cu-legend-swatch")).toHaveCount(2);
     await expect(legend.getByRole("switch")).toHaveCount(3);
     await expect(legend.getByRole("button")).toHaveCount(1);
 });
 
-test("compact Legend switches reduce visual size by 20 percent while keeping outer clicks and Space usable", async ({ page }) => {
-    await page.goto("/");
+test("compact image Legend switches reduce visual size by 20 percent while keeping outer clicks and Space usable", async ({ page }) => {
+    await page.goto("/?sample=png");
     await ready(page);
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const panel = page.getByRole("dialog", { name: "Legend", exact: true });
@@ -76,14 +76,17 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1800, height: 100
             await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
             const panel = page.getByRole("dialog", { name: "Legend", exact: true });
             await expect(panel.getByRole("switch")).toHaveCount(3);
-            await expect(panel.getByRole("heading", { name: "Low confidence Fields & tables", exact: true })).toBeVisible();
-            const low = panel.getByRole("switch", { name: "Show low confidence highlight", exact: true });
+            if (sample === "PDF") await expect(panel.getByText("Low confidence", { exact: true })).toBeVisible();
+            else await expect(panel.getByRole("heading", { name: "Low confidence Fields & tables", exact: true })).toBeVisible();
+            const low = panel.getByRole("switch", { name: sample === "PDF" ? "Show low confidence outlines" : "Show low confidence highlight", exact: true });
             for (const enabled of [true, false, true]) {
                 await low.setChecked(enabled);
                 await expect.poll(() => panel.evaluate(element => {
-                    const tracks = [...element.querySelectorAll(".cu-legend-group[data-setting]")].map(group => {
-                        const anchor = (group.querySelector(".cu-legend-group-title") ??
-                            group.querySelector(".cu-legend-swatch"))?.getBoundingClientRect();
+                    const reviewRows = [...element.querySelectorAll(".cu-legend-review-toggle")];
+                    const rows = reviewRows.length ? reviewRows : [...element.querySelectorAll(".cu-legend-group[data-setting]")];
+                    const tracks = rows.map(group => {
+                        const anchor = (reviewRows.length ? group.querySelector("span") :
+                            group.querySelector(".cu-legend-group-title") ?? group.querySelector(".cu-legend-swatch"))?.getBoundingClientRect();
                         const track = group.querySelector(".cu-switch-track")?.getBoundingClientRect();
                         if (!anchor || !track) throw new Error("The Legend control row or switch is missing.");
                         return {
@@ -99,13 +102,18 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1800, height: 100
                     );
                 })).toBeLessThanOrEqual(1);
             }
-            await expect(panel.locator('[data-setting="highlightLow"] .cu-legend-swatch')).toHaveCount(2);
-            await expect(panel.locator('[data-setting="highlightLow"]').getByRole("switch")).toHaveCount(1);
-            const heading = await panel.locator(".cu-legend-group-title").boundingBox();
-            const firstColor = await panel.locator('[data-setting="highlightLow"] .cu-legend-swatch').first().boundingBox();
-            if (!heading || !firstColor) throw new Error("The shared low-confidence section is not laid out.");
-            expect(firstColor.y).toBeGreaterThanOrEqual(heading.y + heading.height);
-            await expect(low).toHaveAccessibleDescription("Low-confidence field Below threshold Low-confidence table value Below threshold");
+            if (sample === "PDF") {
+                await expect(panel.locator('[data-legend-category="low-outline"] .cu-legend-outline-swatch')).toHaveCount(1);
+                await expect(panel.getByText(/matching color|indicates matching/)).toHaveCount(0);
+            } else {
+                await expect(panel.locator('[data-setting="highlightLow"] .cu-legend-swatch')).toHaveCount(2);
+                await expect(panel.locator('[data-setting="highlightLow"]').getByRole("switch")).toHaveCount(1);
+                const heading = await panel.locator(".cu-legend-group-title").boundingBox();
+                const firstColor = await panel.locator('[data-setting="highlightLow"] .cu-legend-swatch').first().boundingBox();
+                if (!heading || !firstColor) throw new Error("The shared low-confidence section is not laid out.");
+                expect(firstColor.y).toBeGreaterThanOrEqual(heading.y + heading.height);
+                await expect(low).toHaveAccessibleDescription("Low-confidence field Below threshold Low-confidence table value Below threshold");
+            }
             await expect(panel.locator(".cu-legend-item button")).toHaveCount(0);
             await page.keyboard.press("Escape");
             await expect(panel).toHaveCount(0);
@@ -165,7 +173,7 @@ for (const height of [540, 1000]) {
             expect(bounds.y).toBeGreaterThanOrEqual(sourceFrame.y);
             expect(bounds.y + bounds.height).toBeLessThanOrEqual(bar.y - 7);
             if (name === "Legend") {
-                await expect(panel.locator(".cu-legend-swatch")).toHaveCount(4);
+                await expect(panel.locator(".cu-legend-swatch")).toHaveCount(2);
                 await expect(panel.getByText("Options", { exact: true })).toHaveCount(0);
                 await expect(panel.getByRole("switch")).toHaveCount(3);
                 for (const control of await panel.getByRole("switch").all()) {
@@ -195,7 +203,7 @@ for (const height of [540, 1000]) {
         await settings.click();
         const threshold = page.getByRole("spinbutton", { name: "Confidence threshold", exact: true });
         await threshold.fill("0.699");
-        await expect(page.locator(".cu-setting-hint")).toHaveText("Values below 0.699 receive low-confidence highlight.");
+        await expect(page.locator(".cu-setting-hint")).toHaveText("Values below 0.699 receive a low-confidence outline.");
         await threshold.fill("1.2");
         await expect(threshold).toHaveAttribute("aria-invalid", "true");
         const zoom = page.getByRole("button", { name: "Zoom in", exact: true });

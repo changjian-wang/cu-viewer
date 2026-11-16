@@ -41,7 +41,7 @@ export function isValueSourceField(view: ResultView | undefined, field: CuField 
 
 export function sourceOutlines(content: CuContent | undefined, view: ResultView | undefined,
     pageNumber: number, hideMissing: boolean, settings: ReviewSettings = defaultReviewSettings, comparison?: FieldComparison,
-    labelContent?: CuContent): SourceOutline[] {
+    labelContent?: CuContent, fieldReview = false): SourceOutline[] {
     if (!content) return [];
     let fields: CuField[] = [];
     if (isFieldView(view)) {
@@ -66,14 +66,14 @@ export function sourceOutlines(content: CuContent | undefined, view: ResultView 
     return fields.flatMap(field => {
         const container = isFieldGroup(field) || content.tables?.some(table => table.field === field);
         const status = comparison?.byFieldId.get(field.id)?.status;
-        const labelReview = isFieldView(view) && comparison !== undefined;
-        const style = labelReview ? fieldAppearance(field.origin === "label" ? { hasValue: field.hasValue } : field,
+        const review = isFieldView(view) && (fieldReview || comparison !== undefined);
+        const style = review ? fieldAppearance(field.origin === "label" ? { hasValue: field.hasValue } : field,
             settings, status, isTableValue(field)) :
             appearance(container ? {} : field, isTableValue(field), settings);
         const enabled = isTableValue(field) ? settings.showTables : settings.showFields;
         return field.regions.flatMap((region, index) => region.pageNumber === pageNumber ? [{
             key: `${field.id}:${index}`, field, region, regionIndex: index, color: style.background,
-            enabled, low: labelReview && style.low, page: (field.origin === "label" ? labelContent ?? content : content).pages
+            enabled, low: review && style.low, page: (field.origin === "label" ? labelContent ?? content : content).pages
                 .find(page => page.pageNumber === region.pageNumber),
         }] : []);
     });

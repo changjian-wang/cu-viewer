@@ -20,6 +20,7 @@ import { SourceDocumentControls } from "./SourceDocumentControls";
 interface SourcePaneProps {
     comparison?: FieldComparison | undefined;
     referenceMode?: boolean;
+    fieldReview?: boolean;
     source: LoadedSource | null;
     loading: boolean;
     error: string | null;
@@ -59,6 +60,7 @@ interface ProjectedTable {
 }
 
 export function SourcePane(props: SourcePaneProps) {
+    const fieldReview = props.view === "fields" && (props.fieldReview || props.comparison !== undefined);
     const container = useRef<HTMLDivElement>(null), toolbar = useRef<HTMLElement>(null);
     const documentControls = useRef<HTMLDivElement>(null);
     const pendingFocus = useRef<HTMLElement | null>(null);
@@ -221,7 +223,8 @@ export function SourcePane(props: SourcePaneProps) {
                     regions.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
             };
             const decorate = (frames: ReturnType<typeof sourceSelectionFrames>, field: CuField | null) => {
-                const extracted = field && props.comparison?.byFieldId.get(field.id)?.extracted;
+                const extracted = field && (props.comparison?.byFieldId.get(field.id)?.extracted ??
+                    (fieldReview && field.origin !== "label" ? field : undefined));
                 const confidenceFrame = extracted && background.outlines.some(outline =>
                     outline.field.hasValue && isLowConfidence(outline.field, props.settings.threshold) &&
                     (outline.field.id === extracted.id || outline.field.id.startsWith(`${extracted.id}/`)));
@@ -242,7 +245,7 @@ export function SourcePane(props: SourcePaneProps) {
         } catch (error) { return { pinned: [], preview: [], frames: [], previewFrames: [], card: undefined, error: error instanceof Error ? error.message : String(error) }; }
     }, [background, projectionSize, rotation, props.content, props.labelContent, props.view, props.pinned, props.pinnedRegions,
         props.preview, props.active, props.regions, props.regionIndex, props.pageNumber, props.comparison, props.settings.threshold,
-        showCard, valuePreview, objectPreview]);
+        showCard, valuePreview, objectPreview, fieldReview]);
     const activePolygons = props.preview ? selectedPolygons.preview : selectedPolygons.pinned;
     const cardPolygon = selectedPolygons.card;
     const measureCard = useCallback((next: PageSize): void => {
@@ -516,7 +519,7 @@ export function SourcePane(props: SourcePaneProps) {
             {layersReady && showCard && props.active && cardPolygon && <SourcePopover id={props.previewId} field={props.active}
                 labelMode={props.active.origin === "label"}
                 comparison={props.comparison}
-                fieldReview={props.view === "fields" && Boolean(props.comparison)}
+                fieldReview={fieldReview}
                 summaryFieldIds={props.summaryFieldIds}
                 settings={props.settings} points={cardPolygon} pan={pan ?? layout.paper} viewport={container} paper={renderedPage}
                 onMeasure={measureCard} />}
@@ -525,7 +528,7 @@ export function SourcePane(props: SourcePaneProps) {
             </div>}
         </div>
         <SourceToolbar source={props.source} summaryId={`${sourceId}-summary`} toolbarRef={toolbar}
-            labelMode={Boolean(props.referenceMode)} fieldReview={props.view === "fields" && Boolean(props.comparison)}
+            labelMode={Boolean(props.referenceMode)} fieldReview={fieldReview}
             comparisonAvailable={Boolean(props.comparison?.comparable)}
             settings={props.settings} onSettings={props.onSettings} onControlFocus={captureControlFocus}>
             <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}

@@ -30,6 +30,32 @@ function fixture() {
 }
 
 describe("Studio view-specific source outlines", () => {
+    it("uses unlabeled PDF review blues and own confidence outlines without changing image or paragraph styles", () => {
+        const content = parseCuResult({ apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 100, height: 100 }],
+            fields: {
+                Zero: { type: "number", valueNumber: 0, confidence: 0, source: "D(1,1,1,10,5)" },
+                Unknown: { type: "string", valueString: "No score", source: "D(1,20,1,10,5)" },
+                Missing: { type: "string", confidence: 0, source: "D(1,40,1,10,5)" },
+                Rows: { type: "array", valueArray: [{ type: "string", valueString: "Cell", confidence: 0.9,
+                    source: "D(1,1,30,10,5)" }] },
+            },
+            paragraphs: [{ content: "Paragraph", source: "D(1,1,50,10,5)" }],
+        }] }).contents[0]!;
+        const review = sourceOutlines(content, "fields", 1, false, defaultReviewSettings, undefined, undefined, true);
+        expect(review.map(outline => ({ color: outline.color, low: outline.low }))).toEqual([
+            { color: "#E3F2FD", low: true }, { color: "#E3F2FD", low: false },
+            { color: "transparent", low: false }, { color: "#BBDEFB", low: false },
+        ]);
+        expect(sourceOutlines(content, "fields", 1, false)[0]).toMatchObject({ color: "#FCE8E6", low: false });
+        expect(sourceOutlines(content, "paragraphs", 1, false, defaultReviewSettings, undefined, undefined, true)[0])
+            .toMatchObject({ color: "#F1F3F5", low: false });
+        const withoutOutlines = sourceOutlines(content, "fields", 1, false,
+            { ...defaultReviewSettings, highlightLow: false }, undefined, undefined, true);
+        expect(withoutOutlines.map(outline => outline.color)).toEqual(review.map(outline => outline.color));
+        expect(withoutOutlines.every(outline => !outline.low)).toBe(true);
+    });
+
     it("uses a missing label's own PDF geometry and darker color without inventing extracted regions or label confidence", () => {
         const { content, original } = fixture();
         const labels = parseLabels({ fieldLabels: {

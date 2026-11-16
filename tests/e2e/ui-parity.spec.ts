@@ -18,22 +18,23 @@ test("BUG-006 settings and legend share the requested highlight terminology", as
     const settings = page.getByRole("dialog", { name: "Source settings", exact: true });
     const threshold = settings.getByRole("spinbutton", { name: "Confidence threshold", exact: true });
     const value = await threshold.inputValue();
-    await expect(settings.locator(".cu-setting-hint")).toHaveText(`Values below ${value} receive low-confidence highlight.`);
-    await expect(threshold).toHaveAccessibleDescription(/receive low-confidence highlight\./);
+    await expect(settings.locator(".cu-setting-hint")).toHaveText(`Values below ${value} receive a low-confidence outline.`);
+    await expect(threshold).toHaveAccessibleDescription(/receive a low-confidence outline\./);
     await expect(settings.getByRole("switch")).toHaveCount(0);
     await page.keyboard.press("Escape");
     const legendTrigger = page.getByRole("button", { name: "Highlighting legend", exact: true });
     await legendTrigger.click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
     await expect(legend.getByRole("switch")).toHaveCount(3);
-    const low = legend.getByRole("switch", { name: "Show low confidence highlight", exact: true });
+    const low = legend.getByRole("switch", { name: "Show low confidence outlines", exact: true });
     await expect(settings.getByRole("switch", { name: "Highlight low confidences", exact: true })).toHaveCount(0);
     await expect(low).toBeChecked();
     await low.uncheck();
     await expect(legend.getByRole("switch", { name: "Show field highlights", exact: true })).toBeChecked();
-    await expect(legend.getByRole("switch", { name: "Show table highlights", exact: true })).toBeChecked();
-    await expect(legend.getByText("All scored values while low-confidence highlight is off", { exact: true })).toHaveCount(2);
-    for (const name of ["Low-confidence field", "Low-confidence table value"]) await expect(legend.getByText(name, { exact: true })).toBeVisible();
+    await expect(legend.getByRole("switch", { name: "Show array highlights", exact: true })).toBeChecked();
+    for (const name of ["Default field or object value", "Default array value", "Low confidence"]) {
+        await expect(legend.getByText(name, { exact: true })).toBeVisible();
+    }
     await expect(legend.getByRole("button")).toHaveCount(1);
     await expect(legend.getByText("Options", { exact: true })).toHaveCount(0);
     await expect(legend).not.toContainText("emphasis");
@@ -620,12 +621,12 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1440, height: 100
         const entries = legend.getByRole("list", { name: "Highlighting legend entries", exact: true });
         await expect(entries.getByRole("switch")).toHaveCount(3);
         await expect(legend.getByText("Options", { exact: true })).toHaveCount(0);
-        await expect(entries.locator(".cu-switch-row").first()).toHaveCSS("font-size", "11px");
+        await expect(entries.locator(".cu-switch-row").first()).toHaveCSS("font-size", "12px");
         await expect(entries.locator(".cu-switch-track").first()).toHaveCSS("width", "28px");
         expect((await entries.locator(".cu-switch-track").first().boundingBox())?.height).toBeCloseTo(16.8, 2);
         expect(await entries.locator(".cu-switch-track").first().evaluate(element =>
             getComputedStyle(element, "::after").transitionDuration)).toBe("0s");
-        await expect(legend.locator(".cu-legend-swatch")).toHaveCount(4);
+        await expect(legend.locator(".cu-legend-swatch")).toHaveCount(2);
         await expect(legend.locator(".cu-legend-swatch").first()).toHaveCSS("width", "33px");
         await expect(legend.locator(".cu-legend-swatch").first()).toHaveCSS("height", "28px");
         await page.keyboard.press("Escape");
@@ -647,7 +648,7 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1440, height: 100
         const card = await popup.boundingBox(), viewportBounds = await page.getByRole("group", { name: "Source viewport", exact: true }).boundingBox();
         if (!card || !viewportBounds) throw new Error("Complete source preview is unavailable.");
         expect(card.width).toBeGreaterThanOrEqual(148);
-        expect(card.width).toBeLessThanOrEqual(248);
+        expect(card.width).toBeLessThanOrEqual(320);
         expect(card.y + card.height).toBeLessThanOrEqual(viewportBounds.y + viewportBounds.height);
     });
 }
@@ -655,28 +656,31 @@ for (const viewport of [{ width: 1536, height: 960 }, { width: 1440, height: 100
 test("UI-33 source visibility never clears right-hand low-confidence emphasis", async ({ page }) => {
     await loadReviewFixture(page);
     await page.getByRole("button", { name: "Expand LineItems", exact: true }).click();
-    const field = page.locator(fieldRow(recipientId)).locator(".cu-value-chip");
-    const cell = page.locator(`.cu-cell-content${fieldRow(cellId)}`).locator(".cu-value-chip");
+    const field = page.locator(fieldRow(recipientId)).locator(".cu-field-value-content");
+    const cell = page.locator(`.cu-cell-content${fieldRow(cellId)}`);
     const pixels = await page.getByTestId("source-canvas").evaluate(element => {
         if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected an original source canvas.");
         return element.toDataURL();
     });
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     await page.getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
-    await page.getByRole("switch", { name: "Show table highlights", exact: true }).uncheck();
+    await page.getByRole("switch", { name: "Show array highlights", exact: true }).uncheck();
     await expect(source(page, recipientId)).toHaveAttribute("fill", "none");
     await expect(source(page, cellId)).toHaveAttribute("fill", "none");
-    await expect(field).toHaveCSS("background-color", "rgb(252, 232, 230)");
-    await expect(cell).toHaveCSS("background-color", "rgb(246, 197, 204)");
+    await expect(field).toHaveCSS("background-color", "rgb(227, 242, 253)");
+    await expect(cell).toHaveCSS("background-color", "rgb(187, 222, 251)");
+    await expect(field).toHaveCSS("box-shadow", /198, 40, 40/);
+    await expect(cell).toHaveCSS("box-shadow", /198, 40, 40/);
     await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await expect(page.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
-    await page.getByRole("switch", { name: "Show low confidence highlight", exact: true }).uncheck();
-    await expect(cell).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await page.getByRole("switch", { name: "Show low confidence outlines", exact: true }).uncheck();
+    await expect(cell).toHaveCSS("box-shadow", "none");
     await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await page.getByRole("tab", { name: "Fields", exact: true }).click();
-    await expect(field).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-    await expect(cell).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(field).toHaveCSS("background-color", "rgb(227, 242, 253)");
+    await expect(cell).toHaveCSS("background-color", "rgb(187, 222, 251)");
+    await expect(field).toHaveCSS("box-shadow", "none");
     expect(await page.getByTestId("source-canvas").evaluate(element => {
         if (!(element instanceof HTMLCanvasElement)) throw new Error("Original source canvas disappeared.");
         return element.toDataURL();
@@ -780,16 +784,20 @@ test("UI-33 threshold stepping, exact precision and invalid-input feedback remai
     await threshold.fill("0.699");
     await expect(page.locator(".cu-setting-hint strong")).toHaveText("0.699");
     const boundary = source(page, "/contents/0/fields/Boundary");
-    await expect(boundary).toHaveAttribute("fill", "#E8F5E9");
+    const edge = page.getByTestId("result-overlay").locator('[data-source-edge-id="/contents/0/fields/Boundary"]');
+    await expect(boundary).toHaveAttribute("fill", "#E3F2FD");
+    await expect(edge).not.toHaveAttribute("data-low-confidence");
     await threshold.fill("");
     await expect(threshold).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByRole("alert")).toContainText("Enter a confidence threshold");
-    await expect(boundary).toHaveAttribute("fill", "#E8F5E9");
+    await expect(boundary).toHaveAttribute("fill", "#E3F2FD");
+    await expect(edge).not.toHaveAttribute("data-low-confidence");
     await threshold.fill("1.01");
     await expect(page.getByRole("alert")).toContainText("finite");
     await threshold.fill("0.70");
     await expect(page.getByRole("alert")).toHaveCount(0);
-    await expect(boundary).toHaveAttribute("fill", "#FCE8E6");
+    await expect(boundary).toHaveAttribute("fill", "#E3F2FD");
+    await expect(edge).toHaveAttribute("data-low-confidence", "true");
     await page.keyboard.press("Escape");
     await ready(page);
 });
@@ -827,7 +835,7 @@ for (const kind of ["pdf", "image"] as const) {
         const setSourceFills = async (enabled: boolean): Promise<void> => {
             await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
             await page.getByRole("switch", { name: "Show field highlights", exact: true }).setChecked(enabled);
-            await page.getByRole("switch", { name: "Show table highlights", exact: true }).setChecked(enabled);
+            await page.getByRole("switch", { name: kind === "pdf" ? "Show array highlights" : "Show table highlights", exact: true }).setChecked(enabled);
             await page.getByRole("button", { name: "Close legend", exact: true }).click();
         };
         await setSourceFills(false);
@@ -835,11 +843,11 @@ for (const kind of ["pdf", "image"] as const) {
         await setSourceFills(true);
         await expect(page.getByTestId("result-overlay")).toHaveCSS("mix-blend-mode", "multiply");
         const cases = [
-            { id: "/contents/0/fields/InvoiceId", rgb: [232, 245, 233] },
-            { id: recipientId, rgb: [252, 232, 230] },
-            { id: "/contents/0/fields/Unknown", rgb: [241, 243, 245] },
-            { id: cellId, rgb: [246, 197, 204] },
-            { id: `${arrayId}/valueArray/0/valueObject/Column2`, rgb: [232, 241, 255] },
+            { id: "/contents/0/fields/InvoiceId", rgb: kind === "pdf" ? [227, 242, 253] : [232, 245, 233] },
+            { id: recipientId, rgb: kind === "pdf" ? [227, 242, 253] : [252, 232, 230] },
+            { id: "/contents/0/fields/Unknown", rgb: kind === "pdf" ? [227, 242, 253] : [241, 243, 245] },
+            { id: cellId, rgb: kind === "pdf" ? [187, 222, 251] : [246, 197, 204] },
+            { id: `${arrayId}/valueArray/0/valueObject/Column2`, rgb: kind === "pdf" ? [187, 222, 251] : [232, 241, 255] },
         ];
         const regions = [];
         for (const item of cases) {

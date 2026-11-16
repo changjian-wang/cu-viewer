@@ -81,30 +81,35 @@ export function SourcePopover(props: SourcePopoverProps) {
         settings, "uncompared", isTableValue(props.field)) : undefined;
     const pair = props.comparison?.comparable ? props.comparison.byFieldId.get(props.field.id) : undefined;
     const pairStyle = pair ? fieldAppearance(pair.extracted, settings, pair.status, isTableValue(pair.field)) : undefined;
-    const scoreLow = pair?.extracted ? isLowConfidence(pair.extracted, settings.threshold) : false;
+    const scored = pair ? pair.extracted : props.field;
+    const scoreLow = scored ? isLowConfidence(scored, settings.threshold) : false;
+    const confidenceStyle = {
+        background: scoreLow ? FIELD_REVIEW_COLORS.confidenceBadgeBackground : FIELD_REVIEW_COLORS.default,
+        color: scoreLow ? FIELD_REVIEW_COLORS.confidenceBadgeText : "#526276",
+    };
+    const standaloneReview = props.fieldReview && !props.labelMode && !pair;
     const bannerStyle = pairStyle ?? reviewStyle;
     const valueText = (field: CuField | undefined): string => !field?.hasValue ? "Not returned" :
         field.type === "object" ? collapsedValue(field) || "{}" : displayValue(field);
     return <>
         <aside id={props.id} ref={element} role="tooltip" aria-label={props.labelMode ? "Label preview" : paragraph ? "Paragraph preview" : "Field preview"}
-            className={`cu-source-popover${pair ? " cu-source-comparison-popover" : ""}`}
+            className={`cu-source-popover${pair || standaloneReview ? " cu-source-comparison-popover" : ""}`}
             style={{ left: position?.x ?? 0, top: position?.y ?? 0, visibility: position ? "visible" : "hidden",
                 ...(bannerStyle ? { "--cu-preview-banner-bg": bannerStyle.background } : {}) }}>
             {!paragraph && <span className="cu-popover-heading" style={bannerStyle ?
                 { background: bannerStyle.background, color: bannerStyle.color } : undefined}>
                 {fieldLabel(props.field)}
             </span>}
-            <dl id={`${props.id}-content`} className={`cu-flyover-body${pair ? " cu-flyover-comparison" : ""}`}
+            <dl id={`${props.id}-content`} className={`cu-flyover-body${pair ? " cu-flyover-comparison" : standaloneReview ? " cu-flyover-field-review" : ""}`}
                 aria-label={pair ? comparisonStatusText(pair.status) : undefined}
-                style={!pair && reviewStyle ? { background: reviewStyle.background, boxShadow: reviewStyle.boxShadow } : undefined}>
+                style={!pair && !standaloneReview && reviewStyle ? { background: reviewStyle.background, boxShadow: reviewStyle.boxShadow } : undefined}>
                 {pair && <><div data-comparison-side="label"><dt>Label Value</dt>
                         <dd><span className="cu-flyover-comparison-value">{valueText(pair.label)}</span></dd></div>
                     <div data-comparison-side="extracted"><dt>Extracted Value</dt><dd>
                         <span className="cu-flyover-comparison-value" style={pairStyle ?
                             { background: pairStyle.background, boxShadow: pairStyle.boxShadow } : undefined}>{valueText(pair.extracted)}</span>
                         {pair.extracted?.confidence !== undefined && <span className={`cu-flyover-confidence${scoreLow ? " is-low" : ""}`}
-                            style={{ background: scoreLow ? FIELD_REVIEW_COLORS.confidenceBadgeBackground : FIELD_REVIEW_COLORS.default,
-                                color: scoreLow ? FIELD_REVIEW_COLORS.confidenceBadgeText : "#526276" }}
+                            style={confidenceStyle}
                             aria-label={confidenceDescription(pair.extracted, settings.threshold)}
                             title={confidenceDescription(pair.extracted, settings.threshold)}>
                             <ViewerIcon name="gauge" />{formatConfidence(pair.extracted.confidence, settings.threshold)}
@@ -112,10 +117,14 @@ export function SourcePopover(props: SourcePopoverProps) {
                     </dd></div>
                 </>}
                 {!pair && <div className="cu-flyover-value"><dt className="cu-visually-hidden">{paragraph ? "Content" : "Value"}</dt>
-                    <dd>{props.labelMode ? labelSummary(props.field) : object ? collapsedValue(props.field, props.summaryFieldIds) : displayValue(props.field)}</dd></div>
+                    <dd className={standaloneReview ? "cu-flyover-comparison-value" : undefined}
+                        style={standaloneReview && reviewStyle ?
+                            { background: reviewStyle.background, boxShadow: reviewStyle.boxShadow } : undefined}>
+                        {props.labelMode ? labelSummary(props.field) : object ? collapsedValue(props.field, props.summaryFieldIds) : displayValue(props.field)}</dd></div>
                 }
-                {!pair && !props.labelMode && !paragraph && !object && <div className="cu-flyover-confidence" title={confidenceDescription(props.field, settings.threshold)}
-                    style={{ color: reviewStyle?.color ?? style.color, background: reviewStyle?.background ?? style.background }}>
+                {!pair && !props.labelMode && !paragraph && !object && <div className={`cu-flyover-confidence${standaloneReview && scoreLow ? " is-low" : ""}`} title={confidenceDescription(props.field, settings.threshold)}
+                    style={standaloneReview ? confidenceStyle :
+                        { color: reviewStyle?.color ?? style.color, background: reviewStyle?.background ?? style.background }}>
                     <dt className="cu-visually-hidden">Confidence</dt><dd>{props.field.confidence !== undefined ?
                         <><ViewerIcon name="gauge" />{formatConfidence(props.field.confidence, settings.threshold)}</> : "N/A"}</dd>
                 </div>}

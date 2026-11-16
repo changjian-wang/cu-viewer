@@ -25,6 +25,8 @@ async function expectCompleteSelection(page: Page, id: string, count: number, fr
             }));
         };
         return {
+            confidenceFrame: Boolean(document.querySelector(
+                `[data-testid="result-overlay"] [data-source-edge-id="${field}"][data-low-confidence="true"]`)),
             sources: [...document.querySelectorAll(`[data-testid="result-overlay"] polygon[data-outline-id="${field}"]`)]
                 .map(element => ({ index: Number(element.getAttribute("data-region-index")), points: points(element) })),
             frames: [...document.querySelectorAll(`[data-testid="${layer}"] polygon`)].map(element => ({
@@ -39,7 +41,12 @@ async function expectCompleteSelection(page: Page, id: string, count: number, fr
         expect(frame.field).toBe(id);
         expect(frame.fill).toBe("none");
         const original = selection.sources.filter(source => frame.indices.includes(source.index)).flatMap(source => source.points);
-        if (frame.indices.length === 1) expect(frame.points).toEqual(original);
+        if (selection.confidenceFrame) {
+            expect(Math.min(...original.map(point => point.x)) - Math.min(...frame.points.map(point => point.x))).toBeGreaterThanOrEqual(2.99);
+            expect(Math.min(...original.map(point => point.y)) - Math.min(...frame.points.map(point => point.y))).toBeGreaterThanOrEqual(2.99);
+            expect(Math.max(...frame.points.map(point => point.x)) - Math.max(...original.map(point => point.x))).toBeGreaterThanOrEqual(2.99);
+            expect(Math.max(...frame.points.map(point => point.y)) - Math.max(...original.map(point => point.y))).toBeGreaterThanOrEqual(2.99);
+        } else if (frame.indices.length === 1) expect(frame.points).toEqual(original);
         else {
             const left = Math.min(...original.map(point => point.x)), right = Math.max(...original.map(point => point.x));
             const top = Math.min(...original.map(point => point.y)), bottom = Math.max(...original.map(point => point.y));
@@ -327,7 +334,7 @@ test("UI-46 every real multiline value previews with the exact fixed-selection f
         const field = page.getByRole("button", { name, exact: true });
         await field.click();
         await expectCompleteSelection(page, id, 2);
-        await expect(pinnedParts(page)).toHaveCSS("stroke", "rgb(91, 33, 182)");
+        await expect(pinnedParts(page)).toHaveCSS("stroke", "rgb(69, 39, 160)");
         const expected = await pinnedParts(page).evaluate(element => ({
             points: element.getAttribute("points"), fill: element.getAttribute("fill"),
             width: element.getAttribute("stroke-width"),
@@ -342,7 +349,7 @@ test("UI-46 every real multiline value previews with the exact fixed-selection f
         for (const index of [0, 1]) {
             await sourceParts(page, id).nth(index).hover();
             await expectCompleteSelection(page, id, 2, 1, "preview-overlay");
-            await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(128, 99, 181)");
+            await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(94, 53, 177)");
             expect(await page.getByTestId("preview-overlay").locator("polygon").evaluate(element => ({
                 points: element.getAttribute("points"), fill: element.getAttribute("fill"),
                 width: element.getAttribute("stroke-width"),
