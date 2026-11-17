@@ -334,7 +334,7 @@ test("UI-46 every real multiline value previews with the exact fixed-selection f
         const field = page.getByRole("button", { name, exact: true });
         await field.click();
         await expectCompleteSelection(page, id, 2);
-        await expect(pinnedParts(page)).toHaveCSS("stroke", "rgb(69, 39, 160)");
+        await expect(pinnedParts(page)).toHaveCSS("stroke", "rgb(91, 33, 182)");
         const expected = await pinnedParts(page).evaluate(element => ({
             points: element.getAttribute("points"), fill: element.getAttribute("fill"),
             width: element.getAttribute("stroke-width"),
@@ -349,7 +349,7 @@ test("UI-46 every real multiline value previews with the exact fixed-selection f
         for (const index of [0, 1]) {
             await sourceParts(page, id).nth(index).hover();
             await expectCompleteSelection(page, id, 2, 1, "preview-overlay");
-            await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(94, 53, 177)");
+            await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(128, 99, 181)");
             expect(await page.getByTestId("preview-overlay").locator("polygon").evaluate(element => ({
                 points: element.getAttribute("points"), fill: element.getAttribute("fill"),
                 width: element.getAttribute("stroke-width"),

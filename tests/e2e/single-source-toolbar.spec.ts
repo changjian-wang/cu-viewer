@@ -86,7 +86,7 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1800, height: 100
                     const rows = reviewRows.length ? reviewRows : [...element.querySelectorAll(".cu-legend-group[data-setting]")];
                     const tracks = rows.map(group => {
                         const anchor = (reviewRows.length ? group.querySelector("span") :
-                            group.querySelector(".cu-legend-group-title") ?? group.querySelector(".cu-legend-swatch"))?.getBoundingClientRect();
+                            group.querySelector(".cu-legend-group-title") ?? group.querySelector(".cu-legend-swatch, .cu-legend-outline-swatch"))?.getBoundingClientRect();
                         const track = group.querySelector(".cu-switch-track")?.getBoundingClientRect();
                         if (!anchor || !track) throw new Error("The Legend control row or switch is missing.");
                         return {

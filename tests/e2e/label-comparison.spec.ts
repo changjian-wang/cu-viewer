@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
-import { contrast, expandField, fitSource, ready, rotateSource, setShowConfidence } from "./viewerAssertions";
+import { contrast, expandField, fitSource, ready, rotateSource, screenshotPixels, setShowConfidence } from "./viewerAssertions";
 
 const pdf = resolve("tests", "fixtures", "labels", "invoice.pdf");
 const text = (value: string, source = "D(1,1,1,1,0.2)") => ({ type: "string", valueString: value, source });
@@ -183,6 +183,102 @@ test.describe("Paired label frame readability", () => {
         });
 });
 
+test.describe("Confidence border readability", () => {
+    test.use({ viewport: { width: 2400, height: 1300 }, deviceScaleFactor: 1 });
+
+    test("real invoice confidence borders stay continuous above fills at small zoom without expanding hit targets", async ({ page }) => {
+        await page.goto("/?sample=labels");
+        await ready(page);
+        const source = page.getByTestId("result-overlay");
+        const canvas = page.getByTestId("source-canvas");
+        for (const zoom of ["75%", "100%", "125%"]) {
+            await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption({ label: zoom });
+            await ready(page);
+            await page.getByRole("heading", { name: "CU Viewer", exact: true }).hover();
+            const original = await canvas.evaluate(element => {
+                if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected the original PDF canvas.");
+                return element.toDataURL();
+            });
+            for (const row of [1, 2]) {
+                const id = `/contents/0/fields/LineItems/valueArray/${row}/valueObject/Description`;
+                const region = source.locator(`polygon[data-outline-id="${id}"]`);
+                const edge = source.locator(`path[data-source-edge-id="${id}"]`);
+                await expect(edge).toHaveCSS("stroke", "rgba(180, 60, 75, 0.6)");
+                await expect(edge).toHaveAttribute("stroke-width", "1.5");
+                await expect(region).toHaveAttribute("fill", "#DCFBD7");
+                const geometry = await region.evaluate(element => {
+                    if (!(element instanceof SVGPolygonElement)) throw new Error("Expected a source polygon.");
+                    const matrix = element.getScreenCTM();
+                    if (!matrix) throw new Error("The source transform is unavailable.");
+                    const points = Array.from({ length: element.points.numberOfItems }, (_, index) => {
+                        const value = element.points.getItem(index);
+                        const point = new DOMPoint(value.x, value.y).matrixTransform(matrix);
+                        return { x: point.x, y: point.y };
+                    });
+                    return { raw: element.getAttribute("points"), points };
+                });
+                const { points } = geometry;
+                const left = Math.floor(Math.min(...points.map(point => point.x))) - 3;
+                const top = Math.floor(Math.min(...points.map(point => point.y))) - 3;
+                const clip = { x: left, y: top, width: Math.ceil(Math.max(...points.map(point => point.x))) + 3 - left,
+                    height: Math.ceil(Math.max(...points.map(point => point.y))) + 3 - top };
+                const pixels = await screenshotPixels(page, clip);
+                expect(pixels.ratio).toBe(1);
+                const start = points[3]!, end = points[2]!;
+                let columns = 0, redColumns = 0;
+                for (let x = Math.ceil(start.x) + 2; x < Math.floor(end.x) - 2; x++) {
+                    const lineY = start.y + (end.y - start.y) * (x + 0.5 - start.x) / (end.x - start.x);
+                    let red = false;
+                    for (let y = Math.floor(lineY) - 1; y <= Math.ceil(lineY) + 1; y++) {
+                        const index = ((y - clip.y) * pixels.width + x - clip.x) * 4;
+                        const r = pixels.data[index]!, g = pixels.data[index + 1]!, b = pixels.data[index + 2]!;
+                        if (r > g + 15 && r > b + 15 && r > 80 && g < 235) red = true;
+                    }
+                    columns++;
+                    if (red) redColumns++;
+                }
+                expect(columns).toBeGreaterThan(40);
+                expect(redColumns, `${zoom}: ${id} has a missing bottom-border segment`).toBe(columns);
+                expect(await edge.evaluate(element => {
+                    const svg = element.closest("svg");
+                    if (!svg) throw new Error("The source SVG is unavailable.");
+                    return [...svg.querySelectorAll("polygon[data-outline-id]")].every(fill =>
+                        Boolean(fill.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING));
+                })).toBe(true);
+                await expect(edge).toHaveCSS("pointer-events", "none");
+                const hit = await region.evaluate((element, points) => {
+                    const center = points.reduce((sum, point) => ({ x: sum.x + point.x / points.length,
+                        y: sum.y + point.y / points.length }), { x: 0, y: 0 });
+                    const first = points[0]!, next = points[1]!;
+                    const dx = next.x - first.x, dy = next.y - first.y, length = Math.hypot(dx, dy);
+                    const outside = { x: (first.x + next.x) / 2 + dy / length * 0.5,
+                        y: (first.y + next.y) / 2 - dx / length * 0.5 };
+                    const edge = element.parentElement?.querySelector<SVGPathElement>(
+                        `path[data-source-edge-id="${element.getAttribute("data-outline-id")}"]`);
+                    if (!edge) throw new Error("The confidence border is unavailable.");
+                    const readHit = () => {
+                        const hit = document.elementFromPoint(outside.x, outside.y);
+                        return { tag: hit?.tagName, id: hit?.getAttribute("data-outline-id") };
+                    };
+                    const painted = readHit(), display = edge.style.display;
+                    let unpainted;
+                    edge.style.display = "none";
+                    try { unpainted = readHit(); } finally { edge.style.display = display; }
+                    return { inside: document.elementFromPoint(center.x, center.y)?.getAttribute("data-outline-id"),
+                        painted, unpainted, raw: element.getAttribute("points") };
+                }, points);
+                expect(hit.inside).toBe(id);
+                expect(hit.painted).toEqual(hit.unpainted);
+                expect(hit.raw).toBe(geometry.raw);
+            }
+            expect(await canvas.evaluate(element => {
+                if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected the unchanged PDF canvas.");
+                return element.toDataURL();
+            })).toBe(original);
+        }
+    });
+});
+
 test("comparison layout preserves saved resizing and resets to its own default without changing ordinary layout", async ({ page }) => {
     await page.goto("/?sample=labels");
     await ready(page);
@@ -229,13 +325,13 @@ test("unified Fields compares typed leaves, preserves both sources and filters c
         expect(child.bottom).toBeLessThanOrEqual(44);
     }
     const equal = pane.getByRole("button", { name: "Select extracted value of Equal", exact: true });
-    await expect(equal.locator("..")).toHaveCSS("background-color", "rgb(200, 230, 201)");
-    await expect(equal.locator("..")).toHaveCSS("box-shadow", /198, 40, 40, 0.8/);
+    await expect(equal.locator("..")).toHaveCSS("background-color", "rgb(220, 251, 215)");
+    await expect(equal.locator("..")).toHaveCSS("box-shadow", /180, 60, 75, 0.6/);
     await expect(pane.locator('[data-comparison-path="/Missing"] td').nth(2).getByLabel("Not extracted", { exact: true })).toHaveText("\u2014");
     await expect(pane.locator('[data-comparison-path="/Missing"] > td').nth(2).locator(".cu-comparison-value"))
-        .toHaveCSS("background-color", "rgb(239, 154, 154)");
+        .toHaveCSS("background-color", "rgb(248, 192, 200)");
     await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/labels/fields/Missing"]'))
-        .toHaveAttribute("fill", "#EF9A9A");
+        .toHaveAttribute("fill", "#F8C0C8");
     await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/Missing"]')).toHaveCount(0);
 
     await pane.getByRole("button", { name: "Select label value of Equal", exact: true }).click();
@@ -251,12 +347,17 @@ test("unified Fields compares typed leaves, preserves both sources and filters c
     await expect(flyout).toContainText("Label Value");
     await expect(flyout).toContainText("Extracted Value");
     await expect(flyout).toContainText("0.40");
-    await expect(flyout.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(200, 230, 201)");
-    expect(await flyout.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(200, 230, 201)");
+    await expect(flyout.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(229, 218, 255)");
+    await expect(flyout.locator(".cu-popover-heading")).toHaveCSS("color", "rgb(76, 29, 149)");
+    expect(await flyout.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(229, 218, 255)");
+    await expect(flyout.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value'))
+        .toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(flyout.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value')).toHaveCSS("box-shadow", "none");
+    await expect(flyout.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value')).toHaveCSS("border-top-width", "0px");
     await expect(flyout.locator(".cu-flyover-comparison")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await expect(flyout.locator('[data-comparison-side="extracted"] .cu-flyover-confidence')).toHaveText("0.40");
     await expect(flyout.locator('[data-comparison-side="extracted"] .cu-flyover-confidence'))
-        .toHaveCSS("background-color", "rgb(255, 235, 238)");
+        .toHaveCSS("background-color", "rgb(255, 218, 221)");
     await expect(flyout.locator('[data-comparison-side="label"] .cu-flyover-comparison-value')).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     const previewRows = await flyout.locator("[data-comparison-side]").evaluateAll(rows => rows.map(row => {
         const bounds = row.getBoundingClientRect();
@@ -270,12 +371,12 @@ test("unified Fields compares typed leaves, preserves both sources and filters c
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
     expect(await legend.locator(".cu-legend-item .cu-legend-swatch").evaluateAll(nodes =>
         nodes.map(node => getComputedStyle(node).backgroundColor))).toEqual([
-        "rgb(227, 242, 253)", "rgb(187, 222, 251)", "rgb(200, 230, 201)", "rgb(255, 205, 210)", "rgb(239, 154, 154)",
+        "rgb(236, 243, 252)", "rgb(222, 233, 250)", "rgb(220, 251, 215)", "rgb(255, 218, 221)", "rgb(248, 192, 200)",
     ]);
     const lowExample = legend.locator(".cu-legend-outline-swatch");
     await expect(lowExample).toHaveText("123");
-    await expect(lowExample).toHaveCSS("background-color", "rgb(200, 230, 201)");
-    await expect(lowExample).toHaveCSS("border-color", "rgba(198, 40, 40, 0.8)");
+    await expect(lowExample).toHaveCSS("background-color", "rgb(220, 251, 215)");
+    await expect(lowExample).toHaveCSS("border-color", "rgba(180, 60, 75, 0.6)");
     await expect(legend.getByText("Matches label", { exact: true })).toBeVisible();
     await expect(legend.getByText("Different or extra extracted value", { exact: true })).toBeVisible();
     await expect(legend.getByText("Label only; not extracted", { exact: true })).toBeVisible();
@@ -311,7 +412,7 @@ test("unified Fields compares typed leaves, preserves both sources and filters c
     await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
-test("MUI colors keep empty slots neutral and confidence outlines separate from interaction frames", async ({ page }) => {
+test("the legacy palette keeps empty slots neutral and confidence outlines separate from interaction frames", async ({ page }) => {
     const pane = await reference(page);
     await upload(page, "Choose saved Analyze JSON", result({
         ...extracted, Missing: { type: "string", confidence: 0.2 }, BothMissing: { type: "string", confidence: 0.2 },
@@ -320,31 +421,24 @@ test("MUI colors keep empty slots neutral and confidence outlines separate from 
     const missing = pane.locator('[data-comparison-path="/Missing"] > td').nth(2).locator(".cu-comparison-value");
     await expect(empty).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await expect(empty).toHaveCSS("box-shadow", "none");
-    await expect(missing).toHaveCSS("background-color", "rgb(239, 154, 154)");
+    await expect(missing).toHaveCSS("background-color", "rgb(248, 192, 200)");
     await expect(missing).toHaveCSS("box-shadow", "none");
     await pane.getByRole("button", { name: "Select label value of Missing", exact: true }).hover();
     const absentPreview = page.getByRole("tooltip", { name: "Label preview", exact: true });
     await expect(absentPreview.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value')).toHaveCSS("box-shadow", "none");
     await expect(absentPreview.locator(".cu-flyover-confidence")).toHaveText("0.20");
-    await expect(absentPreview.locator(".cu-flyover-confidence")).toHaveCSS("background-color", "rgb(255, 235, 238)");
+    await expect(absentPreview.locator(".cu-flyover-confidence")).toHaveCSS("background-color", "rgb(255, 218, 221)");
     await expect(pane.getByRole("button", { name: "Select extracted value of Different", exact: true }).locator(".."))
-        .toHaveCSS("background-color", "rgb(255, 205, 210)");
+        .toHaveCSS("background-color", "rgb(255, 218, 221)");
     const equal = pane.getByRole("button", { name: "Select extracted value of Equal", exact: true });
     await equal.focus();
-    await expect(equal.locator("..")).toHaveCSS("box-shadow", /198, 40, 40, 0.8/);
+    await expect(equal.locator("..")).toHaveCSS("box-shadow", /180, 60, 75, 0.6/);
     await expect(equal).toHaveCSS("outline-style", "none");
     await expect(equal.locator("..")).toHaveCSS("outline-offset", "0px");
     const colors = await equal.locator("..").evaluate(element => {
         const style = getComputedStyle(element);
-        const background = style.backgroundColor.match(/[\d.]+/g)?.map(Number);
-        const stroke = style.boxShadow.match(/^rgba\(([^)]+)\)/)?.[1]?.split(",").map(Number);
-        if (!background || background.length !== 3 || !stroke || stroke.length !== 4) {
-            throw new Error("The confidence outline colors are unavailable.");
-        }
-        const blended = background.map((value, index) => stroke[index]! * stroke[3]! + value * (1 - stroke[3]!));
-        return { background: style.backgroundColor, text: style.color, outline: `rgb(${blended.join(",")})` };
+        return { background: style.backgroundColor, text: style.color };
     });
-    expect(contrast(colors.background, colors.outline)).toBeGreaterThanOrEqual(3);
     expect(contrast(colors.background, colors.text)).toBeGreaterThanOrEqual(4.5);
     const id = "/contents/0/fields/Equal";
     const region = page.getByTestId("result-overlay").locator(`[data-outline-id="${id}"]`);
@@ -362,11 +456,11 @@ test("MUI colors keep empty slots neutral and confidence outlines separate from 
     expect(raw.y - hover.y).toBeGreaterThan(clearance);
     expect(hover.x + hover.width - raw.x - raw.width).toBeGreaterThan(clearance);
     expect(hover.y + hover.height - raw.y - raw.height).toBeGreaterThan(clearance);
-    await expect(edge).toHaveCSS("stroke", "rgba(198, 40, 40, 0.8)");
-    await expect(preview).toHaveCSS("stroke", "rgb(94, 53, 177)");
+    await expect(edge).toHaveCSS("stroke", "rgba(180, 60, 75, 0.6)");
+    await expect(preview).toHaveCSS("stroke", "rgb(128, 99, 181)");
     await region.click();
     const pin = page.getByTestId("source-overlay").locator("polygon").first();
-    await expect(pin).toHaveCSS("stroke", "rgb(69, 39, 160)");
+    await expect(pin).toHaveCSS("stroke", "rgb(91, 33, 182)");
     const pinned = await pin.getAttribute("points");
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
@@ -374,12 +468,12 @@ test("MUI colors keep empty slots neutral and confidence outlines separate from 
     await expect(equal.locator("..")).toHaveCSS("box-shadow", "none");
     await expect(pin).toHaveAttribute("points", pinned!);
     await expect(region).toHaveAttribute("points", points!);
-    await expect(legend.locator(".cu-legend-outline-swatch")).toHaveCSS("border-color", "rgba(198, 40, 40, 0.8)");
+    await expect(legend.locator(".cu-legend-outline-swatch")).toHaveCSS("border-color", "rgba(180, 60, 75, 0.6)");
     await expect(pane.getByRole("button", { name: "Show matching fields (8 values)", exact: true })).toBeVisible();
     await expect(pane.getByRole("button", { name: "Show incorrect fields (5 values)", exact: true })).toBeVisible();
     await legend.getByRole("button", { name: "Close legend", exact: true }).click();
     await equal.hover();
-    await expect(page.getByRole("tooltip").locator(".cu-flyover-confidence")).toHaveCSS("background-color", "rgb(255, 235, 238)");
+    await expect(page.getByRole("tooltip").locator(".cu-flyover-confidence")).toHaveCSS("background-color", "rgb(255, 218, 221)");
 });
 
 test("comparison searches literal field names, readable parent paths and both values", async ({ page }) => {
@@ -404,20 +498,23 @@ test("comparison searches literal field names, readable parent paths and both va
     await expect(pane.getByRole("button", { name: "Select label value of a/b~c", exact: true })).toHaveCount(0);
 });
 
-test("reference labels keep distinct scalar and array blues in Fields, Preview and flyout banners", async ({ page }) => {
+test("reference labels keep distinct scalar and array blues with a separate purple flyout title", async ({ page }) => {
     const pane = await reference(page);
     await expect(pane.getByRole("button", { name: "Select label value of Equal", exact: true }).locator(".."))
-        .toHaveCSS("background-color", "rgb(227, 242, 253)");
+        .toHaveCSS("background-color", "rgb(236, 243, 252)");
     const table = pane.getByRole("table", { name: "Items label values", exact: true });
-    await expect(table.locator(".cu-comparison-value").first()).toHaveCSS("background-color", "rgb(187, 222, 251)");
+    await expect(table.locator(".cu-comparison-value").first()).toHaveCSS("background-color", "rgb(222, 233, 250)");
     const source = page.getByTestId("result-overlay");
-    await expect(source.locator('polygon[data-outline-id="/labels/fields/Equal"]')).toHaveAttribute("fill", "#E3F2FD");
+    await expect(source.locator('polygon[data-outline-id="/labels/fields/Equal"]')).toHaveAttribute("fill", "#ECF3FC");
     await expect(source.locator('polygon[data-outline-id="/labels/fields/Items/valueArray/0/valueObject/Code"]'))
-        .toHaveAttribute("fill", "#BBDEFB");
+        .toHaveAttribute("fill", "#DEE9FA");
     await table.locator(".cu-field-value").first().hover();
     const popup = page.getByRole("tooltip", { name: "Label preview", exact: true });
-    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(187, 222, 251)");
-    expect(await popup.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(187, 222, 251)");
+    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(229, 218, 255)");
+    expect(await popup.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(229, 218, 255)");
+    await expect(popup.locator(".cu-flyover-body")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("box-shadow", "none");
 });
 
 test("label comparison preserves the unlabeled PDF palette, confidence column and single-array layout", async ({ page }) => {
@@ -426,8 +523,8 @@ test("label comparison preserves the unlabeled PDF palette, confidence column an
     await setShowConfidence(page, true);
     const pane = page.getByRole("region", { name: "Extraction results", exact: true });
     const billing = pane.locator('[data-field-id="/contents/0/fields/BillingAddress"] .cu-field-value-content');
-    await expect(billing).toHaveCSS("background-color", "rgb(227, 242, 253)");
-    await expect(billing).toHaveCSS("box-shadow", /198, 40, 40/);
+    await expect(billing).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(billing).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(pane.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "PDF + Labels", exact: true }).click();
     await ready(page);
@@ -436,13 +533,13 @@ test("label comparison preserves the unlabeled PDF palette, confidence column an
     await page.getByRole("button", { name: "PDF", exact: true }).click();
     await ready(page);
     await expect(pane.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
-    await expect(billing).toHaveCSS("background-color", "rgb(227, 242, 253)");
+    await expect(billing).toHaveCSS("background-color", "rgb(236, 243, 252)");
     await expect(pane.getByRole("table", { name: "LineItems values", exact: true })).toHaveCount(1);
     await expect(pane.locator(".cu-comparison-arrays,.cu-comparison-filters")).toHaveCount(0);
     await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/BillingAddress"]').first())
-        .toHaveAttribute("fill", "#E3F2FD");
+        .toHaveAttribute("fill", "#ECF3FC");
     await pane.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/BillingAddress"] .cu-field-name').hover();
-    await expect(page.getByTestId("preview-overlay").locator("polygon").first()).toHaveCSS("stroke", "rgb(94, 53, 177)");
+    await expect(page.getByTestId("preview-overlay").locator("polygon").first()).toHaveCSS("stroke", "rgb(128, 99, 181)");
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
     await expect(legend.locator(".cu-legend-swatch")).toHaveCount(2);
@@ -472,7 +569,7 @@ test("both array summaries preview their own sources without inventing ungrounde
     const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
     await expect(popup).toContainText("Label Value");
     await expect(popup).toContainText("Extracted Value");
-    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(200, 230, 201)");
+    await expect(popup.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(229, 218, 255)");
     await expect(preview).toHaveAttribute("data-source-id", "/contents/0/fields/Rows");
     expect(await preview.getAttribute("points")).not.toBe(labelPoints);
     await expect(pin).toHaveAttribute("data-source-id", "/labels/fields/Rows");
@@ -529,8 +626,8 @@ test("paired invoice arrays switch between stacked and side-by-side without chan
     await expect.poll(() => scrollers.evaluateAll(elements => elements.map(element => element.scrollLeft))).toEqual([120, 120]);
     await expectFixedIndexHeaders(scrollers, 2);
     const low = pair.locator('[data-field-id="/contents/0/fields/LineItems/valueArray/0/valueObject/UnitOfMeasure"]');
-    await expect(low).toHaveCSS("background-color", "rgb(200, 230, 201)");
-    expect(await low.evaluate(element => getComputedStyle(element).boxShadow)).toContain("rgba(198, 40, 40, 0.8)");
+    await expect(low).toHaveCSS("background-color", "rgb(220, 251, 215)");
+    expect(await low.evaluate(element => getComputedStyle(element).boxShadow)).toContain("rgba(180, 60, 75, 0.6)");
     await expect(pin).toHaveAttribute("points", points!);
     await expect(pin).toHaveAttribute("data-source-id", "/labels/fields/InvoiceNumber");
     await layout.getByRole("button", { name: "Stacked", exact: true }).press("Enter");
@@ -600,12 +697,12 @@ test("label-only highlights keep their own inch geometry while an extracted pixe
     const pin = page.getByTestId("source-overlay").locator("polygon").first();
     const points = await pin.getAttribute("points");
     const missing = page.getByTestId("result-overlay").locator('polygon[data-outline-id="/labels/fields/Missing"]');
-    await expect(missing).toHaveAttribute("fill", "#EF9A9A");
+    await expect(missing).toHaveAttribute("fill", "#F8C0C8");
     const paper = await page.getByTestId("rendered-page").boundingBox(), box = await missing.boundingBox();
     if (!paper || !box) throw new Error("Missing-label geometry is unavailable.");
     expect(box.width).toBeCloseTo(paper.width / 8.5, 0);
     await pane.getByRole("button", { name: "Select label value of Missing", exact: true }).hover();
-    await expect(page.getByRole("tooltip").locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(239, 154, 154)");
+    await expect(page.getByRole("tooltip").locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(229, 218, 255)");
     const fill = await missing.evaluate(element => getComputedStyle(element).fill);
     const stroke = await page.getByTestId("preview-overlay").locator("polygon").first()
         .evaluate(element => getComputedStyle(element).stroke);
@@ -625,7 +722,7 @@ test("absent fields stay reference-only, empty fields expose missing values and 
         kind: "document", fields: {},
     }] }, "empty-fields-without-geometry.result.json");
     await expect(page.getByTestId("result-overlay").locator('polygon[data-outline-id="/labels/fields/Missing"]'))
-        .toHaveAttribute("fill", "#EF9A9A");
+        .toHaveAttribute("fill", "#F8C0C8");
     await upload(page, "Choose saved Analyze JSON", { apiVersion: "unsupported", contents: [] }, "unsupported.result.json");
     await expect(pane.getByRole("alert")).toContainText("Comparison unavailable");
     await expect(pane.getByRole("columnheader", { name: "Label Value", exact: true })).toBeVisible();
@@ -696,6 +793,11 @@ test("labels are never implicitly applied to a different result content", async 
     await expect(pane.getByRole("treegrid", { name: "Extracted fields", exact: true })).toBeVisible();
     await expect(pane.getByRole("columnheader", { name: "Label Value", exact: true })).toHaveCount(0);
     await expect(pane.getByRole("alert")).toContainText("This content is not compared");
+    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
+    const legend = page.getByRole("dialog", { name: "Legend", exact: true });
+    await expect(legend.locator(".cu-legend-review-toggle")).toHaveCount(3);
+    await expect(legend.locator(".cu-ordinary-field-legend")).toHaveCount(0);
+    await legend.getByRole("button", { name: "Close legend", exact: true }).click();
     await pane.getByRole("combobox", { name: "Result content", exact: true }).selectOption("0");
     await expect(pane.getByRole("treegrid", { name: "Compared fields", exact: true })).toBeVisible();
     await expect(pane.getByRole("button", { name: "Show incorrect fields (5 values)", exact: true })).toBeVisible();

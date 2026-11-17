@@ -48,6 +48,31 @@ describe("original JSON result presentation", () => {
         expect(screen.getByRole("alert").textContent).toContain("non-JSON undefined");
     });
 
+    it("exposes the correct raw Markdown span on array/entry hover and keyboard focus without rendering HTML", () => {
+        const value = { result: { stringEncoding: "codePoint", contents: [{
+            markdown: "😀<b>$610.00</b>", fields: { Amount: { spans: [{ offset: 4, length: 7 }, { offset: 1, length: 3 }] } },
+        }] } };
+        const before = JSON.stringify(value);
+        const { container } = render(<JsonPane value={value} />);
+        for (const path of ["/result", "/result/contents", "/result/contents/0", "/result/contents/0/fields",
+            "/result/contents/0/fields/Amount"]) {
+            const toggle = container.querySelector<HTMLButtonElement>(`[data-json-path="${path}"] > .cu-json-toggle`);
+            if (!toggle) throw new Error(`Missing JSON toggle: ${path}`);
+            fireEvent.click(toggle);
+        }
+        const spans = container.querySelector<HTMLElement>('[data-json-path="/result/contents/0/fields/Amount/spans"]')!;
+        expect(spans.title).toContain("$610.00");
+        expect(spans.title).toContain("<b>");
+        fireEvent.click(spans.querySelector("button")!);
+        const entry = spans.querySelector<HTMLElement>('[data-json-path$="/spans/0"]')!;
+        expect(entry.title).toContain("offset 4, length 7 (codePoint):\n$610.00");
+        const toggle = entry.querySelector("button")!;
+        toggle.focus();
+        expect(toggle.getAttribute("aria-description")).toBe(entry.title);
+        expect(container.querySelector("b")).toBeNull();
+        expect(JSON.stringify(value)).toBe(before);
+    });
+
     it("opens a large array in bounded pages and reaches the original last entry", async () => {
         const values = Object.freeze(Array.from({ length: MAX_JSON_VALUES + 1 }, (_, index) =>
             index === MAX_JSON_VALUES ? "last original entry" : index));
@@ -123,6 +148,29 @@ describe("original JSON result presentation", () => {
         expect(screen.getByText('"Replacement"')).toBeTruthy();
         rerender(<div onKeyDown={onKeyDown}><JsonPane value={original} /></div>);
         expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("searches the complete displayed literal, navigates matches and clears highlighting without changing text", async () => {
+        const value = "x".repeat(4_001) + " A+b A+B";
+        render(<JsonPane value={{ markdown: value }} />);
+        fireEvent.click(screen.getByRole("button", { name: "View full text for /markdown" }));
+        const dialog = screen.getByRole("dialog");
+        const input = within(dialog).getByRole("searchbox", { name: "Search full text" });
+        fireEvent.change(input, { target: { value: "a+b" } });
+        await within(dialog).findByText("1 / 2");
+        expect(dialog.querySelectorAll(".cu-json-find-match")).toHaveLength(2);
+        fireEvent.click(within(dialog).getByRole("button", { name: "Next text match" }));
+        expect(within(dialog).getByText("2 / 2")).toBeTruthy();
+        fireEvent.keyDown(input, { key: "Enter" });
+        expect(within(dialog).getByText("1 / 2")).toBeTruthy();
+        fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+        expect(within(dialog).getByText("2 / 2")).toBeTruthy();
+        fireEvent.change(input, { target: { value: "missing" } });
+        await within(dialog).findByText("No matches");
+        expect(within(dialog).getByRole<HTMLButtonElement>("button", { name: "Next text match" }).disabled).toBe(true);
+        fireEvent.change(input, { target: { value: "" } });
+        expect(dialog.querySelector(".cu-json-find-match")).toBeNull();
+        expect(within(dialog).getByRole("region", { name: "Full JSON string" }).textContent).toBe(JSON.stringify(value));
     });
 
     it("validates the entire large input, including invalid values after the former limit", async () => {

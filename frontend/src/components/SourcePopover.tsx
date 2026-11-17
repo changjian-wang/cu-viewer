@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { displayValue, fieldLabel, formatConfidence } from "../interaction/interaction";
-import { appearance, collapsedValue, confidenceDescription, defaultReviewSettings, fieldAppearance, FIELD_REVIEW_COLORS, isLowConfidence, isTableValue, labelSummary } from "../interaction/reviewFields";
+import { appearance, collapsedValue, confidenceDescription, defaultReviewSettings, FIELD_REVIEW_COLORS, isLowConfidence, isTableValue, labelSummary } from "../interaction/reviewFields";
 import { comparisonStatusText } from "../model/fieldComparison";
 import type { FieldComparison } from "../model/fieldComparison";
 import type { ReviewSettings } from "../interaction/reviewFields";
@@ -77,10 +77,7 @@ export function SourcePopover(props: SourcePopoverProps) {
     const object = props.field.type === "object";
     const settings = props.settings ?? defaultReviewSettings;
     const style = appearance(props.field, isTableValue(props.field), settings);
-    const reviewStyle = props.fieldReview ? fieldAppearance(props.labelMode ? { hasValue: props.field.hasValue } : props.field,
-        settings, "uncompared", isTableValue(props.field)) : undefined;
     const pair = props.comparison?.comparable ? props.comparison.byFieldId.get(props.field.id) : undefined;
-    const pairStyle = pair ? fieldAppearance(pair.extracted, settings, pair.status, isTableValue(pair.field)) : undefined;
     const scored = pair ? pair.extracted : props.field;
     const scoreLow = scored ? isLowConfidence(scored, settings.threshold) : false;
     const confidenceStyle = {
@@ -88,26 +85,21 @@ export function SourcePopover(props: SourcePopoverProps) {
         color: scoreLow ? FIELD_REVIEW_COLORS.confidenceBadgeText : "#526276",
     };
     const standaloneReview = props.fieldReview && !props.labelMode && !pair;
-    const bannerStyle = pairStyle ?? reviewStyle;
     const valueText = (field: CuField | undefined): string => !field?.hasValue ? "Not returned" :
         field.type === "object" ? collapsedValue(field) || "{}" : displayValue(field);
     return <>
         <aside id={props.id} ref={element} role="tooltip" aria-label={props.labelMode ? "Label preview" : paragraph ? "Paragraph preview" : "Field preview"}
-            className={`cu-source-popover${pair || standaloneReview ? " cu-source-comparison-popover" : ""}`}
-            style={{ left: position?.x ?? 0, top: position?.y ?? 0, visibility: position ? "visible" : "hidden",
-                ...(bannerStyle ? { "--cu-preview-banner-bg": bannerStyle.background } : {}) }}>
-            {!paragraph && <span className="cu-popover-heading" style={bannerStyle ?
-                { background: bannerStyle.background, color: bannerStyle.color } : undefined}>
+            className={`cu-source-popover${pair ? " cu-source-comparison-popover" : ""}`}
+            style={{ left: position?.x ?? 0, top: position?.y ?? 0, visibility: position ? "visible" : "hidden" }}>
+            {!paragraph && <span className="cu-popover-heading">
                 {fieldLabel(props.field)}
             </span>}
-            <dl id={`${props.id}-content`} className={`cu-flyover-body${pair ? " cu-flyover-comparison" : standaloneReview ? " cu-flyover-field-review" : ""}`}
-                aria-label={pair ? comparisonStatusText(pair.status) : undefined}
-                style={!pair && !standaloneReview && reviewStyle ? { background: reviewStyle.background, boxShadow: reviewStyle.boxShadow } : undefined}>
+            <dl id={`${props.id}-content`} className={`cu-flyover-body${pair ? " cu-flyover-comparison" : ""}`}
+                aria-label={pair ? comparisonStatusText(pair.status) : undefined}>
                 {pair && <><div data-comparison-side="label"><dt>Label Value</dt>
                         <dd><span className="cu-flyover-comparison-value">{valueText(pair.label)}</span></dd></div>
                     <div data-comparison-side="extracted"><dt>Extracted Value</dt><dd>
-                        <span className="cu-flyover-comparison-value" style={pairStyle ?
-                            { background: pairStyle.background, boxShadow: pairStyle.boxShadow } : undefined}>{valueText(pair.extracted)}</span>
+                        <span className="cu-flyover-comparison-value">{valueText(pair.extracted)}</span>
                         {pair.extracted?.confidence !== undefined && <span className={`cu-flyover-confidence${scoreLow ? " is-low" : ""}`}
                             style={confidenceStyle}
                             aria-label={confidenceDescription(pair.extracted, settings.threshold)}
@@ -117,14 +109,12 @@ export function SourcePopover(props: SourcePopoverProps) {
                     </dd></div>
                 </>}
                 {!pair && <div className="cu-flyover-value"><dt className="cu-visually-hidden">{paragraph ? "Content" : "Value"}</dt>
-                    <dd className={standaloneReview ? "cu-flyover-comparison-value" : undefined}
-                        style={standaloneReview && reviewStyle ?
-                            { background: reviewStyle.background, boxShadow: reviewStyle.boxShadow } : undefined}>
+                    <dd>
                         {props.labelMode ? labelSummary(props.field) : object ? collapsedValue(props.field, props.summaryFieldIds) : displayValue(props.field)}</dd></div>
                 }
                 {!pair && !props.labelMode && !paragraph && !object && <div className={`cu-flyover-confidence${standaloneReview && scoreLow ? " is-low" : ""}`} title={confidenceDescription(props.field, settings.threshold)}
                     style={standaloneReview ? confidenceStyle :
-                        { color: reviewStyle?.color ?? style.color, background: reviewStyle?.background ?? style.background }}>
+                        { color: style.color, background: style.background }}>
                     <dt className="cu-visually-hidden">Confidence</dt><dd>{props.field.confidence !== undefined ?
                         <><ViewerIcon name="gauge" />{formatConfidence(props.field.confidence, settings.threshold)}</> : "N/A"}</dd>
                 </div>}

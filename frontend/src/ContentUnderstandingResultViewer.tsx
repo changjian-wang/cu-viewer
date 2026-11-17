@@ -92,6 +92,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const preferences = useReviewPreferences(boundLabels ? { source: props.source } : props, fieldContent,
         boundLabels ? undefined : parsed.model?.apiVersion, boundLabels ? undefined : parsed.model?.analyzerId, reviewDefaults);
     const context = useMemo(() => ({}), [props.source, props.result, props.labels, analysisContent, labelData.model]);
+    const jsonContext = useMemo(() => ({}), [props.source, props.result, props.labels]);
     const workflow = useValueWorkflow(context);
     useEffect(() => {
         if (view !== requestedView) setView(view);
@@ -263,6 +264,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             hasSelection={Boolean(selected)}
             view={view} outlines={outlines} previewId={previewId}
             fieldReview={fieldReview}
+            compactLegend={fieldReview && source?.kind === "pdf" && !hasLabels}
             comparison={view === "fields" ? comparison : undefined} referenceMode={view === "fields" && referenceMode}
             onDismissPreview={dismissPreview}
             regions={activeRegions} regionIndex={activeRegionIndex}
@@ -283,6 +285,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             onChange={next => preferences.changeSettings({ ...preferences.settings, paneRatio: next / (width - 8) })} />
         <ResultsPane
             result={props.result}
+            jsonContext={jsonContext}
             hasLabels={hasLabels} labelContent={labelData.model?.content} labelLoading={hasLabels && (!matchingSource || labelPending)}
             fieldContent={fieldContent} comparison={comparison} referenceMode={referenceMode} fieldReview={fieldReview}
             warning={boundLabels && parsed.error ? `Comparison unavailable: ${parsed.error}. Showing reference labels without comparison.` :

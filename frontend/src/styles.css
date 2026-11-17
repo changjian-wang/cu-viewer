@@ -32,7 +32,7 @@
 .cu-source-tables polygon:focus-visible { outline: none; stroke: #376fac; stroke-width: 2px; }
 .cu-source-popover { position: absolute; z-index: 5; width: max-content; min-width: 148px; max-width: min(248px, calc(100% - 24px)); padding: 0; border: 1px solid var(--cu-hover-stroke); border-radius: 6px; background: white; color: #243447; box-shadow: 0 4px 14px #2332461c; pointer-events: none; font-size: var(--cu-value-font-size); line-height: 18px; }
 .cu-source-popover::before { content: ""; position: absolute; width: 8px; height: 8px; top: -5px; left: var(--cu-arrow-left, 18px); background: white; border-top: 1px solid var(--cu-hover-stroke); border-left: 1px solid var(--cu-hover-stroke); transform: rotate(45deg); }
-.cu-source-popover:has(.cu-popover-heading)::before { background: var(--cu-preview-banner-bg, var(--cu-selected-bg)); }
+.cu-source-popover:has(.cu-popover-heading)::before { background: var(--cu-selected-bg); }
 .cu-popover-heading { display: block; padding: 6px 10px; border-radius: 5px 5px 0 0; background: var(--cu-selected-bg); font-size: var(--cu-value-font-size); line-height: 18px; color: #4c1d95; font-weight: 400; white-space: normal; overflow-wrap: anywhere; }
 .cu-source-popover dl { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 6px 12px; margin: 0; }
 .cu-source-popover dt, .cu-source-popover dd { margin: 0; }
@@ -199,6 +199,12 @@
 .cu-json-string-heading h2 { margin: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
 .cu-json-string-path { display: block; color: #617087; font: 11px/1.5 Consolas, "Courier New", monospace; overflow-wrap: anywhere; }
 .cu-json-string-count { flex: none; color: #617087; font-size: 11px; }
+.cu-json-string-search { display: flex; flex: none; align-items: center; gap: 6px; padding: 8px 16px; border-bottom: 1px solid #e0e6ed; font-size: 12px; }
+.cu-json-string-search .cu-search-box { flex: 1; min-width: 80px; }
+.cu-json-string-search > [role="status"] { min-width: 70px; text-align: center; white-space: nowrap; color: #617087; }
+.cu-json-string-search .cu-icon-button { flex: none; width: 28px; height: 28px; padding: 5px; border: 0; background: transparent; }
+.cu-json-find-match { padding: 0; color: inherit; background: #fff3bf; }
+.cu-json-find-match.is-current { background: #ffdf80; outline: 1px solid #a36900; }
 .cu-json-string-dialog > .cu-rich-result-scroll { padding: 16px; overscroll-behavior: contain; }
 .cu-json-full-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 12px/1.6 Consolas, "Courier New", monospace; user-select: text; }
 .cu-json-syntax-tag { color: #005a9e; }
@@ -254,8 +260,6 @@
 .cu-flyover-comparison dd { display: flex; gap: 4px; align-items: flex-start; min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: 11px; line-height: 18px; }
 .cu-flyover-comparison-value { flex: 1; min-width: 0; max-height: 72px; overflow: hidden; padding: 0 3px; border-radius: 3px; }
 .cu-flyover-comparison .cu-flyover-confidence { display: inline-flex; align-items: center; gap: 2px; }
-.cu-source-popover .cu-flyover-field-review { padding: 8px; gap: 5px; }
-.cu-flyover-field-review .cu-flyover-value { font-size: 11px; line-height: 18px; }
 .cu-fields-review-footer:has(.cu-comparison-filters) .cu-search-box { min-width: 80px; }
 .cu-fields-review-footer:has(.cu-comparison-filters) { grid-template-columns: minmax(80px, 1fr) auto auto auto; gap: 4px; }
 .cu-fields-review-footer:has(.cu-comparison-filters) .cu-field-navigation > span { min-width: 68px; text-align: center; }

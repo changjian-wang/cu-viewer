@@ -44,8 +44,8 @@ describe("Studio view-specific source outlines", () => {
         }] }).contents[0]!;
         const review = sourceOutlines(content, "fields", 1, false, defaultReviewSettings, undefined, undefined, true);
         expect(review.map(outline => ({ color: outline.color, low: outline.low }))).toEqual([
-            { color: "#E3F2FD", low: true }, { color: "#E3F2FD", low: false },
-            { color: "transparent", low: false }, { color: "#BBDEFB", low: false },
+            { color: "#ECF3FC", low: true }, { color: "#ECF3FC", low: false },
+            { color: "transparent", low: false }, { color: "#DEE9FA", low: false },
         ]);
         expect(sourceOutlines(content, "fields", 1, false)[0]).toMatchObject({ color: "#FCE8E6", low: false });
         expect(sourceOutlines(content, "paragraphs", 1, false, defaultReviewSettings, undefined, undefined, true)[0])
@@ -113,7 +113,7 @@ describe("Studio view-specific source outlines", () => {
         const comparison = compareFields(labels.fields, content.fields, true);
         expect(sourceOutlines(content, "fields", 1, false)[0]).toMatchObject({ color: "#FCE8E6", low: false });
         expect(sourceOutlines(content, "fields", 1, false, defaultReviewSettings, comparison, labels)[0])
-            .toMatchObject({ color: "#C8E6C9", low: true });
+            .toMatchObject({ color: "#DCFBD7", low: true });
     });
 
     it("keeps missing-field filtering in sync with the result pane", () => {

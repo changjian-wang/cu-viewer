@@ -45,7 +45,7 @@ describe("approved review semantics", () => {
         expect(array.background).not.toBe(scalar.background);
         expect(array.boxShadow).toBe(scalar.boxShadow);
         const matched = fieldAppearance({ hasValue: true, confidence: 0.4 }, defaultReviewSettings, "matched", true);
-        expect(matched.background).toBe("#C8E6C9");
+        expect(matched.background).toBe("#DCFBD7");
         expect(matched.boxShadow).toBeTruthy();
         const missing = fieldAppearance(undefined, defaultReviewSettings, "missing");
         const different = fieldAppearance({ hasValue: true }, defaultReviewSettings, "different");

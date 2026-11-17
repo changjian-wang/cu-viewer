@@ -3,6 +3,24 @@ import type { Locator, Page } from "@playwright/test";
 
 const SOURCE_READY_TIMEOUT_MS = 15000;
 
+export async function screenshotPixels(page: Page, clip: { x: number; y: number; width: number; height: number }) {
+    const png = await page.screenshot({ clip, scale: "device" });
+    return page.evaluate(async encoded => {
+        const bitmap = await createImageBitmap(new Blob([
+            Uint8Array.from(atob(encoded), character => character.charCodeAt(0)),
+        ], { type: "image/png" }));
+        try {
+            const canvas = document.createElement("canvas");
+            canvas.width = bitmap.width; canvas.height = bitmap.height;
+            const context = canvas.getContext("2d");
+            if (!context) throw new Error("Screenshot pixel validation is unavailable.");
+            context.drawImage(bitmap, 0, 0);
+            return { width: canvas.width, height: canvas.height, ratio: devicePixelRatio,
+                data: Array.from(context.getImageData(0, 0, canvas.width, canvas.height).data) };
+        } finally { bitmap.close(); }
+    }, png.toString("base64"));
+}
+
 export function contrast(first: string, second: string): number {
     const luminance = (text: string): number => {
         const parts = text.match(/[\d.]+/g);
@@ -70,8 +88,19 @@ export async function selectResultView(pane: Locator, name: string): Promise<voi
 }
 
 export async function checkPolygon(page: Page, normalized: { x: number; y: number }[], rotation: number,
-    polygon: Locator = page.getByTestId("source-overlay").locator("polygon")): Promise<void> {
-    const coordinates = await polygon.evaluate(element => {
+    polygon?: Locator): Promise<void> {
+    let target = polygon ?? page.getByTestId("source-overlay").locator("polygon");
+    const fields = page.locator('[data-testid="result-overlay"][data-result-view="fields"]');
+    if (!polygon && await fields.count()) {
+        // Fields selection frames have deliberate padding; verify the original hit geometry here.
+        const id = await target.getAttribute("data-source-id");
+        const region = await target.getAttribute("data-region-index");
+        if (!id || region === null) throw new Error("Source projection requires one selected region.");
+        const selector = await page.evaluate(({ id, region }) =>
+            `polygon[data-outline-id="${CSS.escape(id)}"][data-region-index="${CSS.escape(region)}"]`, { id, region });
+        target = fields.locator(selector);
+    }
+    const coordinates = await target.evaluate(element => {
         if (!(element instanceof SVGPolygonElement)) throw new Error("Expected a rendered SVG polygon.");
         const polygon = element;
         const matrix = polygon.getScreenCTM();

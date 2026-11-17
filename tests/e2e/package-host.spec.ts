@@ -139,6 +139,18 @@ test("isolated packed React consumer preserves real PDF/PNG behavior and approve
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
     await expect(pane.locator(".cu-json-label", { hasText: /^"?usage"?:$/ })).toBeVisible();
+    for (const path of ["/result", "/result/contents", "/result/contents/0"]) {
+        await pane.locator(`[data-json-path="${path}"] > .cu-json-toggle`).click();
+    }
+    const fullText = pane.getByRole("button", { name: "View full text for /result/contents/0/markdown", exact: true });
+    await fullText.click();
+    const dialog = page.getByRole("dialog", { name: "markdown", exact: true });
+    const query = dialog.getByRole("searchbox", { name: "Search full text", exact: true });
+    await query.fill("INVOICE");
+    await expect(dialog.getByRole("status", { name: "Full text search results", exact: true })).toHaveText(/^1 \/ [1-9]\d*$/);
+    await query.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(fullText).toBeFocused();
     await pane.getByRole("tab", { name: "Paragraphs", exact: true }).click();
     await pane.getByRole("button", { name: "Select Paragraph 1", exact: true }).press("Enter");
     await expect(page.getByTestId("source-overlay")).toBeVisible();

@@ -21,6 +21,7 @@ interface SourcePaneProps {
     comparison?: FieldComparison | undefined;
     referenceMode?: boolean;
     fieldReview?: boolean;
+    compactLegend?: boolean;
     source: LoadedSource | null;
     loading: boolean;
     error: string | null;
@@ -465,10 +466,9 @@ export function SourcePane(props: SourcePaneProps) {
                         data-result-view={props.view} role="group" aria-label="Extracted source regions" focusable="false"
                         width={layerFrame?.size.width} height={layerFrame?.size.height}>
                         <g className="cu-source-highlight-edges" aria-hidden="true" pointerEvents="none">
-                            {background.outlines.filter(outline => outline.enabled).map(outline => <path key={outline.key} data-source-edge-id={outline.field.id}
+                            {background.outlines.filter(outline => outline.enabled && !outline.low).map(outline => <path key={outline.key} data-source-edge-id={outline.field.id}
                                 d={`M ${outline.polygon.map(point => `${point.x},${point.y}`).join(" L ")} Z`}
-                                fill="none" stroke={outline.low ? FIELD_REVIEW_COLORS.lowStroke : outline.color}
-                                data-low-confidence={outline.low || undefined} strokeWidth={outline.low ? 1.5 : 2} strokeLinejoin="round"
+                                fill="none" stroke={outline.color} strokeWidth={2} strokeLinejoin="round"
                                 vectorEffect="non-scaling-stroke" />)}
                         </g>
                         {background.outlines.map((outline, index) => <polygon key={outline.key} data-outline-id={outline.field.id}
@@ -488,6 +488,15 @@ export function SourcePane(props: SourcePaneProps) {
                                     if (next instanceof SVGPolygonElement) next.focus({ preventScroll: true });
                                 }
                             }} />)}
+                        {/* Paint confidence strokes after every fill so pixel-snapped polygons cannot cover them. */}
+                        {background.outlines.some(outline => outline.enabled && outline.low) &&
+                            <g className="cu-source-highlight-edges" aria-hidden="true" pointerEvents="none">
+                                {background.outlines.filter(outline => outline.enabled && outline.low).map(outline =>
+                                    <path key={outline.key} data-source-edge-id={outline.field.id} data-low-confidence="true"
+                                        d={`M ${outline.polygon.map(point => `${point.x},${point.y}`).join(" L ")} Z`}
+                                        fill="none" stroke={FIELD_REVIEW_COLORS.lowStroke} strokeWidth={1.5} strokeLinejoin="round"
+                                        vectorEffect="non-scaling-stroke" />)}
+                            </g>}
                     </svg>}
                     {/* Avoid double-painted antialiasing inside the existing fixed selection. */}
                     {layersReady && !previewInSelection && selectedPolygons.previewFrames.length > 0 && <svg className="cu-overlay cu-source-interaction" data-testid="preview-overlay"
@@ -529,6 +538,7 @@ export function SourcePane(props: SourcePaneProps) {
         </div>
         <SourceToolbar source={props.source} summaryId={`${sourceId}-summary`} toolbarRef={toolbar}
             labelMode={Boolean(props.referenceMode)} fieldReview={fieldReview}
+            compactLegend={props.compactLegend ?? false}
             comparisonAvailable={Boolean(props.comparison?.comparable)}
             settings={props.settings} onSettings={props.onSettings} onControlFocus={captureControlFocus}>
             <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}

@@ -208,7 +208,7 @@ test("missing and malformed results remain explicit while large content stays ac
     }, "unsupported-result.json");
     await pane.getByRole("tab", { name: "Result", exact: true }).click();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
-    await expect(pane.locator(".cu-json-label", { hasText: "rawDiagnostic:" })).toBeVisible();
+    await expect(pane.locator('[data-json-path="/rawDiagnostic"] > .cu-json-label')).toBeVisible();
     await expect(page.getByTestId("rendered-page")).toBeVisible();
 
     testInfo.annotations.push({
@@ -283,6 +283,8 @@ test("Result long strings preserve colored JSON escapes across fragments and res
     await text.evaluate(element => { element.scrollTop = element.scrollHeight; });
     await expect(text).toContainText("RAW_END");
     expect(await text.locator("pre").count()).toBeLessThan(8);
+    await page.keyboard.press("Shift+Tab");
+    await expect(dialog.getByRole("searchbox", { name: "Search full text", exact: true })).toBeFocused();
     await page.keyboard.press("Shift+Tab");
     await expect(dialog.getByRole("button", { name: "Close full text", exact: true })).toBeFocused();
     await page.keyboard.press("Escape");
@@ -431,9 +433,9 @@ test("GA and Preview derive Studio tabs from selected content without changing t
     await pane.getByRole("tab", { name: "Fields", exact: true }).press("End");
     await expect(pane.getByRole("tab", { name: "Result", exact: true })).toBeFocused();
     await expect(pane.getByRole("tree", { name: "Original Analyze result JSON" })).toBeVisible();
-    await expect(pane.locator(".cu-json-label", { hasText: "usage:" })).toBeVisible();
-    await pane.locator(".cu-json-label", { hasText: "result:" }).click();
-    await expect(pane.locator(".cu-json-label", { hasText: "futureProperty:" })).toBeVisible();
+    await expect(pane.locator('[data-json-path="/usage"] > .cu-json-toggle')).toBeVisible();
+    await pane.locator('[data-json-path="/result"] > .cu-json-toggle').click();
+    await expect(pane.locator('[data-json-path="/result/futureProperty"]')).toBeVisible();
     await pane.getByRole("tab", { name: "Result", exact: true }).press("ArrowLeft");
     await expect(pane.getByRole("table", { name: "Result information" })).toBeVisible();
     await expect(page.getByLabel("Zoom percentage")).toHaveText(zoom ?? "");

@@ -667,10 +667,10 @@ test("UI-33 source visibility never clears right-hand low-confidence emphasis", 
     await page.getByRole("switch", { name: "Show array highlights", exact: true }).uncheck();
     await expect(source(page, recipientId)).toHaveAttribute("fill", "none");
     await expect(source(page, cellId)).toHaveAttribute("fill", "none");
-    await expect(field).toHaveCSS("background-color", "rgb(227, 242, 253)");
-    await expect(cell).toHaveCSS("background-color", "rgb(187, 222, 251)");
-    await expect(field).toHaveCSS("box-shadow", /198, 40, 40/);
-    await expect(cell).toHaveCSS("box-shadow", /198, 40, 40/);
+    await expect(field).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(cell).toHaveCSS("background-color", "rgb(222, 233, 250)");
+    await expect(field).toHaveCSS("box-shadow", /180, 60, 75/);
+    await expect(cell).toHaveCSS("box-shadow", /180, 60, 75/);
     await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await expect(page.getByRole("tab", { name: "Tables", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
@@ -678,8 +678,8 @@ test("UI-33 source visibility never clears right-hand low-confidence emphasis", 
     await expect(cell).toHaveCSS("box-shadow", "none");
     await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await page.getByRole("tab", { name: "Fields", exact: true }).click();
-    await expect(field).toHaveCSS("background-color", "rgb(227, 242, 253)");
-    await expect(cell).toHaveCSS("background-color", "rgb(187, 222, 251)");
+    await expect(field).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(cell).toHaveCSS("background-color", "rgb(222, 233, 250)");
     await expect(field).toHaveCSS("box-shadow", "none");
     expect(await page.getByTestId("source-canvas").evaluate(element => {
         if (!(element instanceof HTMLCanvasElement)) throw new Error("Original source canvas disappeared.");
@@ -785,18 +785,18 @@ test("UI-33 threshold stepping, exact precision and invalid-input feedback remai
     await expect(page.locator(".cu-setting-hint strong")).toHaveText("0.699");
     const boundary = source(page, "/contents/0/fields/Boundary");
     const edge = page.getByTestId("result-overlay").locator('[data-source-edge-id="/contents/0/fields/Boundary"]');
-    await expect(boundary).toHaveAttribute("fill", "#E3F2FD");
+    await expect(boundary).toHaveAttribute("fill", "#ECF3FC");
     await expect(edge).not.toHaveAttribute("data-low-confidence");
     await threshold.fill("");
     await expect(threshold).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByRole("alert")).toContainText("Enter a confidence threshold");
-    await expect(boundary).toHaveAttribute("fill", "#E3F2FD");
+    await expect(boundary).toHaveAttribute("fill", "#ECF3FC");
     await expect(edge).not.toHaveAttribute("data-low-confidence");
     await threshold.fill("1.01");
     await expect(page.getByRole("alert")).toContainText("finite");
     await threshold.fill("0.70");
     await expect(page.getByRole("alert")).toHaveCount(0);
-    await expect(boundary).toHaveAttribute("fill", "#E3F2FD");
+    await expect(boundary).toHaveAttribute("fill", "#ECF3FC");
     await expect(edge).toHaveAttribute("data-low-confidence", "true");
     await page.keyboard.press("Escape");
     await ready(page);
@@ -843,11 +843,11 @@ for (const kind of ["pdf", "image"] as const) {
         await setSourceFills(true);
         await expect(page.getByTestId("result-overlay")).toHaveCSS("mix-blend-mode", "multiply");
         const cases = [
-            { id: "/contents/0/fields/InvoiceId", rgb: kind === "pdf" ? [227, 242, 253] : [232, 245, 233] },
-            { id: recipientId, rgb: kind === "pdf" ? [227, 242, 253] : [252, 232, 230] },
-            { id: "/contents/0/fields/Unknown", rgb: kind === "pdf" ? [227, 242, 253] : [241, 243, 245] },
-            { id: cellId, rgb: kind === "pdf" ? [187, 222, 251] : [246, 197, 204] },
-            { id: `${arrayId}/valueArray/0/valueObject/Column2`, rgb: kind === "pdf" ? [187, 222, 251] : [232, 241, 255] },
+            { id: "/contents/0/fields/InvoiceId", rgb: kind === "pdf" ? [236, 243, 252] : [232, 245, 233] },
+            { id: recipientId, rgb: kind === "pdf" ? [236, 243, 252] : [252, 232, 230] },
+            { id: "/contents/0/fields/Unknown", rgb: kind === "pdf" ? [236, 243, 252] : [241, 243, 245] },
+            { id: cellId, rgb: kind === "pdf" ? [222, 233, 250] : [246, 197, 204] },
+            { id: `${arrayId}/valueArray/0/valueObject/Column2`, rgb: kind === "pdf" ? [222, 233, 250] : [232, 241, 255] },
         ];
         const regions = [];
         for (const item of cases) {

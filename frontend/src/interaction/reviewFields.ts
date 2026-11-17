@@ -21,11 +21,10 @@ export const defaultReviewSettings: Readonly<ReviewSettings> = {
     columns: 2, paneRatio: 0.58, fieldRatio: 0.46,
 };
 
-// MUI palette; CC keeps the red 800 confidence outline at 80% opacity.
 export const FIELD_REVIEW_COLORS = {
-    default: "#E3F2FD", array: "#BBDEFB", matched: "#C8E6C9", error: "#FFCDD2", missing: "#EF9A9A",
-    lowStroke: "#C62828CC", confidenceBadgeBackground: "#FFEBEE", confidenceBadgeText: "#C62828",
-    hoverStroke: "#5E35B1", selectedStroke: "#4527A0",
+    default: "#ECF3FC", array: "#DEE9FA", matched: "#DCFBD7", error: "#FFDADD", missing: "#F8C0C8",
+    lowStroke: "#B43C4B99", confidenceBadgeBackground: "#FFDADD", confidenceBadgeText: "#9B1C1C",
+    hoverStroke: "#8063B5", selectedStroke: "#5B21B6",
 } as const;
 
 export function fieldAppearance(field: Pick<CuField, "confidence" | "hasValue"> | undefined, settings: ReviewSettings,

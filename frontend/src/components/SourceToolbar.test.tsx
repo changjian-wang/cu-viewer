@@ -132,6 +132,40 @@ function openLegend() {
 }
 
 describe("responsive source-toolbar legend", () => {
+    it("keeps explicitly unlabeled PDF controls beside their own colors and the 123 example", () => {
+        const props = toolbarProps();
+        render(<SourceToolbar {...props} fieldReview compactLegend />);
+        const { panel } = openLegend();
+        for (const [label, setting, category] of [
+            ["Show field highlights", "showFields", "default"],
+            ["Show array highlights", "showTables", "array"],
+            ["Show low confidence outlines", "highlightLow", "low-outline"],
+        ] as const) {
+            const control = within(panel).getByRole<HTMLInputElement>("switch", { name: label });
+            const group = control.closest(".cu-legend-group");
+            expect(group?.querySelector(`[data-legend-category="${category}"]`)).not.toBeNull();
+            expect(group?.getAttribute("data-setting")).toBe(setting);
+            expect(control.type).toBe("checkbox");
+            fireEvent.click(control);
+            expect(props.onSettings).toHaveBeenLastCalledWith({ ...props.settings, [setting]: false });
+        }
+        expect(panel.querySelectorAll(".cu-legend-group")).toHaveLength(3);
+        expect(panel.querySelector(".cu-legend-review-toggle")).toBeNull();
+        expect(panel.querySelector(".cu-legend-outline-swatch")?.textContent).toBe("123");
+    });
+
+    it.each([
+        ["reference", true, false, 2],
+        ["comparison", false, true, 3],
+    ] as const)("keeps %s labels on their existing Legend layout even if compact layout is requested", (_, labelMode, comparisonAvailable, count) => {
+        render(<SourceToolbar {...toolbarProps()} fieldReview compactLegend
+            labelMode={labelMode} comparisonAvailable={comparisonAvailable} />);
+        const { panel } = openLegend();
+        expect(panel.querySelectorAll(".cu-legend-review-toggle")).toHaveLength(count);
+        expect(panel.querySelector(".cu-ordinary-field-legend")).toBeNull();
+        expect(panel.querySelector(".cu-field-review-legend")).not.toBeNull();
+    });
+
     it("integrates the three accessible switches with their color descriptions and changes one flag at a time", () => {
         const { props } = setup({ ...defaultReviewSettings, threshold: 0.699 });
         const { panel } = openLegend();

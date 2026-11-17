@@ -1,26 +1,8 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
-import { expandField, ready, setShowConfidence } from "./viewerAssertions";
+import { expandField, ready, screenshotPixels, setShowConfidence } from "./viewerAssertions";
 
 test.use({ reducedMotion: "reduce", deviceScaleFactor: 1, launchOptions: { ignoreDefaultArgs: ["--hide-scrollbars"] } });
-
-async function screenshotPixels(page: Page, clip: { x: number; y: number; width: number; height: number }) {
-    const png = await page.screenshot({ clip, scale: "device" });
-    return page.evaluate(async encoded => {
-        const bitmap = await createImageBitmap(new Blob([
-            Uint8Array.from(atob(encoded), character => character.charCodeAt(0)),
-        ], { type: "image/png" }));
-        try {
-            const canvas = document.createElement("canvas");
-            canvas.width = bitmap.width; canvas.height = bitmap.height;
-            const context = canvas.getContext("2d");
-            if (!context) throw new Error("Screenshot pixel validation is unavailable.");
-            context.drawImage(bitmap, 0, 0);
-            return { width: canvas.width, height: canvas.height, ratio: devicePixelRatio,
-                data: Array.from(context.getImageData(0, 0, canvas.width, canvas.height).data) };
-        } finally { bitmap.close(); }
-    }, png.toString("base64"));
-}
 
 async function expectSingleBorder(page: Page, clip: { x: number; y: number; width: number; height: number },
     color: readonly [number, number, number], vertical: boolean, expected: number): Promise<void> {

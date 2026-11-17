@@ -18,6 +18,7 @@ import { ValueDetails } from "./ValueActions";
 import { revealFieldTarget } from "../interaction/fieldNavigation";
 import { useMarkdownDocument } from "../markdown/client";
 import type { FieldComparison } from "../model/fieldComparison";
+import type { JsonPaneState } from "./JsonPane";
 
 const MarkdownPane = lazy(() => import("./MarkdownPane").then(module => ({ default: module.MarkdownPane })));
 const JsonPane = lazy(() => import("./JsonPane").then(module => ({ default: module.JsonPane })));
@@ -28,6 +29,7 @@ const InfoPane = lazy(() => import("./InfoPane").then(module => ({ default: modu
 
 interface ResultsPaneProps {
     result: unknown;
+    jsonContext?: object;
     hasLabels?: boolean;
     labelContent?: CuContent | undefined;
     labelLoading?: boolean;
@@ -69,6 +71,9 @@ interface ResultsPaneProps {
 }
 
 export function ResultsPane(props: ResultsPaneProps) {
+    const jsonState = useMemo<JsonPaneState>(() => ({
+        nodes: new Map(), scroll: { top: 0, left: 0 }, validation: null,
+    }), [props.result, props.jsonContext]);
     const content = isFieldView(props.view) ? props.fieldContent ?? props.content : props.content;
     const [review, setReview] = useState(() => initialFieldsReview(content?.fields ?? []));
     const [localSettings, setLocalSettings] = useState({ ...defaultReviewSettings });
@@ -263,7 +268,7 @@ export function ResultsPane(props: ResultsPaneProps) {
                     onPageChange={page => setMarkdownChoice({ context: props.workflow.context, page })} />
             </Suspense>}
             {view === "result" && <Suspense fallback={<div className="cu-state" role="status">Loading Result view…</div>}>
-                <JsonPane value={props.result} />
+                <JsonPane value={props.result} viewState={jsonState} />
             </Suspense>}
             {view && !isFieldView(view) && view !== "markdown" && view !== "result" && <Suspense
                 fallback={<div className="cu-state" role="status">Loading {activeTab?.label} view…</div>}>
@@ -315,7 +320,7 @@ export function ResultsPane(props: ResultsPaneProps) {
                     run: () => { if (props.workflow.menu) void props.workflow.copy(props.workflow.menu.field); } },
             ]} />}
         {!isFieldView(view) && view !== "info" && view !== "paragraphs" && view !== "figures" && view !== "markdown" && <footer className="cu-results-footer">
-            {view === "result" && "Original input JSON. The root starts expanded; nested objects and arrays can be opened as needed."}
+            {view === "result" && "Original input JSON. Expansion, collection pages and reading position are kept for this result."}
             {view === "signatures" &&
                 "Select a returned item to locate its source. All regions on the active source page are highlighted; use document page navigation to view other pages."}
         </footer>}

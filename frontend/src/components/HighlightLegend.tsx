@@ -5,16 +5,18 @@ import type { ReviewSettings } from "../interaction/reviewFields";
 import { usePanelDismiss } from "../interaction/usePanelDismiss";
 import { ViewerIcon } from "./ViewerIcon";
 
-function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAvailable }: {
+function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAvailable, compactLegend }: {
     labelMode: boolean;
     fieldReview: boolean;
     comparisonAvailable: boolean;
+    compactLegend: boolean;
     settings: ReviewSettings; onChange: (settings: ReviewSettings) => void;
 }) {
     const id = useId();
+    const inlineControls = compactLegend && fieldReview && !labelMode && !comparisonAvailable;
     const switches: ("showFields" | "showTables" | "highlightLow")[] =
         labelMode ? ["showFields", "showTables"] : ["showFields", "showTables", "highlightLow"];
-    if (fieldReview) return <ul className="cu-legend-items cu-field-review-legend" aria-label="Highlighting legend entries">
+    if (fieldReview && !inlineControls) return <ul className="cu-legend-items cu-field-review-legend" aria-label="Highlighting legend entries">
         {([
             ["default", labelMode ? "Reference field or object label" : "Default field or object value", FIELD_REVIEW_COLORS.default],
             ["array", labelMode ? "Reference array label" : "Default array value", FIELD_REVIEW_COLORS.array],
@@ -45,7 +47,14 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
                 "Red outline below the confidence threshold; background still indicates matching." :
                 "Red outline below the confidence threshold; background still indicates the field type."}</span>}</li>)}
     </ul>;
-    const groups = [
+    const groups = inlineControls ? [
+        { setting: "showFields", label: "Show field highlights",
+            entries: [["default", false, 1, "Default field or object value", ""]] },
+        { setting: "showTables", label: "Show array highlights",
+            entries: [["array", true, 1, "Default array value", ""]] },
+        { setting: "highlightLow", label: "Show low confidence outlines",
+            entries: [["low-outline", false, 0, "Low confidence", "Confidence below threshold; field or array color is unchanged."]] },
+    ] as const : [
         { setting: "showFields", label: labelMode ? "Show label highlights" : "Show field highlights",
             entries: [["field", false, 1, labelMode ? "Field or object label" : "Field value",
                 labelMode ? "Reference label; not compared" : "At or above threshold"]] },
@@ -57,24 +66,27 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
             ["lowTable", true, 0, "Low-confidence table value", "Below threshold"],
         ] },
     ] as const;
-    return <ul className="cu-legend-items" aria-label="Highlighting legend entries">{groups.filter(group =>
+    return <ul className={`cu-legend-items${inlineControls ? " cu-ordinary-field-legend" : ""}`} aria-label="Highlighting legend entries">{groups.filter(group =>
         !labelMode || group.setting !== "highlightLow").map(({ setting, label, entries }) =>
         <li key={label} className={`cu-legend-group${setting === "highlightLow" ? " cu-legend-low-group" : ""}`}
-            data-setting={setting} aria-labelledby={setting === "highlightLow" ? `${id}-low-heading` : undefined}>
-            {setting === "highlightLow" && <h3 className="cu-legend-group-title" id={`${id}-low-heading`}>
+            data-setting={setting} aria-labelledby={setting === "highlightLow" && !inlineControls ? `${id}-low-heading` : undefined}>
+            {setting === "highlightLow" && !inlineControls && <h3 className="cu-legend-group-title" id={`${id}-low-heading`}>
                 Low confidence <span>Fields &amp; tables</span>
             </h3>}
             <div className="cu-legend-group-entries" id={`${id}-${setting}`}>
                 {entries.map(([category, table, confidence, name, description]) => {
-                    const style = appearance({ confidence }, table,
+                    const style = inlineControls ? { background: table ? FIELD_REVIEW_COLORS.array : FIELD_REVIEW_COLORS.default } : appearance({ confidence }, table,
                         { ...settings, threshold: 0.7, highlightLow: true }, labelMode);
-                    const explanation = !labelMode && !settings.highlightLow && (category === "field" || category === "table") ?
+                    const explanation = !inlineControls && !labelMode && !settings.highlightLow && (category === "field" || category === "table") ?
                         "All scored values while low-confidence highlight is off" : description;
                     return <div key={category} className="cu-legend-item" data-legend-category={category}
                         title={`${name} - ${explanation}`}>
-                        <span className="cu-legend-swatch" aria-hidden="true" style={{ background: style.background }} />
+                        {inlineControls && category === "low-outline" ?
+                            <span className="cu-legend-outline-swatch" aria-hidden="true"
+                                style={{ background: style.background, borderColor: FIELD_REVIEW_COLORS.lowStroke }}>123</span> :
+                            <span className="cu-legend-swatch" aria-hidden="true" style={{ background: style.background }} />}
                         <div className="cu-legend-label"><span className="cu-legend-name">{name}</span>
-                            <span className="cu-legend-description">{explanation}</span></div>
+                            {explanation && <span className="cu-legend-description">{explanation}</span>}</div>
                     </div>;
                 })}
             </div>
@@ -87,10 +99,11 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
     )}</ul>;
 }
 
-function LegendPanel({ id, anchor, settings, onChange, onClose, labelMode, fieldReview, comparisonAvailable }: {
+function LegendPanel({ id, anchor, settings, onChange, onClose, labelMode, fieldReview, comparisonAvailable, compactLegend }: {
     labelMode: boolean;
     fieldReview: boolean;
     comparisonAvailable: boolean;
+    compactLegend: boolean;
     id: string; anchor: HTMLElement; settings: ReviewSettings; onChange: (settings: ReviewSettings) => void;
     onClose: (restoreFocus: boolean) => void;
 }) {
@@ -104,15 +117,16 @@ function LegendPanel({ id, anchor, settings, onChange, onClose, labelMode, field
         <div className="cu-legend-heading"><h2 id={`${id}-title`}>Legend</h2><button type="button" className="cu-icon-button"
             aria-label="Close legend" onClick={() => onClose(true)}><ViewerIcon name="close" /></button></div>
         <LegendItems settings={settings} onChange={onChange} labelMode={labelMode}
-            fieldReview={fieldReview} comparisonAvailable={comparisonAvailable} />
+            fieldReview={fieldReview} comparisonAvailable={comparisonAvailable} compactLegend={compactLegend} />
     </section>;
 }
 
 export function HighlightLegend({ id, buttonRef, settings, onChange, open, onToggle, onClose, labelMode = false,
-    fieldReview = false, comparisonAvailable = false }: {
+    fieldReview = false, comparisonAvailable = false, compactLegend = false }: {
     labelMode?: boolean;
     fieldReview?: boolean;
     comparisonAvailable?: boolean;
+    compactLegend?: boolean;
     id: string; buttonRef: RefObject<HTMLButtonElement | null>; settings: ReviewSettings; open: boolean;
     onChange: (settings: ReviewSettings) => void; onToggle: () => void; onClose: (restoreFocus: boolean) => void;
 }) {
@@ -124,7 +138,7 @@ export function HighlightLegend({ id, buttonRef, settings, onChange, open, onTog
             </button>
             {open && buttonRef.current && <LegendPanel id={id} anchor={buttonRef.current}
                 settings={settings} onChange={onChange} onClose={onClose} labelMode={labelMode}
-                fieldReview={fieldReview} comparisonAvailable={comparisonAvailable} />}
+                fieldReview={fieldReview} comparisonAvailable={comparisonAvailable} compactLegend={compactLegend} />}
         </div>
     </div>;
 }

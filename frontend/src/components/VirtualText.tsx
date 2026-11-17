@@ -1,11 +1,12 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type { ReactNode, RefObject } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { MARKDOWN_FRAGMENT_CHARACTERS, textBoundary } from "../markdown/model";
 
-export function VirtualText({ text, label, className, viewportRef, renderText }: {
+export function VirtualText({ text, label, className, viewportRef, renderText, reveal }: {
     text: string; label: string; className: string; viewportRef?: RefObject<HTMLDivElement | null>;
     renderText?: (text: string, offset: number) => ReactNode;
+    reveal?: { offset: number } | null;
 }) {
     const ownViewport = useRef<HTMLDivElement>(null);
     const scroll = viewportRef ?? ownViewport;
@@ -27,6 +28,13 @@ export function VirtualText({ text, label, className, viewportRef, renderText }:
         overscan: 1,
         useAnimationFrameWithResizeObserver: true,
     });
+    useLayoutEffect(() => {
+        if (!reveal) return;
+        if (count === 1) { if (scroll.current) scroll.current.scrollTop = 0; return; }
+        let index = Math.min(count - 1, Math.floor(reveal.offset / MARKDOWN_FRAGMENT_CHARACTERS));
+        if (index < count - 1 && reveal.offset >= textBoundary(text, (index + 1) * MARKDOWN_FRAGMENT_CHARACTERS)) index++;
+        virtualizer.scrollToIndex(index, { align: "start" });
+    }, [reveal, count, text, scroll, virtualizer]);
     return <div ref={scroll} className="cu-rich-result-scroll" role="region" aria-label={label} tabIndex={0}>
         {count === 1 ? <pre className={className}>{content(0)}</pre> :
             <div className="cu-virtual-text-space" style={{ height: virtualizer.getTotalSize() }}>

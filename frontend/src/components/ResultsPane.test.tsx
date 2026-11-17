@@ -79,6 +79,7 @@ function renderPane(content: CuContent, selected: CuField | null = null,
     const collapse = screen.queryByRole("button", { name: "Collapse Rows" });
     if (collapse) fireEvent.click(collapse);
     return { ...view, onSelect,
+        rerenderResult: (result: unknown) => view.rerender(<TestPane {...props} result={result} />),
         rerenderContent: (next: CuContent) => view.rerender(<TestPane {...props} content={next} />),
         rerenderSelected: (selected: CuField | null) => view.rerender(<TestPane {...props} selected={selected} />),
     };
@@ -86,6 +87,31 @@ function renderPane(content: CuContent, selected: CuField | null = null,
 
 // Cold chunk loading has browser/resource gates; these tests exercise real view composition.
 beforeAll(async () => { await Promise.all([import("./MarkdownPane"), import("./JsonPane")]); }, 15000);
+
+it("keeps JSON expansion, collection pages and reading position across tabs and resets for a new result", async () => {
+    const raw = { nested: { values: Array.from({ length: 201 }, (_, index) => ({ value: `Row ${index}` })) } };
+    const view = renderPane(structuredContent().content, null, () => true, raw);
+    fireEvent.click(screen.getByRole("tab", { name: "Result" }));
+    const tree = await screen.findByRole("tree", { name: "Original Analyze result JSON" });
+    for (const path of ["/nested", "/nested/values"]) {
+        fireEvent.click(tree.querySelector<HTMLButtonElement>(`[data-json-path="${path}"] > .cu-json-toggle`)!);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Next JSON entries at /nested/values page" }));
+    fireEvent.click(tree.querySelector<HTMLButtonElement>('[data-json-path="/nested/values/100"] > .cu-json-toggle')!);
+    expect(screen.getByText('"Row 100"')).toBeTruthy();
+    const scroll = tree.closest<HTMLElement>(".cu-rich-result-scroll")!;
+    scroll.scrollTop = 320; scroll.scrollLeft = 12;
+    fireEvent.scroll(scroll);
+    fireEvent.click(screen.getByRole("tab", { name: "Fields" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Result" }));
+    const restored = await screen.findByRole("tree", { name: "Original Analyze result JSON" });
+    expect(screen.getByText('"Row 100"')).toBeTruthy();
+    expect(restored.querySelector('[data-json-path="/nested/values/0"]')).toBeNull();
+    expect(restored.closest<HTMLElement>(".cu-rich-result-scroll")!.scrollTop).toBe(320);
+    view.rerenderResult({ replacement: "New result" });
+    expect(await screen.findByText('"New result"')).toBeTruthy();
+    expect(screen.queryByText('"Row 100"')).toBeNull();
+});
 
 beforeEach(() => {
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });

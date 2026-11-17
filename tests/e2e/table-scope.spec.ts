@@ -86,8 +86,8 @@ test("UI-41 selecting and inspecting related values keeps the scope and distingu
     await expect(current).toHaveCSS("background-color", "rgb(229, 218, 255)");
     await expect(current).toHaveCSS("outline-style", "none");
     await expect(current.locator("td").first()).toHaveCSS("box-shadow", "none");
-    await expect(current.locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(227, 242, 253)");
-    await expect(current.locator(".cu-field-value-content")).toHaveCSS("box-shadow", /198, 40, 40/);
+    await expect(current.locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(current.locator(".cu-field-value-content")).toHaveCSS("box-shadow", /180, 60, 75/);
     const currency = page.locator('[data-field-id="/contents/0/fields/AmountDue/valueObject/CurrencyCode"]');
     await expect(currency).toHaveCSS("background-color", "rgb(248, 245, 255)");
     await expect(currency.locator(".cu-value-chip")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");

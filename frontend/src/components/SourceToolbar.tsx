@@ -7,10 +7,11 @@ import { HighlightLegend } from "./HighlightLegend";
 import { getFileIconName, ViewerIcon } from "./ViewerIcon";
 
 export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSettings, onControlFocus, children, labelMode = false,
-    fieldReview = false, comparisonAvailable = false }: {
+    fieldReview = false, comparisonAvailable = false, compactLegend = false }: {
     labelMode?: boolean;
     fieldReview?: boolean;
     comparisonAvailable?: boolean;
+    compactLegend?: boolean;
     source: LoadedSource | null;
     toolbarRef: RefObject<HTMLElement | null>; settings: ReviewSettings; onSettings: (settings: ReviewSettings) => void;
     summaryId: string;
@@ -45,7 +46,7 @@ export function SourceToolbar({ source, toolbarRef, settings, summaryId, onSetti
             <div className="cu-source-utilities">
                 <HighlightLegend id={`${id}-legend`} buttonRef={legendButton} settings={settings} onChange={onSettings} open={overlay === "legend"}
                     labelMode={labelMode}
-                    fieldReview={fieldReview} comparisonAvailable={comparisonAvailable}
+                    fieldReview={fieldReview} comparisonAvailable={comparisonAvailable} compactLegend={compactLegend}
                     onToggle={() => setOverlay(overlay === "legend" ? null : "legend")} onClose={close} />
                 {!labelMode && <button type="button" className="cu-icon-button" ref={settingsButton} aria-label="Source settings" aria-haspopup="dialog"
                     title="Source settings" aria-expanded={overlay === "settings"} onClick={() => setOverlay(overlay === "settings" ? null : "settings")}><ViewerIcon name="settings" /></button>}
