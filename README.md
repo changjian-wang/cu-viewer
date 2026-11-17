@@ -291,7 +291,7 @@ Tab 栏按可用宽度展示，放不下的标签收进右侧 `...` 下拉菜单
 ### Result 原文查阅
 
 - 同一份原始结果往返 Tab 或切换 content 后，保留 JSON 展开节点、集合页码和阅读位置；更换源文件、结果或标签输入时重置。这些状态只留在当前 Viewer 内存中，不写入浏览器偏好或 azd 配置。
-- 悬停 `spans` 或其中的单个条目，显示类似 Fields、带尖角的自定义浮层，替代浏览器原生 tooltip；只显示该 content 的 `markdown` 截取值，不附加 offset、length 或编码说明。展开按钮聚焦时显示同一预览，Escape 或滚动可关闭；浮层避开视口边缘，不被 JSON 滚动区裁切。索引尊重 `stringEncoding` 的 `codePoint`／`utf16`／`utf8` 单位，缺省为 `codePoint`，遵循 [AnalysisResult 契约](https://learn.microsoft.com/en-us/javascript/api/@azure/ai-content-understanding/analysisresult?view=azure-node-latest)。不按 JSON 转义后的显示文本截取，也不借用其他 content。无原文、非法范围或切开 Unicode 字符时明确提示；长／多条预览明确标注缩略，不改原值。
+- 悬停 `spans` 或其中的单个条目，显示类似 Fields、带尖角的自定义浮层，替代浏览器原生 tooltip；只显示该 content 的 `markdown` 截取值，不附加 offset、length 或编码说明。多段之间只换行、不额外插入空行，保留片段本身的换行。展开按钮聚焦时显示同一预览，Escape 或滚动可关闭；浮层避开视口边缘，不被 JSON 滚动区裁切。索引尊重 `stringEncoding` 的 `codePoint`／`utf16`／`utf8` 单位，缺省为 `codePoint`，遵循 [AnalysisResult 契约](https://learn.microsoft.com/en-us/javascript/api/@azure/ai-content-understanding/analysisresult?view=azure-node-latest)。不按 JSON 转义后的显示文本截取，也不借用其他 content。无原文、非法范围或切开 Unicode 字符时明确提示；长／多条预览明确标注缩略，不改原值。
 - View Full Text 内提供完整显示字面量的、不区分大小写的字面量搜索，不把输入当正则表达式；支持匹配计数、前后循环定位、Enter／Shift+Enter，以及窗口内 Ctrl／Command+F 聚焦搜索。查询 `\n` 等按窗口中可见的转义序列匹配。Copy 始终复制原始值。
 - 搜索覆盖离屏内容，分时索引可取消，只为可见片段生成合并高亮；保留原有 HTML／转义语法颜色和大文本虚拟化。上述功能只影响 Result，不改 PDF、Fields、labels 或 Legend。
 

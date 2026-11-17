@@ -28,6 +28,18 @@ describe("original Markdown span previews", () => {
         expect(jsonSpanPreview(result, "/contents/0/fields/a~1b~0/spans")).toContain("span entry is missing");
     });
 
+    it.each([
+        { name: "address lines", fragments: ["Microsoft Finance", "123 Bill St,", "Redmond WA, 98052"] },
+        { name: "paragraphs inside one span", fragments: ["First paragraph\n\nSecond paragraph", "Last span"] },
+    ])("separates $name by one newline without changing each fragment", ({ fragments }) => {
+        const markdown = fragments.join("\n");
+        const value = { contents: [{ markdown, fields: {
+            Address: { spans: fragments.map(fragment => ({ offset: markdown.indexOf(fragment), length: fragment.length })) },
+        } }] };
+        expect(jsonSpanPreview(value, "/contents/0/fields/Address/spans")).toBe(markdown);
+        expect(jsonSpanPreview(value, "/contents/0/fields/Address/spans/0")).toBe(fragments[0]);
+    });
+
     it("reports missing Markdown and invalid spans, and bounds aggregate and long previews explicitly", () => {
         const value = { contents: [{ markdown: "x".repeat(900), fields: {
             Long: { spans: [{ offset: 0, length: 900 }] },

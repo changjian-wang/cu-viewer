@@ -67,7 +67,7 @@ describe("original JSON result presentation", () => {
         const arrayTrigger = spans.querySelector<HTMLElement>(".cu-json-span-trigger")!;
         fireEvent.mouseEnter(arrayTrigger);
         let popup = screen.getByRole("tooltip", { name: "Span preview" });
-        expect(popup.textContent).toBe("$610.00\n\n<b>");
+        expect(popup.textContent).toBe("$610.00\n<b>");
         expect(popup.querySelector("b")).toBeNull();
         fireEvent.mouseLeave(arrayTrigger, { relatedTarget: popup });
         expect(screen.getByRole("tooltip")).toBe(popup);
@@ -86,7 +86,7 @@ describe("original JSON result presentation", () => {
         expect(screen.getByRole("tooltip")).toBe(popup);
         fireEvent.mouseEnter(arrayTrigger);
         expect(screen.getAllByRole("tooltip")).toHaveLength(1);
-        expect(screen.getByRole("tooltip").textContent).toBe("$610.00\n\n<b>");
+        expect(screen.getByRole("tooltip").textContent).toBe("$610.00\n<b>");
         expect(toggle.hasAttribute("aria-describedby")).toBe(false);
         fireEvent.mouseLeave(arrayTrigger);
         fireEvent.focus(toggle);

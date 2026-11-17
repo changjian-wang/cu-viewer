@@ -105,7 +105,7 @@ Tab 栏按可用宽度自动收纳，超出部分通过右侧 `...` 下拉菜单
 Result 的补充查阅要求：
 
 - 所有体量复用分页树，按 JSON Pointer 保存展开／集合页码；同一响应跨 Tab 和 content 保留状态与滚动，新输入重置，不持久化原文或查阅状态。大 JSON 的全量校验结果按该输入缓存。
-- `spans` 和条目使用类似 Fields、带尖角的自定义浮层，不使用浏览器原生 tooltip；鼠标悬停和展开按钮聚焦均显示所属 content Markdown 的截取值，不附加 offset、length 或编码说明。浮层保持在视口内、不被 JSON 滚动区裁切，支持 Escape 和滚动关闭。按 `stringEncoding` 的 `codePoint`／`utf16`／`utf8` 单位截取，缺省遵循服务的 `codePoint`。缺少原文、无效范围或 Unicode 边界错误明确提示，不能按转义显示坐标或别的 content 猜测。
+- `spans` 和条目使用类似 Fields、带尖角的自定义浮层，不使用浏览器原生 tooltip；鼠标悬停和展开按钮聚焦均显示所属 content Markdown 的截取值，不附加 offset、length 或编码说明。多段之间只换行、不额外插入空行，保留片段本身的换行。浮层保持在视口内、不被 JSON 滚动区裁切，支持 Escape 和滚动关闭。按 `stringEncoding` 的 `codePoint`／`utf16`／`utf8` 单位截取，缺省遵循服务的 `codePoint`。缺少原文、无效范围或 Unicode 边界错误明确提示，不能按转义显示坐标或别的 content 猜测。
 - 全文弹窗搜索完整显示字面量，不区分大小写、不解释正则，提供计数、前后循环定位、Enter／Shift+Enter；Ctrl／Command+F 仅在该弹窗内聚焦搜索。按可见转义查找，复制仍返回原字符串。
 - 分时、可取消的稀疏搜索索引与可见片段高亮必须覆盖离屏和跨片段命中，不为所有命中一次性创建 DOM；保留语法色、原文、安全边界及 PDF／labels／Fields／Legend 样式。
 
