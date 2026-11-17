@@ -8,20 +8,7 @@ import type { ResultView } from "../model/resultViews";
 import { isFieldView } from "../model/resultViews";
 import type { CuContent, CuField, CuPage, CuPoint, CuRegion } from "../model/types";
 
-export const WORD_LAYER_COLOR = "#FAFF7F40";
 export const SOURCE_POPOVER_GAP = 12;
-
-export function sourceWordOutlines(page: CuPage | undefined): { key: string; region: CuRegion }[] {
-    const seen = new Set<string>();
-    return (page?.words ?? []).flatMap(word => {
-        const region = word.region;
-        if (!region) return [];
-        const key = `${region.pageNumber}:${region.polygon.map(point => `${point.x},${point.y}`).join(";")}`;
-        if (seen.has(key)) return [];
-        seen.add(key);
-        return [{ key: word.id, region }];
-    });
-}
 
 export interface SourceOutline {
     key: string;

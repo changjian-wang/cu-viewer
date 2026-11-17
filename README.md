@@ -68,9 +68,9 @@ PDF 与 Markdown 的页码输入统一使用 0.5px 发丝底线，以内阴影�
 
 ### 本地标签与 Fields 对照
 
-2026-11-15 确认同时更新 `cu-viewer` 与配套 azure-dev 分支。组件负责渲染和只读比对，Demo 直接加载项目样本，也支持手工选择配对文件；相邻文件发现仍由 CLI 宿主负责，浏览器组件不擅自读取本地文件。Go 的 `azd ai cu label show invoice.pdf` 自动读取 `invoice.pdf.labels.json` 和可选的 `invoice.pdf.result.json`，不需要额外选项；旧 `label view` 保留为别名。读取无效或不支持的结果时，在终端和页面明确警告并继续显示标签。
+当前 Go azd 入口统一为 `azd ai cu analyze invoice.pdf --view`：沿用正常 Analyze 流程，自动检测 PDF 旁的 `invoice.pdf.labels.json`，将有效标签与本次完整分析结果对照，不读取相邻的已保存 `.result.json`，不再提供独立标签命令或别名。没有标签时正常查看分析结果；标签不可读或无效时，在终端和页面明确警告并继续显示分析结果。组件负责渲染和只读比对，Demo 直接加载项目样本，也支持手工选择配对文件；相邻文件发现仍由 CLI 宿主负责，浏览器组件不擅自读取本地文件。
 
-标签按 `fieldLabels` 和相应 `value*` 解析。仅标签／结果未声明首个 content 的 `fields` 时，Fields 显示 `Field Name / Label Value`；有效 `fields: {}` 仍启用对照，标签值判为漏提取。结果和标签均有效时显示 `Field Name / Label Value / Extracted Value`，按完整字段路径和类型值精确比较，保留大小写、空白、`0`、`false`、空字符串和 `null` 的区别。数组按原始下标配对；对象不因 JSON 属性顺序不同而误判。
+标签按 `fieldLabels` 和相应 `value*` 解析。仅标签／结果未声明首个 content 的 `fields` 时，Fields 显示 `Field Name / Label Value`；有效 `fields: {}` 仍启用对照，标签值判为漏提取。仅标签参考模式仍用于 Demo 和组件输入，不表示恢复独立 CLI 命令。结果和标签均有效时显示 `Field Name / Label Value / Extracted Value`，按完整字段路径和类型值精确比较，保留大小写、空白、`0`、`false`、空字符串和 `null` 的区别。数组按原始下标配对；对象不因 JSON 属性顺序不同而误判。
 
 PDF 的无标签 Fields 与标签模式统一视觉：普通／对象值使用淡蓝，数组稍深蓝；右侧值框和来源使用相同背景，低置信度仅增加独立红框，不再改变填色。浮层正文值一律为普通文字，不铺背景、不描边；标题和尖角恢复旧紫色背景 `#E5DAFF`，标题文字为 `#4C1D95`，不随匹配状态变化。右侧行高和值框保持紧凑样式。无标签仍保留原有 Field／Value／可选 Confidence 列、单张数组表和保存的布局，不增加 Label 列、双表或正确／错误统计。图片及非 Fields 详情维持既有配色与行为。
 
@@ -113,7 +113,7 @@ cu analyze sample.pdf --view --result sample.result.json
 
 当前 Go azd 分支从 `cu-viewer-static` 内嵌完整生产页面，不在运行时下载或缓存 Viewer，也没有 `viewer update` 命令、每日版本检查或 Node.js/Python 运行依赖。更新本仓库后，需要完整同步生产资源、重新构建并安装配套扩展；旧安装不会自动获得新页面。静态资源缺失在分析或浏览器启动前明确失败，不打开空白页、不重复分析。
 
-标签查看读取本地配套文件并保持服务前台运行至 Ctrl+C，不需要登录、项目、endpoint 或任何 Azure 调用。仅分析后查看的 `analyze --view` 才会发起其原有分析。宿主诊断写入 stderr，不污染原始结果输出。
+Go 的 `analyze --view` 沿用正常的分析和认证流程，Viewer 查看阶段不额外调用 Azure，也不改写 PDF、标签或结果。服务保持前台运行至 Ctrl+C；宿主诊断写入 stderr，不污染原始结果输出。
 
 其他语言宿主可各自实现 Release 下载／验证／缓存与只读本地托管，不依赖本仓库的 Python 包。历史资源预览 [v0.1.0-preview.1](https://github.com/changjian-wang/cu-viewer/releases/tag/v0.1.0-preview.1) 仍保留，但不代表当前 Go 分支正在使用它，也不代表 Python/C# 等宿主已经接入。旧 `python -m cu_viewer`、独立 `cu-viewer` 命令和 Python API 已移除。
 
@@ -291,7 +291,7 @@ Tab 栏按可用宽度展示，放不下的标签收进右侧 `...` 下拉菜单
 ### Result 原文查阅
 
 - 同一份原始结果往返 Tab 或切换 content 后，保留 JSON 展开节点、集合页码和阅读位置；更换源文件、结果或标签输入时重置。这些状态只留在当前 Viewer 内存中，不写入浏览器偏好或 azd 配置。
-- 悬停 `spans` 或其中的单个条目，原生提示显示该 content 的 `markdown` 截取内容；展开按钮的键盘说明包含同一预览。索引尊重 `stringEncoding` 的 `codePoint`／`utf16`／`utf8` 单位，缺省为 `codePoint`，遵循 [AnalysisResult 契约](https://learn.microsoft.com/en-us/javascript/api/@azure/ai-content-understanding/analysisresult?view=azure-node-latest)。不按 JSON 转义后的显示文本截取，也不借用其他 content。无原文、非法范围或切开 Unicode 字符时明确提示；长／多条预览明确标注缩略，不改原值。
+- 悬停 `spans` 或其中的单个条目，显示类似 Fields、带尖角的自定义浮层，替代浏览器原生 tooltip；只显示该 content 的 `markdown` 截取值，不附加 offset、length 或编码说明。展开按钮聚焦时显示同一预览，Escape 或滚动可关闭；浮层避开视口边缘，不被 JSON 滚动区裁切。索引尊重 `stringEncoding` 的 `codePoint`／`utf16`／`utf8` 单位，缺省为 `codePoint`，遵循 [AnalysisResult 契约](https://learn.microsoft.com/en-us/javascript/api/@azure/ai-content-understanding/analysisresult?view=azure-node-latest)。不按 JSON 转义后的显示文本截取，也不借用其他 content。无原文、非法范围或切开 Unicode 字符时明确提示；长／多条预览明确标注缩略，不改原值。
 - View Full Text 内提供完整显示字面量的、不区分大小写的字面量搜索，不把输入当正则表达式；支持匹配计数、前后循环定位、Enter／Shift+Enter，以及窗口内 Ctrl／Command+F 聚焦搜索。查询 `\n` 等按窗口中可见的转义序列匹配。Copy 始终复制原始值。
 - 搜索覆盖离屏内容，分时索引可取消，只为可见片段生成合并高亮；保留原有 HTML／转义语法颜色和大文本虚拟化。上述功能只影响 Result，不改 PDF、Fields、labels 或 Legend。
 

@@ -17,7 +17,8 @@ function document(markdown = "Original Markdown") {
 
 async function expand(page: Page, paths: readonly string[]) {
     for (const path of paths) {
-        const toggle = page.locator(`[data-json-path="${path}"] > .cu-json-toggle`);
+        const toggle = page.locator(`[data-json-path="${path}"]`)
+            .locator(":scope > .cu-json-toggle, :scope > .cu-json-span-trigger > .cu-json-toggle");
         if (await toggle.getAttribute("aria-expanded") !== "true") await toggle.click();
     }
 }
@@ -47,15 +48,44 @@ test("Result spans preview their own content in all declared encodings without c
         await expand(page, ["/result", "/result/contents", "/result/contents/1", "/result/contents/1/fields",
             "/result/contents/1/fields/Amount"]);
         const spans = page.locator('[data-json-path="/result/contents/1/fields/Amount/spans"]');
-        await spans.hover();
-        await expect(spans).toHaveAttribute("title", `offset ${offset}, length 7 (${encoding}):\n$610.00`);
+        await spans.locator(":scope > .cu-json-span-trigger").hover();
+        const popup = page.getByRole("tooltip", { name: "Span preview", exact: true });
+        await expect(popup).toHaveText("$610.00");
+        await expect(spans).not.toHaveAttribute("title");
+        const preview = await popup.evaluate(element => {
+            const bounds = element.getBoundingClientRect();
+            return { arrow: getComputedStyle(element, "::before").content,
+                insideViewport: bounds.left >= 8 && bounds.top >= 8 &&
+                    bounds.right <= innerWidth - 8 && bounds.bottom <= innerHeight - 8 };
+        });
+        expect(preview.arrow).not.toBe("none");
+        expect(preview.insideViewport).toBe(true);
+        const triggerBounds = await spans.locator(":scope > .cu-json-span-trigger").boundingBox();
+        const popupBounds = await popup.boundingBox();
+        if (!triggerBounds || !popupBounds) throw new Error("The span preview or its trigger is not visible.");
+        const gapY = await popup.getAttribute("data-side") === "above" ?
+            (popupBounds.y + popupBounds.height + triggerBounds.y) / 2 :
+            (triggerBounds.y + triggerBounds.height + popupBounds.y) / 2;
+        await page.mouse.move(triggerBounds.x + Math.min(18, triggerBounds.width / 2), gapY);
+        await expect(popup).toBeVisible();
+        await popup.hover();
+        await expect(popup).toBeVisible();
         await expand(page, ["/result/contents/1/fields/Amount/spans"]);
         const entry = page.locator('[data-json-path="/result/contents/1/fields/Amount/spans/0"]');
-        await entry.locator(":scope > .cu-json-toggle").focus();
-        await expect(entry.locator(":scope > .cu-json-toggle")).toHaveAttribute("aria-description", /610\.00/);
+        const toggle = entry.locator(":scope > .cu-json-span-trigger > .cu-json-toggle");
+        await toggle.focus();
+        await expect(popup).toHaveText("$610.00");
+        await expect(toggle).toHaveAttribute("aria-description", "$610.00");
+        await expect(toggle).toHaveAttribute("aria-describedby", `${await popup.getAttribute("id")}-content`);
+        await expand(page, ["/result/contents/1/fields/Amount/spans/0"]);
+        await expect(entry.locator('[data-json-path$="/offset"]')).toContainText(String(offset));
+        await expect(entry.locator('[data-json-path$="/length"]')).toContainText("7");
+        await toggle.press("Escape");
+        await expect(popup).toHaveCount(0);
+        await expect(toggle).toBeFocused();
         await expand(page, ["/result/contents/1/fields/Invalid"]);
-        await expect(page.locator('[data-json-path="/result/contents/1/fields/Invalid/spans"]'))
-            .toHaveAttribute("title", /Span preview unavailable/);
+        await page.locator('[data-json-path="/result/contents/1/fields/Invalid/spans"] > .cu-json-span-trigger').hover();
+        await expect(popup).toHaveText(/Span preview unavailable/);
         await expect(page.getByTestId("rendered-page")).toBeVisible();
     }
 });

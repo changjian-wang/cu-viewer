@@ -27,7 +27,6 @@
     "tests/e2e",
     "playwright.config.ts",
     "playwright.consumer.config.ts",
-    "playwright.cli.config.ts",
     "playwright.performance.config.ts",
     "vite.config.ts"
   ],

@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseCuResult } from "./parseCuResult";
-import { sourceWordOutlines } from "../source/sourceOverlays";
 
 function result(words: unknown, apiVersion = "2025-11-01") {
     return { apiVersion, contents: [{
@@ -32,7 +31,7 @@ describe("CU page word sources", () => {
         const model = parseCuResult(raw);
         expect(model.original).toBe(raw);
         expect(model.contents[0]?.pages[0]?.words?.[0]?.content).toBe("");
-        expect(sourceWordOutlines(model.contents[0]?.pages[0])).toHaveLength(1);
+        expect(model.contents[0]?.pages[0]?.words?.[0]?.region).toBeDefined();
         expect(Object.keys(word)).toEqual(["content", "source", "confidence"]);
         expect(word.source).toBe("D(1,10,20,40,20,40,30,10,30)");
     });
@@ -40,13 +39,13 @@ describe("CU page word sources", () => {
     it.each([undefined, null, []])("keeps missing or empty word data optional", words => {
         const model = parseCuResult(result(words));
         expect(model.issues).toEqual([]);
-        expect(sourceWordOutlines(model.contents[0]?.pages[0])).toEqual([]);
+        expect(model.contents[0]?.pages[0]?.words ?? []).toEqual([]);
     });
 
     it("retains word text without inventing geometry when source is absent", () => {
         const model = parseCuResult(result([{ content: "Ungrounded" }]));
         expect(model.contents[0]?.pages[0]?.words).toEqual([{ id: "/contents/0/pages/0/words/0", content: "Ungrounded" }]);
-        expect(sourceWordOutlines(model.contents[0]?.pages[0])).toEqual([]);
+        expect(model.contents[0]?.pages[0]?.words?.[0]?.region).toBeUndefined();
         expect(model.issues).toEqual([]);
     });
 
@@ -65,21 +64,21 @@ describe("CU page word sources", () => {
             { content: "Bad", source: "bad" }, { content: "Outside", source: "D(1,95,10,20,10)" },
             { content: "Wrong page", source: "D(2,10,20,30,10)" }, { content: "Missing page", source: "D(3,10,20,30,10)" },
         ]) });
-        expect(sourceWordOutlines(model.contents[0]?.pages[0])).toEqual([]);
+        expect(model.contents[0]?.pages[0]?.words?.some(word => word.region !== undefined)).toBe(false);
         expect(model.issues.map(issue => issue.code)).toEqual(["invalid-source", "source-out-of-bounds", "source-page-mismatch", "missing-source-page"]);
         expect(model.issues.every(issue => issue.path.startsWith("/result/contents/0/pages/0/words/"))).toBe(true);
         expect(model.contents[0]?.pages[0]?.words?.map(word => word.content)).toEqual(["Bad", "Outside", "Wrong page", "Missing page"]);
     });
 
-    it("uses the first word source region, matching Studio, and groups identical polygons only once", () => {
+    it("uses the first word source region and retains words that share a polygon", () => {
         const model = parseCuResult(result([
             { content: "First", source: "D(1,10,20,30,10);D(1,50,50,20,10)" },
             { content: "Duplicate", confidence: 0.99, source: "D(1,10,20,40,20,40,30,10,30)" },
         ]));
-        const outlines = sourceWordOutlines(model.contents[0]?.pages[0]);
-        expect(outlines).toHaveLength(1);
-        expect(outlines[0]?.key).toBe("/contents/0/pages/0/words/0");
-        expect(outlines[0]?.region.polygon[2]).toEqual({ x: 40, y: 30 });
+        const words = model.contents[0]?.pages[0]?.words;
+        expect(words?.map(word => word.content)).toEqual(["First", "Duplicate"]);
+        expect(words?.[0]?.region?.polygon[2]).toEqual({ x: 40, y: 30 });
+        expect(words?.[1]?.region).toEqual(words?.[0]?.region);
         expect(model.issues).toEqual([]);
     });
 
@@ -91,7 +90,7 @@ describe("CU page word sources", () => {
         page.height = 0;
         const model = parseCuResult(raw);
         expect(model.issues.map(issue => issue.code)).toEqual(["invalid-page-dimensions", "unavailable-source-geometry"]);
-        expect(sourceWordOutlines(model.contents[0]?.pages[0])).toEqual([]);
+        expect(model.contents[0]?.pages[0]?.words?.[0]?.region).toBeUndefined();
     });
 
     it.each([
@@ -103,7 +102,7 @@ describe("CU page word sources", () => {
         const model = parseCuResult(raw);
         const pages = model.contents[0]?.pages;
         expect(pages?.map(page => page.words?.length)).toEqual(counts);
-        expect(pages?.map(page => sourceWordOutlines(page).length)).toEqual(counts);
+        expect(pages?.map(page => page.words?.filter(word => word.region !== undefined).length)).toEqual(counts);
         expect(model.issues).toEqual([]);
         expect(model.original).toBe(raw);
         expect(JSON.stringify(raw)).toBe(before);

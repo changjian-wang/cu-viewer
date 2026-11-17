@@ -70,7 +70,7 @@ export function jsonSpanPreview(root: unknown, path: string): string | undefined
             }
             const text = sliceEncodedSpan(markdown, span.offset, span.length, encoding);
             const preview = text.slice(0, textBoundary(text, Math.min(512, text.length)));
-            return `offset ${span.offset}, length ${span.length} (${encoding}):\n${text.length ? preview : "(empty span)"}${
+            return `${text.length ? preview : "(empty span)"}${
                 preview.length < text.length ? "\n[Preview shortened]" : ""}`;
         });
         if (spans.length > 3) previews.push(`Showing 3 of ${spans.length} spans; hover an individual entry for its text.`);

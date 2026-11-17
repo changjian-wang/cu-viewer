@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { JsonPane, MAX_JSON_CHARACTERS, MAX_JSON_VALUES } from "./JsonPane";
 
 const dialogShow = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "showModal");
 const dialogClose = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "close");
 
 beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
     Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value(this: HTMLDialogElement) { this.open = true; } });
     Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value(this: HTMLDialogElement) { this.open = false; } });
 });
@@ -18,6 +19,7 @@ afterEach(() => {
     if (dialogClose) Object.defineProperty(HTMLDialogElement.prototype, "close", dialogClose);
     else Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
 });
 
 describe("original JSON result presentation", () => {
@@ -61,16 +63,65 @@ describe("original JSON result presentation", () => {
             fireEvent.click(toggle);
         }
         const spans = container.querySelector<HTMLElement>('[data-json-path="/result/contents/0/fields/Amount/spans"]')!;
-        expect(spans.title).toContain("$610.00");
-        expect(spans.title).toContain("<b>");
+        expect(spans.hasAttribute("title")).toBe(false);
+        const arrayTrigger = spans.querySelector<HTMLElement>(".cu-json-span-trigger")!;
+        fireEvent.mouseEnter(arrayTrigger);
+        let popup = screen.getByRole("tooltip", { name: "Span preview" });
+        expect(popup.textContent).toBe("$610.00\n\n<b>");
+        expect(popup.querySelector("b")).toBeNull();
+        fireEvent.mouseLeave(arrayTrigger, { relatedTarget: popup });
+        expect(screen.getByRole("tooltip")).toBe(popup);
+        fireEvent.mouseLeave(popup);
+        expect(screen.queryByRole("tooltip")).toBeNull();
         fireEvent.click(spans.querySelector("button")!);
         const entry = spans.querySelector<HTMLElement>('[data-json-path$="/spans/0"]')!;
-        expect(entry.title).toContain("offset 4, length 7 (codePoint):\n$610.00");
+        expect(entry.hasAttribute("title")).toBe(false);
         const toggle = entry.querySelector("button")!;
-        toggle.focus();
-        expect(toggle.getAttribute("aria-description")).toBe(entry.title);
+        act(() => toggle.focus());
+        popup = screen.getByRole("tooltip", { name: "Span preview" });
+        expect(popup.textContent).toBe("$610.00");
+        expect(toggle.getAttribute("aria-description")).toBe("$610.00");
+        expect(toggle.getAttribute("aria-describedby")).toBe(`${popup.id}-content`);
+        fireEvent.mouseLeave(entry.querySelector(".cu-json-span-trigger")!);
+        expect(screen.getByRole("tooltip")).toBe(popup);
+        fireEvent.mouseEnter(arrayTrigger);
+        expect(screen.getAllByRole("tooltip")).toHaveLength(1);
+        expect(screen.getByRole("tooltip").textContent).toBe("$610.00\n\n<b>");
+        expect(toggle.hasAttribute("aria-describedby")).toBe(false);
+        fireEvent.mouseLeave(arrayTrigger);
+        fireEvent.focus(toggle);
+        expect(screen.getByRole("tooltip").textContent).toBe("$610.00");
+        fireEvent.keyDown(toggle, { key: "Escape" });
+        expect(screen.queryByRole("tooltip")).toBeNull();
+        expect(document.activeElement).toBe(toggle);
         expect(container.querySelector("b")).toBeNull();
         expect(JSON.stringify(value)).toBe(before);
+    });
+
+    it("keeps span previews inside the viewport, above a bottom-edge trigger, and closes them on scroll", () => {
+        vi.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+            .mockReturnValue(new DOMRect(window.innerWidth - 30, window.innerHeight - 30, 20, 20));
+        vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(200);
+        vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(80);
+        const { container } = render(<JsonPane value={{ contents: [{
+            markdown: "Value", spans: [{ offset: 0, length: 5 }],
+        }] }} />);
+        for (const path of ["/contents", "/contents/0"]) {
+            fireEvent.click(container.querySelector(`[data-json-path="${path}"] > .cu-json-toggle`)!);
+        }
+        fireEvent.mouseEnter(container.querySelector(".cu-json-span-trigger")!);
+        const popup = screen.getByRole<HTMLElement>("tooltip", { name: "Span preview" });
+        expect(popup.textContent).toBe("Value");
+        expect(popup.getAttribute("data-side")).toBe("above");
+        expect(parseFloat(popup.style.left)).toBeGreaterThanOrEqual(8);
+        expect(parseFloat(popup.style.left) + 200).toBeLessThanOrEqual(window.innerWidth - 8);
+        expect(parseFloat(popup.style.top)).toBeGreaterThanOrEqual(8);
+        expect(parseFloat(popup.style.top) + 80).toBeLessThanOrEqual(window.innerHeight - 38);
+        expect(container.contains(popup)).toBe(false);
+        fireEvent.scroll(popup.querySelector(".cu-json-span-content")!);
+        expect(screen.getByRole("tooltip")).toBe(popup);
+        fireEvent.scroll(document);
+        expect(screen.queryByRole("tooltip")).toBeNull();
     });
 
     it("opens a large array in bounded pages and reaches the original last entry", async () => {

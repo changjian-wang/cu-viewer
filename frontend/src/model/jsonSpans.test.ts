@@ -22,8 +22,8 @@ describe("original Markdown span previews", () => {
         ] };
         const path = "/contents/1/fields/a~1b~0/spans";
         const before = JSON.stringify(result);
-        expect(jsonSpanPreview(result, path)).toContain("$610.00");
-        expect(jsonSpanPreview({ result }, `/result${path}/0`)).toContain("offset 1, length 7 (codePoint)");
+        expect(jsonSpanPreview(result, path)).toBe("$610.00");
+        expect(jsonSpanPreview({ result }, `/result${path}/0`)).toBe("$610.00");
         expect(JSON.stringify(result)).toBe(before);
         expect(jsonSpanPreview(result, "/contents/0/fields/a~1b~0/spans")).toContain("span entry is missing");
     });

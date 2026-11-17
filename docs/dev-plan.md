@@ -1495,6 +1495,11 @@ Status and the local URL go to stderr, preserving stdout data pipelines. Existin
 
 ### Shared Release resources and native CLI hosts
 
+The downloader pipeline below is retained as historical design for download-based hosts.
+The current Go azd extension instead embeds the complete production page and licenses;
+updating it requires rebuilding and reinstalling the extension, with no runtime download,
+cache or Viewer update command. See the [current Go integration](requirements.md#go-azd-扩展集成).
+
 ```text name="Production asset pipeline"
 src + production app + licensed runtime assets
     -> dist-app
@@ -1533,7 +1538,7 @@ Publish the shared resource pair before expecting successful public cold starts.
 | Highlighting | Source grounding is not an editable annotation product. Evaluated highlighter/OCR-tool patterns informed the adapter/geometry choice without importing their application or service architecture. |
 | Images | One image adapter, content-based recognition, representative orientation checks, and explicit unsupported/decode errors. Licensed equivalent JPEG/BMP derivatives are not independent Analyze pairs. |
 | HEIF | Pinned `heic-rs 0.1.4` under MIT OR Apache-2.0; owned Worker, checked-in runtime assets, lockfiles, notices/SBOM, and [source/resource provenance](../codecs/heic-rs-wasm/README.md). Automatic rebuilding is retired; no historical LGPL decoder is shipped. |
-| OCR base | Separate Canvas 2D rasterization tied to actual CSS frame/DPR; do not replace it with an unstable translucent SVG or change source pixels to hide differences. |
+| OCR data | Preserve parsed words, source geometry, warnings and original Result JSON without a permanent yellow layer or changes to source pixels. The unused word-painting component is retired. |
 | Rich results | Lazy activation with complete Markdown parsing/sanitization in a Worker, static ordinary pages, virtualized large blocks/tables and local original-text recovery; JSON preserves the complete caller input with on-demand expansion. Presentation budgets do not reject large Markdown pages. |
 | Evidence | [Fixture inventory](../tests/fixtures/manifest.json) retains acquisition, licenses, hashes, expected values, and real/derived/synthetic distinctions. Owner-approved [visual references](../tests/e2e/visual.spec.ts-snapshots) are regression inputs, not Studio pixel-copy requirements. |
 
@@ -1548,13 +1553,13 @@ Publish the shared resource pair before expecting successful public cold starts.
 | Fields/details / `2.6`, `4.1`, `4.2a` | [Fields](../frontend/src/components/ResultsPane.test.tsx), [detail panes](../frontend/src/components/DetailPanes.test.tsx), [detail browser checks](../tests/e2e/detail-results.spec.ts) | Nested/array/table behavior, all regions, state retention, crops and copy errors. |
 | Safe rich output / `4.2` | [Markdown model](../frontend/src/markdown/parse.test.ts), [client lifecycle](../frontend/src/markdown/client.test.ts), [Markdown](../frontend/src/components/MarkdownPane.test.tsx), [recovery](../frontend/src/components/MarkdownRecovery.test.tsx), [JSON](../frontend/src/components/JsonPane.test.tsx), [large Markdown browsers](../tests/e2e/markdown-large.spec.ts), [rich browser checks](../tests/e2e/rich-results.spec.ts), [production performance](../tests/e2e/performance.spec.ts) | Sanitization, cross-page semantics, complete raw data, bounded DOM/range responses, Worker reuse/disposal, local recovery and unchanged performance budgets. |
 | Source interactions / `4.3a` | [Source previews](../frontend/src/components/SourcePopover.test.tsx), [result selection](../frontend/src/components/ResultsPane.test.tsx), [Studio overlays](../tests/e2e/studio-overlays.spec.ts), [source tables](../tests/e2e/source-tables.spec.ts) | Correct preview contents, independent outlines/pins, exact direct table location, field/cell priority and preserved source state; no table icon/dialog. |
-| OCR base / `4.3a` | [Word parsing](../frontend/src/model/pageWords.test.ts), [WordLayer](../frontend/src/components/WordLayer.test.tsx), [word browser checks](../tests/e2e/word-overlay.spec.ts) | Correct source/color/ordering, deduplication, invalid-source warnings, cross-tab stability and cleanup. |
+| OCR data / `4.3a` | [Word parsing](../frontend/src/model/pageWords.test.ts), [word browser checks](../tests/e2e/word-overlay.spec.ts) | Preserve word text, source regions, invalid-source warnings and original JSON across views without a permanent OCR layer or source-resource churn. |
 | Keyboard/layout / `4.3a` | [Accessibility browser checks](../tests/e2e/accessibility.spec.ts) | Visible stable focus, keyboard equivalence, pane scrolling, page input and offscreen-target behavior. |
 | Visual regression / `3.2`, `4.2a`, `4.3a` | [Product visual tests](../tests/e2e/visual.spec.ts), [detail visual tests](../tests/e2e/detail-visual.spec.ts), approved Fields fixture | Existing zero-difference comparisons; no automatic re-recording, threshold relaxation, or UI masking. |
 | Browser source URLs / `3.1`, `3.3` | [Source input tests](../tests/e2e/source-inputs.spec.ts) and controlled loopback CORS host | HTTP/HTTPS/blob policy, explicit CORS failures, anonymous cross-origin behavior, viewer-origin assets. |
 | Independent package / `3.3` | [Consumer verifier](../scripts/verify-packed-consumers.mjs), [packed-host browser checks](../tests/e2e/package-host.spec.ts) | Real tgz installs with React 18/19, development/production assets, strict CSP, no source aliases. |
 | Shared resources / `5.2` | [Bash packaging tests](../tests/package-release.test.mjs), real Release opt-in and native Go integration in its own repository | Deterministic complete Release without Python/PowerShell, exact inventory, hashes, versions/paths, licenses and safe replacement; consumer protocol compatibility. |
-| Native CLI behavior / `5.1`, `5.2` | Each host repository's command/cache/service/integration tests; local Go evidence recorded above | Single analysis or zero-call saved viewing where supported, unchanged output, preparation before billing, no embedded frontend, explicit update, CSP and shutdown. Python/C# migration is separate work. |
+| Native CLI behavior / `5.1`, `5.2` | Each host repository's command/resource/service/integration tests; local Go evidence recorded above | Single analysis or zero-call saved viewing where supported, unchanged output, host-specific resource preparation before billing, CSP and shutdown. Go embeds its page; Python/C# migration is separate work. |
 
 ### Validation commands
 
