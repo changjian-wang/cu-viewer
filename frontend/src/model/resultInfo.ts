@@ -16,6 +16,9 @@ export function resultInfoEntries(input: unknown): ResultInfoEntry[] {
     if (!record(result)) return [];
     const prefix = wrapped ? "/result" : "";
     const entries: ResultInfoEntry[] = [];
+    for (const name of ["analyzerId", "apiVersion", "createdAt"] as const) {
+        if (Object.hasOwn(result, name)) entries.push({ name, path: `${prefix}/${name}`, value: result[name] });
+    }
     const metadata: ResultInfoEntry[] = [];
     const contents = result.contents;
     if (Array.isArray(contents)) contents.forEach((content: unknown, index: number) => {

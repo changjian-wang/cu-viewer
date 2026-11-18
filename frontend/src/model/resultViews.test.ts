@@ -57,7 +57,8 @@ describe("Studio result tab availability", () => {
             }],
         };
         const model = parseCuResult(raw);
-        expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id)).toEqual(["fields", "result"]);
+        expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id))
+            .toEqual(["fields", "info", "result"]);
     });
 
     it("keeps Signatures preview-only while Info shows returned data across API versions and contents", () => {
@@ -77,16 +78,16 @@ describe("Studio result tab availability", () => {
         expect(availableResultTabs(undefined, raw, "2025-11-01").map(tab => tab.id)).toEqual(["info", "result"]);
     });
 
-    it("does not add a Code tab even when the result includes analyzer context", () => {
+    it("shows analyzer context in Info without adding a Code tab", () => {
         expect(availableResultTabs(content({ analyzerId: "child" }), { analyzerId: "root" }, "2026-06-01-preview")
-            .map(tab => tab.id)).toEqual(["result"]);
+            .map(tab => tab.id)).toEqual(["info", "result"]);
     });
     it("hides Fields for table-only results without exposing a Tables tab or changing raw data", () => {
         const raw = { apiVersion: "2025-11-01", contents: [{ kind: "document",
             tables: [{ rowCount: 1, columnCount: 2, cells: [{ rowIndex: 0, columnIndex: 0, columnSpan: 2, content: "Raw native table" }] }],
         }] };
         const before = JSON.stringify(raw), model = parseCuResult(raw);
-        expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id)).toEqual(["result"]);
+        expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id)).toEqual(["info", "result"]);
         expect(model.contents[0]!.fields).toEqual([]);
         expect(model.original).toBe(raw);
         expect(JSON.stringify(raw)).toBe(before);
@@ -99,6 +100,6 @@ describe("Studio result tab availability", () => {
         }] };
         const model = parseCuResult(raw);
         expect(availableResultTabs(model.contents[0], raw, model.apiVersion).map(tab => tab.id))
-            .toEqual(["markdown", "result"]);
+            .toEqual(["markdown", "info", "result"]);
     });
 });

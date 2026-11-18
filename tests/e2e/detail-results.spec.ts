@@ -199,7 +199,9 @@ test("Info shows all content metadata, usage, infos and warnings in order with e
     const raw = {
         status: "Succeeded",
         result: {
+            analyzerId: "prebuilt-invoice",
             apiVersion: "2026-06-01-preview",
+            createdAt: "2026-10-09T02:26:46Z",
             contents: [{ kind: "document", metadata: { Title: "First document" } },
                 { kind: "document", metadata: { Title: "Second document" } }],
             infos: [{ code: "Details", message: "Returned information" }],
@@ -215,8 +217,11 @@ test("Info shows all content metadata, usage, infos and warnings in order with e
     const table = pane.getByRole("table", { name: "Result information", exact: true });
     await expect(table.getByRole("columnheader")).toHaveText(["Field", "Value"]);
     await expect(table.locator('tbody > tr[data-info-depth="0"] > th')).toHaveText([
-        "metadata", "usage", "infos", "warnings",
+        "analyzerId", "apiVersion", "createdAt", "metadata", "usage", "infos", "warnings",
     ]);
+    await expect(table.locator('tr[data-info-path="/result/analyzerId"] .cu-info-value')).toHaveText("prebuilt-invoice");
+    await expect(table.locator('tr[data-info-path="/result/apiVersion"] .cu-info-value')).toHaveText("2026-06-01-preview");
+    await expect(table.locator('tr[data-info-path="/result/createdAt"] .cu-info-value')).toHaveText("2026-10-09T02:26:46Z");
     await expect(table.locator('tbody > tr[data-info-depth="1"] > th').filter({ hasText: /^contents\[/ }))
         .toHaveText(["contents[0]", "contents[1]"]);
     await expect(table.getByRole("button", { name: /^Expand / })).toHaveCount(0);
@@ -684,7 +689,9 @@ test.describe("source thumbnails at DPR 2", () => {
         await pane.getByRole("button", { name: "Select Signature 1", exact: true }).press("Enter");
         await checkPolygon(page, [{ x: 0.5, y: 0.5 }, { x: 1, y: 0.5 }, { x: 1, y: 1 }, { x: 0.5, y: 1 }], 0);
         await pane.getByRole("tab", { name: "Info", exact: true }).click();
-        await expect(pane.getByRole("rowheader")).toHaveText(["metadata", "contents[0]", "Zebra", "Author"]);
+        await expect(pane.getByRole("rowheader")).toHaveText([
+            "analyzerId", "apiVersion", "metadata", "contents[0]", "Zebra", "Author",
+        ]);
         await expect(pane.getByText('<script>window.__bad=true</script>', { exact: true })).toBeVisible();
         await expect(pane.getByRole("button", { name: /^Copy/ })).toHaveCount(0);
 

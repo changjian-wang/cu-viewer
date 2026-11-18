@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { displayValue, fieldDisplayName, fieldLabel } from "../interaction/interaction";
 import { revealFieldTarget } from "../interaction/fieldNavigation";
-import { collapsedValue, FIELD_REVIEW_COLORS, inlineArrayProjection, orderedFields, orderedLeafFields } from "../interaction/reviewFields";
+import { collapsedValue, FIELD_REVIEW_COLORS, fieldEntries, inlineArrayProjection, moveField, orderedFields, orderedLeafFields } from "../interaction/reviewFields";
 import { comparisonOriginal, isComparisonError } from "../model/fieldComparison";
 import type { ComparisonFilter, FieldComparison } from "../model/fieldComparison";
 import type { FieldsPaneProps } from "./FieldsPane";
@@ -20,11 +20,19 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [choice, setChoice] = useState<{ context: object; filter: ComparisonFilter }>({ context: props.workflow.context, filter: "all" });
     const filter = comparable && choice.context === props.workflow.context ? choice.filter : "all";
+    const entries = useMemo(() => fieldEntries(comparison.fields), [comparison]);
+    const entryById = useMemo(() => new Map(entries.map(entry => [entry.field.id, entry])), [entries]);
     const [revision, setRevision] = useState(0);
     const onArrayReveal = useCallback(() => setRevision(value => value + 1), []);
     const pendingFocus = useRef(false);
+    const dragging = useRef<string | null>(null);
+    const [dragId, setDragId] = useState<string | null>(null);
+    const [dropTarget, setDropTarget] = useState<{ id: string; placement: "before" | "after" } | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
-    useEffect(() => { setSettingsOpen(false); setNotice(null); }, [props.workflow.context]);
+    useEffect(() => {
+        setSettingsOpen(false); setNotice(null);
+        dragging.current = null; setDragId(null); setDropTarget(null);
+    }, [props.workflow.context]);
     const selected = props.selected && comparison.byFieldId.get(props.selected.id);
     const inlineArrays = useMemo(() => new Set(comparison.nodes.filter(node =>
         node.field.type === "array" && inlineArrayProjection(node.field)).map(node => node.field.id)), [comparison]);
@@ -55,10 +63,54 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         for (const node of comparison.nodes.slice().reverse()) if (node.children.some(child => result.has(child.field.id))) result.add(node.field.id);
         return result;
     }, [comparison, search]);
+    const filtering = filter !== "all" || Boolean(review.query.trim());
+    const reorderReason = props.orderReadOnly ?
+        "Field order is read-only. Check the configuration; controlled order requires onFieldOrderChange." :
+        props.tableScope ? "Show all fields before reordering." :
+            filtering ? "Clear search and filters to reorder fields." : null;
     const navigation = useMemo(() => orderedLeafFields(comparison.fields, props.order, search)
         .map(field => comparison.byFieldId.get(field.id)!), [comparison, props.order, search]);
     const currentIndex = selected ? navigation.indexOf(selected) : -1;
-    const filtering = filter !== "all" || Boolean(review.query.trim());
+    const move = (from: string, to: string, placement?: "before" | "after"): void => {
+        try {
+            props.onOrder(moveField(entries, props.order, from, to, placement));
+            setNotice("Field display order updated.");
+        } catch (error) {
+            setNotice(`Reorder failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    };
+    const onFieldKey = (event: KeyboardEvent<HTMLElement>, node: FieldComparison["nodes"][number]): void => {
+        if (event.key === "Escape" && dragging.current) {
+            event.preventDefault(); event.stopPropagation();
+            dragging.current = null; setDragId(null); setDropTarget(null); setNotice("Reorder cancelled."); return;
+        }
+        if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+            event.preventDefault(); event.stopPropagation();
+            const entry = entryById.get(node.field.id);
+            if (!entry || entry.inArray || reorderReason) {
+                setNotice(reorderReason ?? "Array rows and cells cannot be reordered."); return;
+            }
+            const siblings = orderedFields(entries.filter(item => item.parent === entry.parent)
+                .map(item => item.field), entry.parent, props.order);
+            const index = siblings.findIndex(item => item.id === node.field.id);
+            const next = siblings[index + (event.key === "ArrowUp" ? -1 : 1)];
+            if (next) move(node.field.id, next.id);
+            return;
+        }
+        if (event.key === "F2") { event.preventDefault(); props.workflow.inspect(comparisonOriginal(comparison, node.field)); return; }
+        if (event.shiftKey && event.key === "F10") {
+            event.preventDefault(); props.onMenu(comparisonOriginal(comparison, node.field), event.currentTarget); return;
+        }
+        if (["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
+            const buttons = [...(viewport.current?.querySelectorAll<HTMLButtonElement>("[data-review-focus]") ?? [])];
+            const index = buttons.findIndex(button => button === event.currentTarget);
+            const target = event.key === "Home" ? buttons[0] : event.key === "End" ? buttons.at(-1) :
+                buttons[index + (event.key === "ArrowDown" ? 1 : -1)];
+            if (target && viewport.current) {
+                event.preventDefault(); target.focus({ preventScroll: true }); revealFieldTarget(target, viewport.current);
+            }
+        }
+    };
     const chooseNext = (direction: number): void => {
         const node = navigation[currentIndex < 0 ? direction > 0 ? 0 : navigation.length - 1 :
             (currentIndex + direction + navigation.length) % navigation.length];
@@ -98,10 +150,47 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         const open = filtering || review.expanded.has(node.field.id);
         const original = comparisonOriginal(comparison, node.field);
         const hovered = props.hovered && comparison.byFieldId.get(props.hovered.id) === node;
+        const entry = entryById.get(node.field.id);
         rows.push(<tr key={node.path} data-field-id={node.field.id} data-comparison-path={node.path}
             aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
-            className={`${node.children.length ? "is-group " : ""}${selected === node ? "is-selected " : ""}${hovered ? "is-hovered" : ""}`}>
+            className={`${node.children.length ? "is-group " : ""}${selected === node ? "is-selected " : ""}` +
+                `${dragId === node.field.id ? "is-dragging " : ""}` +
+                `${dropTarget?.id === node.field.id ? `cu-drop-${dropTarget.placement} ` : ""}${hovered ? "is-hovered" : ""}`}
+            onDragOver={event => {
+                const from = entryById.get(dragging.current ?? "");
+                if (!reorderReason && entry && from?.parent === entry.parent && !entry.inArray &&
+                    !from.inArray && from.field.id !== node.field.id) {
+                    event.preventDefault();
+                    const bounds = event.currentTarget.getBoundingClientRect();
+                    const placement = event.clientY < bounds.y + bounds.height / 2 ? "before" : "after";
+                    setDropTarget(current => current?.id === node.field.id && current.placement === placement ?
+                        current : { id: node.field.id, placement });
+                } else setDropTarget(null);
+            }}
+            onDrop={event => {
+                event.preventDefault();
+                if (dragging.current && !reorderReason) {
+                    const bounds = event.currentTarget.getBoundingClientRect();
+                    move(dragging.current, node.field.id, event.clientY < bounds.y + bounds.height / 2 ? "before" : "after");
+                }
+                dragging.current = null; setDragId(null); setDropTarget(null);
+            }}>
             <td><div className="cu-field-name-content" style={{ paddingLeft: 8 + Math.min(depth, 10) * 15 }}>
+                <button type="button" className="cu-drag-handle" tabIndex={-1}
+                    aria-label={`Reorder ${fieldLabel(node.field)}`}
+                    title={reorderReason ?? (entry?.inArray ? "Array business rows and cells cannot be reordered." :
+                        "Drag among siblings; Alt+Up/Down on the field also reorders.")}
+                    disabled={Boolean(reorderReason || entry?.inArray)} draggable={!reorderReason && !entry?.inArray}
+                    onDragStart={event => {
+                        if (!entry) { event.preventDefault(); return; }
+                        dragging.current = node.field.id; setDragId(node.field.id);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", entry.path);
+                        event.dataTransfer.setDragImage(event.currentTarget.closest("tr") ?? event.currentTarget, 12, 12);
+                    }}
+                    onDragEnd={() => { dragging.current = null; setDragId(null); setDropTarget(null); }}>
+                    <ViewerIcon name="grip" />
+                </button>
                 {node.children.length ? <button type="button" className="cu-expand" aria-label={`${open ? "Collapse" : "Expand"} ${fieldDisplayName(node.field)}`}
                     aria-expanded={open} disabled={filtering} onClick={() => props.setReview(current => {
                         const expanded = new Set(current.expanded);
@@ -124,20 +213,11 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                             return { ...current, expanded };
                         });
                     }}
-                    onKeyDown={event => {
-                        if (event.key === "F2") { event.preventDefault(); props.workflow.inspect(original); }
-                        if (event.shiftKey && event.key === "F10") { event.preventDefault(); props.onMenu(original, event.currentTarget); }
-                        if (["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
-                            const buttons = [...(viewport.current?.querySelectorAll<HTMLButtonElement>("[data-review-focus]") ?? [])];
-                            const index = buttons.indexOf(event.currentTarget);
-                            const target = event.key === "Home" ? buttons[0] : event.key === "End" ? buttons.at(-1) :
-                                buttons[index + (event.key === "ArrowUp" ? -1 : 1)];
-                            if (target) { event.preventDefault(); target.focus({ preventScroll: true }); if (viewport.current) revealFieldTarget(target, viewport.current); }
-                        }
-                    }}>{fieldDisplayName(node.field)}</button>
+                    onKeyDown={event => onFieldKey(event, node)}>{fieldDisplayName(node.field)}</button>
             </div></td>
             <td><ComparisonValue node={node} side="label" props={props} /></td>
-            {comparable && <td><ComparisonValue node={node} side="extracted" props={props} /></td>}
+            {comparable && <td><ComparisonValue node={node} side="extracted" props={props}
+                objectSummary={node.field.type === "object" && node.children.length > 0} /></td>}
         </tr>);
         if (!open || !node.children.length) continue;
         if (inlineArrays.has(node.field.id)) {
@@ -199,7 +279,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                 onClick={() => setSettingsOpen(open => !open)}><ViewerIcon name="settings" /></button></div>
             {settingsOpen && settingsButton.current && <FieldsSettings id={`${id}-settings`} anchor={settingsButton.current}
                 hideConfidence settings={props.settings} onSettings={props.onSettings} onResetOrder={() => props.onOrder({})}
-                resetOrderDisabledReason={props.orderReadOnly ? "Field order is read-only." : null}
+                resetOrderDisabledReason={props.orderReadOnly || props.tableScope ? reorderReason : null}
                 onObjectExpansion={open => props.setReview(current => {
                     const expanded = new Set(current.expanded);
                     for (const node of comparison.nodes) if (node.field.type === "object") {

@@ -22,7 +22,7 @@ export const defaultReviewSettings: Readonly<ReviewSettings> = {
 };
 
 export const FIELD_REVIEW_COLORS = {
-    default: "#ECF3FC", array: "#DEE9FA", matched: "#DCFBD7", error: "#FFDADD", missing: "#F8C0C8",
+    default: "#ECF3FC", array: "#DEE9FA", matched: "#DCFBD7", error: "#FFDADD", missing: "#F8C0C8", partial: "#ffcc80",
     lowStroke: "#B43C4B99", confidenceBadgeBackground: "#FFDADD", confidenceBadgeText: "#9B1C1C",
     hoverStroke: "#8063B5", selectedStroke: "#5B21B6",
 } as const;

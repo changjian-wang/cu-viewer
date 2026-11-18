@@ -1,4 +1,4 @@
-import { GeometryError } from "./geometry";
+import { GeometryError, pointInPolygon } from "./geometry";
 import type { PageSize } from "./geometry";
 import { fieldRegions, isFieldGroup } from "../interaction/interaction";
 import { appearance, defaultReviewSettings, fieldAppearance, isTableValue } from "../interaction/reviewFields";
@@ -80,6 +80,48 @@ function sourceBounds(polygon: readonly CuPoint[]): SourceBounds {
     const top = Math.min(...polygon.map(point => point.y)), bottom = Math.max(...polygon.map(point => point.y));
     if (right <= left || bottom <= top) throw new GeometryError("invalid-source", "Source preview bounds must have positive dimensions.");
     return { left, right, top, bottom, width: right - left, height: bottom - top };
+}
+
+export function monetarySourcePairs<T extends SourceOutline & { polygon: readonly CuPoint[] }>(
+    outlines: readonly T[], comparison: FieldComparison | undefined,
+): { amount: T; currency: T }[] {
+    if (!comparison?.comparable) return [];
+    const byField = new Map<string, T[]>();
+    for (const outline of outlines) {
+        const values = byField.get(outline.field.id) ?? [];
+        values.push(outline);
+        byField.set(outline.field.id, values);
+    }
+    const pairs = outlines.flatMap(amount => {
+        const field = amount.field, suffix = "/valueObject/Amount";
+        if (!field.id.endsWith(suffix) || !field.hasValue || typeof field.value !== "number" ||
+            comparison.byFieldId.get(field.id)?.extracted !== field) return [];
+        const parent = comparison.byFieldId.get(field.id.slice(0, -suffix.length))?.extracted;
+        if (parent?.type !== "object" || !parent.children.includes(field)) return [];
+        const currency = parent.children.find(child => child.name === "CurrencyCode");
+        if (!currency?.hasValue || typeof currency.value !== "string" || !currency.value.trim()) return [];
+        const amountBounds = sourceBounds(amount.polygon);
+        const center = amount.polygon.reduce((sum, point) => ({
+            x: sum.x + point.x / amount.polygon.length, y: sum.y + point.y / amount.polygon.length,
+        }), { x: 0, y: 0 });
+        const candidates = (byField.get(currency.id) ?? []).filter(candidate => {
+            if (candidate.region.pageNumber !== amount.region.pageNumber || !pointInPolygon(center, candidate.polygon)) return false;
+            const bounds = sourceBounds(candidate.polygon);
+            const overlapX = Math.max(0, Math.min(amountBounds.right, bounds.right) - Math.max(amountBounds.left, bounds.left));
+            const overlapY = Math.max(0, Math.min(amountBounds.bottom, bounds.bottom) - Math.max(amountBounds.top, bounds.top));
+            // Separate OCR estimates can differ slightly at the edges, but a much larger region is ambiguous.
+            return overlapX >= amountBounds.width * 0.9 && overlapY >= amountBounds.height * 0.9 &&
+                bounds.width * bounds.height <= amountBounds.width * amountBounds.height * 4;
+        });
+        return candidates.map(candidate => ({ amount, currency: candidate }));
+    });
+    const amountCounts = new Map<T, number>();
+    const currencyCounts = new Map<T, number>();
+    for (const pair of pairs) {
+        amountCounts.set(pair.amount, (amountCounts.get(pair.amount) ?? 0) + 1);
+        currencyCounts.set(pair.currency, (currencyCounts.get(pair.currency) ?? 0) + 1);
+    }
+    return pairs.filter(pair => amountCounts.get(pair.amount) === 1 && currencyCounts.get(pair.currency) === 1);
 }
 
 export function sourceObjectPreviewFrame(regions: readonly SourceRegionPolygon[]): SourceSelectionFrame | undefined {

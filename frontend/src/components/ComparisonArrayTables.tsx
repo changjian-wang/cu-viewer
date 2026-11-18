@@ -142,10 +142,10 @@ export function ComparisonArrayTables({ node, comparison, props, request, onReve
             }
         }}>
         {comparison.comparable && <div className="cu-array-layout-controls" role="group" aria-label={`${fieldLabel(node.field)} array layout`}>
-            <button type="button" aria-pressed={!sideBySide}
-                onClick={() => setLayout({ context: props.workflow.context, sideBySide: false })}>Stacked</button>
             <button type="button" aria-pressed={sideBySide}
                 onClick={() => setLayout({ context: props.workflow.context, sideBySide: true })}>Side by side</button>
+            <button type="button" aria-pressed={!sideBySide}
+                onClick={() => setLayout({ context: props.workflow.context, sideBySide: false })}>Stacked</button>
         </div>}
         {sides.map(side =>
         <ArrayTable key={side} node={node} side={side} projection={projection} columnWidths={columnWidths} comparison={comparison}

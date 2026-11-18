@@ -5,13 +5,13 @@ import { createPageGeometry, getFitZoom, getRevealOffset, getScrollablePageLayou
 import type { LoadedSource } from "../source/source";
 import { hasSourcePage, unavailableSourcePageMessage } from "../source/source";
 import type { CuContent, CuField, CuPoint, CuRegion } from "../model/types";
-import { fieldLabel, isFieldGroup } from "../interaction/interaction";
+import { fieldLabel, fieldRegions, isFieldGroup } from "../interaction/interaction";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import { FIELD_REVIEW_COLORS, isLowConfidence } from "../interaction/reviewFields";
 import type { FieldComparison } from "../model/fieldComparison";
 import type { ResultView } from "../model/resultViews";
 import type { SourceOutline } from "../source/sourceOverlays";
-import { isValueSourceField, outsetSourceFrame, SOURCE_POPOVER_GAP, sourceObjectPreviewFrame, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
+import { isValueSourceField, monetarySourcePairs, outsetSourceFrame, SOURCE_POPOVER_GAP, sourceObjectPreviewFrame, sourcePopoverPoints, sourceSelectionFrames } from "../source/sourceOverlays";
 import { SourcePopover } from "./SourcePopover";
 import { useSourceRendering } from "../source/useSourceRendering";
 import { SourceToolbar } from "./SourceToolbar";
@@ -211,6 +211,8 @@ export function SourcePane(props: SourcePaneProps) {
             return { outlines, tables, error: null };
         } catch (error) { return { outlines: [], tables: [], error: error instanceof Error ? error.message : String(error) }; }
     }, [props.outlines, props.content, props.pageNumber, geometry, projectionSize, rotation]);
+    const monetaryPairs = useMemo(() => monetarySourcePairs(background.outlines, props.comparison),
+        [background.outlines, props.comparison]);
     const selectedPolygons = useMemo(() => {
         const project = (field: CuField | null, regions: readonly CuRegion[]) => {
             if (!field || !projectionSize) return [];
@@ -225,20 +227,59 @@ export function SourcePane(props: SourcePaneProps) {
             const pinned = project(props.pinned, props.pinnedRegions);
             const preview = props.preview ? project(props.active, props.regions) : [];
             const framesFor = (field: CuField | null, regions: typeof pinned) => {
-                const merge = isValueSourceField(props.view, field) && regions.length > 1;
                 const compared = field && props.comparison?.byFieldId.get(field.id);
-                return merge ? sourceSelectionFrames(regions,
+                const related = monetaryPairs.filter(pair => pair.amount.field.id === compared?.extracted?.id);
+                const extractedGroup = field?.type === "object" ? compared?.extracted : undefined;
+                const groupPairs = extractedGroup && (field?.origin === "label" || field === extractedGroup) ?
+                    monetaryPairs.filter(pair => extractedGroup.children.includes(pair.amount.field) &&
+                        extractedGroup.children.includes(pair.currency.field)) : [];
+                if (field && groupPairs.length) {
+                    if (field.origin === "label") {
+                        const monetaryNodes = compared?.children.filter(node => groupPairs.some(pair =>
+                            node.extracted === pair.amount.field || node.extracted === pair.currency.field)) ?? [];
+                        const monetaryRegions = monetaryNodes.flatMap(node => fieldRegions(node.label ?? null));
+                        if (fieldRegions(field).every(region => monetaryRegions.includes(region))) {
+                            return sourceSelectionFrames(regions, background.outlines.filter(outline =>
+                                !monetaryNodes.some(node => node === props.comparison?.byFieldId.get(outline.field.id)) &&
+                                !groupPairs.some(pair => pair.currency === outline)).map(outline => outline.polygon), true);
+                        }
+                    } else {
+                        const originals = fieldRegions(field);
+                        const grouped = groupPairs.flatMap(pair => {
+                            const amount = regions.find(region => region.regionIndex === originals.indexOf(pair.amount.region));
+                            const currency = regions.find(region => region.regionIndex === originals.indexOf(pair.currency.region));
+                            const frame = amount && currency && sourceObjectPreviewFrame([amount, currency]);
+                            return frame ? [frame] : [];
+                        });
+                        if (grouped.length) return regions.flatMap(region => {
+                            const frame = grouped.find(item => item.regionIndices.includes(region.regionIndex));
+                            return frame ? frame.regionIndices[0] === region.regionIndex ? [frame] : [] :
+                                [{ regionIndices: [region.regionIndex], polygon: region.polygon }];
+                        });
+                    }
+                }
+                const display = field?.origin === "label" ? regions : regions.map(region => {
+                    const pair = related.find(item => item.amount.regionIndex === region.regionIndex);
+                    return pair ? { ...region, polygon: sourceObjectPreviewFrame([
+                        region, { regionIndex: region.regionIndex, polygon: pair.currency.polygon },
+                    ])!.polygon } : region;
+                });
+                const merge = isValueSourceField(props.view, field) && display.length > 1;
+                return merge ? sourceSelectionFrames(display,
                     background.outlines.filter(outline => outline.field.id !== field.id &&
-                        (!compared || props.comparison?.byFieldId.get(outline.field.id) !== compared)).map(outline => outline.polygon),
+                        (!compared || props.comparison?.byFieldId.get(outline.field.id) !== compared) &&
+                        !related.some(pair => pair.currency === outline)).map(outline => outline.polygon),
                     field.origin === "label") :
-                    regions.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
+                    display.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
             };
             const decorate = (frames: ReturnType<typeof sourceSelectionFrames>, field: CuField | null) => {
                 const extracted = field && (props.comparison?.byFieldId.get(field.id)?.extracted ??
                     (fieldReview && field.origin !== "label" ? field : undefined));
                 const confidenceFrame = extracted && background.outlines.some(outline =>
                     outline.field.hasValue && isLowConfidence(outline.field, props.settings.threshold) &&
-                    (outline.field.id === extracted.id || outline.field.id.startsWith(`${extracted.id}/`)));
+                    (outline.field.id === extracted.id || outline.field.id.startsWith(`${extracted.id}/`) ||
+                        monetaryPairs.some(pair => (pair.amount.field.id === extracted.id || pair.currency.field.id === extracted.id) &&
+                            (pair.amount === outline || pair.currency === outline))));
                 // Leave room for both strokes and their antialiased edges.
                 const padding = confidenceFrame ? 3 : field?.origin === "label" ? 1 : 0;
                 return padding ? frames.map(frame => ({ ...frame, polygon: outsetSourceFrame(frame.polygon, padding) })) : frames;
@@ -254,7 +295,7 @@ export function SourcePane(props: SourcePaneProps) {
                 error: null,
             };
         } catch (error) { return { pinned: [], preview: [], frames: [], previewFrames: [], card: undefined, error: error instanceof Error ? error.message : String(error) }; }
-    }, [background, projectionSize, rotation, props.content, props.labelContent, props.view, props.pinned, props.pinnedRegions,
+    }, [background, monetaryPairs, projectionSize, rotation, props.content, props.labelContent, props.view, props.pinned, props.pinnedRegions,
         props.preview, props.active, props.regions, props.regionIndex, props.pageNumber, props.comparison, props.settings.threshold,
         showCard, valuePreview, objectPreview, fieldReview]);
     const interactingReviewFields = [props.preview && props.pointerPreview ? props.active : null, props.pinned].flatMap(field => {
@@ -263,9 +304,18 @@ export function SourcePane(props: SourcePaneProps) {
             (fieldReview && field.origin !== "label" ? field : undefined);
         return extracted ? [extracted] : [];
     });
+    const interactingMoney = monetaryPairs.filter(pair => interactingReviewFields.some(field =>
+        [pair.amount.field.id, pair.currency.field.id].some(id => id === field.id || id.startsWith(`${field.id}/`))));
+    const monetaryConfidenceFrames = monetaryPairs.flatMap(pair => {
+        if (!pair.amount.enabled || !pair.currency.enabled || !(pair.amount.low || pair.currency.low)) return [];
+        const frame = sourceObjectPreviewFrame([pair.amount, pair.currency]);
+        return frame ? [{ pair, polygon: frame.polygon }] : [];
+    });
+    const pairedConfidenceOutlines = new Set(monetaryConfidenceFrames.flatMap(frame =>
+        [frame.pair.amount, frame.pair.currency]));
     const interactingLowPolygons = background.outlines.filter(outline => outline.enabled && outline.low &&
-        interactingReviewFields.some(field => outline.field.id === field.id ||
-            outline.field.id.startsWith(`${field.id}/`))).map(outline => outline.polygon);
+        (interactingReviewFields.some(field => outline.field.id === field.id || outline.field.id.startsWith(`${field.id}/`)) ||
+            interactingMoney.some(pair => pair.amount === outline || pair.currency === outline))).map(outline => outline.polygon);
     const activePolygons = props.preview ? selectedPolygons.preview : selectedPolygons.pinned;
     const cardPolygon = selectedPolygons.card;
     const measureCard = useCallback((next: PageSize): void => {
@@ -378,7 +428,10 @@ export function SourcePane(props: SourcePaneProps) {
         const frame = renderedPage.current?.getBoundingClientRect();
         if (!frame) return undefined;
         const point = { x: clientX - frame.x, y: clientY - frame.y };
-        return background.outlines.find(outline => pointInPolygon(point, outline.polygon)) ??
+        const currencyHits = monetaryPairs.filter(pair => pointInPolygon(point, pair.currency.polygon));
+        if (currencyHits.length === 1) return currencyHits[0]!.amount;
+        const outline = background.outlines.find(item => pointInPolygon(point, item.polygon));
+        return outline ? monetaryPairs.find(pair => pair.currency === outline)?.amount ?? outline :
             background.tables.find(table => pointInPolygon(point, table.polygon));
     };
     const isTable = (field: CuField): boolean => props.content?.tables?.some(table => table.field === field) ?? false;
@@ -485,7 +538,8 @@ export function SourcePane(props: SourcePaneProps) {
                         data-result-view={props.view} role="group" aria-label="Extracted source regions" focusable="false"
                         width={layerFrame?.size.width} height={layerFrame?.size.height}>
                         <g className="cu-source-highlight-edges" aria-hidden="true" pointerEvents="none">
-                            {background.outlines.filter(outline => outline.enabled && !outline.low).map(outline => <path key={outline.key} data-source-edge-id={outline.field.id}
+                            {background.outlines.filter(outline => outline.enabled && !outline.low &&
+                                !pairedConfidenceOutlines.has(outline)).map(outline => <path key={outline.key} data-source-edge-id={outline.field.id}
                                 d={`M ${outline.polygon.map(point => `${point.x},${point.y}`).join(" L ")} Z`}
                                 fill="none" stroke={outline.color} strokeWidth={2} strokeLinejoin="round"
                                 style={outline.field.hasValue ? { stroke: `var(--cu-default-review-fill, ${outline.color})` } : undefined}
@@ -514,9 +568,18 @@ export function SourcePane(props: SourcePaneProps) {
                         {background.outlines.some(outline => outline.enabled && outline.low) &&
                             <g className="cu-source-highlight-edges" aria-hidden="true" pointerEvents="none">
                                 {background.outlines.filter(outline => outline.enabled && outline.low &&
+                                    !pairedConfidenceOutlines.has(outline) &&
                                     !interactingLowPolygons.some(polygon => samePolygon(polygon, outline.polygon))).map(outline =>
                                     <path key={outline.key} data-source-edge-id={outline.field.id} data-low-confidence="true"
                                         d={`M ${outline.polygon.map(point => `${point.x},${point.y}`).join(" L ")} Z`}
+                                        fill="none" stroke={FIELD_REVIEW_COLORS.lowStroke} strokeWidth={1.5} strokeLinejoin="round"
+                                        vectorEffect="non-scaling-stroke" />)}
+                                {monetaryConfidenceFrames.filter(frame => !interactingMoney.includes(frame.pair)).map(frame =>
+                                    <path key={`money:${frame.pair.amount.key}:${frame.pair.currency.key}`}
+                                        data-source-edge-id={frame.pair.amount.field.id}
+                                        data-related-source-id={frame.pair.currency.field.id}
+                                        data-low-confidence="true" data-monetary-confidence="true"
+                                        d={`M ${frame.polygon.map(point => `${point.x},${point.y}`).join(" L ")} Z`}
                                         fill="none" stroke={FIELD_REVIEW_COLORS.lowStroke} strokeWidth={1.5} strokeLinejoin="round"
                                         vectorEffect="non-scaling-stroke" />)}
                             </g>}

@@ -44,6 +44,422 @@ async function reference(page: Page) {
     return page.getByRole("region", { name: "Extraction results", exact: true });
 }
 
+test("compared fields can be reordered without separating label and extracted values", async ({ page }) => {
+    const pane = await reference(page);
+    await upload(page, "Choose local label JSON", { fieldLabels: {
+        First: text("Label first"), Second: text("Label second"),
+    } }, "ordered.pdf.labels.json");
+    await upload(page, "Choose saved Analyze JSON", result({
+        First: text("Extracted first"), Second: text("Extracted second"),
+    }), "ordered.pdf.result.json");
+
+    const grid = pane.getByRole("treegrid", { name: "Compared fields", exact: true });
+    const first = grid.locator('tr[data-comparison-path="/First"]');
+    const second = grid.locator('tr[data-comparison-path="/Second"]');
+    await second.hover();
+    await second.getByRole("button", { name: "Reorder Second", exact: true }).dragTo(first, {
+        targetPosition: { x: 48, y: 1 },
+    });
+
+    await expect.poll(() => grid.locator("tbody > tr[data-comparison-path]")
+        .evaluateAll(rows => rows.map(row => row.getAttribute("data-comparison-path"))))
+        .toEqual(["/Second", "/First"]);
+    await expect(second.locator("td").nth(1)).toContainText("Label second");
+    await expect(second.locator("td").nth(2)).toContainText("Extracted second");
+    await expect(first.locator("td").nth(1)).toContainText("Label first");
+    await expect(first.locator("td").nth(2)).toContainText("Extracted first");
+
+    await first.getByRole("button", { name: "First", exact: true }).press("Alt+ArrowUp");
+    await expect.poll(() => grid.locator("tbody > tr[data-comparison-path]")
+        .evaluateAll(rows => rows.map(row => row.getAttribute("data-comparison-path"))))
+        .toEqual(["/First", "/Second"]);
+
+    await pane.getByRole("searchbox", { name: "Search field names, label values or extracted values" }).fill("Second");
+    await expect(grid.locator('tr[data-comparison-path="/Second"]')
+        .getByRole("button", { name: "Reorder Second", exact: true })).toBeDisabled();
+});
+
+test("object summaries stay orange when expanded and matched and mismatched children are mixed", async ({ page }) => {
+    const pane = await reference(page);
+    const group = (matched: string, mismatched: string) => ({
+        type: "object", valueObject: { Matched: text(matched), Mismatched: text(mismatched) },
+    });
+    await upload(page, "Choose local label JSON", { fieldLabels: {
+        GeneratedField: group("Same", "Expected"), FullyDifferent: group("Old value", "Other expected value"),
+    } }, "mixed-groups.pdf.labels.json");
+    await upload(page, "Choose saved Analyze JSON", result({
+        GeneratedField: group("Same", "Actual"), FullyDifferent: group("New value", "Different value"),
+    }), "mixed-groups.pdf.result.json");
+
+    const grid = pane.getByRole("treegrid", { name: "Compared fields", exact: true });
+    const partial = grid.locator('tr[data-comparison-path="/GeneratedField"]');
+    const fullError = grid.locator('tr[data-comparison-path="/FullyDifferent"]');
+    const extractedValue = (row: typeof partial) => row.locator("td").nth(2).locator(".cu-comparison-value");
+    await expect(extractedValue(partial)).toHaveCSS("background-color", "rgb(255, 204, 128)");
+    await expect(extractedValue(fullError)).toHaveCSS("background-color", "rgb(255, 218, 221)");
+
+    await partial.getByRole("button", { name: /^Expand / }).click();
+    await expect(extractedValue(partial)).toHaveCSS("background-color", "rgb(255, 204, 128)");
+    await expect(extractedValue(grid.locator('tr[data-comparison-path="/GeneratedField/Matched"]')))
+        .toHaveCSS("background-color", "rgb(220, 251, 215)");
+    await expect(extractedValue(grid.locator('tr[data-comparison-path="/GeneratedField/Mismatched"]')))
+        .toHaveCSS("background-color", "rgb(255, 218, 221)");
+    await partial.getByRole("button", { name: /^Collapse / }).click();
+    await expect(extractedValue(partial)).toHaveCSS("background-color", "rgb(255, 204, 128)");
+    await fullError.getByRole("button", { name: /^Expand / }).click();
+    await expect(extractedValue(fullError)).toHaveCSS("background-color", "rgb(255, 218, 221)");
+});
+
+test("overlapping monetary sources select the whole amount and hide only related confidence borders", async ({ page }) => {
+    const pane = await reference(page);
+    await upload(page, "Choose local label JSON", { fieldLabels: {
+        Total: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10, source: "D(1,2,2,0.1,0.2);D(1,2.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string" },
+        } },
+        Other: text("Other", "D(1,4,2,0.8,0.2)"),
+    } }, "money.pdf.labels.json");
+    await upload(page, "Choose saved Analyze JSON", result({
+        Total: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10, confidence: 0.4, source: "D(1,2.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string", valueString: "USD", confidence: 0.3, source: "D(1,2,2,0.9,0.2)" },
+        } },
+        Other: { ...text("Other", "D(1,4,2,0.8,0.2)"), confidence: 0.2 },
+    }), "money.pdf.result.json");
+
+    const overlay = page.getByTestId("result-overlay");
+    const amountId = "/contents/0/fields/Total/valueObject/Amount";
+    const currencyId = "/contents/0/fields/Total/valueObject/CurrencyCode";
+    const amount = overlay.locator(`polygon[data-outline-id="${amountId}"]`);
+    const currency = overlay.locator(`polygon[data-outline-id="${currencyId}"]`);
+    const edge = (id: string) => overlay.locator(
+        `[data-low-confidence][data-source-edge-id="${id}"], [data-low-confidence][data-related-source-id="${id}"]`);
+    const amountEdge = edge(amountId), currencyEdge = edge(currencyId), otherEdge = edge("/contents/0/fields/Other");
+    const amountPoints = await amount.getAttribute("points"), currencyPoints = await currency.getAttribute("points");
+    const amountBounds = await amount.boundingBox(), currencyBounds = await currency.boundingBox();
+    if (!amountBounds || !currencyBounds || !amountPoints || !currencyPoints) throw new Error("Monetary source geometry is unavailable.");
+    await expect(amountEdge).toHaveCount(1);
+    await expect(currencyEdge).toHaveCount(1);
+    await expect(amountEdge).toHaveAttribute("data-monetary-confidence", "true");
+    await expect(currencyEdge).toHaveAttribute("data-monetary-confidence", "true");
+    expect(await amountEdge.evaluate((element, selector) => element === document.querySelector(selector),
+        `[data-low-confidence][data-related-source-id="${currencyId}"]`)).toBe(true);
+    await expect(otherEdge).toHaveCount(1);
+
+    const preview = page.getByTestId("preview-overlay").locator("polygon");
+    await page.mouse.move(amountBounds.x + amountBounds.width / 2, amountBounds.y + amountBounds.height / 2);
+    await expect(preview).toHaveCount(1);
+    await expect(preview).toHaveAttribute("data-source-id", amountId);
+    const frame = await preview.boundingBox();
+    if (!frame) throw new Error("The monetary preview is unavailable.");
+    expect(frame.x).toBeLessThanOrEqual(currencyBounds.x);
+    expect(frame.x + frame.width).toBeGreaterThanOrEqual(currencyBounds.x + currencyBounds.width);
+    await expect(amountEdge).toHaveCount(0);
+    await expect(currencyEdge).toHaveCount(0);
+    await expect(otherEdge).toHaveCount(1);
+
+    await page.locator(".prototype-banner").hover();
+    await expect(amountEdge).toHaveCount(1);
+    await expect(currencyEdge).toHaveCount(1);
+    const symbol = { x: currencyBounds.x + currencyBounds.width * 0.05, y: currencyBounds.y + currencyBounds.height / 2 };
+    await page.mouse.move(symbol.x, symbol.y);
+    await expect(preview).toHaveAttribute("data-source-id", amountId);
+    await page.mouse.click(symbol.x, symbol.y);
+    const pinned = page.getByTestId("source-overlay").locator("polygon");
+    await expect(pinned).toHaveCount(1);
+    await expect(pinned).toHaveAttribute("data-source-id", amountId);
+    await page.locator(".prototype-banner").hover();
+    await expect(amountEdge).toHaveCount(0);
+    await expect(currencyEdge).toHaveCount(0);
+    await expect(otherEdge).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(amountEdge).toHaveCount(1);
+    await expect(currencyEdge).toHaveCount(1);
+
+    await expandField(page, "Total");
+    const label = pane.getByRole("button", { name: "Select label value of Total / Amount", exact: true });
+    await label.hover();
+    await expect(preview).toHaveCount(1);
+    await expect(preview).toHaveAttribute("data-region-indices", "0 1");
+    await expect(currencyEdge).toHaveCount(0);
+    await label.click();
+    await expect(pinned).toHaveCount(1);
+    await expect(pinned).toHaveAttribute("data-region-indices", "0 1");
+    await page.locator(".prototype-banner").hover();
+    await expect(currencyEdge).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(currencyEdge).toHaveCount(1);
+
+    const extractedAmount = pane.getByRole("button", { name: "Select extracted value of Total / Amount", exact: true });
+    await extractedAmount.hover();
+    await expect(preview).toHaveCount(1);
+    const extractedFrame = await preview.boundingBox(), currentCurrency = await currency.boundingBox();
+    if (!extractedFrame || !currentCurrency) throw new Error("The extracted monetary preview is unavailable.");
+    expect(extractedFrame.x).toBeLessThanOrEqual(currentCurrency.x);
+    expect(extractedFrame.x + extractedFrame.width).toBeGreaterThanOrEqual(currentCurrency.x + currentCurrency.width);
+    await expect(amountEdge).toHaveCount(0);
+    await expect(currencyEdge).toHaveCount(0);
+    await expect(otherEdge).toHaveCount(1);
+    await extractedAmount.click();
+    await expect(pinned).toHaveCount(1);
+    await expect(pinned).toHaveAttribute("data-source-id", amountId);
+    const extractedPin = await pinned.boundingBox(), pinnedCurrency = await currency.boundingBox();
+    if (!extractedPin || !pinnedCurrency) throw new Error("The extracted monetary selection is unavailable.");
+    expect(extractedPin.x).toBeLessThanOrEqual(pinnedCurrency.x);
+    expect(extractedPin.x + extractedPin.width).toBeGreaterThanOrEqual(pinnedCurrency.x + pinnedCurrency.width);
+    await page.locator(".prototype-banner").hover();
+    await expect(amountEdge).toHaveCount(0);
+    await expect(currencyEdge).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(amountEdge).toHaveCount(1);
+    await expect(currencyEdge).toHaveCount(1);
+
+    const extractedGroup = pane.getByRole("button", { name: "Select extracted value of Total", exact: true });
+    await extractedGroup.hover();
+    await expect(preview).toHaveCount(1);
+    await extractedGroup.click();
+    await expect(pinned).toHaveCount(1);
+    await expect(pinned).toHaveAttribute("data-region-indices", "0 1");
+    await page.locator(".prototype-banner").hover();
+    await expect(amountEdge).toHaveCount(0);
+    await expect(currencyEdge).toHaveCount(0);
+    await expect(otherEdge).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(amountEdge).toHaveCount(1);
+    await expect(currencyEdge).toHaveCount(1);
+
+    const labelGroup = pane.getByRole("button", { name: "Select label value of Total", exact: true });
+    await labelGroup.hover();
+    await expect(preview).toHaveCount(1);
+    await labelGroup.click();
+    await expect(pinned).toHaveCount(1);
+    await expect(pinned).toHaveAttribute("data-region-indices", "0 1");
+    await page.locator(".prototype-banner").hover();
+    await expect(currencyEdge).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(currencyEdge).toHaveCount(1);
+
+    await expect(amount).toHaveAttribute("points", amountPoints);
+    await expect(currency).toHaveAttribute("points", currencyPoints);
+
+    await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption({ label: "25%" });
+    await ready(page);
+    await rotateSource(page);
+    await extractedAmount.hover();
+    await expect(preview).toHaveCount(1);
+    await expect(preview).toHaveAttribute("data-source-id", amountId);
+    const rotatedFrame = await preview.boundingBox(), rotatedCurrency = await currency.boundingBox();
+    if (!rotatedFrame || !rotatedCurrency) throw new Error("The rotated monetary preview is unavailable.");
+    expect(rotatedFrame.x).toBeLessThanOrEqual(rotatedCurrency.x);
+    expect(rotatedFrame.y).toBeLessThanOrEqual(rotatedCurrency.y);
+    expect(rotatedFrame.x + rotatedFrame.width).toBeGreaterThanOrEqual(rotatedCurrency.x + rotatedCurrency.width);
+    expect(rotatedFrame.y + rotatedFrame.height).toBeGreaterThanOrEqual(rotatedCurrency.y + rotatedCurrency.height);
+    await expect(amountEdge).toHaveCount(0);
+    await expect(currencyEdge).toHaveCount(0);
+    await expect(otherEdge).toHaveCount(1);
+    await label.hover();
+    await expect(preview).toHaveCount(1);
+    await expect(preview).toHaveAttribute("data-region-indices", "0 1");
+    await label.click();
+    await expect(pinned).toHaveCount(1);
+    await expect(pinned).toHaveAttribute("data-region-indices", "0 1");
+});
+
+test("one low-confidence monetary component draws one shared red frame around the whole amount", async ({ page }) => {
+    await reference(page);
+    await upload(page, "Choose local label JSON", { fieldLabels: {
+        CurrencyLow: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10, source: "D(1,2.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string" },
+        } },
+        AmountLow: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 20, source: "D(1,2.12,4,0.78,0.2)" },
+            CurrencyCode: { type: "string" },
+        } },
+    } }, "single-low-money.pdf.labels.json");
+    await upload(page, "Choose saved Analyze JSON", result({
+        CurrencyLow: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10, confidence: 0.9, source: "D(1,2.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string", valueString: "USD", confidence: 0.3, source: "D(1,2,2,0.9,0.2)" },
+        } },
+        AmountLow: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 20, confidence: 0.3, source: "D(1,2.12,4,0.78,0.2)" },
+            CurrencyCode: { type: "string", valueString: "USD", confidence: 0.9, source: "D(1,2,4,0.9,0.2)" },
+        } },
+    }), "single-low-money.pdf.result.json");
+
+    const overlay = page.getByTestId("result-overlay");
+    await page.getByRole("heading", { name: "CU Viewer", exact: true }).hover();
+    await expect(overlay.locator("[data-monetary-confidence]")).toHaveCount(2);
+    for (const name of ["CurrencyLow", "AmountLow"]) {
+        await page.getByRole("heading", { name: "CU Viewer", exact: true }).hover();
+        const amountId = `/contents/0/fields/${name}/valueObject/Amount`;
+        const currencyId = `/contents/0/fields/${name}/valueObject/CurrencyCode`;
+        const amount = overlay.locator(`polygon[data-outline-id="${amountId}"]`);
+        const currency = overlay.locator(`polygon[data-outline-id="${currencyId}"]`);
+        const frame = overlay.locator(
+            `[data-monetary-confidence][data-source-edge-id="${amountId}"][data-related-source-id="${currencyId}"]`);
+        await expect(frame).toHaveCount(1);
+        const amountBounds = await amount.boundingBox(), currencyBounds = await currency.boundingBox();
+        const frameBounds = await frame.boundingBox();
+        if (!amountBounds || !currencyBounds || !frameBounds) throw new Error("Monetary confidence geometry is unavailable.");
+        expect(frameBounds.x).toBeLessThanOrEqual(Math.min(amountBounds.x, currencyBounds.x));
+        expect(frameBounds.x + frameBounds.width).toBeGreaterThanOrEqual(
+            Math.max(amountBounds.x + amountBounds.width, currencyBounds.x + currencyBounds.width));
+        await page.mouse.move(frameBounds.x + frameBounds.width / 2, frameBounds.y + frameBounds.height / 2);
+        await expect(frame).toHaveCount(0);
+    }
+});
+
+test("a currency source in a different location is not joined to an amount", async ({ page }) => {
+    const pane = await reference(page);
+    await upload(page, "Choose local label JSON", { fieldLabels: {
+        Total: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10, source: "D(1,4,3,0.8,0.2)" },
+            CurrencyCode: { type: "string" },
+        } },
+    } }, "distant-money.pdf.labels.json");
+    await upload(page, "Choose saved Analyze JSON", result({
+        Total: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10, confidence: 0.9, source: "D(1,4,3,0.8,0.2)" },
+            CurrencyCode: { type: "string", valueString: "USD", confidence: 0.3, source: "D(1,2,3,0.9,0.2)" },
+        } },
+    }), "distant-money.pdf.result.json");
+    await expandField(page, "Total");
+    const amountId = "/contents/0/fields/Total/valueObject/Amount";
+    const currencyId = "/contents/0/fields/Total/valueObject/CurrencyCode";
+    const overlay = page.getByTestId("result-overlay");
+    const amount = overlay.locator(`polygon[data-outline-id="${amountId}"]`);
+    const currency = overlay.locator(`polygon[data-outline-id="${currencyId}"]`);
+    const edge = overlay.locator(`[data-low-confidence][data-source-edge-id="${currencyId}"]`);
+    await pane.getByRole("button", { name: "Select extracted value of Total / Amount", exact: true }).hover();
+    const preview = page.getByTestId("preview-overlay").locator("polygon");
+    await expect(preview).toHaveAttribute("points", (await amount.getAttribute("points"))!);
+    await expect(edge).toHaveCount(1);
+    const bounds = await currency.boundingBox();
+    if (!bounds) throw new Error("The distant currency source is unavailable.");
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await expect(preview).toHaveAttribute("data-source-id", currencyId);
+    await pane.getByRole("button", { name: "Select extracted value of Total", exact: true }).click();
+    await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCount(2);
+});
+
+test("separate monetary occurrences retain their own selection frames and source indices", async ({ page }) => {
+    const pane = await reference(page);
+    await upload(page, "Choose local label JSON", { fieldLabels: {
+        Total: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10,
+                source: "D(1,1,2,0.1,0.2);D(1,1.12,2,0.78,0.2);D(1,4,2,0.1,0.2);D(1,4.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string" },
+        } },
+    } }, "repeated-money.pdf.labels.json");
+    await upload(page, "Choose saved Analyze JSON", result({
+        Total: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10, confidence: 0.4,
+                source: "D(1,1.12,2,0.78,0.2);D(1,4.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string", valueString: "USD", confidence: 0.3,
+                source: "D(1,1,2,0.9,0.2);D(1,4,2,0.9,0.2)" },
+        } },
+    }), "repeated-money.pdf.result.json");
+
+    const pinned = page.getByTestId("source-overlay").locator("polygon");
+    const indices = () => pinned.evaluateAll(elements => elements.map(element => element.getAttribute("data-region-indices")));
+    await pane.getByRole("button", { name: "Select extracted value of Total", exact: true }).click();
+    await expect(pinned).toHaveCount(2);
+    expect(await indices()).toEqual(["0 2", "1 3"]);
+    await page.keyboard.press("Escape");
+
+    await expandField(page, "Total");
+    await pane.getByRole("button", { name: "Select extracted value of Total / Amount", exact: true }).click();
+    await expect(pinned).toHaveCount(2);
+    expect(await indices()).toEqual(["0", "1"]);
+    await page.keyboard.press("Escape");
+
+    await pane.getByRole("button", { name: "Select label value of Total / Amount", exact: true }).click();
+    await expect(pinned).toHaveCount(2);
+    expect(await indices()).toEqual(["0 1", "2 3"]);
+});
+
+test("overlapping monetary values resolve hover and click through the matching currency source", async ({ page }) => {
+    await reference(page);
+    await upload(page, "Choose local label JSON", { fieldLabels: {
+        Distractor: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10, source: "D(1,2.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string" },
+        } },
+        Total: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 30, source: "D(1,2.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string" },
+        } },
+    } }, "overlapping-money.pdf.labels.json");
+    await upload(page, "Choose saved Analyze JSON", result({
+        Distractor: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 10, confidence: 0.9, source: "D(1,2.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string", valueString: "USD", confidence: 0.9, source: "D(1,4,2,0.9,0.2)" },
+        } },
+        Total: { type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 30, confidence: 0.9, source: "D(1,2.12,2,0.78,0.2)" },
+            CurrencyCode: { type: "string", valueString: "USD", confidence: 0.4, source: "D(1,2,2,0.9,0.2)" },
+        } },
+    }), "overlapping-money.pdf.result.json");
+
+    const totalAmountId = "/contents/0/fields/Total/valueObject/Amount";
+    const totalCurrencyId = "/contents/0/fields/Total/valueObject/CurrencyCode";
+    const totalAmount = page.getByTestId("result-overlay").locator(`polygon[data-outline-id="${totalAmountId}"]`);
+    const totalCurrency = page.getByTestId("result-overlay").locator(`polygon[data-outline-id="${totalCurrencyId}"]`);
+    const amountBounds = await totalAmount.boundingBox(), currencyBounds = await totalCurrency.boundingBox();
+    if (!amountBounds || !currencyBounds) throw new Error("Overlapping monetary geometry is unavailable.");
+    const preview = page.getByTestId("preview-overlay").locator("polygon");
+    const symbol = { x: currencyBounds.x + currencyBounds.width * 0.05, y: currencyBounds.y + currencyBounds.height / 2 };
+    const number = { x: amountBounds.x + amountBounds.width / 2, y: amountBounds.y + amountBounds.height / 2 };
+    for (const point of [symbol, number]) {
+        await page.mouse.move(point.x, point.y);
+        await expect(preview).toHaveAttribute("data-source-id", totalAmountId);
+        const frame = await preview.boundingBox();
+        if (!frame) throw new Error("The whole monetary preview is unavailable.");
+        expect(frame.x).toBeLessThanOrEqual(currencyBounds.x);
+        expect(frame.x + frame.width).toBeGreaterThanOrEqual(currencyBounds.x + currencyBounds.width);
+        await page.mouse.click(point.x, point.y);
+        await expect(page.getByTestId("source-overlay").locator("polygon"))
+            .toHaveAttribute("data-source-id", totalAmountId);
+        await page.keyboard.press("Escape");
+    }
+});
+
+test("the real invoice resolves a shared digit region to the matching complete monetary source", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    const amountId = "/contents/0/fields/LineItems/valueArray/1/valueObject/TotalAmount/valueObject/Amount";
+    const currencyId = "/contents/0/fields/LineItems/valueArray/1/valueObject/TotalAmount/valueObject/CurrencyCode";
+    const amount = page.getByTestId("result-overlay").locator(`polygon[data-outline-id="${amountId}"]`);
+    const currency = page.getByTestId("result-overlay").locator(`polygon[data-outline-id="${currencyId}"]`);
+    const amountBounds = await amount.boundingBox(), currencyBounds = await currency.boundingBox();
+    if (!amountBounds || !currencyBounds) throw new Error("The shared invoice amount source is unavailable.");
+    const preview = page.getByTestId("preview-overlay").locator("polygon");
+    const pin = page.getByTestId("source-overlay").locator("polygon");
+    const points = [
+        { x: amountBounds.x + amountBounds.width / 2, y: amountBounds.y + amountBounds.height / 2 },
+        { x: currencyBounds.x + currencyBounds.width * 0.05, y: currencyBounds.y + currencyBounds.height / 2 },
+    ];
+    for (const point of points) {
+        await page.mouse.move(point.x, point.y);
+        await expect(preview).toHaveAttribute("data-source-id", amountId);
+        const frame = await preview.boundingBox();
+        if (!frame) throw new Error("The full invoice amount frame is unavailable.");
+        expect(frame.x).toBeLessThanOrEqual(currencyBounds.x);
+        expect(frame.x + frame.width).toBeGreaterThanOrEqual(currencyBounds.x + currencyBounds.width);
+        await page.mouse.click(point.x, point.y);
+        await expect(pin).toHaveAttribute("data-source-id", amountId);
+        await page.keyboard.press("Escape");
+    }
+
+    await pane.getByRole("button", {
+        name: "Select extracted value of LineItems / Item 2 / TotalAmount / Amount", exact: true,
+    }).hover();
+    await expect(preview).toHaveAttribute("data-source-id", amountId);
+});
+
 async function expectFixedIndexHeaders(scrollers: Locator, count: number) {
     await expect.poll(() => scrollers.evaluateAll(elements => elements.map(element => {
         const header = element.querySelector("thead th:first-child");
@@ -199,10 +615,16 @@ test.describe("Confidence border readability", () => {
                 if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected the original PDF canvas.");
                 return element.toDataURL();
             });
+            const rows: number[] = [];
             for (const row of [1, 2]) {
                 const id = `/contents/0/fields/LineItems/valueArray/${row}/valueObject/Description`;
+                if (await source.locator(`path[data-source-edge-id="${id}"][data-low-confidence="true"]`).count()) rows.push(row);
+            }
+            expect(rows.length).toBeGreaterThan(0);
+            for (const row of rows) {
+                const id = `/contents/0/fields/LineItems/valueArray/${row}/valueObject/Description`;
                 const region = source.locator(`polygon[data-outline-id="${id}"]`);
-                const edge = source.locator(`path[data-source-edge-id="${id}"]`);
+                const edge = source.locator(`path[data-source-edge-id="${id}"][data-low-confidence="true"]`);
                 await expect(edge).toHaveCSS("stroke", "rgba(180, 60, 75, 0.6)");
                 await expect(edge).toHaveAttribute("stroke-width", "1.5");
                 await expect(region).toHaveAttribute("fill", "#DCFBD7");
@@ -254,7 +676,7 @@ test.describe("Confidence border readability", () => {
                     const outside = { x: (first.x + next.x) / 2 + dy / length * 0.5,
                         y: (first.y + next.y) / 2 - dx / length * 0.5 };
                     const edge = element.parentElement?.querySelector<SVGPathElement>(
-                        `path[data-source-edge-id="${element.getAttribute("data-outline-id")}"]`);
+                        `path[data-source-edge-id="${element.getAttribute("data-outline-id")}"][data-low-confidence="true"]`);
                     if (!edge) throw new Error("The confidence border is unavailable.");
                     const readHit = () => {
                         const hit = document.elementFromPoint(outside.x, outside.y);
@@ -371,7 +793,8 @@ test("unified Fields compares typed leaves, preserves both sources and filters c
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
     expect(await legend.locator(".cu-legend-item .cu-legend-swatch").evaluateAll(nodes =>
         nodes.map(node => getComputedStyle(node).backgroundColor))).toEqual([
-        "rgb(236, 243, 252)", "rgb(222, 233, 250)", "rgb(220, 251, 215)", "rgb(255, 218, 221)", "rgb(248, 192, 200)",
+        "rgb(236, 243, 252)", "rgb(222, 233, 250)", "rgb(220, 251, 215)",
+        "rgb(255, 218, 221)", "rgb(255, 204, 128)", "rgb(248, 192, 200)",
     ]);
     const lowExample = legend.locator(".cu-legend-outline-swatch");
     await expect(lowExample).toHaveText("123");
@@ -379,6 +802,7 @@ test("unified Fields compares typed leaves, preserves both sources and filters c
     await expect(lowExample).toHaveCSS("border-color", "rgba(180, 60, 75, 0.6)");
     await expect(legend.getByText("Matches label", { exact: true })).toBeVisible();
     await expect(legend.getByText("Different or extra extracted value", { exact: true })).toBeVisible();
+    await expect(legend.getByText("Some child values differ", { exact: true })).toBeVisible();
     await expect(legend.getByText("Label only; not extracted", { exact: true })).toBeVisible();
     const toggleLayout = await legend.locator(".cu-legend-review-toggle").evaluateAll(nodes => nodes.map(node => {
         const label = node.querySelector("span")!.getBoundingClientRect();
@@ -446,21 +870,23 @@ test("the legacy palette keeps empty slots neutral and confidence outlines separ
     const points = await region.getAttribute("points");
     const raw = await region.boundingBox();
     if (!raw) throw new Error("The low-confidence source region is unavailable.");
+    await expect(edge).toHaveCSS("stroke", "rgba(180, 60, 75, 0.6)");
+    const edgeWidth = await edge.evaluate(element => parseFloat(getComputedStyle(element).strokeWidth));
     await region.hover();
     const preview = page.getByTestId("preview-overlay").locator("polygon").first();
     const hover = await preview.boundingBox();
     if (!hover) throw new Error("The low-confidence preview frame is unavailable.");
-    const clearance = (await edge.evaluate(element => parseFloat(getComputedStyle(element).strokeWidth)) +
-        await preview.evaluate(element => parseFloat(getComputedStyle(element).strokeWidth))) / 2 + 1;
+    const clearance = (edgeWidth + await preview.evaluate(element => parseFloat(getComputedStyle(element).strokeWidth))) / 2 + 1;
     expect(raw.x - hover.x).toBeGreaterThan(clearance);
     expect(raw.y - hover.y).toBeGreaterThan(clearance);
     expect(hover.x + hover.width - raw.x - raw.width).toBeGreaterThan(clearance);
     expect(hover.y + hover.height - raw.y - raw.height).toBeGreaterThan(clearance);
-    await expect(edge).toHaveCSS("stroke", "rgba(180, 60, 75, 0.6)");
+    await expect(edge).toHaveCount(0);
     await expect(preview).toHaveCSS("stroke", "rgb(128, 99, 181)");
     await region.click();
     const pin = page.getByTestId("source-overlay").locator("polygon").first();
     await expect(pin).toHaveCSS("stroke", "rgb(91, 33, 182)");
+    await expect(edge).toHaveCount(0);
     const pinned = await pin.getAttribute("points");
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
@@ -586,6 +1012,30 @@ test("both array summaries preview their own sources without inventing ungrounde
     await ready(page);
     await pane.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/LineItems"] .cu-summary-value').hover();
     await expect(page.getByRole("tooltip")).toHaveCount(0);
+});
+
+test("array layout controls show side by side before stacked and switch layouts", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    const layout = page.getByRole("group", { name: "LineItems array layout", exact: true });
+    const buttons = layout.getByRole("button");
+    await expect(buttons).toHaveText(["Side by side", "Stacked"]);
+    const sideBySide = layout.getByRole("button", { name: "Side by side", exact: true });
+    const stacked = layout.getByRole("button", { name: "Stacked", exact: true });
+    const sideBySideBounds = await sideBySide.boundingBox();
+    const stackedBounds = await stacked.boundingBox();
+    expect(sideBySideBounds).not.toBeNull();
+    expect(stackedBounds).not.toBeNull();
+    expect(sideBySideBounds!.x + sideBySideBounds!.width).toBeLessThan(stackedBounds!.x);
+    const pair = layout.locator("..");
+    await expect(sideBySide).toHaveAttribute("aria-pressed", "true");
+    await expect(pair).toHaveClass(/is-side-by-side/);
+    await stacked.click();
+    await expect(stacked).toHaveAttribute("aria-pressed", "true");
+    await expect(pair).not.toHaveClass(/is-side-by-side/);
+    await sideBySide.click();
+    await expect(sideBySide).toHaveAttribute("aria-pressed", "true");
+    await expect(pair).toHaveClass(/is-side-by-side/);
 });
 
 test("paired invoice arrays switch between stacked and side-by-side without changing values, sources or colors", async ({ page }) => {

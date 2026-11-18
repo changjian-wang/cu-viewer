@@ -1,19 +1,23 @@
 import { displayValue, fieldLabel, fieldRegions, isFieldGroup } from "../interaction/interaction";
-import { collapsedValue, confidenceDescription, fieldAppearance, isTableValue } from "../interaction/reviewFields";
+import { collapsedValue, confidenceDescription, fieldAppearance, FIELD_REVIEW_COLORS, isTableValue } from "../interaction/reviewFields";
 import { comparisonStatusText } from "../model/fieldComparison";
 import type { FieldComparisonNode } from "../model/fieldComparison";
 import type { FieldsPaneProps } from "./FieldsPane";
 import { ValueMenuTrigger } from "./ValueActions";
 
-export function ComparisonValue({ node, side, props }: {
-    node: FieldComparisonNode; side: "label" | "extracted"; props: FieldsPaneProps;
+export function ComparisonValue({ node, side, props, objectSummary = false }: {
+    node: FieldComparisonNode; side: "label" | "extracted"; props: FieldsPaneProps; objectSummary?: boolean;
 }) {
     const field = node[side];
     const status = comparisonStatusText(node.status);
     const appearance = side === "extracted" || !props.comparison?.comparable ?
         fieldAppearance(side === "extracted" ? field : { hasValue: field?.hasValue ?? false },
             props.settings, node.status, isTableValue(node.field)) : undefined;
-    const style = appearance ? { background: appearance.background, color: appearance.color, boxShadow: appearance.boxShadow } : undefined;
+    const partialSummary = side === "extracted" && objectSummary && node.matched > 0 && node.errors > 0;
+    const style = appearance ? {
+        background: partialSummary ? FIELD_REVIEW_COLORS.partial : appearance.background,
+        color: appearance.color, boxShadow: appearance.boxShadow,
+    } : undefined;
     if (!field?.hasValue) return <span className="cu-comparison-value is-missing" style={style}
         title={status} aria-label={side === "label" ?
             props.comparison?.comparable ? "No label" : "Not returned" : "Not extracted"}

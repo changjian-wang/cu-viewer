@@ -3,7 +3,7 @@ import { parseCuResult } from "../model/parseCuResult";
 import { parseLabels } from "../model/parseLabels";
 import { compareFields } from "../model/fieldComparison";
 import { defaultReviewSettings } from "../interaction/reviewFields";
-import { isValueSourceField, outsetSourceFrame, popoverPosition, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "./sourceOverlays";
+import { isValueSourceField, monetarySourcePairs, outsetSourceFrame, popoverPosition, sourceObjectPreviewFrame, sourceOutlines, sourcePopoverPoints, sourceSelectionFrames } from "./sourceOverlays";
 
 function fixture() {
     const original = {
@@ -74,6 +74,46 @@ describe("Studio view-specific source outlines", () => {
         expect(missing!.color).not.toBe(outlines.find(item => item.field.name === "Name")!.color);
         expect(outlines.some(item => item.field.id === "/contents/0/fields/Missing")).toBe(false);
         expect(outlines.some(item => item.field.name === "Ungrounded")).toBe(false);
+        expect(JSON.stringify(original)).toBe(before);
+    });
+
+    it("associates monetary siblings only when their actual source regions identify the same amount", () => {
+        const money = (amount: string, currency: string) => ({ type: "object", valueObject: {
+            Amount: { type: "number", valueNumber: 0, source: amount },
+            CurrencyCode: { type: "string", valueString: "USD", source: currency },
+        } });
+        const original = { apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 100, height: 100 }],
+            fields: {
+                Money: money("D(1,12,10,8,2)", "D(1,10,10,10,2)"),
+                Distant: money("D(1,30,10,8,2)", "D(1,50,10,10,2)"),
+                Oversized: money("D(1,40,20,1,2)", "D(1,20,20,40,2)"),
+                Ambiguous: money("D(1,62,30,8,2)", "D(1,60,30,10,2);D(1,59,30,11,2)"),
+                Repeated: money("D(1,12,50,8,2);D(1,42,50,8,2)", "D(1,10,50,10,2);D(1,40,50,10,2)"),
+                SharedCurrency: money("D(1,12,70,8,2);D(1,12.2,70,8,2)", "D(1,10,70,10,2)"),
+                MixedAmbiguity: money("D(1,12,80,8,2);D(1,20,80,8,2)", "D(1,10,80,18,2);D(1,10,80,10,2)"),
+                Unrelated: { type: "object", valueObject: {
+                    Amount: { type: "number", valueNumber: 1, source: "D(1,12,10,8,2)" },
+                } },
+            },
+        }] };
+        const content = parseCuResult(original).contents[0]!;
+        const comparison = compareFields([], content.fields, true);
+        const outlines = sourceOutlines(content, "fields", 1, false, defaultReviewSettings, comparison);
+        const before = JSON.stringify(original);
+        for (const rotation of [0, 90, 180, 270]) {
+            const projected = outlines.map(outline => ({ ...outline, polygon: outline.region.polygon.map(point =>
+                rotation === 90 ? { x: -point.y, y: point.x } : rotation === 180 ? { x: -point.x, y: -point.y } :
+                    rotation === 270 ? { x: point.y, y: -point.x } : point) }));
+            expect(monetarySourcePairs(projected, comparison)
+                .map(pair => [pair.amount.field.id, pair.currency.field.id, pair.amount.regionIndex, pair.currency.regionIndex]))
+                .toEqual([
+                    ["/contents/0/fields/Money/valueObject/Amount", "/contents/0/fields/Money/valueObject/CurrencyCode", 0, 0],
+                    ["/contents/0/fields/Repeated/valueObject/Amount", "/contents/0/fields/Repeated/valueObject/CurrencyCode", 0, 0],
+                    ["/contents/0/fields/Repeated/valueObject/Amount", "/contents/0/fields/Repeated/valueObject/CurrencyCode", 1, 1],
+                ]);
+            expect(monetarySourcePairs(projected, undefined)).toEqual([]);
+        }
         expect(JSON.stringify(original)).toBe(before);
     });
 

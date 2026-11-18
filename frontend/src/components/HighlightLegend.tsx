@@ -22,6 +22,7 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
             ["array", labelMode ? "Reference array label" : "Default array value", FIELD_REVIEW_COLORS.array],
             ...(comparisonAvailable ? [["matched", "Matches label", FIELD_REVIEW_COLORS.matched],
                 ["error", "Different or extra extracted value", FIELD_REVIEW_COLORS.error],
+                ["partial", "Some child values differ", FIELD_REVIEW_COLORS.partial],
                 ["missing", "Label only; not extracted", FIELD_REVIEW_COLORS.missing]] : []),
         ]).map(([key, name, background]) => <li className="cu-legend-group" key={key}>
             <div className="cu-legend-item" data-legend-category={key}><span className="cu-legend-swatch" aria-hidden="true" style={{ background }} />
