@@ -667,8 +667,8 @@ test("UI-33 source visibility never clears right-hand low-confidence emphasis", 
     await page.getByRole("switch", { name: "Show array highlights", exact: true }).uncheck();
     await expect(source(page, recipientId)).toHaveAttribute("fill", "none");
     await expect(source(page, cellId)).toHaveAttribute("fill", "none");
-    await expect(field).toHaveCSS("background-color", "rgb(236, 243, 252)");
-    await expect(cell).toHaveCSS("background-color", "rgb(222, 233, 250)");
+    await expect(field).toHaveCSS("background-color", "rgb(220, 251, 215)");
+    await expect(cell).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(field).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(cell).toHaveCSS("box-shadow", /180, 60, 75/);
     await page.getByRole("button", { name: "Close legend", exact: true }).click();
@@ -678,8 +678,8 @@ test("UI-33 source visibility never clears right-hand low-confidence emphasis", 
     await expect(cell).toHaveCSS("box-shadow", "none");
     await page.getByRole("button", { name: "Close legend", exact: true }).click();
     await page.getByRole("tab", { name: "Fields", exact: true }).click();
-    await expect(field).toHaveCSS("background-color", "rgb(236, 243, 252)");
-    await expect(cell).toHaveCSS("background-color", "rgb(222, 233, 250)");
+    await expect(field).toHaveCSS("background-color", "rgb(220, 251, 215)");
+    await expect(cell).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(field).toHaveCSS("box-shadow", "none");
     expect(await page.getByTestId("source-canvas").evaluate(element => {
         if (!(element instanceof HTMLCanvasElement)) throw new Error("Original source canvas disappeared.");
@@ -843,11 +843,11 @@ for (const kind of ["pdf", "image"] as const) {
         await setSourceFills(true);
         await expect(page.getByTestId("result-overlay")).toHaveCSS("mix-blend-mode", "multiply");
         const cases = [
-            { id: "/contents/0/fields/InvoiceId", rgb: kind === "pdf" ? [236, 243, 252] : [232, 245, 233] },
-            { id: recipientId, rgb: kind === "pdf" ? [236, 243, 252] : [252, 232, 230] },
-            { id: "/contents/0/fields/Unknown", rgb: kind === "pdf" ? [236, 243, 252] : [241, 243, 245] },
-            { id: cellId, rgb: kind === "pdf" ? [222, 233, 250] : [246, 197, 204] },
-            { id: `${arrayId}/valueArray/0/valueObject/Column2`, rgb: kind === "pdf" ? [222, 233, 250] : [232, 241, 255] },
+            { id: "/contents/0/fields/InvoiceId", rgb: kind === "pdf" ? [220, 251, 215] : [232, 245, 233] },
+            { id: recipientId, rgb: kind === "pdf" ? [220, 251, 215] : [252, 232, 230] },
+            { id: "/contents/0/fields/Unknown", rgb: kind === "pdf" ? [220, 251, 215] : [241, 243, 245] },
+            { id: cellId, rgb: kind === "pdf" ? [220, 251, 215] : [246, 197, 204] },
+            { id: `${arrayId}/valueArray/0/valueObject/Column2`, rgb: kind === "pdf" ? [220, 251, 215] : [232, 241, 255] },
         ];
         const regions = [];
         for (const item of cases) {

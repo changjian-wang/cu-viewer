@@ -196,7 +196,7 @@ test("UI-32 reduced motion retains static cues and the low-confidence value colo
     await expect(page.locator(".cu-items-table .is-location-column")).toHaveText("Column1");
     await expectNoPulse(page.locator(".cu-fields-scroll"));
     expect(await content.evaluate(element => getComputedStyle(element).backgroundColor)).toBe(before);
-    expect(before).toBe("rgb(222, 233, 250)");
+    expect(before).toBe("rgb(220, 251, 215)");
     await expect(content).toHaveCSS("box-shadow", /180, 60, 75/);
 });
 
@@ -322,7 +322,7 @@ test("UI-42 ordinary whole-array selection keeps its body and opaque pinned indi
         getComputedStyle(element).backgroundColor === "rgb(229, 218, 255)" &&
         getComputedStyle(element).position === "sticky"))).toBe(true);
     await expect(wrapper.locator("..")).toHaveCSS("background-color", "rgb(229, 218, 255)");
-    await expect(cells.first().locator(".cu-cell-content")).toHaveCSS("background-color", "rgb(222, 233, 250)");
+    await expect(cells.first().locator(".cu-cell-content")).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(cells.first().locator(".cu-cell-content")).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(page.locator(".cu-table-scope")).toHaveCount(0);
     await cells.first().locator(".cu-cell-value").click();
@@ -350,7 +350,7 @@ test("UI-42 ordinary keyboard selection keeps a distinct focus cue without resto
     await name.press("ArrowDown");
     await expect(page.getByRole("button", { name: "CustomerAddress", exact: true })).toBeFocused();
     await expectSelectedRow(row);
-    await expect(row.locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(row.locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(row.locator(".cu-field-value-content")).toHaveCSS("box-shadow", /180, 60, 75/);
 });
 
@@ -361,6 +361,6 @@ test("UI-42 reduced-motion ordinary source selection keeps the static background
     await selectSource(page, recipientId);
     await expectSelectedRow(row);
     await expectNoPulse(row);
-    await expect(row.locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(row.locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(row.locator(".cu-field-value-content")).toHaveCSS("box-shadow", /180, 60, 75/);
 });

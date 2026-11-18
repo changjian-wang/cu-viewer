@@ -14,7 +14,7 @@ async function expectPalette(list: Locator, fieldReview = true): Promise<void> {
     await expect(list.locator(".cu-legend-item")).toHaveCount(fieldReview ? 3 : 4);
     expect(await list.locator(".cu-legend-swatch").evaluateAll(elements =>
         elements.map(element => getComputedStyle(element).backgroundColor))).toEqual(fieldReview ?
-        ["rgb(236, 243, 252)", "rgb(222, 233, 250)"] : colors);
+        ["rgb(220, 251, 215)", "rgb(220, 251, 215)"] : colors);
     if (fieldReview) await expect(list.locator(".cu-legend-outline-swatch")).toHaveCSS("border-top-color", "rgba(180, 60, 75, 0.6)");
 }
 
@@ -79,7 +79,7 @@ test("unlabeled PDF Legend keeps each checkbox beside its own color or low-confi
         expect(layout.centerOffset).toBeLessThanOrEqual(1);
     }
     await expect(panel.locator(".cu-legend-outline-swatch")).toHaveText("123");
-    await expect(panel.locator(".cu-legend-outline-swatch")).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(panel.locator(".cu-legend-outline-swatch")).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expectPalette(panel);
     await expectPanelInsideSource(page);
 });
@@ -312,6 +312,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 2100, height: 100
             for (const candidate of categorySources) {
                 const fill = hidden.some(key => key === candidate.key) ? "none" : candidate.fill;
                 await expect(sourceRegion(page, candidate.id)).toHaveAttribute("fill", fill);
+                await expect(sourceRegion(page, candidate.id)).toHaveCSS("fill", fill === "none" ? "none" : "rgb(220, 251, 215)");
             }
             if (name === "Show low confidence outlines") {
                 await expect(page.getByTestId("result-overlay").locator("[data-low-confidence]")).toHaveCount(0);
@@ -409,7 +410,7 @@ test("UI-56 hidden fills remain selectable and previewable without changing conf
     await page.locator(".prototype-banner").hover();
     await zero.hover();
     await expect(page.locator(".cu-flyover-confidence dd")).toHaveText("0.00");
-    await expect(page.locator(`${fieldRow("/contents/0/fields/Zero")} .cu-field-value-content`)).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(page.locator(`${fieldRow("/contents/0/fields/Zero")} .cu-field-value-content`)).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(page.locator(`${fieldRow("/contents/0/fields/Zero")} .cu-field-value-content`)).toHaveCSS("box-shadow", /180, 60, 75/);
     await sourceRegion(page, recipientId).hover();
     await expect(page.getByTestId("preview-overlay").locator("polygon")).toHaveAttribute("data-source-id", recipientId);

@@ -523,7 +523,7 @@ test("label comparison preserves the unlabeled PDF palette, confidence column an
     await setShowConfidence(page, true);
     const pane = page.getByRole("region", { name: "Extraction results", exact: true });
     const billing = pane.locator('[data-field-id="/contents/0/fields/BillingAddress"] .cu-field-value-content');
-    await expect(billing).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(billing).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(billing).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(pane.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "PDF + Labels", exact: true }).click();
@@ -533,7 +533,7 @@ test("label comparison preserves the unlabeled PDF palette, confidence column an
     await page.getByRole("button", { name: "PDF", exact: true }).click();
     await ready(page);
     await expect(pane.getByRole("columnheader", { name: "Confidence", exact: true })).toBeVisible();
-    await expect(billing).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(billing).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(pane.getByRole("table", { name: "LineItems values", exact: true })).toHaveCount(1);
     await expect(pane.locator(".cu-comparison-arrays,.cu-comparison-filters")).toHaveCount(0);
     await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/contents/0/fields/BillingAddress"]').first())

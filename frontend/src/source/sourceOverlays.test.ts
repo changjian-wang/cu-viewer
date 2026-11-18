@@ -30,7 +30,7 @@ function fixture() {
 }
 
 describe("Studio view-specific source outlines", () => {
-    it("uses unlabeled PDF review blues and own confidence outlines without changing image or paragraph styles", () => {
+    it("keeps base review colors and own confidence outlines without changing image or paragraph styles", () => {
         const content = parseCuResult({ apiVersion: "2025-11-01", contents: [{
             kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 100, height: 100 }],
             fields: {

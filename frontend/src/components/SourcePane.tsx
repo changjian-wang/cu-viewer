@@ -30,6 +30,7 @@ interface SourcePaneProps {
     pageNumber: number;
     active: CuField | null;
     preview: boolean;
+    pointerPreview: boolean;
     pinned: CuField | null;
     hasSelection: boolean;
     pinnedRegions: readonly CuRegion[];
@@ -58,6 +59,15 @@ interface ProjectedTable {
     field: CuField;
     regionIndex: number;
     polygon: CuPoint[];
+}
+
+function samePolygon(left: readonly CuPoint[], right: readonly CuPoint[]): boolean {
+    if (left.length !== right.length) return false;
+    return right.some((_, start) => [1, -1].some(direction =>
+        left.every((point, index) => {
+            const candidate = right[(start + direction * index + right.length) % right.length]!;
+            return point.x === candidate.x && point.y === candidate.y;
+        })));
 }
 
 export function SourcePane(props: SourcePaneProps) {
@@ -247,6 +257,15 @@ export function SourcePane(props: SourcePaneProps) {
     }, [background, projectionSize, rotation, props.content, props.labelContent, props.view, props.pinned, props.pinnedRegions,
         props.preview, props.active, props.regions, props.regionIndex, props.pageNumber, props.comparison, props.settings.threshold,
         showCard, valuePreview, objectPreview, fieldReview]);
+    const interactingReviewFields = [props.preview && props.pointerPreview ? props.active : null, props.pinned].flatMap(field => {
+        if (!field) return [];
+        const extracted = props.comparison?.byFieldId.get(field.id)?.extracted ??
+            (fieldReview && field.origin !== "label" ? field : undefined);
+        return extracted ? [extracted] : [];
+    });
+    const interactingLowPolygons = background.outlines.filter(outline => outline.enabled && outline.low &&
+        interactingReviewFields.some(field => outline.field.id === field.id ||
+            outline.field.id.startsWith(`${field.id}/`))).map(outline => outline.polygon);
     const activePolygons = props.preview ? selectedPolygons.preview : selectedPolygons.pinned;
     const cardPolygon = selectedPolygons.card;
     const measureCard = useCallback((next: PageSize): void => {
@@ -469,6 +488,7 @@ export function SourcePane(props: SourcePaneProps) {
                             {background.outlines.filter(outline => outline.enabled && !outline.low).map(outline => <path key={outline.key} data-source-edge-id={outline.field.id}
                                 d={`M ${outline.polygon.map(point => `${point.x},${point.y}`).join(" L ")} Z`}
                                 fill="none" stroke={outline.color} strokeWidth={2} strokeLinejoin="round"
+                                style={outline.field.hasValue ? { stroke: `var(--cu-default-review-fill, ${outline.color})` } : undefined}
                                 vectorEffect="non-scaling-stroke" />)}
                         </g>
                         {background.outlines.map((outline, index) => <polygon key={outline.key} data-outline-id={outline.field.id}
@@ -477,6 +497,8 @@ export function SourcePane(props: SourcePaneProps) {
                             aria-describedby={props.active?.id === outline.field.id && showCard ? `${props.previewId}-content` : undefined}
                             tabIndex={index === 0 ? 0 : -1} points={outline.polygon.map(point => `${point.x},${point.y}`).join(" ")}
                             fill={outline.enabled ? outline.color : "none"} fillOpacity={1} stroke="none"
+                            style={outline.enabled && outline.field.hasValue ?
+                                { fill: `var(--cu-default-review-fill, ${outline.color})` } : undefined}
                             onFocus={() => isTable(outline.field) ? props.onDismissPreview() : props.onHover(outline.field, outline.regionIndex, true)}
                             onBlur={() => props.onLeave(outline.field)}
                             onKeyDown={event => {
@@ -491,7 +513,8 @@ export function SourcePane(props: SourcePaneProps) {
                         {/* Paint confidence strokes after every fill so pixel-snapped polygons cannot cover them. */}
                         {background.outlines.some(outline => outline.enabled && outline.low) &&
                             <g className="cu-source-highlight-edges" aria-hidden="true" pointerEvents="none">
-                                {background.outlines.filter(outline => outline.enabled && outline.low).map(outline =>
+                                {background.outlines.filter(outline => outline.enabled && outline.low &&
+                                    !interactingLowPolygons.some(polygon => samePolygon(polygon, outline.polygon))).map(outline =>
                                     <path key={outline.key} data-source-edge-id={outline.field.id} data-low-confidence="true"
                                         d={`M ${outline.polygon.map(point => `${point.x},${point.y}`).join(" L ")} Z`}
                                         fill="none" stroke={FIELD_REVIEW_COLORS.lowStroke} strokeWidth={1.5} strokeLinejoin="round"

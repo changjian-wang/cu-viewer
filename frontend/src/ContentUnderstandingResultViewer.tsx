@@ -81,6 +81,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         compareFields(labelData.model.content.fields, analysisContent?.fields ?? [], Boolean(analysisContent?.fieldsDeclared)) : undefined,
     [boundLabels, labelData.model, analysisContent]);
     const fieldReview = view === "fields" && (source?.kind === "pdf" || comparison !== undefined);
+    const unlabeledPdfFields = fieldReview && source?.kind === "pdf" && !hasLabels;
     const referenceMode = boundLabels && !comparison?.comparable;
     const fieldContent = useMemo(() => comparison?.comparable && analysisContent ?
         { ...analysisContent, fields: comparison.fields } : boundLabels ? labelData.model?.content : analysisContent,
@@ -237,10 +238,13 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     }, []);
     const layout: CSSProperties & {
         "--cu-pane-ratio": number;
+        "--cu-default-review-fill": string;
         "--cu-hover-stroke"?: string;
         "--cu-selected-stroke"?: string;
     } = {
         "--cu-pane-ratio": preferences.settings.paneRatio,
+        // Reset each instance so labeled or nested viewers cannot inherit the green override.
+        "--cu-default-review-fill": unlabeledPdfFields ? FIELD_REVIEW_COLORS.matched : "initial",
         ...(fieldReview ? {
             "--cu-hover-stroke": FIELD_REVIEW_COLORS.hoverStroke,
             "--cu-selected-stroke": FIELD_REVIEW_COLORS.selectedStroke,
@@ -260,11 +264,12 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
             source={source} loading={!matchingSource} error={matchingSource?.error ?? null}
             content={content} labelContent={boundLabels ? labelData.model?.content : undefined}
             pageNumber={state.pageNumber} active={active} preview={Boolean(hovered)}
+            pointerPreview={previewOrigin.current === "pointer"}
             pinned={pinned} pinnedRegions={fieldRegions(pinned)}
             hasSelection={Boolean(selected)}
             view={view} outlines={outlines} previewId={previewId}
             fieldReview={fieldReview}
-            compactLegend={fieldReview && source?.kind === "pdf" && !hasLabels}
+            compactLegend={unlabeledPdfFields}
             comparison={view === "fields" ? comparison : undefined} referenceMode={view === "fields" && referenceMode}
             onDismissPreview={dismissPreview}
             regions={activeRegions} regionIndex={activeRegionIndex}

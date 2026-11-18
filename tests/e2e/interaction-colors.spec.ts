@@ -22,18 +22,38 @@ async function expectReadable(score: Locator): Promise<void> {
     expect(contrast(colors.text, colors.background)).toBeGreaterThanOrEqual(4.5);
 }
 
-test("unlabeled PDFs use the shared field review style without label comparison semantics", async ({ page }) => {
+test("unlabeled PDFs use green defaults without label comparison semantics", async ({ page }) => {
     await loadReviewFixture(page);
     await setShowConfidence(page, true);
     const high = "/contents/0/fields/InvoiceId", low = "/contents/0/fields/Zero", unknown = "/contents/0/fields/Unknown";
     for (const id of [high, low, unknown]) {
-        await expect(row(page, id).locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(236, 243, 252)");
+        await expect(row(page, id).locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(220, 251, 215)");
         await expect(source(page, id)).toHaveAttribute("fill", "#ECF3FC");
+        await expect(source(page, id)).toHaveCSS("fill", "rgb(220, 251, 215)");
+    }
+    for (const name of ["Customer", "False", "Empty", "Null"]) {
+        await expect(row(page, `/contents/0/fields/${name}`).locator(".cu-field-value-content"))
+            .toHaveCSS("background-color", "rgb(220, 251, 215)");
     }
     await expect(row(page, low).locator(".cu-field-value-content")).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(row(page, unknown).locator(".cu-field-value-content")).toHaveCSS("box-shadow", "none");
     const edge = page.getByTestId("result-overlay").locator(`[data-source-edge-id="${low}"]`);
     await expect(edge).toHaveCSS("stroke", "rgba(180, 60, 75, 0.6)");
+    await expect(edge).toHaveCount(1);
+    await source(page, low).focus();
+    await expect(edge).toHaveCount(1);
+    await source(page, low).evaluate(element => (element as SVGPolygonElement).blur());
+    await expect(edge).toHaveCount(1);
+    await source(page, low).hover();
+    await expect(preview(page)).toHaveCSS("stroke", hoverStroke);
+    await expect(edge).toHaveCount(0);
+    await page.locator(".prototype-banner").hover();
+    await expect(edge).toHaveCount(1);
+    await source(page, low).click();
+    await expect(pin(page)).toHaveAttribute("data-source-id", low);
+    await expect(edge).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(edge).toHaveCount(1);
     await expect(page.locator(".cu-fields-table > thead th")).toHaveText(["Field", "Value", "Confidence"]);
     await expect(page.locator(".cu-comparison-filters, .cu-comparison-arrays")).toHaveCount(0);
     await expect(page.getByRole("tab", { name: "Label", exact: true })).toHaveCount(0);
@@ -58,27 +78,30 @@ test("unlabeled PDFs use the shared field review style without label comparison 
     const grid = page.getByRole("table", { name: "LineItems values", exact: true });
     await expect(grid).toHaveCount(1);
     await expect(row(page, "/contents/0/fields/LineItems").locator(".cu-field-value-content"))
-        .toHaveCSS("background-color", "rgb(222, 233, 250)");
+        .toHaveCSS("background-color", "rgb(220, 251, 215)");
     for (const id of ["/contents/0/fields/Customer", "/contents/0/fields/LineItems"]) {
         expect(await row(page, id).evaluate(element => element.getBoundingClientRect().height)).toBeLessThanOrEqual(28);
         expect(await row(page, id).locator(".cu-field-value-content").evaluate(element => element.getBoundingClientRect().height)).toBe(24);
     }
     await expect(row(page, "/contents/0/fields/LineItems").locator(".cu-summary-value")).toHaveCSS("font-size", "12.5px");
-    await expect(grid.locator(".cu-cell-content").first()).toHaveCSS("background-color", "rgb(222, 233, 250)");
+    await expect(grid.locator(".cu-cell-content").first()).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(grid.locator(".cu-cell-content").first()).toHaveCSS("box-shadow", /180, 60, 75/);
+    await expect(source(page, "/contents/0/fields/LineItems/valueArray/0/valueObject/Column1"))
+        .toHaveCSS("fill", "rgb(220, 251, 215)");
 
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
     expect(await legend.locator(".cu-legend-swatch").evaluateAll(elements => elements.map(element =>
-        getComputedStyle(element).backgroundColor))).toEqual(["rgb(236, 243, 252)", "rgb(222, 233, 250)"]);
+        getComputedStyle(element).backgroundColor))).toEqual(["rgb(220, 251, 215)", "rgb(220, 251, 215)"]);
     await expect(legend.locator('[data-legend-category="low-outline"] .cu-legend-outline-swatch'))
-        .toHaveCSS("background-color", "rgb(236, 243, 252)");
+        .toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(legend.getByText("Matches label", { exact: true })).toHaveCount(0);
     await expect(legend.getByText(/matching color|indicates matching/)).toHaveCount(0);
     const points = await source(page, low).getAttribute("points");
     await legend.getByRole("switch", { name: "Show low confidence outlines", exact: true }).uncheck();
     await expect(row(page, low).locator(".cu-field-value-content")).toHaveCSS("box-shadow", "none");
     await expect(source(page, low)).toHaveAttribute("fill", "#ECF3FC");
+    await expect(source(page, low)).toHaveCSS("fill", "rgb(220, 251, 215)");
     await expect(source(page, low)).toHaveAttribute("points", points!);
     await expect(edge).not.toHaveAttribute("data-low-confidence");
     await legend.getByRole("button", { name: "Close legend", exact: true }).click();
@@ -90,6 +113,40 @@ test("unlabeled PDFs use the shared field review style without label comparison 
     await expect(page.locator(".cu-field-review-fields")).toHaveCount(0);
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     await expect(legend.locator(".cu-legend-item")).toHaveCount(4);
+});
+
+test("hovering or selecting coincident low-confidence fields hides both source frames", async ({ page }) => {
+    await page.goto("/?sample=pdf");
+    await ready(page);
+    await setShowConfidence(page, true);
+    const recipient = "/contents/0/fields/VendorAddressRecipient", vendor = "/contents/0/fields/VendorName";
+    const recipientEdge = page.getByTestId("result-overlay").locator(`[data-low-confidence][data-source-edge-id="${recipient}"]`);
+    const vendorEdge = page.getByTestId("result-overlay").locator(`[data-low-confidence][data-source-edge-id="${vendor}"]`);
+    const recipientRegion = source(page, recipient), vendorRegion = source(page, vendor);
+    const recipientPoints = await recipientRegion.getAttribute("points");
+    if (recipientPoints === null) throw new Error("The recipient source region is unavailable.");
+    await expect(vendorRegion).toHaveAttribute("points", recipientPoints);
+    await expect(recipientEdge).toHaveCount(1);
+    await expect(vendorEdge).toHaveCount(1);
+
+    const bounds = await recipientRegion.boundingBox();
+    if (bounds === null) throw new Error("The coincident source regions are unavailable.");
+    const point = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    await page.mouse.move(point.x, point.y);
+    await expect(preview(page)).toHaveAttribute("data-source-id", recipient);
+    await expect(recipientEdge).toHaveCount(0);
+    await expect(vendorEdge).toHaveCount(0);
+    await page.locator(".prototype-banner").hover();
+    await expect(recipientEdge).toHaveCount(1);
+    await expect(vendorEdge).toHaveCount(1);
+
+    await page.mouse.click(point.x, point.y);
+    await expect(pin(page)).toHaveAttribute("data-source-id", recipient);
+    await expect(recipientEdge).toHaveCount(0);
+    await expect(vendorEdge).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(recipientEdge).toHaveCount(1);
+    await expect(vendorEdge).toHaveCount(1);
 });
 
 test("UI-48/51 source hover and pin have distinct violet outlines with linked Fields and unchanged value colors", async ({ page }) => {
@@ -178,7 +235,7 @@ test("UI-48 array-cell hover and whole-group selection preserve neighbors, opaqu
     await expect(grid.locator(".is-location-row")).toHaveCSS("background-color", related);
     await expect(grid.locator(".is-location-column")).toHaveCSS("background-color", related);
     await expect(grid.locator(":scope > tbody > tr > td").nth(2)).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(cell(first).locator(".cu-cell-content")).toHaveCSS("background-color", "rgb(222, 233, 250)");
+    await expect(cell(first).locator(".cu-cell-content")).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(cell(first).locator(".cu-cell-content")).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(cell(first).locator(".cu-value-chip")).toHaveCSS("color", "rgb(36, 52, 71)");
     await expect(cell(first).locator(".cu-cell-value")).toHaveAttribute("aria-pressed", "true");
@@ -210,7 +267,7 @@ test("UI-48 related ranges stay pale while hover and the actual current value re
     await row(page, amount).locator(".cu-field-value").click();
     await expect(row(page, amount)).toHaveCSS("background-color", selected);
     await expect(row(page, currency)).toHaveCSS("background-color", related);
-    await expect(row(page, amount).locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(236, 243, 252)");
+    await expect(row(page, amount).locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(page.locator(".cu-table-scope")).toBeVisible();
 });
 
@@ -236,7 +293,7 @@ test("UI-51 violet outlines contrast with every semantic source fill without cha
         points: element.getAttribute("points"), fill: getComputedStyle(element).fill,
     })));
     const fills = [...new Set(before.map(region => region.fill))].sort();
-    expect(fills).toEqual(["rgb(222, 233, 250)", "rgb(236, 243, 252)"]);
+    expect(fills).toEqual(["rgb(220, 251, 215)"]);
     const canvas = page.getByTestId("source-canvas");
     const pixels = await canvas.evaluate(element => {
         if (!(element instanceof HTMLCanvasElement)) throw new Error("Expected a source canvas.");

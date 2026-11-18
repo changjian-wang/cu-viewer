@@ -75,7 +75,8 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
             </h3>}
             <div className="cu-legend-group-entries" id={`${id}-${setting}`}>
                 {entries.map(([category, table, confidence, name, description]) => {
-                    const style = inlineControls ? { background: table ? FIELD_REVIEW_COLORS.array : FIELD_REVIEW_COLORS.default } : appearance({ confidence }, table,
+                    const style = inlineControls ? { background: `var(--cu-default-review-fill, ${table ?
+                        FIELD_REVIEW_COLORS.array : FIELD_REVIEW_COLORS.default})` } : appearance({ confidence }, table,
                         { ...settings, threshold: 0.7, highlightLow: true }, labelMode);
                     const explanation = !inlineControls && !labelMode && !settings.highlightLow && (category === "field" || category === "table") ?
                         "All scored values while low-confidence highlight is off" : description;

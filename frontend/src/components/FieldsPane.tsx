@@ -241,7 +241,8 @@ function StandardFieldsPane(props: FieldsPaneProps) {
     const valueStyle = (field: CuField) => {
         if (!props.fieldReview) return undefined;
         const style = fieldAppearance(field, settings, "uncompared", isTableValue(field));
-        return { background: style.background, color: field.hasValue ? style.color : undefined, boxShadow: style.boxShadow };
+        return { background: field.hasValue ? `var(--cu-default-review-fill, ${style.background})` : style.background,
+            color: field.hasValue ? style.color : undefined, boxShadow: style.boxShadow };
     };
     const reviewClass = props.fieldReview ? " cu-comparison-value" : "";
     const cell = (field: CuField): ReactNode => <div className={`cu-cell-content${reviewClass}`} style={valueStyle(field)}
