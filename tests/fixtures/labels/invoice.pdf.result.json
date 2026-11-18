@@ -1,84 +1,164 @@
 {
-  "id": "3bca2936-91f5-4f3c-b756-b8ce7bbc820f",
+  "id": "b5b9d77a-5a9d-474b-8531-6d4241f1a68a",
   "status": "Succeeded",
   "result": {
-    "analyzerId": "yslin_sample_invoice",
-    "apiVersion": "2025-11-01",
-    "createdAt": "2026-11-13T09:01:12Z",
+    "analyzerId": "mmi_sample_invoice_label",
+    "apiVersion": "2026-06-01-preview",
+    "createdAt": "2026-11-17T01:33:52Z",
     "stringEncoding": "codePoint",
     "warnings": [],
+    "infos": [
+      {
+        "code": "LLMStats",
+        "message": "completion calls: 1; avg completion latency: 8.40s; total completion latency: 8.40s"
+      }
+    ],
     "contents": [
       {
         "path": "input1",
         "markdown": "CONTOSO LTD.\n\n\n# INVOICE\n\nContoso Headquarters\n123 456th St\nNew York, NY, 10001\n\nINVOICE: INV-100\n\nINVOICE DATE: 11/15/2019\n\nDUE DATE: 12/15/2019\n\nCUSTOMER NAME: MICROSOFT CORPORATION\n\nSERVICE PERIOD: 10/14/2019 - 11/14/2019\n\nCUSTOMER ID: CID-12345\n\nMicrosoft Corp\n123 Other St,\nRedmond WA, 98052\n\nBILL TO:\nMicrosoft Finance\n123 Bill St,\nRedmond WA, 98052\n\nSHIP TO:\nMicrosoft Delivery\n123 Ship St,\nRedmond WA, 98052\n\nSERVICE ADDRESS:\nMicrosoft Services\n123 Service St,\nRedmond WA, 98052\n\n\n\u003ctable\u003e\n\u003ctr\u003e\n\u003cth\u003eSALESPERSON\u003c/th\u003e\n\u003cth\u003eP.O. NUMBER\u003c/th\u003e\n\u003cth\u003eREQUISITIONER\u003c/th\u003e\n\u003cth\u003eSHIPPED VIA\u003c/th\u003e\n\u003cth\u003eF.O.B. POINT\u003c/th\u003e\n\u003cth\u003eTERMS\u003c/th\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003e\u003c/td\u003e\n\u003ctd\u003ePO-3333\u003c/td\u003e\n\u003ctd\u003e\u003c/td\u003e\n\u003ctd\u003e\u003c/td\u003e\n\u003ctd\u003e\u003c/td\u003e\n\u003ctd\u003e\u003c/td\u003e\n\u003c/tr\u003e\n\u003c/table\u003e\n\n\n\u003ctable\u003e\n\u003ctr\u003e\n\u003cth\u003eDATE\u003c/th\u003e\n\u003cth\u003eITEM CODE\u003c/th\u003e\n\u003cth\u003eDESCRIPTION\u003c/th\u003e\n\u003cth\u003eQTY\u003c/th\u003e\n\u003cth\u003eUM\u003c/th\u003e\n\u003cth\u003ePRICE\u003c/th\u003e\n\u003cth\u003eTAX\u003c/th\u003e\n\u003cth\u003eAMOUNT\u003c/th\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003e3/4/2021\u003c/td\u003e\n\u003ctd\u003eA123\u003c/td\u003e\n\u003ctd\u003eConsulting Services\u003c/td\u003e\n\u003ctd\u003e2\u003c/td\u003e\n\u003ctd\u003ehours\u003c/td\u003e\n\u003ctd\u003e$30.00\u003c/td\u003e\n\u003ctd\u003e$6.00\u003c/td\u003e\n\u003ctd\u003e$60.00\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003e3/5/2021\u003c/td\u003e\n\u003ctd\u003eB456\u003c/td\u003e\n\u003ctd\u003eDocument Fee\u003c/td\u003e\n\u003ctd\u003e3\u003c/td\u003e\n\u003ctd\u003e\u003c/td\u003e\n\u003ctd\u003e$10.00\u003c/td\u003e\n\u003ctd\u003e$3.00\u003c/td\u003e\n\u003ctd\u003e$30.00\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003e3/6/2021\u003c/td\u003e\n\u003ctd\u003eC789\u003c/td\u003e\n\u003ctd\u003ePrinting Fee\u003c/td\u003e\n\u003ctd\u003e10\u003c/td\u003e\n\u003ctd\u003epages\u003c/td\u003e\n\u003ctd\u003e$1.00\u003c/td\u003e\n\u003ctd\u003e$1.00\u003c/td\u003e\n\u003ctd\u003e$10.00\u003c/td\u003e\n\u003c/tr\u003e\n\u003c/table\u003e\n\n\n\u003ctable\u003e\n\u003ctr\u003e\n\u003ctd\u003eSUBTOTAL\u003c/td\u003e\n\u003ctd\u003e$100.00\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003eSALES TAX\u003c/td\u003e\n\u003ctd\u003e$10.00\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003eTOTAL\u003c/td\u003e\n\u003ctd\u003e$110.00\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003ePREVIOUS UNPAID BALANCE\u003c/td\u003e\n\u003ctd\u003e$500.00\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003eAMOUNT DUE\u003c/td\u003e\n\u003ctd\u003e$610.00\u003c/td\u003e\n\u003c/tr\u003e\n\u003c/table\u003e\n\n\nTHANK YOU FOR YOUR BUSINESS!\n\nREMIT TO:\nContoso Billing\n123 Remit St\nNew York, NY, 10001\n",
         "fields": {
-          "InvoiceNumber": {
+          "AmountDue": {
+            "type": "object",
+            "valueObject": {
+              "Amount": {
+                "type": "number",
+                "valueNumber": 610,
+                "spans": [
+                  {
+                    "offset": 1523,
+                    "length": 6
+                  }
+                ],
+                "confidence": 0.989,
+                "source": "D(1,7.4496,8.0513,7.9272,8.0513,7.9272,8.2124,7.4496,8.2124)"
+              },
+              "CurrencyCode": {
+                "type": "string",
+                "valueString": "USD",
+                "spans": [
+                  {
+                    "offset": 1522,
+                    "length": 7
+                  }
+                ],
+                "confidence": 0.38,
+                "source": "D(1,7.3628,8.0513,7.9272,8.0513,7.9272,8.2124,7.3628,8.2124)"
+              }
+            }
+          },
+          "BalanceForward": {
+            "type": "object",
+            "valueObject": {
+              "Amount": {
+                "type": "number",
+                "valueNumber": 500,
+                "spans": [
+                  {
+                    "offset": 1475,
+                    "length": 6
+                  }
+                ],
+                "confidence": 0.993,
+                "source": "D(1,7.4434,7.7478,7.9272,7.7458,7.9272,7.9070,7.4434,7.9089)"
+              },
+              "CurrencyCode": {
+                "type": "string",
+                "valueString": "USD",
+                "spans": [
+                  {
+                    "offset": 1474,
+                    "length": 7
+                  }
+                ],
+                "confidence": 0.425,
+                "source": "D(1,7.3586,7.7458,7.9272,7.7458,7.9272,7.9089,7.3586,7.9089)"
+              }
+            }
+          },
+          "BillingAddress": {
             "type": "string",
-            "valueString": "INV-100",
+            "valueString": "123 Bill St,\nRedmond WA, 98052",
             "spans": [
               {
-                "offset": 90,
-                "length": 7
-              }
-            ],
-            "confidence": 0.958,
-            "source": "D(1,7.4772,1.3996,8.0103,1.3989,8.0105,1.5463,7.4774,1.5470)"
-          },
-          "InvoiceDate": {
-            "type": "date",
-            "valueDate": "2019-11-15",
-            "spans": [
-              {
-                "offset": 113,
-                "length": 10
-              }
-            ],
-            "confidence": 0.988,
-            "source": "D(1,7.2399,1.5950,8.0061,1.5909,8.0061,1.7485,7.2398,1.7519)"
-          },
-          "DueDate": {
-            "type": "date",
-            "valueDate": "2019-12-15",
-            "spans": [
-              {
-                "offset": 135,
-                "length": 10
-              }
-            ],
-            "confidence": 0.988,
-            "source": "D(1,7.2352,1.8082,8.0061,1.8063,8.0061,1.9639,7.2352,1.9653)"
-          },
-          "SellerName": {
-            "type": "string",
-            "valueString": "CONTOSO LTD.",
-            "spans": [
-              {
-                "offset": 0,
+                "offset": 325,
                 "length": 12
-              }
-            ],
-            "confidence": 0.973,
-            "source": "D(1,0.5748,0.6583,2.3367,0.6542,2.3372,0.8894,0.5753,0.8935)"
-          },
-          "SellerAddress": {
-            "type": "string",
-            "valueString": "Contoso Headquarters 123 456th St New York, NY, 10001",
-            "spans": [
-              {
-                "offset": 26,
-                "length": 20
               },
               {
-                "offset": 47,
-                "length": 12
-              },
+                "offset": 338,
+                "length": 17
+              }
+            ],
+            "confidence": 0.977,
+            "source": "D(1,0.5801,3.9488,1.2856,3.9470,1.2860,4.1130,0.5805,4.1148);D(1,0.5728,4.1489,2.0254,4.1489,2.0254,4.3167,0.5728,4.3167)"
+          },
+          "BillingAddressRecipient": {
+            "type": "string",
+            "valueString": "Microsoft Finance",
+            "spans": [
+              {
+                "offset": 307,
+                "length": 17
+              }
+            ],
+            "confidence": 0.998,
+            "source": "D(1,0.5753,3.7506,1.8028,3.7549,1.8023,3.9115,0.5748,3.9072)"
+          },
+          "CountryRegion": {
+            "type": "string",
+            "valueString": "United States",
+            "spans": [
               {
                 "offset": 60,
                 "length": 19
+              },
+              {
+                "offset": 279,
+                "length": 17
               }
             ],
-            "confidence": 0.973,
-            "source": "D(1,0.5722,1.4117,2.1115,1.4120,2.1115,1.5761,0.5722,1.5758);D(1,0.5764,1.6019,1.3976,1.5971,1.3986,1.7644,0.5774,1.7692);D(1,0.5715,1.8106,2.0015,1.8051,2.0022,1.9747,0.5722,1.9802)"
+            "confidence": 0.354,
+            "source": "D(1,0.5715,1.8106,2.0015,1.8051,2.0022,1.9747,0.5722,1.9802);D(1,0.5720,3.0335,2.0244,3.0316,2.0246,3.1982,0.5722,3.2001)"
+          },
+          "CustomerAddress": {
+            "type": "string",
+            "valueString": "123 Other St,\nRedmond WA, 98052",
+            "spans": [
+              {
+                "offset": 265,
+                "length": 13
+              },
+              {
+                "offset": 279,
+                "length": 17
+              }
+            ],
+            "confidence": 0.984,
+            "source": "D(1,0.5795,2.8291,1.4755,2.8354,1.4744,2.9984,0.5783,2.9921);D(1,0.5720,3.0335,2.0244,3.0316,2.0246,3.1982,0.5722,3.2001)"
+          },
+          "CustomerAddressRecipient": {
+            "type": "string",
+            "valueString": "Microsoft Corp",
+            "spans": [
+              {
+                "offset": 250,
+                "length": 14
+              }
+            ],
+            "confidence": 0.993,
+            "source": "D(1,0.5735,2.6264,1.5989,2.6278,1.5987,2.8015,0.5733,2.8001)"
+          },
+          "CustomerId": {
+            "type": "string",
+            "valueString": "12345",
+            "spans": [
+              {
+                "offset": 243,
+                "length": 5
+              }
+            ],
+            "confidence": 0.998,
+            "source": "D(1,7.6006,2.4196,8.0103,2.4194,8.0103,2.5712,7.6006,2.5708)"
           },
           "CustomerName": {
             "type": "string",
@@ -89,146 +169,48 @@
                 "length": 21
               }
             ],
-            "confidence": 0.989,
+            "confidence": 0.997,
             "source": "D(1,6.2251,2.0090,8.0020,2.0090,8.0020,2.1644,6.2251,2.1644)"
           },
-          "CustomerId": {
+          "CustomerTaxId": {
             "type": "string",
-            "valueString": "CID-12345",
+            "confidence": 0.974
+          },
+          "DueDate": {
+            "type": "date",
+            "valueDate": "2019-12-15",
             "spans": [
               {
-                "offset": 239,
-                "length": 9
+                "offset": 135,
+                "length": 10
               }
             ],
-            "confidence": 0.973,
-            "source": "D(1,7.3232,2.4192,8.0103,2.4194,8.0103,2.5712,7.3232,2.5710)"
+            "confidence": 0.997,
+            "source": "D(1,7.2352,1.8082,8.0061,1.8063,8.0061,1.9639,7.2352,1.9653)"
           },
-          "ServicePeriod": {
-            "type": "object",
-            "valueObject": {
-              "StartDate": {
-                "type": "date",
-                "valueDate": "2019-10-14",
-                "spans": [
-                  {
-                    "offset": 201,
-                    "length": 10
-                  }
-                ],
-                "confidence": 0.995,
-                "source": "D(1,6.3168,2.2123,7.0712,2.2133,7.0712,2.3756,6.3168,2.3740)"
-              },
-              "EndDate": {
-                "type": "date",
-                "valueDate": "2019-11-14",
-                "spans": [
-                  {
-                    "offset": 214,
-                    "length": 10
-                  }
-                ],
-                "confidence": 0.995,
-                "source": "D(1,7.2398,2.2130,8.0103,2.2114,8.0103,2.3733,7.2398,2.3752)"
-              }
-            }
-          },
-          "BillTo": {
-            "type": "string",
-            "valueString": "Microsoft Finance 123 Bill St, Redmond WA, 98052",
+          "InvoiceDate": {
+            "type": "date",
+            "valueDate": "2019-11-15",
             "spans": [
               {
-                "offset": 307,
-                "length": 17
-              },
-              {
-                "offset": 325,
-                "length": 12
-              },
-              {
-                "offset": 338,
-                "length": 17
+                "offset": 113,
+                "length": 10
               }
             ],
-            "confidence": 0.993,
-            "source": "D(1,0.5753,3.7506,1.8028,3.7549,1.8023,3.9115,0.5748,3.9072);D(1,0.5801,3.9488,1.2856,3.9470,1.2860,4.1130,0.5805,4.1148);D(1,0.5728,4.1489,2.0254,4.1489,2.0254,4.3167,0.5728,4.3167)"
+            "confidence": 0.997,
+            "source": "D(1,7.2399,1.5950,8.0061,1.5909,8.0061,1.7485,7.2398,1.7519)"
           },
-          "ShipTo": {
+          "InvoiceId": {
             "type": "string",
-            "valueString": "Microsoft Delivery 123 Ship St, Redmond WA, 98052",
+            "valueString": "INV-100",
             "spans": [
               {
-                "offset": 366,
-                "length": 18
-              },
-              {
-                "offset": 385,
-                "length": 12
-              },
-              {
-                "offset": 398,
-                "length": 17
+                "offset": 90,
+                "length": 7
               }
             ],
-            "confidence": 0.97,
-            "source": "D(1,3.3225,3.7473,4.5917,3.7579,4.5902,3.9326,3.3210,3.9220);D(1,3.3307,3.9485,4.1185,3.9547,4.1172,4.1233,3.3294,4.1171);D(1,3.3245,4.1497,4.7730,4.1508,4.7729,4.3181,3.3244,4.3170)"
-          },
-          "ServiceAddress": {
-            "type": "string",
-            "valueString": "Microsoft Services 123 Service St, Redmond WA, 98052",
-            "spans": [
-              {
-                "offset": 434,
-                "length": 18
-              },
-              {
-                "offset": 453,
-                "length": 15
-              },
-              {
-                "offset": 469,
-                "length": 17
-              }
-            ],
-            "confidence": 0.969,
-            "source": "D(1,6.1965,3.7529,7.4502,3.7544,7.4500,3.9096,6.1963,3.9081);D(1,6.2007,3.9468,7.1980,3.9539,7.1968,4.1174,6.1995,4.1103);D(1,6.1924,4.1484,7.6451,4.1493,7.6450,4.3190,6.1923,4.3181)"
-          },
-          "OrderInformation": {
-            "type": "object",
-            "valueObject": {
-              "Salesperson": {
-                "type": "string",
-                "confidence": 0.845
-              },
-              "PurchaseOrderNumber": {
-                "type": "string",
-                "valueString": "PO-3333",
-                "spans": [
-                  {
-                    "offset": 650,
-                    "length": 7
-                  }
-                ],
-                "confidence": 0.948,
-                "source": "D(1,1.8915,4.9092,2.4840,4.9092,2.4840,5.0596,1.8915,5.0596)"
-              },
-              "Requisitioner": {
-                "type": "string",
-                "confidence": 0.845
-              },
-              "ShippedVia": {
-                "type": "string",
-                "confidence": 0.845
-              },
-              "FobPoint": {
-                "type": "string",
-                "confidence": 0.845
-              },
-              "Terms": {
-                "type": "string",
-                "confidence": 0.845
-              }
-            }
+            "confidence": 0.996,
+            "source": "D(1,7.4772,1.3996,8.0103,1.3989,8.0105,1.5463,7.4774,1.5470)"
           },
           "LineItems": {
             "type": "array",
@@ -245,20 +227,8 @@
                         "length": 8
                       }
                     ],
-                    "confidence": 0.971,
+                    "confidence": 0.889,
                     "source": "D(1,0.5738,5.6652,1.2150,5.6728,1.2150,5.8339,0.5743,5.8264)"
-                  },
-                  "ItemCode": {
-                    "type": "string",
-                    "valueString": "A123",
-                    "spans": [
-                      {
-                        "offset": 889,
-                        "length": 4
-                      }
-                    ],
-                    "confidence": 0.952,
-                    "source": "D(1,1.5917,5.6772,1.9538,5.6772,1.9538,5.8248,1.5917,5.8229)"
                   },
                   "Description": {
                     "type": "string",
@@ -269,8 +239,20 @@
                         "length": 19
                       }
                     ],
-                    "confidence": 0.778,
+                    "confidence": 0.755,
                     "source": "D(1,2.3201,5.6719,3.6378,5.6719,3.6378,5.8438,2.3201,5.8438)"
+                  },
+                  "ProductCode": {
+                    "type": "string",
+                    "valueString": "A123",
+                    "spans": [
+                      {
+                        "offset": 889,
+                        "length": 4
+                      }
+                    ],
+                    "confidence": 0.829,
+                    "source": "D(1,1.5917,5.6772,1.9538,5.6772,1.9538,5.8248,1.5917,5.8229)"
                   },
                   "Quantity": {
                     "type": "number",
@@ -281,10 +263,10 @@
                         "length": 1
                       }
                     ],
-                    "confidence": 0.746,
+                    "confidence": 0.279,
                     "source": "D(1,4.5820,5.6826,4.6775,5.6826,4.6775,5.8115,4.5820,5.8115)"
                   },
-                  "UnitOfMeasure": {
+                  "QuantityUnit": {
                     "type": "string",
                     "valueString": "hours",
                     "spans": [
@@ -293,44 +275,99 @@
                         "length": 5
                       }
                     ],
-                    "confidence": 0.609,
+                    "confidence": 0.746,
                     "source": "D(1,4.8186,5.6842,5.2170,5.6841,5.2170,5.8291,4.8186,5.8293)"
                   },
-                  "UnitPriceAmount": {
-                    "type": "number",
-                    "valueNumber": 30,
-                    "spans": [
-                      {
-                        "offset": 958,
-                        "length": 6
-                      }
-                    ],
-                    "confidence": 0.862,
-                    "source": "D(1,5.9517,5.6665,6.4207,5.6665,6.4207,5.8276,5.9517,5.8276)"
-                  },
                   "TaxAmount": {
-                    "type": "number",
-                    "valueNumber": 6,
-                    "spans": [
-                      {
-                        "offset": 974,
-                        "length": 5
+                    "type": "object",
+                    "valueObject": {
+                      "Amount": {
+                        "type": "number",
+                        "valueNumber": 6,
+                        "spans": [
+                          {
+                            "offset": 975,
+                            "length": 4
+                          }
+                        ],
+                        "confidence": 0.717,
+                        "source": "D(1,6.7735,5.6719,7.0764,5.6719,7.0764,5.8330,6.7735,5.8330)"
+                      },
+                      "CurrencyCode": {
+                        "type": "string",
+                        "valueString": "USD",
+                        "spans": [
+                          {
+                            "offset": 974,
+                            "length": 5
+                          }
+                        ],
+                        "confidence": 0.637,
+                        "source": "D(1,6.6904,5.6719,7.0764,5.6719,7.0764,5.8330,6.6904,5.8330)"
                       }
-                    ],
-                    "confidence": 0.808,
-                    "source": "D(1,6.6904,5.6719,7.0764,5.6719,7.0764,5.8330,6.6904,5.8330)"
+                    }
                   },
-                  "LineAmount": {
+                  "TaxRate": {
                     "type": "number",
-                    "valueNumber": 60,
-                    "spans": [
-                      {
-                        "offset": 989,
-                        "length": 6
+                    "confidence": 0.794
+                  },
+                  "TotalAmount": {
+                    "type": "object",
+                    "valueObject": {
+                      "Amount": {
+                        "type": "number",
+                        "valueNumber": 60,
+                        "spans": [
+                          {
+                            "offset": 990,
+                            "length": 5
+                          }
+                        ],
+                        "confidence": 0.794,
+                        "source": "D(1,7.5299,5.6681,7.9231,5.6645,7.9231,5.8256,7.5299,5.8292)"
+                      },
+                      "CurrencyCode": {
+                        "type": "string",
+                        "valueString": "USD",
+                        "spans": [
+                          {
+                            "offset": 989,
+                            "length": 6
+                          }
+                        ],
+                        "confidence": 0.643,
+                        "source": "D(1,7.4463,5.6501,7.9280,5.6646,7.9226,5.8411,7.4409,5.8265)"
                       }
-                    ],
-                    "confidence": 0.82,
-                    "source": "D(1,7.4463,5.6501,7.9280,5.6646,7.9226,5.8411,7.4409,5.8265)"
+                    }
+                  },
+                  "UnitPrice": {
+                    "type": "object",
+                    "valueObject": {
+                      "Amount": {
+                        "type": "number",
+                        "valueNumber": 30,
+                        "spans": [
+                          {
+                            "offset": 1123,
+                            "length": 5
+                          }
+                        ],
+                        "confidence": 0.764,
+                        "source": "D(1,7.5271,5.9709,7.9231,5.9688,7.9231,6.1299,7.5271,6.1320)"
+                      },
+                      "CurrencyCode": {
+                        "type": "string",
+                        "valueString": "USD",
+                        "spans": [
+                          {
+                            "offset": 958,
+                            "length": 6
+                          }
+                        ],
+                        "confidence": 0.553,
+                        "source": "D(1,5.9517,5.6665,6.4207,5.6665,6.4207,5.8276,5.9517,5.8276)"
+                      }
+                    }
                   }
                 }
               },
@@ -346,20 +383,8 @@
                         "length": 8
                       }
                     ],
-                    "confidence": 0.951,
+                    "confidence": 0.891,
                     "source": "D(1,0.5748,5.9758,1.2171,5.9787,1.2171,6.1398,0.5753,6.1369)"
-                  },
-                  "ItemCode": {
-                    "type": "string",
-                    "valueString": "B456",
-                    "spans": [
-                      {
-                        "offset": 1034,
-                        "length": 4
-                      }
-                    ],
-                    "confidence": 0.949,
-                    "source": "D(1,1.6021,5.9774,1.9528,5.9755,1.9528,6.1177,1.6021,6.1177)"
                   },
                   "Description": {
                     "type": "string",
@@ -370,8 +395,20 @@
                         "length": 12
                       }
                     ],
-                    "confidence": 0.685,
+                    "confidence": 0.766,
                     "source": "D(1,2.3264,5.9668,3.3243,5.9793,3.3223,6.1416,2.3244,6.1291)"
+                  },
+                  "ProductCode": {
+                    "type": "string",
+                    "valueString": "B456",
+                    "spans": [
+                      {
+                        "offset": 1034,
+                        "length": 4
+                      }
+                    ],
+                    "confidence": 0.858,
+                    "source": "D(1,1.6021,5.9774,1.9528,5.9755,1.9528,6.1177,1.6021,6.1177)"
                   },
                   "Quantity": {
                     "type": "number",
@@ -382,48 +419,103 @@
                         "length": 1
                       }
                     ],
-                    "confidence": 0.711,
+                    "confidence": 0.297,
                     "source": "D(1,4.5862,5.9834,4.6775,5.9834,4.6775,6.1123,4.5862,6.1123)"
                   },
-                  "UnitOfMeasure": {
+                  "QuantityUnit": {
                     "type": "string",
-                    "confidence": 0.975
-                  },
-                  "UnitPriceAmount": {
-                    "type": "number",
-                    "valueNumber": 10,
-                    "spans": [
-                      {
-                        "offset": 1091,
-                        "length": 6
-                      }
-                    ],
-                    "confidence": 0.72,
-                    "source": "D(1,5.9467,5.9710,6.4207,5.9688,6.4215,6.1330,5.9475,6.1353)"
+                    "confidence": 0.867
                   },
                   "TaxAmount": {
-                    "type": "number",
-                    "valueNumber": 3,
-                    "spans": [
-                      {
-                        "offset": 1107,
-                        "length": 5
+                    "type": "object",
+                    "valueObject": {
+                      "Amount": {
+                        "type": "number",
+                        "valueNumber": 3,
+                        "spans": [
+                          {
+                            "offset": 1108,
+                            "length": 4
+                          }
+                        ],
+                        "confidence": 0.732,
+                        "source": "D(1,6.7753,5.9647,7.0847,5.9681,7.0847,6.1284,6.7753,6.1239)"
+                      },
+                      "CurrencyCode": {
+                        "type": "string",
+                        "valueString": "USD",
+                        "spans": [
+                          {
+                            "offset": 1107,
+                            "length": 5
+                          }
+                        ],
+                        "confidence": 0.586,
+                        "source": "D(1,6.6904,5.9631,7.0867,5.9681,7.0847,6.1284,6.6884,6.1233)"
                       }
-                    ],
-                    "confidence": 0.859,
-                    "source": "D(1,6.6904,5.9631,7.0867,5.9681,7.0847,6.1284,6.6884,6.1233)"
+                    }
                   },
-                  "LineAmount": {
+                  "TaxRate": {
                     "type": "number",
-                    "valueNumber": 30,
-                    "spans": [
-                      {
-                        "offset": 1122,
-                        "length": 6
+                    "confidence": 0.794
+                  },
+                  "TotalAmount": {
+                    "type": "object",
+                    "valueObject": {
+                      "Amount": {
+                        "type": "number",
+                        "valueNumber": 30,
+                        "spans": [
+                          {
+                            "offset": 1123,
+                            "length": 5
+                          }
+                        ],
+                        "confidence": 0.794,
+                        "source": "D(1,7.5271,5.9709,7.9231,5.9688,7.9231,6.1299,7.5271,6.1320)"
+                      },
+                      "CurrencyCode": {
+                        "type": "string",
+                        "valueString": "USD",
+                        "spans": [
+                          {
+                            "offset": 1122,
+                            "length": 6
+                          }
+                        ],
+                        "confidence": 0.64,
+                        "source": "D(1,7.4449,5.9713,7.9231,5.9688,7.9240,6.1327,7.4458,6.1352)"
                       }
-                    ],
-                    "confidence": 0.787,
-                    "source": "D(1,7.4449,5.9713,7.9231,5.9688,7.9240,6.1327,7.4458,6.1352)"
+                    }
+                  },
+                  "UnitPrice": {
+                    "type": "object",
+                    "valueObject": {
+                      "Amount": {
+                        "type": "number",
+                        "valueNumber": 10,
+                        "spans": [
+                          {
+                            "offset": 1092,
+                            "length": 5
+                          }
+                        ],
+                        "confidence": 0.713,
+                        "source": "D(1,6.0362,5.9706,6.4207,5.9688,6.4207,6.1299,6.0362,6.1318)"
+                      },
+                      "CurrencyCode": {
+                        "type": "string",
+                        "valueString": "USD",
+                        "spans": [
+                          {
+                            "offset": 1091,
+                            "length": 6
+                          }
+                        ],
+                        "confidence": 0.554,
+                        "source": "D(1,5.9467,5.9710,6.4207,5.9688,6.4215,6.1330,5.9475,6.1353)"
+                      }
+                    }
                   }
                 }
               },
@@ -439,20 +531,8 @@
                         "length": 8
                       }
                     ],
-                    "confidence": 0.951,
+                    "confidence": 0.837,
                     "source": "D(1,0.5753,6.2681,1.2150,6.2681,1.2150,6.4292,0.5753,6.4292)"
-                  },
-                  "ItemCode": {
-                    "type": "string",
-                    "valueString": "C789",
-                    "spans": [
-                      {
-                        "offset": 1167,
-                        "length": 4
-                      }
-                    ],
-                    "confidence": 0.922,
-                    "source": "D(1,1.6010,6.2716,1.9528,6.2647,1.9517,6.4151,1.6010,6.4220)"
                   },
                   "Description": {
                     "type": "string",
@@ -463,8 +543,20 @@
                         "length": 12
                       }
                     ],
-                    "confidence": 0.632,
+                    "confidence": 0.642,
                     "source": "D(1,2.3222,6.2610,3.1478,6.2698,3.1459,6.4529,2.3203,6.4441)"
+                  },
+                  "ProductCode": {
+                    "type": "string",
+                    "valueString": "C789",
+                    "spans": [
+                      {
+                        "offset": 1167,
+                        "length": 4
+                      }
+                    ],
+                    "confidence": 0.747,
+                    "source": "D(1,1.6010,6.2716,1.9528,6.2647,1.9517,6.4151,1.6010,6.4220)"
                   },
                   "Quantity": {
                     "type": "number",
@@ -475,10 +567,10 @@
                         "length": 2
                       }
                     ],
-                    "confidence": 0.806,
+                    "confidence": 0.142,
                     "source": "D(1,4.4990,6.2788,4.6733,6.2788,4.6733,6.4186,4.4990,6.4145)"
                   },
-                  "UnitOfMeasure": {
+                  "QuantityUnit": {
                     "type": "string",
                     "valueString": "pages",
                     "spans": [
@@ -487,117 +579,124 @@
                         "length": 5
                       }
                     ],
-                    "confidence": 0.604,
+                    "confidence": 0.647,
                     "source": "D(1,4.8228,6.2946,5.2295,6.2963,5.2295,6.4441,4.8228,6.4466)"
                   },
-                  "UnitPriceAmount": {
-                    "type": "number",
-                    "valueNumber": 1,
-                    "spans": [
-                      {
-                        "offset": 1230,
-                        "length": 5
-                      }
-                    ],
-                    "confidence": 0.71,
-                    "source": "D(1,6.0305,6.2671,6.4254,6.2685,6.4248,6.4307,6.0299,6.4293)"
-                  },
                   "TaxAmount": {
-                    "type": "number",
-                    "valueNumber": 1,
-                    "spans": [
-                      {
-                        "offset": 1245,
-                        "length": 5
+                    "type": "object",
+                    "valueObject": {
+                      "Amount": {
+                        "type": "number",
+                        "valueNumber": 1,
+                        "spans": [
+                          {
+                            "offset": 1246,
+                            "length": 4
+                          }
+                        ],
+                        "confidence": 0.639,
+                        "source": "D(1,6.7768,6.2695,7.0764,6.2694,7.0764,6.4279,6.7768,6.4267)"
+                      },
+                      "CurrencyCode": {
+                        "type": "string",
+                        "valueString": "USD",
+                        "spans": [
+                          {
+                            "offset": 1245,
+                            "length": 5
+                          }
+                        ],
+                        "confidence": 0.633,
+                        "source": "D(1,6.6946,6.2687,7.0767,6.2694,7.0764,6.4285,6.6943,6.4278)"
                       }
-                    ],
-                    "confidence": 0.715,
-                    "source": "D(1,6.6946,6.2687,7.0767,6.2694,7.0764,6.4285,6.6943,6.4278)"
+                    }
                   },
-                  "LineAmount": {
+                  "TaxRate": {
                     "type": "number",
-                    "valueNumber": 10,
-                    "spans": [
-                      {
-                        "offset": 1260,
-                        "length": 6
+                    "confidence": 0.794
+                  },
+                  "TotalAmount": {
+                    "type": "object",
+                    "valueObject": {
+                      "Amount": {
+                        "type": "number",
+                        "valueNumber": 10,
+                        "spans": [
+                          {
+                            "offset": 1261,
+                            "length": 5
+                          }
+                        ],
+                        "confidence": 0.706,
+                        "source": "D(1,7.5326,6.2668,7.9231,6.2630,7.9231,6.4241,7.5326,6.4279)"
+                      },
+                      "CurrencyCode": {
+                        "type": "string",
+                        "valueString": "USD",
+                        "spans": [
+                          {
+                            "offset": 1260,
+                            "length": 6
+                          }
+                        ],
+                        "confidence": 0.601,
+                        "source": "D(1,7.4442,6.2677,7.9231,6.2630,7.9247,6.4242,7.4458,6.4289)"
                       }
-                    ],
-                    "confidence": 0.722,
-                    "source": "D(1,7.4442,6.2677,7.9231,6.2630,7.9247,6.4242,7.4458,6.4289)"
+                    }
+                  },
+                  "UnitPrice": {
+                    "type": "object",
+                    "valueObject": {
+                      "Amount": {
+                        "type": "number",
+                        "valueNumber": 1,
+                        "spans": [
+                          {
+                            "offset": 1231,
+                            "length": 4
+                          }
+                        ],
+                        "confidence": 0.61,
+                        "source": "D(1,6.1154,6.2674,6.4248,6.2685,6.4248,6.4296,6.1154,6.4285)"
+                      },
+                      "CurrencyCode": {
+                        "type": "string",
+                        "valueString": "USD",
+                        "spans": [
+                          {
+                            "offset": 1230,
+                            "length": 5
+                          }
+                        ],
+                        "confidence": 0.56,
+                        "source": "D(1,6.0305,6.2671,6.4254,6.2685,6.4248,6.4307,6.0299,6.4293)"
+                      }
+                    }
                   }
                 }
               }
             ]
           },
-          "SubtotalAmount": {
-            "type": "number",
-            "valueNumber": 100,
-            "spans": [
-              {
-                "offset": 1324,
-                "length": 7
-              }
-            ],
-            "confidence": 0.908,
-            "source": "D(1,7.3650,6.8594,7.9272,6.8529,7.9291,7.0142,7.3669,7.0207)"
-          },
-          "SalesTaxAmount": {
-            "type": "number",
-            "valueNumber": 10,
-            "spans": [
-              {
-                "offset": 1371,
-                "length": 6
-              }
-            ],
-            "confidence": 0.97,
-            "source": "D(1,7.4500,7.1578,7.9283,7.1611,7.9272,7.3239,7.4489,7.3206)"
-          },
-          "TotalAmount": {
-            "type": "number",
-            "valueNumber": 110,
-            "spans": [
-              {
-                "offset": 1413,
-                "length": 7
-              }
-            ],
-            "confidence": 0.98,
-            "source": "D(1,7.3669,7.4548,7.9279,7.4573,7.9272,7.6186,7.3662,7.6162)"
-          },
-          "PreviousUnpaidBalanceAmount": {
-            "type": "number",
-            "valueNumber": 500,
-            "spans": [
-              {
-                "offset": 1474,
-                "length": 7
-              }
-            ],
-            "confidence": 0.995,
-            "source": "D(1,7.3586,7.7458,7.9272,7.7458,7.9272,7.9089,7.3586,7.9089)"
-          },
-          "AmountDueAmount": {
-            "type": "number",
-            "valueNumber": 610,
-            "spans": [
-              {
-                "offset": 1522,
-                "length": 7
-              }
-            ],
-            "confidence": 0.969,
-            "source": "D(1,7.3628,8.0513,7.9272,8.0513,7.9272,8.2124,7.3628,8.2124)"
-          },
-          "RemitTo": {
+          "PaymentTerm": {
             "type": "string",
-            "valueString": "Contoso Billing 123 Remit St New York, NY, 10001",
+            "confidence": 0.974
+          },
+          "PONumber": {
+            "type": "string",
+            "valueString": "3333",
             "spans": [
               {
-                "offset": 1592,
-                "length": 15
-              },
+                "offset": 653,
+                "length": 4
+              }
+            ],
+            "confidence": 0.998,
+            "source": "D(1,2.1335,4.9092,2.4840,4.9092,2.4840,5.0596,2.1335,5.0596)"
+          },
+          "RemittanceAddress": {
+            "type": "string",
+            "valueString": "123 Remit St\nNew York, NY, 10001",
+            "spans": [
               {
                 "offset": 1608,
                 "length": 12
@@ -607,8 +706,223 @@
                 "length": 19
               }
             ],
-            "confidence": 0.995,
-            "source": "D(1,0.5711,9.3441,1.5969,9.3468,1.5965,9.5186,0.5707,9.5159);D(1,0.5774,9.5498,1.4454,9.5498,1.4454,9.7002,0.5774,9.7002);D(1,0.5733,9.7500,1.9989,9.7539,1.9984,9.9266,0.5728,9.9227)"
+            "confidence": 0.992,
+            "source": "D(1,0.5774,9.5498,1.4454,9.5498,1.4454,9.7002,0.5774,9.7002);D(1,0.5733,9.7500,1.9989,9.7539,1.9984,9.9266,0.5728,9.9227)"
+          },
+          "RemittanceAddressRecipient": {
+            "type": "string",
+            "valueString": "Contoso Billing",
+            "spans": [
+              {
+                "offset": 1592,
+                "length": 15
+              }
+            ],
+            "confidence": 0.996,
+            "source": "D(1,0.5711,9.3441,1.5969,9.3468,1.5965,9.5186,0.5707,9.5159)"
+          },
+          "ServiceAddress": {
+            "type": "string",
+            "valueString": "123 Service St,\nRedmond WA, 98052",
+            "spans": [
+              {
+                "offset": 453,
+                "length": 15
+              },
+              {
+                "offset": 469,
+                "length": 17
+              }
+            ],
+            "confidence": 0.978,
+            "source": "D(1,6.2007,3.9468,7.1980,3.9539,7.1968,4.1174,6.1995,4.1103);D(1,6.1924,4.1484,7.6451,4.1493,7.6450,4.3190,6.1923,4.3181)"
+          },
+          "ServiceAddressRecipient": {
+            "type": "string",
+            "valueString": "Microsoft Services",
+            "spans": [
+              {
+                "offset": 434,
+                "length": 18
+              }
+            ],
+            "confidence": 0.997,
+            "source": "D(1,6.1965,3.7529,7.4502,3.7544,7.4500,3.9096,6.1963,3.9081)"
+          },
+          "ShippingAddress": {
+            "type": "string",
+            "valueString": "123 Ship St,\nRedmond WA, 98052",
+            "spans": [
+              {
+                "offset": 385,
+                "length": 12
+              },
+              {
+                "offset": 398,
+                "length": 17
+              }
+            ],
+            "confidence": 0.989,
+            "source": "D(1,3.3307,3.9485,4.1185,3.9547,4.1172,4.1233,3.3294,4.1171);D(1,3.3245,4.1497,4.7730,4.1508,4.7729,4.3181,3.3244,4.3170)"
+          },
+          "ShippingAddressRecipient": {
+            "type": "string",
+            "valueString": "Microsoft Delivery",
+            "spans": [
+              {
+                "offset": 366,
+                "length": 18
+              }
+            ],
+            "confidence": 0.996,
+            "source": "D(1,3.3225,3.7473,4.5917,3.7579,4.5902,3.9326,3.3210,3.9220)"
+          },
+          "SubtotalAmount": {
+            "type": "object",
+            "valueObject": {
+              "Amount": {
+                "type": "number",
+                "valueNumber": 100,
+                "spans": [
+                  {
+                    "offset": 1325,
+                    "length": 6
+                  }
+                ],
+                "confidence": 0.885,
+                "source": "D(1,7.4558,6.8584,7.9272,6.8529,7.9272,7.0141,7.4558,7.0195)"
+              },
+              "CurrencyCode": {
+                "type": "string",
+                "valueString": "USD",
+                "spans": [
+                  {
+                    "offset": 1324,
+                    "length": 7
+                  }
+                ],
+                "confidence": 0.672,
+                "source": "D(1,7.3650,6.8594,7.9272,6.8529,7.9291,7.0142,7.3669,7.0207)"
+              }
+            }
+          },
+          "TaxDetails": {
+            "type": "array"
+          },
+          "TotalAmount": {
+            "type": "object",
+            "valueObject": {
+              "Amount": {
+                "type": "number",
+                "valueNumber": 110,
+                "spans": [
+                  {
+                    "offset": 1414,
+                    "length": 6
+                  }
+                ],
+                "confidence": 0.99,
+                "source": "D(1,7.4531,7.4552,7.9272,7.4593,7.9272,7.6162,7.4531,7.6162)"
+              },
+              "CurrencyCode": {
+                "type": "string",
+                "valueString": "USD",
+                "spans": [
+                  {
+                    "offset": 1413,
+                    "length": 7
+                  }
+                ],
+                "confidence": 0.427,
+                "source": "D(1,7.3669,7.4548,7.9279,7.4573,7.9272,7.6186,7.3662,7.6162)"
+              }
+            }
+          },
+          "TotalDiscountAmount": {
+            "type": "object",
+            "valueObject": {
+              "Amount": {
+                "type": "number",
+                "confidence": 0.959
+              },
+              "CurrencyCode": {
+                "type": "string",
+                "confidence": 0.974
+              }
+            }
+          },
+          "TotalTaxAmount": {
+            "type": "object",
+            "valueObject": {
+              "Amount": {
+                "type": "number",
+                "valueNumber": 10,
+                "spans": [
+                  {
+                    "offset": 1372,
+                    "length": 5
+                  }
+                ],
+                "confidence": 0.892,
+                "source": "D(1,7.5394,7.1584,7.9272,7.1611,7.9272,7.3222,7.5394,7.3195)"
+              },
+              "CurrencyCode": {
+                "type": "string",
+                "valueString": "USD",
+                "spans": [
+                  {
+                    "offset": 1371,
+                    "length": 6
+                  }
+                ],
+                "confidence": 0.69,
+                "source": "D(1,7.4500,7.1578,7.9283,7.1611,7.9272,7.3239,7.4489,7.3206)"
+              }
+            }
+          },
+          "VendorAddress": {
+            "type": "string",
+            "valueString": "123 456th St\nNew York, NY, 10001",
+            "spans": [
+              {
+                "offset": 47,
+                "length": 12
+              },
+              {
+                "offset": 60,
+                "length": 19
+              }
+            ],
+            "confidence": 0.978,
+            "source": "D(1,0.5764,1.6019,1.3976,1.5971,1.3986,1.7644,0.5774,1.7692);D(1,0.5715,1.8106,2.0015,1.8051,2.0022,1.9747,0.5722,1.9802)"
+          },
+          "VendorAddressRecipient": {
+            "type": "string",
+            "valueString": "Contoso Headquarters",
+            "spans": [
+              {
+                "offset": 26,
+                "length": 20
+              }
+            ],
+            "confidence": 0.945,
+            "source": "D(1,0.5722,1.4117,2.1115,1.4120,2.1115,1.5761,0.5722,1.5758)"
+          },
+          "VendorName": {
+            "type": "string",
+            "valueString": "CONTOSO LTD.",
+            "spans": [
+              {
+                "offset": 0,
+                "length": 12
+              }
+            ],
+            "confidence": 0.977,
+            "source": "D(1,0.5748,0.6583,2.3367,0.6542,2.3372,0.8894,0.5753,0.8935)"
+          },
+          "VendorTaxId": {
+            "type": "string",
+            "confidence": 0.974
           }
         },
         "kind": "document",
@@ -623,18 +937,24 @@
             "height": 11
           }
         ],
-        "analyzerId": "yslin_sample_invoice",
+        "metadata": {
+          "contentType": "application/pdf",
+          "pageCount": "1",
+          "author": "Anatoly Ponomarev",
+          "createdAt": "2021-03-04T12:37:18-08:00",
+          "language": "en-US"
+        },
+        "analyzerId": "mmi_sample_invoice_label",
         "mimeType": "application/pdf"
       }
     ]
   },
   "usage": {
     "documentPagesStandard": 1,
-    "contextualizationTokens": 1000,
+    "advancedContextualizationTokens": 1000,
     "tokens": {
-      "text-embedding-3-large": 672,
-      "gpt-4.1-input": 6590,
-      "gpt-4.1-output": 911
+      "gpt-5.2-input": 8962,
+      "gpt-5.2-output": 1485
     }
   }
 }
