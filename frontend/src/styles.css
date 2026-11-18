@@ -424,6 +424,10 @@
 .cu-table-scope > button { flex: none; }
 .cu-field-name-content { display: flex; align-items: center; gap: 3px; min-width: 0; padding-right: 6px; }
 .cu-viewer .cu-field-name { font-size: var(--cu-value-font-size); line-height: 20px; padding: 4px 0; color: #243447 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; min-width: 0; }
+.cu-viewer .cu-field-name.is-generated { display: inline-flex; align-items: center; gap: 4px; color: #5b21b6 !important; }
+.cu-generated-field-icon { display: inline-flex; flex: none; color: inherit; }
+.cu-generated-field-icon .cu-icon { width: 14px; height: 14px; }
+.cu-generated-field-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .cu-fields-table .cu-expand { width: 20px; height: 26px; padding: 2px; margin: 0; }
 .cu-expand .cu-icon { width: 12px; height: 12px; }
 .cu-expand-spacer { width: 20px; flex: none; }

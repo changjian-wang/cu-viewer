@@ -276,6 +276,7 @@ export function parseFields(raw: unknown, content: CuContent, rootPath: string, 
             hasValue, value, children: [], regions: [],
         };
         if (valueKey) node.valueKey = valueKey;
+        if (frame.raw.method === "generate") node.generated = true;
         frame.destination.push(node);
         const confidence = parseConfidence(field.confidence, frame.path, issues);
         if (confidence !== undefined) node.confidence = confidence;

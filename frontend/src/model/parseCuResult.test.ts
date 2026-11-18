@@ -196,6 +196,17 @@ describe("verified CU result parsing", () => {
 });
 
 describe("synthetic field and metadata boundaries", () => {
+    it("marks only fields whose method is generate", () => {
+        const fields = first(parseCuResult(syntheticResult({
+            Generated: { type: "string", valueString: "Summary", method: "generate" },
+            Extracted: { type: "string", valueString: "Invoice number", method: "extract" },
+            Unspecified: { type: "string", valueString: "Value" },
+            OtherMethod: { type: "string", valueString: "Value", method: "GENERATE" },
+        })).contents).fields;
+
+        expect(fields.map(field => field.generated)).toEqual([true, undefined, undefined, undefined]);
+    });
+
     it("distinguishes zero, false, null, an empty string and an absent value", () => {
         const model = parseCuResult(syntheticResult({
             Zero: { type: "integer", valueInteger: 0, confidence: 0 },

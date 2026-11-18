@@ -149,6 +149,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         if (!visible.has(node.field.id)) continue;
         const open = filtering || review.expanded.has(node.field.id);
         const original = comparisonOriginal(comparison, node.field);
+        const generated = Boolean(node.label?.generated || node.extracted?.generated);
         const hovered = props.hovered && comparison.byFieldId.get(props.hovered.id) === node;
         const entry = entryById.get(node.field.id);
         rows.push(<tr key={node.path} data-field-id={node.field.id} data-comparison-path={node.path}
@@ -197,7 +198,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                         if (open) expanded.delete(node.field.id); else expanded.add(node.field.id);
                         return { ...current, expanded };
                     })}><ViewerIcon name={open ? "down" : "right"} /></button> : <span className="cu-expand-spacer" />}
-                <button type="button" className="cu-field-name" aria-label={fieldDisplayName(node.field)}
+                <button type="button" className={`cu-field-name${generated ? " is-generated" : ""}`} aria-label={fieldDisplayName(node.field)}
                     aria-pressed={selected === node} title={fieldLabel(original)} data-review-focus={original.id}
                     data-source-field-id={original.id}
                     aria-expanded={node.children.length ? open : undefined}
@@ -213,7 +214,10 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                             return { ...current, expanded };
                         });
                     }}
-                    onKeyDown={event => onFieldKey(event, node)}>{fieldDisplayName(node.field)}</button>
+                    onKeyDown={event => onFieldKey(event, node)}>
+                    {generated && <span className="cu-generated-field-icon"><ViewerIcon name="sparkle" /></span>}
+                    <span className={generated ? "cu-generated-field-name" : undefined}>{fieldDisplayName(node.field)}</span>
+                </button>
             </div></td>
             <td><ComparisonValue node={node} side="label" props={props} /></td>
             {comparable && <td><ComparisonValue node={node} side="extracted" props={props}

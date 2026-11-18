@@ -44,6 +44,38 @@ async function reference(page: Page) {
     return page.getByRole("region", { name: "Extraction results", exact: true });
 }
 
+test("generated fields use a purple sparkle and name in regular and compared Fields", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    await page.getByLabel("Choose source file", { exact: true }).setInputFiles(pdf);
+    await ready(page);
+    await upload(page, "Choose saved Analyze JSON", result({
+        Summary: { ...text("Generated summary"), method: "generate" },
+        InvoiceNumber: { ...text("INV-100"), method: "extract" },
+    }), "generated-fields.result.json");
+
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    await pane.getByRole("tab", { name: "Fields", exact: true }).click();
+    const generated = pane.locator('tr[data-field-id="/contents/0/fields/Summary"] .cu-field-name');
+    const ordinary = pane.locator('tr[data-field-id="/contents/0/fields/InvoiceNumber"] .cu-field-name');
+    await expect(generated).toHaveClass(/is-generated/);
+    await expect(generated.locator(".cu-generated-field-icon")).toBeVisible();
+    await expect(generated).toHaveCSS("color", "rgb(91, 33, 182)");
+    await expect(ordinary).not.toHaveClass(/is-generated/);
+    await expect(ordinary.locator(".cu-generated-field-icon")).toHaveCount(0);
+
+    await upload(page, "Choose local label JSON", { fieldLabels: {
+        Summary: text("Generated summary"), InvoiceNumber: text("INV-100"),
+    } }, "generated-fields.pdf.labels.json");
+    const comparedGenerated = pane.locator('tr[data-comparison-path="/Summary"] .cu-field-name');
+    await expect(comparedGenerated).toHaveClass(/is-generated/);
+    await expect(comparedGenerated.locator(".cu-generated-field-icon")).toBeVisible();
+    await expect(comparedGenerated).toHaveCSS("color", "rgb(91, 33, 182)");
+    await expect(pane.locator('tr[data-comparison-path="/Summary"] > td').nth(2).locator(".cu-comparison-value"))
+        .toHaveCSS("background-color", "rgb(220, 251, 215)");
+    await expect(pane.locator('tr[data-comparison-path="/InvoiceNumber"] .cu-generated-field-icon')).toHaveCount(0);
+});
+
 test("compared fields can be reordered without separating label and extracted values", async ({ page }) => {
     const pane = await reference(page);
     await upload(page, "Choose local label JSON", { fieldLabels: {

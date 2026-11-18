@@ -373,7 +373,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                         aria-label={`${open ? "Collapse" : "Expand"} ${name}`} aria-expanded={open} disabled={filtering}
                         title={filtering ? "Automatically expanded while filtering." : undefined} onClick={expand}><ViewerIcon name={open ? "down" : "right"} /></button> :
                         <span className="cu-expand-spacer" />}
-                    <button type="button" className="cu-field-name" data-review-focus={field.id}
+                    <button type="button" className={`cu-field-name${field.generated ? " is-generated" : ""}`} data-review-focus={field.id}
                         aria-describedby={descriptionId(field)}
                         aria-pressed={group ? undefined : props.selected?.id === field.id}
                         aria-expanded={group && field.children.length ? open : undefined}
@@ -381,7 +381,10 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                         tabIndex={review.focused === field.id || (!review.focused && depth === 0 && sorted[0] === field) ? 0 : -1}
                         ref={button => { if (button) nameButtons.current.set(field.id, button); else nameButtons.current.delete(field.id); }}
                         onFocus={() => setFocus(field.id)} onKeyDown={event => onFieldKey(event, field)}
-                        onClick={() => group ? expand() : props.onSelect(field)}>{name}</button>
+                        onClick={() => group ? expand() : props.onSelect(field)}>
+                        {field.generated && <span className="cu-generated-field-icon"><ViewerIcon name="sparkle" /></span>}
+                        <span className={field.generated ? "cu-generated-field-name" : undefined}>{name}</span>
+                    </button>
                 </div></td>
                 <td><div className={`cu-field-value-content${reviewClass}`} style={valueStyle(field)}>
                     {collapsed ? <button type="button" className="cu-field-value cu-summary-value" tabIndex={-1}

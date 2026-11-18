@@ -24,6 +24,7 @@ const icons = {
     search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></>,
     locate: <><rect x="5" y="5" width="14" height="14" rx="3" /><path d="M12 2v6M12 16v6M2 12h6M16 12h6" /></>,
     info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" /></>,
+    sparkle: <path d="M12 2.5c1.1 5.8 3.7 8.4 9.5 9.5-5.8 1.1-8.4 3.7-9.5 9.5-1.1-5.8-3.7-8.4-9.5-9.5 5.8-1.1 8.4-3.7 9.5-9.5Z" fill="currentColor" stroke="none" />,
     grip: <path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01" strokeWidth="3.5" />,
     rotate: <path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5" />,
     reset: <path d="M5 8a8 8 0 1 1-1 8M5 3v5h5" />,
