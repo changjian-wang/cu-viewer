@@ -125,36 +125,51 @@ for (const mode of ["unlabeled", "reference", "comparison"] as const) {
     });
 }
 
-test("generated fields use a purple sparkle and name in regular and compared Fields", async ({ page }) => {
-    await page.goto("/");
+test("the invoice marks CountryRegion for source review in both Fields views without marking the amount", async ({ page }) => {
+    await page.goto("/?sample=labels");
     await ready(page);
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    const compareRow = (path: string) => pane.locator(`tr[data-comparison-path="${path}"]`);
+    const regularRow = (path: string) => pane.locator(`tr[data-field-id="/contents/0/fields/${path}"]`);
+    const expectSourceReview = async (row: Locator, value: Locator) => {
+        const name = row.getByRole("button", { name: "CountryRegion", exact: true });
+        const icon = name.locator(".cu-source-review-icon svg");
+        await expect(name).toHaveCSS("color", "rgb(116, 81, 166)");
+        await expect(icon).toBeVisible();
+        await expect(icon.locator("path")).toHaveCSS("fill", "rgb(116, 81, 166)");
+        await expect(name).toHaveAccessibleDescription(/No direct match in the source text/);
+        await expect(value).toContainText("United States");
+        await expect(value).toHaveCSS("background-color", "rgb(203, 234, 241)");
+        await expect(value).toHaveCSS("box-shadow", /180, 60, 75/);
+    };
+
+    const country = compareRow("/CountryRegion");
+    const extractedCountry = country.locator("td").nth(2).locator(".cu-comparison-value");
+    await expectSourceReview(country, extractedCountry);
+    await expect(extractedCountry).toHaveAttribute("data-comparison-status", "extra");
+    await expect(country.locator("td").nth(1)).toHaveText("Not returned");
+    await expect(page.getByTestId("result-overlay").locator('polygon[data-outline-id="/contents/0/fields/CountryRegion"]').first())
+        .toHaveCSS("fill", "rgb(255, 218, 221)");
+    await expandField(page, "AmountDue");
+    await expect(compareRow("/AmountDue/Amount").locator(".cu-source-review-icon")).toHaveCount(0);
+    await expect(compareRow("/InvoiceDate").locator(".cu-source-review-icon")).toHaveCount(0);
+    await expect(compareRow("/VendorAddress").locator(".cu-source-review-icon")).toHaveCount(0);
+    const taxCurrencyId = "/contents/0/fields/LineItems/valueArray/0/valueObject/TaxAmount/valueObject/CurrencyCode";
+    const taxCurrency = pane.getByRole("table", { name: "LineItems extracted values", exact: true })
+        .locator(`[data-field-id="${taxCurrencyId}"]`);
+    await expect(taxCurrency).toHaveText("USD");
+    await expect(taxCurrency.locator(".cu-source-review-icon")).toBeVisible();
+    await expect(taxCurrency).toHaveCSS("background-color", "rgb(203, 234, 241)");
+
     await page.getByLabel("Choose source file", { exact: true }).setInputFiles(pdf);
     await ready(page);
-    await upload(page, "Choose saved Analyze JSON", result({
-        Summary: { ...text("Generated summary"), method: "generate" },
-        InvoiceNumber: { ...text("INV-100"), method: "extract" },
-    }), "generated-fields.result.json");
-
-    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
-    await pane.getByRole("tab", { name: "Fields", exact: true }).click();
-    const generated = pane.locator('tr[data-field-id="/contents/0/fields/Summary"] .cu-field-name');
-    const ordinary = pane.locator('tr[data-field-id="/contents/0/fields/InvoiceNumber"] .cu-field-name');
-    await expect(generated).toHaveClass(/is-generated/);
-    await expect(generated.locator(".cu-generated-field-icon")).toBeVisible();
-    await expect(generated).toHaveCSS("color", "rgb(91, 33, 182)");
-    await expect(ordinary).not.toHaveClass(/is-generated/);
-    await expect(ordinary.locator(".cu-generated-field-icon")).toHaveCount(0);
-
-    await upload(page, "Choose local label JSON", { fieldLabels: {
-        Summary: text("Generated summary"), InvoiceNumber: text("INV-100"),
-    } }, "generated-fields.pdf.labels.json");
-    const comparedGenerated = pane.locator('tr[data-comparison-path="/Summary"] .cu-field-name');
-    await expect(comparedGenerated).toHaveClass(/is-generated/);
-    await expect(comparedGenerated.locator(".cu-generated-field-icon")).toBeVisible();
-    await expect(comparedGenerated).toHaveCSS("color", "rgb(91, 33, 182)");
-    await expect(pane.locator('tr[data-comparison-path="/Summary"] > td').nth(2).locator(".cu-comparison-value"))
+    await page.getByLabel("Choose saved Analyze JSON", { exact: true }).setInputFiles(`${pdf}.result.json`);
+    await expect(pane.getByRole("columnheader", { name: "Value", exact: true })).toBeVisible();
+    await expectSourceReview(regularRow("CountryRegion"), regularRow("CountryRegion").locator(".cu-field-value-content"));
+    await expandField(page, "AmountDue");
+    await expect(regularRow("AmountDue/valueObject/Amount").locator(".cu-source-review-icon")).toHaveCount(0);
+    await expect(regularRow("AmountDue/valueObject/Amount").locator(".cu-field-value-content"))
         .toHaveCSS("background-color", "rgb(220, 251, 215)");
-    await expect(pane.locator('tr[data-comparison-path="/InvoiceNumber"] .cu-generated-field-icon')).toHaveCount(0);
 });
 
 test("compared fields can be reordered without separating label and extracted values", async ({ page }) => {
@@ -191,6 +206,55 @@ test("compared fields can be reordered without separating label and extracted va
     await expect(grid.locator('tr[data-comparison-path="/Second"]')
         .getByRole("button", { name: "Reorder Second", exact: true })).toBeDisabled();
 });
+
+for (const mode of ["reference", "comparison"] as const) {
+    test(`Fields arrows select one value per field in ${mode} mode, including missing values`, async ({ page }) => {
+        const pane = await reference(page);
+        await upload(page, "Choose local label JSON", { fieldLabels: {
+            First: text("First label"), LabelOnly: text("Label only"),
+            Missing: { type: "string" }, Last: text("Last label"),
+        } }, "keyboard.pdf.labels.json");
+        const comparison = mode === "comparison";
+        if (comparison) {
+            await upload(page, "Choose saved Analyze JSON", result({
+                First: text("First extracted"), Missing: { type: "string" }, Last: text("Last extracted"),
+            }), "keyboard.pdf.result.json");
+            await expect(pane.getByRole("columnheader", { name: "Extracted Value", exact: true })).toBeVisible();
+        }
+        const position = pane.getByLabel("Current field position", { exact: true });
+        const row = (name: string) => pane.locator(`tr[data-comparison-path="/${name}"]`);
+        const value = (name: string, side: "label" | "extracted") => pane.getByRole("button",
+            { name: `Select ${side} value of ${name}`, exact: true });
+        const assertPosition = async (index: number) => expect(position).toHaveText(`${index} / 4${comparison ? " fields" : ""}`);
+        const preferred = comparison ? "extracted" : "label";
+
+        await row("First").getByRole("button", { name: "First", exact: true }).press("ArrowDown");
+        await assertPosition(1);
+        await expect(value("First", preferred)).toBeFocused();
+        await expect(value("First", preferred)).toHaveAttribute("aria-pressed", "true");
+        await page.keyboard.press("ArrowDown");
+        await assertPosition(2);
+        const labelOnly = value("LabelOnly", "label");
+        await expect(labelOnly).toBeFocused();
+        await expect(labelOnly.locator("..")).toHaveCSS("outline-color", "rgb(55, 111, 172)");
+        await expect(labelOnly.locator("..")).toHaveCSS("border-top-left-radius", "5px");
+        await expect(labelOnly).toHaveCSS("outline-style", "none");
+
+        await pane.getByRole("button", { name: "Next field", exact: true }).press("Enter");
+        await assertPosition(3);
+        const missing = row("Missing").locator('[data-field-value-focus="/labels/fields/Missing"]');
+        await expect(missing).toBeFocused();
+        await expect(missing).toHaveText("Not returned");
+        await page.keyboard.press("ArrowDown");
+        await assertPosition(4);
+        await expect(value("Last", preferred)).toBeFocused();
+        await page.keyboard.press("ArrowDown");
+        await assertPosition(1);
+        await page.keyboard.press("ArrowUp");
+        await assertPosition(4);
+        await expect(value("Last", preferred)).toBeFocused();
+    });
+}
 
 for (const compared of [false, true]) {
     test(`${compared ? "compared" : "reference"} field order survives reopening and explicit reset`, async ({ page }) => {
@@ -236,7 +300,29 @@ for (const compared of [false, true]) {
     });
 }
 
-test("object summaries stay orange when expanded and matched and mismatched children are mixed", async ({ page }) => {
+test("the invoice tooltip reuses the Extracted Value background without coloring the label or frame", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    const flyout = page.getByRole("tooltip", { name: "Field preview", exact: true });
+    const extractedValue = flyout.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value');
+    for (const [field, color] of [
+        ["CustomerId", "rgb(255, 218, 221)"],
+        ["InvoiceId", "rgb(220, 251, 215)"],
+        ["CountryRegion", "rgb(203, 234, 241)"],
+        ["AmountDue", "rgb(251, 226, 193)"],
+    ] as const) {
+        const cell = page.locator(`tr[data-comparison-path="/${field}"] > td:nth-child(3) .cu-comparison-value`);
+        await expect(cell).toHaveCSS("background-color", color);
+        await cell.locator(".cu-field-value").hover();
+        await expect(flyout.locator(".cu-popover-heading")).toHaveText(field);
+        await expect(extractedValue).toHaveCSS("background-color", color);
+        await expect(extractedValue).toHaveCSS("box-shadow", "none");
+        await expect(flyout.locator('[data-comparison-side="label"] .cu-flyover-comparison-value'))
+            .toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    }
+});
+
+test("partial-match object summaries stay pastel orange when collapsed or expanded", async ({ page }) => {
     const pane = await reference(page);
     const group = (matched: string, mismatched: string) => ({
         type: "object", valueObject: { Matched: text(matched), Mismatched: text(mismatched) },
@@ -252,17 +338,17 @@ test("object summaries stay orange when expanded and matched and mismatched chil
     const partial = grid.locator('tr[data-comparison-path="/GeneratedField"]');
     const fullError = grid.locator('tr[data-comparison-path="/FullyDifferent"]');
     const extractedValue = (row: typeof partial) => row.locator("td").nth(2).locator(".cu-comparison-value");
-    await expect(extractedValue(partial)).toHaveCSS("background-color", "rgb(255, 204, 128)");
+    await expect(extractedValue(partial)).toHaveCSS("background-color", "rgb(251, 226, 193)");
     await expect(extractedValue(fullError)).toHaveCSS("background-color", "rgb(255, 218, 221)");
 
     await partial.getByRole("button", { name: /^Expand / }).click();
-    await expect(extractedValue(partial)).toHaveCSS("background-color", "rgb(255, 204, 128)");
+    await expect(extractedValue(partial)).toHaveCSS("background-color", "rgb(251, 226, 193)");
     await expect(extractedValue(grid.locator('tr[data-comparison-path="/GeneratedField/Matched"]')))
         .toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(extractedValue(grid.locator('tr[data-comparison-path="/GeneratedField/Mismatched"]')))
         .toHaveCSS("background-color", "rgb(255, 218, 221)");
     await partial.getByRole("button", { name: /^Collapse / }).click();
-    await expect(extractedValue(partial)).toHaveCSS("background-color", "rgb(255, 204, 128)");
+    await expect(extractedValue(partial)).toHaveCSS("background-color", "rgb(251, 226, 193)");
     await fullError.getByRole("button", { name: /^Expand / }).click();
     await expect(extractedValue(fullError)).toHaveCSS("background-color", "rgb(255, 218, 221)");
 });
@@ -996,7 +1082,7 @@ test("unified Fields compares typed leaves, preserves both sources and filters c
     await expect(flyout.locator(".cu-popover-heading")).toHaveCSS("color", "rgb(76, 29, 149)");
     expect(await flyout.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(229, 218, 255)");
     await expect(flyout.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value'))
-        .toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+        .toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(flyout.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value')).toHaveCSS("box-shadow", "none");
     await expect(flyout.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value')).toHaveCSS("border-top-width", "0px");
     await expect(flyout.locator(".cu-flyover-comparison")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
@@ -1014,19 +1100,17 @@ test("unified Fields compares typed leaves, preserves both sources and filters c
     for (const row of previewRows) expect(row.valueWidth).toBeGreaterThan(80);
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
+    await expect(legend.locator(".cu-legend-name")).toHaveText([
+        "Matches label", "Different or extra extracted value", "Some child values differ", "Low confidence",
+    ]);
     expect(await legend.locator(".cu-legend-item .cu-legend-swatch").evaluateAll(nodes =>
         nodes.map(node => getComputedStyle(node).backgroundColor))).toEqual([
-        "rgb(236, 243, 252)", "rgb(222, 233, 250)", "rgb(220, 251, 215)",
-        "rgb(255, 218, 221)", "rgb(255, 204, 128)", "rgb(248, 192, 200)",
+        "rgb(220, 251, 215)", "rgb(255, 218, 221)", "rgb(251, 226, 193)",
     ]);
     const lowExample = legend.locator(".cu-legend-outline-swatch");
     await expect(lowExample).toHaveText("123");
     await expect(lowExample).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(lowExample).toHaveCSS("border-color", "rgba(180, 60, 75, 0.6)");
-    await expect(legend.getByText("Matches label", { exact: true })).toBeVisible();
-    await expect(legend.getByText("Different or extra extracted value", { exact: true })).toBeVisible();
-    await expect(legend.getByText("Some child values differ", { exact: true })).toBeVisible();
-    await expect(legend.getByText("Label only; not extracted", { exact: true })).toBeVisible();
     const toggleLayout = await legend.locator(".cu-legend-review-toggle").evaluateAll(nodes => nodes.map(node => {
         const label = node.querySelector("span")!.getBoundingClientRect();
         const track = node.querySelector(".cu-switch-track")!.getBoundingClientRect();
@@ -1072,6 +1156,8 @@ test("the legacy palette keeps empty slots neutral and confidence outlines separ
     await expect(missing).toHaveCSS("box-shadow", "none");
     await pane.getByRole("button", { name: "Select label value of Missing", exact: true }).hover();
     const absentPreview = page.getByRole("tooltip", { name: "Label preview", exact: true });
+    await expect(absentPreview.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value'))
+        .toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await expect(absentPreview.locator('[data-comparison-side="extracted"] .cu-flyover-comparison-value')).toHaveCSS("box-shadow", "none");
     await expect(absentPreview.locator(".cu-flyover-confidence")).toHaveText("0.20");
     await expect(absentPreview.locator(".cu-flyover-confidence")).toHaveCSS("background-color", "rgb(255, 218, 221)");
@@ -1445,6 +1531,11 @@ test("large comparison and reference arrays keep a bounded DOM and reach the las
         return positions.length === 2 && positions.every(top => top > 25_000) && Math.abs(positions[0]! - positions[1]!) <= 1;
     }).toBe(true);
     expect(await pane.locator("[data-comparison-row]").count()).toBeLessThan(200);
+    await expect(last).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    const first = pane.locator('button[data-source-field-id="/contents/0/fields/Rows/valueArray/0/valueObject/C0"]');
+    await expect(first).toBeFocused();
+    await expect(first).toHaveAttribute("aria-pressed", "true");
     await pane.getByRole("button", { name: "Show incorrect fields (1 value)", exact: true }).click();
     await pane.getByRole("searchbox", { name: "Search field names, label values or extracted values", exact: true }).fill("9999");
     await expect(pane.getByRole("table", { name: "Rows extracted values", exact: true })).toBeVisible();

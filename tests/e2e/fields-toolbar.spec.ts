@@ -383,20 +383,29 @@ async function loadOrderedFields(page: Parameters<typeof ready>[0]): Promise<voi
     await expect(page.getByRole("button", { name: "Alpha", exact: true })).toBeVisible();
 }
 
-test("field positions advance consecutively in rendered order and wrap at both ends", async ({ page }) => {
+test("the keyboard and bottom bar advance through the same field values and wrap at both ends", async ({ page }) => {
     await loadOrderedFields(page);
     const position = page.locator(".cu-field-navigation > span");
     const next = page.getByRole("button", { name: "Next field", exact: true });
     const previous = page.getByRole("button", { name: "Previous field", exact: true });
     await expect(position).toHaveText("— / 10 fields");
     for (const [index, id] of orderedIds.entries()) {
-        await next.click();
+        if (index === 0) await page.getByRole("button", { name: "Alpha", exact: true }).press("ArrowDown");
+        else if (index % 2 === 0) await page.keyboard.press("ArrowDown");
+        else await next.click();
         await expect(position).toHaveText(`${index + 1} / 10 fields`);
         await expect(page.locator(`[data-review-focus="${id}"][aria-pressed="true"]`)).toHaveCount(1);
+        const value = page.locator(`[data-field-value-focus="${id}"]`);
+        await expect(value).toBeFocused();
+        if (index % 2 === 0) {
+            await expect(value.locator("..")).toHaveCSS("outline-color", "rgb(55, 111, 172)");
+            await expect(value.locator("..")).toHaveCSS("outline-width", "1px");
+            await expect(value.locator("..")).toHaveCSS("border-top-left-radius", "5px");
+        }
     }
-    await next.click();
+    await page.keyboard.press("ArrowDown");
     await expect(position).toHaveText("1 / 10 fields");
-    await previous.click();
+    await page.keyboard.press("ArrowUp");
     await expect(position).toHaveText("10 / 10 fields");
     await previous.click();
     await expect(position).toHaveText("9 / 10 fields");
@@ -464,10 +473,12 @@ test("search positions use only the matching fields and return to the selected f
     await expect(position).toHaveText("10 / 10 fields");
     await search.fill("Group");
     await expect(position).toHaveText("— / 2 fields");
+    await search.press("ArrowDown");
+    await expect(position).toHaveText("— / 2 fields");
     await expect(position).toHaveAttribute("title", /2 matching fields out of 10 total/);
     await page.getByRole("button", { name: "Next field", exact: true }).click();
     await expect(position).toHaveText("1 / 2 fields");
-    await page.getByRole("button", { name: "Next field", exact: true }).click();
+    await page.keyboard.press("ArrowDown");
     await expect(position).toHaveText("2 / 2 fields");
     await search.fill("");
     await expect(position).toHaveText("3 / 10 fields");

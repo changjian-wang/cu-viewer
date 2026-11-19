@@ -3,7 +3,7 @@
     grid-template-rows: minmax(0, 1fr); height: 100%; min-height: 460px; color: #243447; font: 13px/1.45 "Segoe UI", Arial, sans-serif;
     --cu-border: #e2e7ed; --cu-muted: #667487; --cu-focus: #376fac;
     --cu-hover-bg: #eee7ff; --cu-selected-bg: #e5daff; --cu-context-bg: #f8f5ff;
-    --cu-selected-stroke: #5b21b6; --cu-interaction-muted: #526276;
+    --cu-selected-stroke: #5b21b6; --cu-interaction-muted: #526276; --cu-source-review-ink: #7451a6;
 }
 .cu-viewer, .cu-json-span-tooltip { --cu-hover-stroke: #8063b5; --cu-value-font-size: 12.5px; }
 .cu-viewer:has(> .cu-preference-error) { grid-template-rows: auto minmax(0, 1fr); }
@@ -37,9 +37,11 @@
 .cu-json-span-tooltip, .cu-json-span-tooltip::before, .cu-json-span-content { box-sizing: border-box; }
 .cu-json-span-tooltip.cu-source-popover { position: fixed; z-index: 100; min-width: 0; max-width: min(400px, calc(100vw - 16px)); pointer-events: auto; font: var(--cu-value-font-size)/18px "Segoe UI", Arial, sans-serif; }
 .cu-json-span-tooltip::after { content: ""; position: absolute; top: -13px; left: 0; width: 100%; height: 13px; }
+.cu-json-span-tooltip[data-side="right"]::before { top: var(--cu-span-arrow-top); left: -5px; transform: rotate(-45deg); }
+.cu-json-span-tooltip[data-side="right"]::after { top: 0; left: -12px; width: 12px; height: 100%; }
 .cu-json-span-tooltip[data-side="above"]::before { top: auto; bottom: -5px; transform: rotate(225deg); }
 .cu-json-span-tooltip[data-side="above"]::after { top: auto; bottom: -13px; }
-.cu-json-span-content { max-height: min(320px, calc(100vh - 32px)); overflow: auto; padding: 8px 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cu-json-span-content { max-height: min(320px, calc(100vh - 32px), var(--cu-span-content-height, 320px)); overflow: auto; padding: 8px 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .cu-popover-heading { display: block; padding: 6px 10px; border-radius: 5px 5px 0 0; background: var(--cu-selected-bg); font-size: var(--cu-value-font-size); line-height: 18px; color: #4c1d95; font-weight: 400; white-space: normal; overflow-wrap: anywhere; }
 .cu-source-popover dl { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 6px 12px; margin: 0; }
 .cu-source-popover dt, .cu-source-popover dd { margin: 0; }
@@ -230,8 +232,11 @@
 :where(.cu-field-review-fields) .cu-items-table thead th { background: #f5f8fc; }
 .cu-field-review-fields .cu-items-table td { padding: 1px 2px; }
 .cu-comparison-value { position: relative; display: flex; align-items: center; min-width: 0; min-height: 24px; gap: 4px; padding: 1px 4px; border-radius: 5px; overflow-wrap: anywhere; }
-.cu-comparison-value:has(> button:focus-visible) { outline: 1px solid var(--cu-focus); outline-offset: 0; }
-.cu-viewer .cu-comparison-value > button:focus-visible { outline: none; }
+.cu-comparison-value:has(> button:focus-visible),
+.cu-comparison-value.is-missing:focus-visible,
+:is(.cu-field-value-content, .cu-cell-content):has(> [data-field-value-focus]:focus-visible) { outline: 1px solid var(--cu-focus); outline-offset: 0; border-radius: 5px; }
+.cu-viewer .cu-comparison-value > button:focus-visible,
+.cu-viewer :is(.cu-field-value-content, .cu-cell-content) > [data-field-value-focus]:focus-visible { outline: none; }
 .cu-viewer .cu-comparison-value > .cu-field-value { flex: 1; width: auto; min-width: 0; margin: 0; padding: 0 2px; color: inherit; text-align: left; overflow: hidden; text-overflow: ellipsis; }
 .cu-viewer .cu-comparison-value > .cu-value-menu-trigger { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 20px; height: 22px; padding: 3px; border-radius: 3px; background: transparent; }
 .cu-comparison-value:is(:hover, :focus-within) > .cu-field-value { padding-right: 20px; }
@@ -424,10 +429,11 @@
 .cu-table-scope > button { flex: none; }
 .cu-field-name-content { display: flex; align-items: center; gap: 3px; min-width: 0; padding-right: 6px; }
 .cu-viewer .cu-field-name { font-size: var(--cu-value-font-size); line-height: 20px; padding: 4px 0; color: #243447 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; min-width: 0; }
-.cu-viewer .cu-field-name.is-generated { display: inline-flex; align-items: center; gap: 4px; color: #5b21b6 !important; }
-.cu-generated-field-icon { display: inline-flex; flex: none; color: inherit; }
-.cu-generated-field-icon .cu-icon { width: 14px; height: 14px; }
-.cu-generated-field-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cu-viewer .cu-field-name:focus-visible { border-radius: 5px; outline: 1px solid var(--cu-focus); outline-offset: -1px; }
+.cu-viewer .cu-field-name.needs-source-review { display: inline-flex; align-items: center; gap: 4px; color: var(--cu-source-review-ink) !important; }
+.cu-source-review-icon { display: inline-flex; flex: none; color: var(--cu-source-review-ink); }
+.cu-source-review-icon .cu-icon { width: 14px; height: 14px; }
+.cu-source-review-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .cu-fields-table .cu-expand { width: 20px; height: 26px; padding: 2px; margin: 0; }
 .cu-expand .cu-icon { width: 12px; height: 12px; }
 .cu-expand-spacer { width: 20px; flex: none; }
@@ -477,7 +483,7 @@
 .cu-items-table th.is-group-member { background: var(--cu-selected-bg); color: var(--cu-interaction-muted); }
 .cu-items-table td.is-group-member, .cu-items-table td.is-selected-cell { background: var(--cu-selected-bg); }
 .cu-items-table td:is(:hover, .is-hovered-cell, .is-selected-cell, .is-group-member, .is-table-related-cell) :is(.cu-cell-value .cu-value-chip.is-missing, .cu-missing-cell) { color: var(--cu-interaction-muted); }
-.cu-items-table td:has(.cu-cell-content > button:focus-visible) { outline: 1px solid var(--cu-focus); outline-offset: -1px; }
+.cu-items-table td:has(.cu-cell-content:not(.cu-comparison-value) > .cu-value-menu-trigger:focus-visible) { outline: 1px solid var(--cu-focus); outline-offset: -1px; }
 .cu-viewer .cu-items-table .cu-cell-content > button:focus-visible { outline: none; }
 .cu-cell-value { flex: 1; min-width: 0; border: 0; background: none; padding: 4px 1px; text-align: left; font-size: 11.5px !important; }
 .cu-cell-value .cu-value-chip { margin: 0; padding: 2px 3px; }

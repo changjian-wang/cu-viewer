@@ -22,12 +22,13 @@ async function expectReadable(score: Locator): Promise<void> {
     expect(contrast(colors.text, colors.background)).toBeGreaterThanOrEqual(4.5);
 }
 
-test("unlabeled PDFs use green defaults without label comparison semantics", async ({ page }) => {
+test("unlabeled PDFs keep green defaults and source-review fills independent of confidence", async ({ page }) => {
     await loadReviewFixture(page);
     await setShowConfidence(page, true);
     const high = "/contents/0/fields/InvoiceId", low = "/contents/0/fields/Zero", unknown = "/contents/0/fields/Unknown";
+    const sourceReview = "rgb(203, 234, 241)";
     for (const id of [high, low, unknown]) {
-        await expect(row(page, id).locator(".cu-field-value-content")).toHaveCSS("background-color", "rgb(220, 251, 215)");
+        await expect(row(page, id).locator(".cu-field-value-content")).toHaveCSS("background-color", sourceReview);
         await expect(source(page, id)).toHaveAttribute("fill", "#ECF3FC");
         await expect(source(page, id)).toHaveCSS("fill", "rgb(220, 251, 215)");
     }
@@ -64,7 +65,7 @@ test("unlabeled PDFs use green defaults without label comparison semantics", asy
     await expect(popup.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(229, 218, 255)");
     await expect(popup.locator(".cu-popover-heading")).toHaveCSS("color", "rgb(76, 29, 149)");
     expect(await popup.evaluate(element => getComputedStyle(element, "::before").backgroundColor)).toBe("rgb(229, 218, 255)");
-    await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("background-color", sourceReview);
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("box-shadow", "none");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("border-top-width", "0px");
     await expect(popup).not.toHaveClass(/cu-source-comparison-popover/);
@@ -84,7 +85,7 @@ test("unlabeled PDFs use green defaults without label comparison semantics", asy
         expect(await row(page, id).locator(".cu-field-value-content").evaluate(element => element.getBoundingClientRect().height)).toBe(24);
     }
     await expect(row(page, "/contents/0/fields/LineItems").locator(".cu-summary-value")).toHaveCSS("font-size", "12.5px");
-    await expect(grid.locator(".cu-cell-content").first()).toHaveCSS("background-color", "rgb(220, 251, 215)");
+    await expect(grid.locator(".cu-cell-content").first()).toHaveCSS("background-color", sourceReview);
     await expect(grid.locator(".cu-cell-content").first()).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(source(page, "/contents/0/fields/LineItems/valueArray/0/valueObject/Column1"))
         .toHaveCSS("fill", "rgb(220, 251, 215)");
@@ -106,6 +107,7 @@ test("unlabeled PDFs use green defaults without label comparison semantics", asy
     await expect(edge).not.toHaveAttribute("data-low-confidence");
     await legend.getByRole("button", { name: "Close legend", exact: true }).click();
     await row(page, low).locator(".cu-field-name").hover();
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("background-color", sourceReview);
     await expect(popup.locator(".cu-flyover-confidence")).toHaveCSS("background-color", "rgb(255, 218, 221)");
 
     await page.getByRole("button", { name: "Receipt PNG", exact: true }).click();

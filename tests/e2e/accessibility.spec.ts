@@ -153,10 +153,11 @@ test("keyboard operates field expansion and value selection with truthful access
     const collapse = page.getByRole("button", { name: "AmountDue", exact: true });
     await expect(collapse).toBeFocused();
     await expect(collapse).toHaveAttribute("aria-expanded", "true");
-    const value = page.locator('[data-field-id="/contents/0/fields/AmountDue/valueObject/Amount"]').getByRole("button", { name: "Amount", exact: true });
+    const value = page.getByRole("button", { name: "Select value of AmountDue / Amount", exact: true });
     await page.keyboard.press("ArrowDown");
     await expect(value).toBeFocused();
     await expect(value).toHaveAccessibleDescription(/610.*Confidence 0\.34/);
+    await expect(value).toHaveAttribute("aria-pressed", "true");
     await page.keyboard.press("Space");
     await ready(page);
     await expect(value).toBeFocused();

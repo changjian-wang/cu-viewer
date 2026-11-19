@@ -139,6 +139,7 @@ test("UI-45 the popover field name stays regular while its value and confidence 
     await expect(popup.locator(".cu-popover-heading")).toHaveCSS("font-weight", "400");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveText("Microsoft Services");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(36, 52, 71)");
+    await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("font-size", "12.5px");
     await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("font-weight", "600");
     await expect(popup.locator(".cu-flyover-confidence dd")).toHaveText("0.31");
@@ -161,10 +162,13 @@ test("UI-45 low, normal, unknown and array values share one text color with inde
         ["/contents/0/fields/LineItems/valueArray/0/valueObject/Column1", true, "rgb(155, 28, 28)", "rgb(255, 218, 221)"],
         ["/contents/0/fields/LineItems/valueArray/0/valueObject/Column2", true, "rgb(82, 98, 118)", "rgb(236, 243, 252)"],
     ] as const) {
-        await page.locator(fieldRow(id)).locator(inline ? ".cu-cell-value" : ".cu-field-name").hover();
+        const row = page.locator(fieldRow(id));
+        await row.locator(inline ? ".cu-cell-value" : ".cu-field-name").hover();
         const popup = page.getByRole("tooltip", { name: "Field preview", exact: true });
         await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("color", "rgb(36, 52, 71)");
-        await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+        const cell = inline ? row : row.locator(".cu-field-value-content");
+        const valueBackground = await cell.evaluate(element => getComputedStyle(element).backgroundColor);
+        await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("background-color", valueBackground);
         await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("box-shadow", "none");
         await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("border-top-width", "0px");
         await expect(popup.locator(".cu-flyover-value dd")).toHaveCSS("font-size", "12.5px");

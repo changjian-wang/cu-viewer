@@ -5,6 +5,7 @@ import { ResultsPane } from "./components/ResultsPane";
 import { SourcePane } from "./components/SourcePane";
 import { ResizeHandle } from "./components/ResizeHandle";
 import { fieldRegion, fieldRegions, initialInteraction, interaction, isFieldGroup, selectableFields } from "./interaction/interaction";
+import { focusedFieldId } from "./interaction/fieldNavigation";
 import { CuResultParseError, parseCuResult } from "./model/parseCuResult";
 import { parseLabels } from "./model/parseLabels";
 import { compareFields } from "./model/fieldComparison";
@@ -26,6 +27,10 @@ import "./styles.css";
 const comparisonReviewSettings = { ...defaultReviewSettings, paneRatio: 0.45 };
 
 export function ContentUnderstandingResultViewer(props: ContentUnderstandingResultViewerProps) {
+    return <ResultViewer {...props} />;
+}
+
+export function ResultViewer(props: ContentUnderstandingResultViewerProps & { reconcileSavedOrder?: boolean }) {
     const [sourceState, setSourceState] = useState<{
         input: ContentUnderstandingResultViewerProps["source"]; source: LoadedSource | null; error: string | null;
     } | null>(null);
@@ -82,16 +87,17 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     [boundLabels, labelData.model, analysisContent]);
     const fieldReview = view === "fields" && (source?.kind === "pdf" || comparison !== undefined);
     const unlabeledPdfFields = fieldReview && source?.kind === "pdf" && !hasLabels;
-    const referenceMode = boundLabels && !comparison?.comparable;
+    const referenceMode = comparison !== undefined && !comparison.comparable;
     const fieldContent = useMemo(() => comparison?.comparable && analysisContent ?
-        { ...analysisContent, fields: comparison.fields } : boundLabels ? labelData.model?.content : analysisContent,
+        { ...analysisContent, fields: comparison.fields } : (boundLabels ? labelData.model?.content : undefined) ?? analysisContent,
     [comparison, analysisContent, boundLabels, labelData.model]);
     const content = view === "fields" && referenceMode ? labelData.model?.content : analysisContent;
     const fields = useMemo(() => [...selectableFields(analysisContent),
         ...(boundLabels ? selectableFields(labelData.model?.content) : [])], [analysisContent, boundLabels, labelData.model]);
     const reviewDefaults = comparison?.comparable ? comparisonReviewSettings : defaultReviewSettings;
     const preferences = useReviewPreferences(props, fieldContent,
-        boundLabels ? undefined : parsed.model?.apiVersion, boundLabels ? undefined : parsed.model?.analyzerId, reviewDefaults);
+        boundLabels ? undefined : parsed.model?.apiVersion, boundLabels ? undefined : parsed.model?.analyzerId, reviewDefaults,
+        props.reconcileSavedOrder);
     const context = useMemo(() => ({}), [props.source, props.result, props.labels, analysisContent, labelData.model]);
     const jsonContext = useMemo(() => ({}), [props.source, props.result, props.labels]);
     const workflow = useValueWorkflow(context);
@@ -171,9 +177,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         Math.max(0, activeRegions.findIndex(region => region.pageNumber === state.pageNumber)) : state.selectedRegionIndex;
     const leavePreview = (field: CuField): void => {
         const focused = viewer.current?.ownerDocument.activeElement;
-        const item = focused?.closest("[data-review-focus], [data-outline-id]");
         if (previewOrigin.current === "focus" && viewer.current?.contains(focused ?? null) &&
-            (item?.getAttribute("data-review-focus") ?? item?.getAttribute("data-outline-id")) === field.id) return;
+            focusedFieldId(focused) === field.id) return;
         dispatch({ type: "leave", fieldId: field.id, restorePageAvailable: available(selected) });
     };
     const chooseContent = (index: number): void => {
@@ -195,10 +200,8 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
         const currentIndex = regions.findIndex(region => region.pageNumber === state.pageNumber && isPageAvailable(region.pageNumber));
         const index = regionIndex ?? Math.max(0, currentIndex >= 0 ? currentIndex : regions.findIndex(region => isPageAvailable(region.pageNumber)));
         const focused = viewer.current?.ownerDocument.activeElement;
-        const item = focused?.closest("[data-review-focus], [data-outline-id]");
         const retainPreview = Boolean(!isFieldGroup(field) && focused?.matches(":focus-visible") &&
-            viewer.current?.contains(focused) &&
-            (item?.getAttribute("data-review-focus") ?? item?.getAttribute("data-outline-id")) === field.id);
+            viewer.current?.contains(focused) && focusedFieldId(focused) === field.id);
         if (retainPreview) previewOrigin.current = "focus";
         dispatch({ type: "select", field, regionIndex: index, pageAvailable: available(field, index), retainPreview });
         setReveal({ sequence: ++revealSequence.current, origin, revealSource });

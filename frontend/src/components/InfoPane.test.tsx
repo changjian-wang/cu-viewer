@@ -54,6 +54,21 @@ describe("Info name/value tree", () => {
         expect(container.querySelector('tr[data-info-path="/result/infos/0"] .cu-info-label')?.textContent).toBe("item 1");
     });
 
+    it("breaks Info messages into lines without removing semicolons or changing the result", () => {
+        const result = {
+            infos: [{ code: "LLMStats", message: "completion calls: 1; avg completion latency: 8.40s; total completion latency: 8.40s" }],
+            warnings: [{ message: "Already split;\nLast clause;" }],
+            contents: [{ metadata: { notes: "Keep; this on one line" } }],
+        };
+        const before = JSON.stringify(result);
+        const { container } = render(<InfoPane result={result} />);
+        expect(container.querySelector('tr[data-info-path="/infos/0/message"] td')?.textContent)
+            .toBe("completion calls: 1;\navg completion latency: 8.40s;\ntotal completion latency: 8.40s");
+        expect(container.querySelector('tr[data-info-path="/warnings/0/message"] td')?.textContent).toBe("Already split;\nLast clause;");
+        expect(screen.getByText("Keep; this on one line")).toBeTruthy();
+        expect(JSON.stringify(result)).toBe(before);
+    });
+
     it("lowercases generated labels in infos, warnings and nested usage arrays without changing returned casing", () => {
         const result = {
             contents: [], usage: { tokens: [[0, false]] },

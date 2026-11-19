@@ -1,6 +1,26 @@
+import type { KeyboardEvent } from "react";
 import { getRevealOffset } from "../source/geometry";
 
 type Bounds = Pick<DOMRect, "left" | "right" | "top" | "bottom">;
+
+export function navigateFieldOnArrow(event: KeyboardEvent<HTMLElement>, navigate: (direction: -1 | 1) => void): void {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
+        (event.key !== "ArrowUp" && event.key !== "ArrowDown") || !(event.target instanceof HTMLElement) ||
+        !event.target.matches("[data-review-focus], [data-field-value-focus]")) return;
+    event.preventDefault();
+    navigate(event.key === "ArrowUp" ? -1 : 1);
+}
+
+export function fieldValueFocusTarget(viewport: HTMLElement | null, id: string): HTMLElement | undefined {
+    return [...(viewport?.querySelectorAll<HTMLElement>("[data-field-value-focus]") ?? [])]
+        .find(element => element.dataset.fieldValueFocus === id);
+}
+
+export function focusedFieldId(element: Element | null | undefined): string | null | undefined {
+    const target = element?.closest("[data-review-focus], [data-field-value-focus], [data-outline-id]");
+    return target?.getAttribute("data-review-focus") ?? target?.getAttribute("data-field-value-focus") ??
+        target?.getAttribute("data-outline-id");
+}
 
 export function getFieldRevealOffset(target: Bounds, visible: Bounds, comfortable = false): { x: number; y: number } {
     const width = visible.right - visible.left, height = visible.bottom - visible.top;

@@ -33,12 +33,12 @@ function infoRows(entries: readonly ResultInfoEntry[], collapsed: ReadonlySet<st
     return rows;
 }
 
-function displayInfoValue(value: unknown): string {
+function displayInfoValue({ name, value }: ResultInfoEntry): string {
     if (value === null) return "null";
     if (value === "") return '"" (empty string)';
     if (Array.isArray(value)) return value.length ? `${value.length} ${value.length === 1 ? "item" : "items"}` : "[]";
     if (typeof value === "object") return Object.keys(value).length ? "" : "{}";
-    if (typeof value === "string") return value;
+    if (typeof value === "string") return name === "message" ? value.replace(/;[^\S\r\n]*(?=\S)/g, ";\n") : value;
     if (typeof value === "number" || typeof value === "boolean") return String(value);
     throw new Error("The result information is not serialized JSON.");
 }
@@ -194,7 +194,7 @@ export function InfoPane({ result }: { result: unknown }) {
                         </button> : <span className="cu-info-leaf" title={row.label}><span className="cu-info-label">{row.name}</span></span>}
                     </div></th>
                     <td>{counters?.length ? <InfoTokenSummary counters={counters} onExpand={() => toggle(row.path)} /> :
-                        <div className={`cu-info-value${container ? " cu-info-summary" : ""}`}>{displayInfoValue(row.value)}</div>}</td>
+                        <div className={`cu-info-value${container ? " cu-info-summary" : ""}`}>{displayInfoValue(row)}</div>}</td>
                 </tr>;
             })}</tbody>
         </table>

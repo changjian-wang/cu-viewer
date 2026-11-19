@@ -18,15 +18,15 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
     const switches: ("showFields" | "showTables" | "highlightLow")[] =
         labelMode ? ["showFields", "showTables"] : ["showFields", "showTables", "highlightLow"];
     if (fieldReview) return <ul className="cu-legend-items cu-field-review-legend" aria-label="Highlighting legend entries">
-        {(plainValues ? [
+        {(comparisonAvailable ? [
+            ["matched", "Matches label", FIELD_REVIEW_COLORS.matched],
+            ["error", "Different or extra extracted value", FIELD_REVIEW_COLORS.error],
+            ["partial", "Some child values differ", FIELD_REVIEW_COLORS.partial],
+        ] : plainValues ? [
             ["values", "Field or array value", defaultFill],
         ] : [
             ["default", labelMode ? "Reference field or object label" : "Default field or object value", FIELD_REVIEW_COLORS.default],
             ["array", labelMode ? "Reference array label" : "Default array value", FIELD_REVIEW_COLORS.array],
-            ...(comparisonAvailable ? [["matched", "Matches label", FIELD_REVIEW_COLORS.matched],
-                ["error", "Different or extra extracted value", FIELD_REVIEW_COLORS.error],
-                ["partial", "Some child values differ", FIELD_REVIEW_COLORS.partial],
-                ["missing", "Label only; not extracted", FIELD_REVIEW_COLORS.missing]] : []),
         ]).map(([key, name, background]) => <li className="cu-legend-group" key={key}>
             <div className="cu-legend-item" data-legend-category={key}><span className="cu-legend-swatch" aria-hidden="true" style={{ background }} />
                 <span className="cu-legend-label"><span className="cu-legend-name">{name}</span></span></div></li>)}

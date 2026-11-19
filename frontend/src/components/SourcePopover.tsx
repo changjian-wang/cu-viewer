@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { displayValue, fieldLabel, formatConfidence } from "../interaction/interaction";
-import { appearance, collapsedValue, confidenceDescription, defaultReviewSettings, FIELD_REVIEW_COLORS, isLowConfidence, isTableValue, labelSummary } from "../interaction/reviewFields";
+import { appearance, collapsedValue, comparedExtractedAppearance, confidenceDescription, defaultReviewSettings, FIELD_REVIEW_COLORS,
+    isLowConfidence, isTableValue, labelSummary, standaloneFieldAppearance } from "../interaction/reviewFields";
 import { comparisonStatusText } from "../model/fieldComparison";
 import type { FieldComparison } from "../model/fieldComparison";
 import type { ReviewSettings } from "../interaction/reviewFields";
@@ -85,6 +86,9 @@ export function SourcePopover(props: SourcePopoverProps) {
         color: scoreLow ? FIELD_REVIEW_COLORS.confidenceBadgeText : "#526276",
     };
     const standaloneReview = props.fieldReview && !props.labelMode && !pair;
+    const comparedBackground = pair?.extracted?.hasValue ? comparedExtractedAppearance(pair, settings).background : undefined;
+    const standaloneBackground = standaloneReview && props.field.hasValue ?
+        standaloneFieldAppearance(props.field, settings).background : undefined;
     const valueText = (field: CuField | undefined): string => !field?.hasValue ? "Not returned" :
         field.type === "object" ? collapsedValue(field) || "{}" : displayValue(field);
     return <>
@@ -99,7 +103,7 @@ export function SourcePopover(props: SourcePopoverProps) {
                 {pair && <><div data-comparison-side="label"><dt>Label Value</dt>
                         <dd><span className="cu-flyover-comparison-value">{valueText(pair.label)}</span></dd></div>
                     <div data-comparison-side="extracted"><dt>Extracted Value</dt><dd>
-                        <span className="cu-flyover-comparison-value">{valueText(pair.extracted)}</span>
+                        <span className="cu-flyover-comparison-value" style={{ background: comparedBackground }}>{valueText(pair.extracted)}</span>
                         {pair.extracted?.confidence !== undefined && <span className={`cu-flyover-confidence${scoreLow ? " is-low" : ""}`}
                             style={confidenceStyle}
                             aria-label={confidenceDescription(pair.extracted, settings.threshold)}
@@ -109,7 +113,7 @@ export function SourcePopover(props: SourcePopoverProps) {
                     </dd></div>
                 </>}
                 {!pair && <div className="cu-flyover-value"><dt className="cu-visually-hidden">{paragraph ? "Content" : "Value"}</dt>
-                    <dd>
+                    <dd style={standaloneBackground ? { background: standaloneBackground, borderRadius: 3 } : undefined}>
                         {props.labelMode ? labelSummary(props.field) : object ? collapsedValue(props.field, props.summaryFieldIds) : displayValue(props.field)}</dd></div>
                 }
                 {!pair && !props.labelMode && !paragraph && !object && <div className={`cu-flyover-confidence${standaloneReview && scoreLow ? " is-low" : ""}`} title={confidenceDescription(props.field, settings.threshold)}

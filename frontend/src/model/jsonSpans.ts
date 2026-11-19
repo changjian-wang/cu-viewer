@@ -9,14 +9,23 @@ export function isJsonSpanPath(path: string): boolean {
 }
 
 export function sliceEncodedSpan(text: string, offset: number, length: number, encoding: unknown = "codePoint"): string {
+    return createSpanSlicer(text, encoding)(offset, length);
+}
+
+export function createSpanSlicer(text: string, encoding: unknown = "codePoint"): (offset: number, length: number) => string {
+    const direct = encoding === "utf16" || (encoding === "codePoint" && !/[\ud800-\udbff]/.test(text)) ||
+        (encoding === "utf8" && !/[^\t\n\r -~]/.test(text));
+    return (offset, length) => sliceSpan(text, offset, length, encoding, direct);
+}
+
+function sliceSpan(text: string, offset: number, length: number, encoding: unknown, direct: boolean): string {
     if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(length) || offset < 0 || length < 0 ||
         !Number.isSafeInteger(offset + length)) throw new RangeError("Span offset and length must be nonnegative safe integers.");
     if (encoding !== "codePoint" && encoding !== "utf16" && encoding !== "utf8") {
         throw new RangeError("Unsupported stringEncoding; expected codePoint, utf16 or utf8.");
     }
     const end = offset + length;
-    if (encoding === "utf16" || (encoding === "codePoint" && !/[\ud800-\udbff]/.test(text)) ||
-        (encoding === "utf8" && !/[^\t\n\r -~]/.test(text))) {
+    if (direct) {
         if (end > text.length) throw new RangeError("Span exceeds the content Markdown.");
         if (textBoundary(text, offset) !== offset || textBoundary(text, end) !== end) {
             throw new RangeError("Span boundary splits a Unicode character.");
@@ -64,11 +73,12 @@ export function jsonSpanPreview(root: unknown, path: string): string | undefined
         if (encoding !== "codePoint" && encoding !== "utf16" && encoding !== "utf8") {
             throw new RangeError("Unsupported stringEncoding; expected codePoint, utf16 or utf8.");
         }
+        const slice = createSpanSlicer(markdown, encoding);
         const previews = spans.slice(0, 3).map(span => {
             if (!record(span) || typeof span.offset !== "number" || typeof span.length !== "number") {
                 throw new RangeError("Span must contain numeric offset and length.");
             }
-            const text = sliceEncodedSpan(markdown, span.offset, span.length, encoding);
+            const text = slice(span.offset, span.length);
             const preview = text.slice(0, textBoundary(text, Math.min(512, text.length)));
             return `${text.length ? preview : "(empty span)"}${
                 preview.length < text.length ? "\n[Preview shortened]" : ""}`;

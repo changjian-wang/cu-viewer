@@ -71,7 +71,7 @@ function ArrayTable({ node, side, projection, columnWidths, comparison, props, r
                             <th scope="row">{item.index + 1}</th>{projection.columns.map(column => {
                                 const cell = row.cells.get(column.key);
                                 const pair = cell && comparison.byFieldId.get(cell.id);
-                                return <td key={column.key}>{pair ? <ComparisonValue node={pair} side={side} props={props} /> :
+                                return <td key={column.key}>{pair ? <ComparisonValue node={pair} side={side} props={props} arrayCell /> :
                                     <span className="cu-value-chip is-missing cu-missing-cell">{displayValue()}</span>}</td>;
                             })}
                         </tr>;

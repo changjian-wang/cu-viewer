@@ -31,6 +31,21 @@ async function visibleMatch(viewport: Locator) {
     }).toBe(true);
 }
 
+async function expectPreviewClearOfSpan(entry: Locator, popup: Locator, expectedSide?: "right" | "above" | "below") {
+    if (expectedSide) await expect(popup).toHaveAttribute("data-side", expectedSide);
+    await expect.poll(async () => {
+        const bounds = await popup.boundingBox();
+        const offset = await entry.locator('[data-json-path$="/offset"] .cu-json-number').boundingBox();
+        const length = await entry.locator('[data-json-path$="/length"] .cu-json-number').boundingBox();
+        if (!bounds || !offset || !length) return false;
+        const side = await popup.getAttribute("data-side");
+        if (side === "right") return bounds.x > Math.max(offset.x + offset.width, length.x + length.width);
+        return side === "above" ?
+            bounds.y + bounds.height < Math.min(offset.y, length.y) :
+            bounds.y > Math.max(offset.y + offset.height, length.y + length.height);
+    }).toBe(true);
+}
+
 test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await ready(page);
@@ -63,10 +78,15 @@ test("Result spans preview their own content in all declared encodings without c
         const triggerBounds = await spans.locator(":scope > .cu-json-span-trigger").boundingBox();
         const popupBounds = await popup.boundingBox();
         if (!triggerBounds || !popupBounds) throw new Error("The span preview or its trigger is not visible.");
-        const gapY = await popup.getAttribute("data-side") === "above" ?
-            (popupBounds.y + popupBounds.height + triggerBounds.y) / 2 :
-            (triggerBounds.y + triggerBounds.height + popupBounds.y) / 2;
-        await page.mouse.move(triggerBounds.x + Math.min(18, triggerBounds.width / 2), gapY);
+        const side = await popup.getAttribute("data-side");
+        if (side === "right") {
+            await page.mouse.move((triggerBounds.x + triggerBounds.width + popupBounds.x) / 2,
+                triggerBounds.y + triggerBounds.height / 2);
+        } else {
+            const gapY = side === "above" ? (popupBounds.y + popupBounds.height + triggerBounds.y) / 2 :
+                (triggerBounds.y + triggerBounds.height + popupBounds.y) / 2;
+            await page.mouse.move(triggerBounds.x + Math.min(18, triggerBounds.width / 2), gapY);
+        }
         await expect(popup).toBeVisible();
         await popup.hover();
         await expect(popup).toBeVisible();
@@ -80,6 +100,7 @@ test("Result spans preview their own content in all declared encodings without c
         await expand(page, ["/result/contents/1/fields/Amount/spans/0"]);
         await expect(entry.locator('[data-json-path$="/offset"]')).toContainText(String(offset));
         await expect(entry.locator('[data-json-path$="/length"]')).toContainText("7");
+        await expectPreviewClearOfSpan(entry, popup);
         await toggle.press("Escape");
         await expect(popup).toHaveCount(0);
         await expect(toggle).toBeFocused();
@@ -87,6 +108,71 @@ test("Result spans preview their own content in all declared encodings without c
         await page.locator('[data-json-path="/result/contents/1/fields/Invalid/spans"] > .cu-json-span-trigger').hover();
         await expect(popup).toHaveText(/Span preview unavailable/);
         await expect(page.getByTestId("rendered-page")).toBeVisible();
+    }
+});
+
+test("the invoice span hover preview leaves offset and length visible and reachable", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    await page.getByRole("tab", { name: "Result", exact: true }).click();
+    const spans = "/result/contents/0/fields/RemittanceAddress/spans";
+    await expand(page, ["/result", "/result/contents", "/result/contents/0", "/result/contents/0/fields",
+        "/result/contents/0/fields/RemittanceAddress", spans, `${spans}/0`]);
+    const entry = page.locator(`[data-json-path="${spans}/0"]`);
+    const popup = page.getByRole("tooltip", { name: "Span preview", exact: true });
+    const tab = page.getByRole("tab", { name: "Result", exact: true });
+    await tab.focus();
+    await entry.scrollIntoViewIfNeeded();
+    await tab.hover();
+    await entry.locator(":scope > .cu-json-span-trigger").hover();
+    await expect(popup).toHaveText("123 Remit St");
+    await expectPreviewClearOfSpan(entry, popup, "right");
+    await entry.locator('[data-json-path$="/length"] .cu-json-number').hover();
+    await expect(popup).toBeVisible();
+    await popup.hover();
+    await expect(popup).toBeVisible();
+    await tab.hover();
+    await expect(popup).toHaveCount(0);
+
+    await page.setViewportSize({ width: 900, height: 1000 });
+    await entry.evaluate(element => {
+        const viewport = element.closest(".cu-rich-result-scroll");
+        const length = element.querySelector('[data-json-path$="/length"]');
+        if (!viewport || !length) throw new Error("The span or its JSON viewport is unavailable.");
+        viewport.scrollTop += length.getBoundingClientRect().bottom - viewport.getBoundingClientRect().bottom + 4;
+    });
+    await entry.locator(":scope > .cu-json-span-trigger").hover();
+    await expect(popup).toHaveText("123 Remit St");
+    await expectPreviewClearOfSpan(entry, popup, "above");
+});
+
+test("the AmountDue span preview sits to the right of either expanded heading and leaves following rows visible", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    const tab = page.getByRole("tab", { name: "Result", exact: true });
+    await tab.click();
+    const field = "/result/contents/0/fields/AmountDue";
+    const amount = `${field}/valueObject/Amount`;
+    const spans = `${amount}/spans`;
+    await expand(page, ["/result", "/result/contents", "/result/contents/0", "/result/contents/0/fields",
+        field, `${field}/valueObject`, amount, spans, `${spans}/0`]);
+    const entry = page.locator(`[data-json-path="${spans}/0"]`);
+    const list = page.locator(`[data-json-path="${spans}"]`);
+    const popup = page.getByRole("tooltip", { name: "Span preview", exact: true });
+    await tab.focus();
+    await list.evaluate(element => element.scrollIntoView({ block: "center" }));
+    for (const heading of [list, entry]) {
+        await tab.hover();
+        await heading.locator(":scope > .cu-json-span-trigger").hover();
+        await expect(popup).toHaveText("610.00");
+        await expectPreviewClearOfSpan(entry, popup, "right");
+        const following = page.locator(`[data-json-path="${amount}/confidence"], [data-json-path="${amount}/source"]`);
+        await expect(following).toHaveCount(2);
+        await expect.poll(async () => {
+            const bounds = await popup.boundingBox();
+            const tops = await following.evaluateAll(rows => rows.map(row => row.getBoundingClientRect().top));
+            return Boolean(bounds && bounds.y + bounds.height < Math.min(...tops));
+        }).toBe(true);
     }
 });
 

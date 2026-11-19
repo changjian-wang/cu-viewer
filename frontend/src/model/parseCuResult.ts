@@ -1,6 +1,7 @@
 import type { CuContent, CuDetailItem, CuDetailRecord, CuDetailView, CuField, CuFigure, CuPage, CuParagraph, CuParseIssue, CuRegion, CuResultModel, CuSignature, CuTable, CuTableCell, CuWord } from "./types";
 import { GeometryError, validateRegion } from "../source/geometry";
 import { MAX_JSON_VALUES } from "./resultLimits";
+import { sourceValueMatcher } from "./sourceValueMatch";
 
 const valueKeys = new Map([
     ["string", "valueString"],
@@ -228,10 +229,11 @@ function parseSource(
 }
 
 export function parseFields(raw: unknown, content: CuContent, rootPath: string, issues: CuParseIssue[],
-    collection: "fields" | "fieldLabels" = "fields"): CuField[] {
+    collection: "fields" | "fieldLabels" = "fields", stringEncoding?: unknown): CuField[] {
     if (raw === undefined) return [];
     if (!isRecord(raw)) fail("invalid-fields", `${rootPath}/${collection}`, "Fields must be an object.");
     const fields: CuField[] = [];
+    const needsReview = collection === "fields" && content.markdown ? sourceValueMatcher(content.markdown, stringEncoding) : undefined;
     const active = new WeakSet<object>();
     const stack: FieldFrame[] = [];
     const pushFields = (entries: [string, unknown][], id: string, path: string, destination: CuField[]): void => {
@@ -276,7 +278,7 @@ export function parseFields(raw: unknown, content: CuContent, rootPath: string, 
             hasValue, value, children: [], regions: [],
         };
         if (valueKey) node.valueKey = valueKey;
-        if (frame.raw.method === "generate") node.generated = true;
+        if (hasValue && needsReview?.(type, value, field.spans)) node.needsSourceReview = true;
         frame.destination.push(node);
         const confidence = parseConfidence(field.confidence, frame.path, issues);
         if (confidence !== undefined) node.confidence = confidence;
@@ -571,7 +573,7 @@ export function parseCuResult(input: unknown): CuResultModel {
             content.startPageNumber > content.endPageNumber) {
             fail("invalid-page-range", path, "The content page range is reversed.");
         }
-        content.fields = parseFields(entry.fields, content, path, model.issues);
+        content.fields = parseFields(entry.fields, content, path, model.issues, "fields", result.stringEncoding);
         model.contents.push(content);
     }
     return model;

@@ -2,9 +2,10 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import type { Dispatch, KeyboardEvent, ReactNode, SetStateAction } from "react";
 import type { ViewerFieldOrder } from "../index";
 import { displayValue, fieldDisplayName, fieldLabel, fieldRegions } from "../interaction/interaction";
-import { emphasizeFieldTarget, revealFieldTarget } from "../interaction/fieldNavigation";
-import { appearance, collapsedValue, confidenceDescription, fieldAppearance, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
-    isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, visibleFieldIds } from "../interaction/reviewFields";
+import { emphasizeFieldTarget, fieldValueFocusTarget, navigateFieldOnArrow, revealFieldTarget } from "../interaction/fieldNavigation";
+import { appearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
+    isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, SOURCE_REVIEW_DESCRIPTION, standaloneFieldAppearance,
+    visibleFieldIds } from "../interaction/reviewFields";
 import type { ReviewSettings } from "../interaction/reviewFields";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
 import { tableFieldIds, tableLocationMessage } from "../interaction/tableFields";
@@ -12,7 +13,7 @@ import type { TableFieldLocation } from "../interaction/tableFields";
 import type { CuField } from "../model/types";
 import { ResizeHandle } from "./ResizeHandle";
 import { ValueMenuTrigger } from "./ValueActions";
-import { ViewerIcon } from "./ViewerIcon";
+import { SourceReviewIcon, ViewerIcon } from "./ViewerIcon";
 import { FieldsSettings } from "./FieldsSettings";
 import type { FieldComparison } from "../model/fieldComparison";
 import { ComparisonFieldsPane } from "./ComparisonFieldsPane";
@@ -78,7 +79,8 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         const value = summary ?? displayValue(field);
         return `${value ? `${value} · ` : ""}${isFieldGroup(field) ? `Group of descendant ${props.labelMode ? "labels" : "fields"}` :
             props.labelMode ? "Reference label (not compared)" : confidenceDescription(field, settings.threshold)}${fieldRegions(field).length ? "" : " · No source region"}${
-                relatedBlock.has(field.id) ? " · Related to the current source table" : ""}`;
+                relatedBlock.has(field.id) ? " · Related to the current source table" : ""}${
+                field.needsSourceReview ? ` · ${SOURCE_REVIEW_DESCRIPTION}` : ""}`;
     };
     const viewport = useRef<HTMLDivElement>(null);
     const nameButtons = useRef(new Map<string, HTMLButtonElement>());
@@ -147,7 +149,8 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         const request = pendingFocus.current;
         if (!request) return;
         pendingFocus.current = null;
-        const button = nameButtons.current.get(request.id);
+        const button = (request.force ? fieldValueFocusTarget(viewport.current, request.id) : undefined) ??
+            nameButtons.current.get(request.id);
         if (!button) return;
         const active = button.ownerDocument.activeElement;
         if (!request.force && active !== button.ownerDocument.body &&
@@ -215,11 +218,9 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         }
         if (event.key === "F2") { event.preventDefault(); props.workflow.inspect(field); return; }
         if (event.shiftKey && event.key === "F10") { event.preventDefault(); props.onMenu(field, event.currentTarget); return; }
-        if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+        if (event.key === "Home" || event.key === "End") {
             const buttons = [...(viewport.current?.querySelectorAll<HTMLButtonElement>("[data-review-focus]") ?? [])];
-            const index = buttons.findIndex(button => button === event.currentTarget);
-            const next = event.key === "Home" ? buttons[0] : event.key === "End" ? buttons.at(-1) :
-                buttons[index + (event.key === "ArrowDown" ? 1 : -1)];
+            const next = event.key === "Home" ? buttons[0] : buttons.at(-1);
             if (next) { event.preventDefault(); next.focus({ preventScroll: true }); revealButton(next); }
         }
     };
@@ -235,14 +236,16 @@ function StandardFieldsPane(props: FieldsPaneProps) {
     const value = (field: CuField, inline = false): ReactNode => {
         const style = appearance(field, inline || isTableValue(field), settings, props.labelMode);
         return <span className={`cu-value-chip${!field.hasValue ? " is-missing" : ""}`}
-            style={!props.fieldReview && style.low ? { background: style.background, color: style.color } : undefined}
+            style={!props.fieldReview && style.low ? {
+                background: field.needsSourceReview ? undefined : style.background, color: style.color,
+            } : undefined}
             title={props.labelMode ? "Reference label value" : confidenceDescription(field, settings.threshold)}>{displayValue(field)}</span>;
     };
     const valueStyle = (field: CuField) => {
-        if (!props.fieldReview) return undefined;
-        const style = fieldAppearance(field, settings, "uncompared", isTableValue(field));
-        return { background: field.hasValue ? `var(--cu-default-review-fill, ${style.background})` : style.background,
-            color: field.hasValue ? style.color : undefined, boxShadow: style.boxShadow };
+        const needsReview = field.needsSourceReview && !props.labelMode;
+        if (!props.fieldReview && !needsReview) return undefined;
+        const { background, color, boxShadow } = standaloneFieldAppearance(field, settings, props.labelMode);
+        return { background, color: field.hasValue ? color : undefined, boxShadow };
     };
     const reviewClass = props.fieldReview ? " cu-comparison-value" : "";
     const cell = (field: CuField): ReactNode => <div className={`cu-cell-content${reviewClass}`} style={valueStyle(field)}
@@ -251,9 +254,12 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         onPointerLeave={() => props.onLeave(field)}
         onFocus={() => { if (!props.restoringFocus.current && !props.workflow.menuOpen.current) { setFocus(field.id); props.onHover(field, false); } }}
         onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) props.onLeave(field); }}>
+        {field.needsSourceReview && <SourceReviewIcon />}
         <button type="button" className="cu-cell-value" aria-label={`Select value of ${fieldLabel(field)}`}
             aria-describedby={descriptionId(field)}
+            title={field.needsSourceReview ? SOURCE_REVIEW_DESCRIPTION : undefined}
             aria-pressed={props.selected?.id === field.id} data-review-focus={matches.has(field.id) ? field.id : undefined}
+            data-field-value-focus={field.id}
             tabIndex={review.focused === field.id ? 0 : -1}
             ref={button => { if (button) nameButtons.current.set(field.id, button); else nameButtons.current.delete(field.id); }}
             onKeyDown={event => onFieldKey(event, field)} onClick={() => props.onSelect(field)}>{value(field, true)}</button>
@@ -373,27 +379,29 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                         aria-label={`${open ? "Collapse" : "Expand"} ${name}`} aria-expanded={open} disabled={filtering}
                         title={filtering ? "Automatically expanded while filtering." : undefined} onClick={expand}><ViewerIcon name={open ? "down" : "right"} /></button> :
                         <span className="cu-expand-spacer" />}
-                    <button type="button" className={`cu-field-name${field.generated ? " is-generated" : ""}`} data-review-focus={field.id}
+                    <button type="button" className={`cu-field-name${field.needsSourceReview ? " needs-source-review" : ""}`} data-review-focus={field.id}
                         aria-describedby={descriptionId(field)}
                         aria-pressed={group ? undefined : props.selected?.id === field.id}
                         aria-expanded={group && field.children.length ? open : undefined}
-                        aria-label={name} title={fieldLabel(field)}
+                        aria-label={name} title={field.needsSourceReview ? `${fieldLabel(field)} — ${SOURCE_REVIEW_DESCRIPTION}` : fieldLabel(field)}
                         tabIndex={review.focused === field.id || (!review.focused && depth === 0 && sorted[0] === field) ? 0 : -1}
                         ref={button => { if (button) nameButtons.current.set(field.id, button); else nameButtons.current.delete(field.id); }}
                         onFocus={() => setFocus(field.id)} onKeyDown={event => onFieldKey(event, field)}
                         onClick={() => group ? expand() : props.onSelect(field)}>
-                        {field.generated && <span className="cu-generated-field-icon"><ViewerIcon name="sparkle" /></span>}
-                        <span className={field.generated ? "cu-generated-field-name" : undefined}>{name}</span>
+                        {field.needsSourceReview && <SourceReviewIcon />}
+                        <span className={field.needsSourceReview ? "cu-source-review-name" : undefined}>{name}</span>
                     </button>
                 </div></td>
                 <td><div className={`cu-field-value-content${reviewClass}`} style={valueStyle(field)}>
                     {collapsed ? <button type="button" className="cu-field-value cu-summary-value" tabIndex={-1}
+                        data-field-value-focus={field.id} onKeyDown={event => onFieldKey(event, field)}
                         aria-label={`View full value of ${fieldLabel(field)}`} aria-describedby={descriptionId(field)}
                         title="View full value and confidence (F2)"
                         onClick={() => props.workflow.inspect(field, true)}>{field.hasValue ? summary : value(field)}</button> :
                         group ? <span className="cu-summary-value">{summary}</span> :
                         <button type="button" className="cu-field-value" tabIndex={-1} aria-label={`Select value of ${fieldLabel(field)}`}
-                            aria-describedby={descriptionId(field)}
+                            aria-describedby={descriptionId(field)} data-field-value-focus={field.id}
+                            onKeyDown={event => onFieldKey(event, field)}
                             aria-pressed={props.selected?.id === field.id} onClick={() => props.onSelect(field)}>{value(field)}</button>}
                     {group && page !== undefined ? <span className="cu-group-value-actions"><button type="button" className="cu-page-badge"
                         aria-label={`Locate ${name} on page ${page}${pages.length > 1 ? `, ${pages.length} source pages` : ""}`}
@@ -422,7 +430,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                     viewport.current?.closest(".cu-result-panel")?.querySelector<HTMLInputElement>('input[type="search"]')?.focus({ preventScroll: true });
                 }}>Show all</button>
         </div>}
-        <div className="cu-fields-scroll" ref={viewport}>
+        <div className="cu-fields-scroll" ref={viewport} onKeyDown={event => navigateFieldOnArrow(event, chooseNext)}>
             <table className={`cu-fields-table${props.fieldReview ? " cu-field-review-fields" : ""}`} role="treegrid" aria-label={props.labelMode ? "Labels" : "Extracted fields"}>
                 <colgroup><col style={{ width: `${settings.fieldRatio * (settings.columns === 3 ? 83 : 100)}%` }} /><col />
                     {settings.columns === 3 && <col style={{ width: "17%" }} />}</colgroup>

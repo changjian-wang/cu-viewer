@@ -196,15 +196,49 @@ describe("verified CU result parsing", () => {
 });
 
 describe("synthetic field and metadata boundaries", () => {
-    it("marks only fields whose method is generate", () => {
+    it("flags returned values without a source-text match, independently of method", () => {
+        const markdown = "Contoso Ltd.\nNew York, NY, 10001\nRedmond WA, 98052\nInvoice INV-100\n$1,610.00\nEUR 1.234,56\nNov. 15, 2019";
         const fields = first(parseCuResult(syntheticResult({
-            Generated: { type: "string", valueString: "Summary", method: "generate" },
-            Extracted: { type: "string", valueString: "Invoice number", method: "extract" },
-            Unspecified: { type: "string", valueString: "Value" },
-            OtherMethod: { type: "string", valueString: "Value", method: "GENERATE" },
-        })).contents).fields;
+            Country: { type: "string", valueString: "United States", method: "extract",
+                spans: [{ offset: markdown.indexOf("Redmond"), length: "Redmond WA, 98052".length }] },
+            Vendor: { type: "string", valueString: "CONTOSO  LTD.", method: "generate" },
+            Address: { type: "string", valueString: "New York, NY, 10001 Redmond WA, 98052" },
+            Invoice: { type: "string", valueString: "INV-100", spans: [{ offset: 9999, length: 10 }] },
+            Amount: { type: "number", valueNumber: 1610 },
+            AmountWithDecimalComma: { type: "number", valueNumber: 1234.56 },
+            AmountNotInSource: { type: "number", valueNumber: 610 },
+            Date: { type: "date", valueDate: "2019-11-15" },
+            OtherDate: { type: "date", valueDate: "2019-11-05" },
+            Missing: { type: "string", method: "generate" },
+            Null: { type: "string", valueString: null },
+            Empty: { type: "string", valueString: "" },
+            PartOfWord: { type: "string", valueString: "mond" },
+        }, { markdown })).contents).fields;
 
-        expect(fields.map(field => field.generated)).toEqual([true, undefined, undefined, undefined]);
+        expect(fields.filter(field => field.needsSourceReview).map(field => field.name))
+            .toEqual(["Country", "AmountNotInSource", "OtherDate", "PartOfWord"]);
+    });
+
+    it("matches split source spans using the response encoding, without borrowing text from another content", () => {
+        const raw = {
+            apiVersion: "2025-11-01",
+            stringEncoding: "utf8",
+            contents: [{
+                kind: "document", markdown: "💡Ottawa / Ontario",
+                fields: { CityProvince: { type: "string", valueString: "Ottawa Ontario",
+                    spans: [{ offset: 4, length: 6 }, { offset: 13, length: 7 }] },
+                Country: { type: "string", valueString: "Canada" } },
+            }, {
+                kind: "document", markdown: "Canada",
+                fields: { Country: { type: "string", valueString: "Canada" } },
+            }, {
+                kind: "document", fields: { Country: { type: "string", valueString: "Canada", method: "generate" } },
+            }],
+        };
+        deepFreeze(raw);
+        const model = parseCuResult(raw);
+        expect(model.contents.map(content => content.fields.map(field => field.needsSourceReview)))
+            .toEqual([[undefined, true], [undefined], [undefined]]);
     });
 
     it("distinguishes zero, false, null, an empty string and an absent value", () => {

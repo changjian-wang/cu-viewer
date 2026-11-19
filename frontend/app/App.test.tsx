@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContentUnderstandingResultViewerProps } from "../src";
 import { App } from "./App";
 
-vi.mock("../src", () => ({
-    ContentUnderstandingResultViewer: (props: ContentUnderstandingResultViewerProps) => <section aria-label="Viewer">
+vi.mock("../src/ContentUnderstandingResultViewer", () => ({
+    ResultViewer: (props: ContentUnderstandingResultViewerProps) => <section aria-label="Viewer">
         <output data-testid="order">{JSON.stringify(props.fieldOrder) ?? "browser"}</output>
         <output data-testid="labels">{JSON.stringify(props.labels) ?? "none"}</output>
         <output data-testid="result">{JSON.stringify(props.result) ?? "none"}</output>
@@ -60,26 +60,17 @@ describe("CLI viewer field-order bridge", () => {
         expect(fetcher).toHaveBeenCalledTimes(1);
     });
 
-    it("loads saved order without writing defaults and ignores stale paths and changed parent types", async () => {
-        fetcher.mockResolvedValueOnce(json(session)).mockResolvedValueOnce(json({
+    it("passes the full saved order to the viewer without writing defaults", async () => {
+        const saved = {
             $root: ["/B", "/Removed", "/A"], "/Group": ["/Group/OldChild"], "/Missing": ["/Missing/Child"],
-        }));
+        };
+        fetcher.mockResolvedValueOnce(json(session)).mockResolvedValueOnce(json(saved));
         render(<App />);
         await screen.findByRole("region", { name: "Viewer" });
-        expect(screen.getByTestId("order").textContent).toBe('{"$root":["/B","/A"]}');
+        expect(JSON.parse(screen.getByTestId("order").textContent ?? "")).toEqual(saved);
         expect(fetcher).toHaveBeenCalledTimes(2);
         expect(fetcher.mock.calls.every(([, options]) => !options?.method)).toBe(true);
         expect(screen.queryByRole("banner")).toBeNull();
-    });
-
-    it("retains saved order for label-only fields in a comparison session", async () => {
-        fetcher.mockResolvedValueOnce(json(comparisonSession)).mockResolvedValueOnce(json({
-            $root: ["/LabelOnly", "/B", "/Removed", "/A"],
-        }));
-        render(<App />);
-        await screen.findByRole("region", { name: "Viewer" });
-        expect(screen.getByTestId("order").textContent).toBe('{"$root":["/LabelOnly","/B","/A"]}');
-        expect(fetcher).toHaveBeenCalledTimes(2);
     });
 
     it.each([false, true])("writes only explicit order changes and sends an empty mapping for reset (labels=%s)", async withLabels => {

@@ -43,14 +43,14 @@ const object: CuField = { ...field, id: "/contents/0/fields/AmountDue", name: "A
     type: "object", value: { Amount: 610, Currency: "USD" }, children: [amount, currency] };
 
 describe("Studio source preview content", () => {
-    it("keeps an unlabeled PDF value plain while retaining its confidence badge", () => {
+    it("uses the standalone Fields background for an unlabeled PDF value without copying its confidence outline", () => {
         setup(field, undefined, undefined, true);
         const popup = screen.getByRole("tooltip", { name: "Field preview" });
         const value = popup.querySelector<HTMLElement>(".cu-flyover-value dd")!;
         const score = popup.querySelector<HTMLElement>(".cu-flyover-confidence")!;
         expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("");
         expect(popup.style.getPropertyValue("--cu-preview-banner-bg")).toBe("");
-        expect(value.style.background).toBe("");
+        expect(value.style.background).toBe("var(--cu-default-review-fill, #ECF3FC)");
         expect(value.style.boxShadow).toBe("");
         expect(value.style.border).toBe("");
         expect(popup.classList.contains("cu-source-comparison-popover")).toBe(false);
@@ -62,7 +62,7 @@ describe("Studio source preview content", () => {
         expect(popup.querySelector<HTMLElement>(".cu-flyover-body")!.style.background).toBe("");
     });
 
-    it("keeps both comparison values plain and the confidence badge beside extraction", () => {
+    it("colors only the extracted comparison value and keeps the confidence badge beside it", () => {
         const label: CuField = { ...field, id: "/labels/fields/Zero", origin: "label", confidence: 1 };
         setup(field, undefined, compareFields([label], [field], true));
         const popup = screen.getByRole("tooltip", { name: "Field preview" });
@@ -76,7 +76,7 @@ describe("Studio source preview content", () => {
         expect(labelValue.style.boxShadow).toBe("");
         expect(labelValue.style.border).toBe("");
         expect(extractedValue.textContent).toBe("0");
-        expect(extractedValue.style.background).toBe("");
+        expect(extractedValue.style.background).toBe("rgb(220, 251, 215)");
         expect(extractedValue.style.boxShadow).toBe("");
         expect(extractedValue.style.border).toBe("");
         expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("");
@@ -112,14 +112,14 @@ describe("Studio source preview content", () => {
     });
 
     it.each([
-        ["object summary", object],
-        ["array cell", { ...field, id: "/contents/0/fields/Rows/valueArray/0" }],
-        ["array summary", { ...field, type: "array", value: [0], children: [field] }],
-    ] satisfies [string, CuField][])("keeps the PDF %s plain rather than wrapping it in a value chip", (_, value) => {
+        ["object summary", object, "#ECF3FC"],
+        ["array cell", { ...field, id: "/contents/0/fields/Rows/valueArray/0" }, "#DEE9FA"],
+        ["array summary", { ...field, type: "array", value: [0], children: [field] }, "#DEE9FA"],
+    ] satisfies [string, CuField, string][])("colors the PDF %s without changing the single-value layout", (_, value, color) => {
         setup(value, undefined, undefined, true);
         const popup = screen.getByRole("tooltip");
         const text = popup.querySelector<HTMLElement>(".cu-flyover-value dd")!;
-        expect(text.style.background).toBe("");
+        expect(text.style.background).toBe(`var(--cu-default-review-fill, ${color})`);
         expect(text.style.boxShadow).toBe("");
         expect(text.style.border).toBe("");
         expect(text.classList.contains("cu-flyover-comparison-value")).toBe(false);
@@ -174,6 +174,16 @@ describe("Studio source preview content", () => {
         setup(withoutConfidence);
         expect(screen.getByText("N/A")).toBeTruthy();
         expect(screen.getByRole("tooltip").querySelector("svg")).toBeNull();
+    });
+
+    it("leaves non-PDF values and missing standalone placeholders uncolored", () => {
+        const nonPdf = setup({ ...field, needsSourceReview: true });
+        expect(screen.getByRole("tooltip").querySelector<HTMLElement>(".cu-flyover-value dd")?.style.background).toBe("");
+        nonPdf.unmount();
+        setup({ ...field, hasValue: false, value: undefined }, undefined, undefined, true);
+        const value = screen.getByRole("tooltip").querySelector<HTMLElement>(".cu-flyover-value dd");
+        expect(value?.textContent).toBe("Not returned");
+        expect(value?.style.background).toBe("");
     });
     for (const table of [false, true]) {
         it.each([0, 0.95, undefined])(`does not apply confidence color to ${table ? "array" : "field"} value text at confidence %s`, confidence => {

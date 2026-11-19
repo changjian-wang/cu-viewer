@@ -2,7 +2,7 @@ import type { ViewerFieldOrder } from "../index";
 import type { CuContent, CuField } from "../model/types";
 import { displayValue, fieldDisplayName, flattenFields, formatConfidence as formatScore, isFieldGroup } from "./interaction";
 import { isComparisonError } from "../model/fieldComparison";
-import type { ComparisonStatus } from "../model/fieldComparison";
+import type { ComparisonStatus, FieldComparisonNode } from "../model/fieldComparison";
 
 export { formatScore, isFieldGroup };
 
@@ -22,10 +22,13 @@ export const defaultReviewSettings: Readonly<ReviewSettings> = {
 };
 
 export const FIELD_REVIEW_COLORS = {
-    default: "#ECF3FC", array: "#DEE9FA", matched: "#DCFBD7", error: "#FFDADD", missing: "#F8C0C8", partial: "#ffcc80",
+    default: "#ECF3FC", array: "#DEE9FA", matched: "#DCFBD7", error: "#FFDADD", missing: "#F8C0C8", partial: "#FBE2C1",
+    sourceReviewValue: "#CBEAF1",
     lowStroke: "#B43C4B99", confidenceBadgeBackground: "#FFDADD", confidenceBadgeText: "#9B1C1C",
     hoverStroke: "#8063B5", selectedStroke: "#5B21B6",
 } as const;
+
+export const SOURCE_REVIEW_DESCRIPTION = "No direct match in the source text; review this value.";
 
 export function fieldAppearance(field: Pick<CuField, "confidence" | "hasValue"> | undefined, settings: ReviewSettings,
     status: ComparisonStatus = "uncompared", table = false) {
@@ -36,6 +39,25 @@ export function fieldAppearance(field: Pick<CuField, "confidence" | "hasValue"> 
             isComparisonError(status) ? FIELD_REVIEW_COLORS.error : !field?.hasValue ? "transparent" :
                 table ? FIELD_REVIEW_COLORS.array : FIELD_REVIEW_COLORS.default,
         boxShadow: low ? `inset 0 0 0 1px ${FIELD_REVIEW_COLORS.lowStroke}` : undefined,
+    };
+}
+
+export function standaloneFieldAppearance(field: CuField, settings: ReviewSettings, labelMode = false) {
+    const appearance = fieldAppearance(field, settings, "uncompared", isTableValue(field));
+    return {
+        ...appearance,
+        background: !labelMode && field.needsSourceReview ? FIELD_REVIEW_COLORS.sourceReviewValue :
+            field.hasValue ? `var(--cu-default-review-fill, ${appearance.background})` : appearance.background,
+    };
+}
+
+export function comparedExtractedAppearance(node: FieldComparisonNode, settings: ReviewSettings) {
+    const appearance = fieldAppearance(node.extracted, settings, node.status, isTableValue(node.field));
+    const partial = node.field.type === "object" && node.children.length > 0 && node.matched > 0 && node.errors > 0;
+    return {
+        ...appearance,
+        background: node.extracted?.needsSourceReview ? FIELD_REVIEW_COLORS.sourceReviewValue :
+            partial ? FIELD_REVIEW_COLORS.partial : appearance.background,
     };
 }
 
@@ -173,14 +195,46 @@ export function validateFieldOrder(value: unknown): ViewerFieldOrder {
     return order;
 }
 
+function canReorderChildren(entry: FieldEntry): boolean {
+    return !entry.inArray && entry.field.type !== "array" && isFieldGroup(entry.field);
+}
+
 export function validateOrderParents(order: ViewerFieldOrder, entries: readonly FieldEntry[]): void {
     const byPath = new Map(entries.map(entry => [entry.path, entry]));
     for (const parent of Object.keys(order)) {
         const entry = byPath.get(parent);
-        if (entry && (entry.inArray || entry.field.type === "array" || !isFieldGroup(entry.field))) {
+        if (entry && !canReorderChildren(entry)) {
             throw new Error(`Field order cannot reorder array rows, cells, or scalar children (${parent}).`);
         }
     }
+}
+
+export function projectSavedOrder(saved: ViewerFieldOrder, entries: readonly FieldEntry[]): ViewerFieldOrder {
+    if (!Object.keys(saved).length) return saved;
+    const byPath = new Map(entries.filter(entry => !entry.inArray).map(entry => [entry.path, entry]));
+    const order: Record<string, readonly string[]> = {};
+    for (const [parent, children] of Object.entries(saved)) {
+        const entry = byPath.get(parent);
+        if (parent !== "$root" && (!entry || !canReorderChildren(entry))) continue;
+        const present = children.filter(path => byPath.has(path));
+        if (present.length) order[parent] = present;
+    }
+    return order;
+}
+
+export function mergeSavedOrder(saved: ViewerFieldOrder, current: ViewerFieldOrder, next: ViewerFieldOrder): ViewerFieldOrder {
+    if (!Object.keys(next).length) return next; // Reset clears the entire analyzer order.
+    const order = { ...saved };
+    for (const [parent, children] of Object.entries(next)) {
+        const prior = current[parent];
+        if (prior?.length === children.length && prior.every((path, index) => path === children[index])) continue;
+        const moved = new Set(children);
+        let index = 0;
+        // Keep unavailable siblings in their previous slots so they can be restored in another content.
+        const existing = (saved[parent] ?? []).map(path => moved.has(path) ? children[index++]! : path);
+        order[parent] = [...existing, ...children.slice(index)];
+    }
+    return order;
 }
 
 export function orderedFields(fields: readonly CuField[], parent: string, order: ViewerFieldOrder): CuField[] {

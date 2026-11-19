@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ContentUnderstandingResultViewer } from "../src";
+import { ResultViewer } from "../src/ContentUnderstandingResultViewer";
 import type { ViewerFieldOrder } from "../src";
-import { fieldEntries, validateFieldOrder } from "../src/interaction/reviewFields";
-import { parseCuResult } from "../src/model/parseCuResult";
-import { parseLabels } from "../src/model/parseLabels";
-import { compareFields } from "../src/model/fieldComparison";
+import { validateFieldOrder } from "../src/interaction/reviewFields";
 
 interface ViewerSession {
     source: string;
@@ -23,23 +20,6 @@ function sessionURL(value: string): URL {
         throw new Error("The resource does not belong to this local viewer session.");
     }
     return url;
-}
-
-function compatibleOrder(value: unknown, result: unknown, labels: unknown): ViewerFieldOrder {
-    const saved = validateFieldOrder(value);
-    if (!Object.keys(saved).length) return saved;
-    const labelFields = labels === undefined ? undefined : parseLabels(labels, null).content.fields;
-    const entries = parseCuResult(result).contents.flatMap((content, index) => fieldEntries(
-        index === 0 && labelFields ? compareFields(labelFields, content.fields, Boolean(content.fieldsDeclared)).fields : content.fields));
-    const invalidParents = new Set(entries.filter(entry => entry.inArray || entry.field.type !== "object").map(entry => entry.path));
-    const paths = new Set(entries.filter(entry => !entry.inArray).map(entry => entry.path));
-    const order: Record<string, readonly string[]> = {};
-    for (const [parent, children] of Object.entries(saved)) {
-        if (parent !== "$root" && (invalidParents.has(parent) || !paths.has(parent))) continue;
-        const remaining = children.filter(path => paths.has(path));
-        if (remaining.length) order[parent] = remaining;
-    }
-    return order;
 }
 
 export function App() {
@@ -90,7 +70,7 @@ export function App() {
                         signal: controller.signal, credentials: "same-origin", cache: "no-store",
                     });
                     if (!response.ok) throw new Error(`azd settings could not be read (${response.status}).`);
-                    fieldOrder = compatibleOrder(await response.json(), result, labels);
+                    fieldOrder = validateFieldOrder(await response.json());
                     fieldOrderUrl = url.href;
                 } catch (failure) {
                     if (controller.signal.aborted) return;
@@ -143,7 +123,7 @@ export function App() {
             {session.warnings.map((warning, index) => <p role="alert" key={index}>{warning}</p>)}
             {orderError && <p role="alert">{orderError}</p>}
             <span className="cu-visually-hidden" role="status">{orderStatus}</span>
-            <ContentUnderstandingResultViewer source={session.source} result={session.result} labels={session.labels}
+            <ResultViewer source={session.source} result={session.result} labels={session.labels} reconcileSavedOrder
                 {...(session.fieldOrder === undefined ? {} : { fieldOrder: session.fieldOrder })}
                 {...(session.fieldOrderUrl ? { onFieldOrderChange: changeOrder } : {})} />
         </> : <p role="status">Loading source and saved data...</p>}

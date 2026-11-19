@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { FocusEvent, MouseEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ResultPagination } from "./ResultPagination";
 import { JSON_STRING_PREVIEW_THRESHOLD } from "../model/resultLimits";
@@ -26,12 +26,20 @@ function JsonSpanTooltip({ text, children }: {
     const anchor = useRef<HTMLSpanElement>(null);
     const tooltip = useRef<HTMLElement>(null);
     const [open, setOpen] = useState(false);
-    const [position, setPosition] = useState<{ left: number; top: number; above: boolean } | null>(null);
+    const [position, setPosition] = useState<{ left: number; top: number; side: "right" | "above" | "below" } | null>(null);
     const close = useCallback((): void => {
         setOpen(false);
         setPosition(null);
         if (owner.current?.id === id) owner.current = null;
     }, [owner, id]);
+    const leave = useCallback((event: { type: string; relatedTarget: EventTarget | null }): void => {
+        const trigger = anchor.current;
+        if (!trigger || trigger.contains(trigger.ownerDocument.activeElement)) return;
+        const area = event.type === "blur" ? trigger : trigger.parentElement;
+        if (event.relatedTarget instanceof Node &&
+            (area?.contains(event.relatedTarget) || tooltip.current?.contains(event.relatedTarget))) return;
+        close();
+    }, [close]);
     const show = (): void => {
         if (owner.current?.id !== id) owner.current?.close();
         owner.current = { id, close };
@@ -42,18 +50,49 @@ function JsonSpanTooltip({ text, children }: {
     }, [owner, id]);
     useLayoutEffect(() => {
         const trigger = anchor.current;
+        const span = trigger?.parentElement;
         const popup = tooltip.current;
         const window = trigger?.ownerDocument.defaultView;
-        if (!open || !trigger || !popup || !window) return;
+        if (!open || !trigger || !span || !popup || !window) return;
+        const viewport = trigger.closest(".cu-rich-result-scroll");
         const update = (): void => {
             if (!trigger.isConnected) { close(); return; }
             const bounds = trigger.getBoundingClientRect();
-            const left = Math.max(8, Math.min(bounds.left, window.innerWidth - popup.offsetWidth - 8));
-            const above = bounds.bottom + SOURCE_POPOVER_GAP + popup.offsetHeight > window.innerHeight - 8;
-            const top = above ? bounds.top - popup.offsetHeight - SOURCE_POPOVER_GAP : bounds.bottom + SOURCE_POPOVER_GAP;
+            popup.style.removeProperty("--cu-span-content-height");
+            let height = popup.offsetHeight;
+            const width = popup.offsetWidth;
+            // JSON rows fill the pane; measure the text so the preview clears the expanded metadata.
+            const textRange = trigger.ownerDocument.createRange();
+            let textRight = bounds.right;
+            for (const row of span.querySelectorAll('[data-json-path$="/offset"], [data-json-path$="/length"]')) {
+                textRange.selectNodeContents(row);
+                textRight = Math.max(textRight, textRange.getBoundingClientRect().right);
+            }
+            const rightLeft = Math.max(8, textRight + SOURCE_POPOVER_GAP);
+            if (rightLeft + width <= window.innerWidth - 8) {
+                const center = bounds.top + bounds.height / 2;
+                const top = Math.max(8, Math.min(center - height / 2, window.innerHeight - height - 8));
+                popup.style.setProperty("--cu-span-arrow-top", `${Math.max(4, Math.min(height - 12, center - top - 4))}px`);
+                setPosition({ left: rightLeft, top, side: "right" });
+                return;
+            }
+            // The expanded node includes the offset/length rows below the trigger.
+            const belowTop = Math.max(bounds.bottom, span.getBoundingClientRect().bottom) + SOURCE_POPOVER_GAP;
+            const aboveBottom = bounds.top - SOURCE_POPOVER_GAP;
+            const belowSpace = window.innerHeight - 8 - belowTop, aboveSpace = aboveBottom - 8;
+            const above = height > belowSpace && aboveSpace > belowSpace;
+            const availableHeight = Math.floor(above ? aboveSpace : belowSpace);
+            if (height > availableHeight) {
+                const borders = height - popup.clientHeight;
+                popup.style.setProperty("--cu-span-content-height", `${Math.max(0, availableHeight - borders)}px`);
+                height = popup.offsetHeight;
+                if (height > availableHeight) { setPosition(null); return; }
+            }
+            const left = Math.max(8, Math.min(bounds.left, window.innerWidth - width - 8));
+            const top = above ? aboveBottom - height : belowTop;
             popup.style.setProperty("--cu-arrow-left",
-                `${Math.max(8, Math.min(popup.offsetWidth - 16, bounds.left - left + Math.min(18, bounds.width / 2)))}px`);
-            setPosition({ left, top: Math.max(8, Math.min(top, window.innerHeight - popup.offsetHeight - 8)), above });
+                `${Math.max(8, Math.min(width - 16, bounds.left - left + Math.min(18, bounds.width / 2)))}px`);
+            setPosition({ left, top, side: above ? "above" : "below" });
         };
         const scroll = (event: Event): void => {
             if (!(event.target instanceof Node) || !popup.contains(event.target)) close();
@@ -65,32 +104,27 @@ function JsonSpanTooltip({ text, children }: {
         update();
         const observer = new ResizeObserver(update);
         observer.observe(trigger);
+        observer.observe(span);
         observer.observe(popup);
-        const viewport = trigger.closest(".cu-rich-result-scroll");
         if (viewport) observer.observe(viewport);
+        span.addEventListener("mouseleave", leave);
         window.addEventListener("resize", update);
         trigger.ownerDocument.addEventListener("scroll", scroll, true);
         trigger.ownerDocument.addEventListener("keydown", escape, true);
         return () => {
             observer.disconnect();
+            span.removeEventListener("mouseleave", leave);
             window.removeEventListener("resize", update);
             trigger.ownerDocument.removeEventListener("scroll", scroll, true);
             trigger.ownerDocument.removeEventListener("keydown", escape, true);
         };
-    }, [open, text, close]);
-    const leave = (event: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>): void => {
-        const trigger = anchor.current;
-        if (trigger?.contains(trigger.ownerDocument.activeElement) ||
-            (event.relatedTarget instanceof Node &&
-                (trigger?.contains(event.relatedTarget) || tooltip.current?.contains(event.relatedTarget)))) return;
-        close();
-    };
+    }, [open, text, close, leave]);
     return <span ref={anchor} className="cu-json-span-trigger" aria-describedby={open ? `${id}-content` : undefined}
-        onMouseEnter={show} onMouseLeave={leave} onFocus={show} onBlur={leave}>
+        onMouseEnter={show} onFocus={show} onBlur={leave}>
         {children(open ? `${id}-content` : undefined)}
         {open && anchor.current && createPortal(<aside id={id} ref={tooltip} role="tooltip" aria-label="Span preview"
             className="cu-source-popover cu-viewer-popup cu-json-span-tooltip"
-            data-side={position?.above ? "above" : "below"}
+            data-side={position?.side}
             style={{ left: position?.left, top: position?.top, visibility: position ? "visible" : "hidden" }}
             onMouseLeave={leave}>
             <div id={`${id}-content`} className="cu-json-span-content">{text}</div>

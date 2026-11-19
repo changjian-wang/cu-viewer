@@ -64,3 +64,7 @@ export function ViewerIcon({ name }: { name: ViewerIconName }) {
         fill={isFileType ? "currentColor" : "none"} stroke={isFileType ? "none" : "currentColor"}
         strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{icons[name]}</svg>;
 }
+
+export function SourceReviewIcon() {
+    return <span className="cu-source-review-icon"><ViewerIcon name="sparkle" /></span>;
+}

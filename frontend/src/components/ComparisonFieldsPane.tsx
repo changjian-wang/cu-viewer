@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { displayValue, fieldDisplayName, fieldLabel } from "../interaction/interaction";
-import { revealFieldTarget } from "../interaction/fieldNavigation";
-import { collapsedValue, FIELD_REVIEW_COLORS, fieldEntries, inlineArrayProjection, moveField, orderedFields, orderedLeafFields } from "../interaction/reviewFields";
+import { fieldValueFocusTarget, navigateFieldOnArrow, revealFieldTarget } from "../interaction/fieldNavigation";
+import { collapsedValue, FIELD_REVIEW_COLORS, fieldEntries, inlineArrayProjection, moveField, orderedFields, orderedLeafFields, SOURCE_REVIEW_DESCRIPTION } from "../interaction/reviewFields";
 import { comparisonOriginal, isComparisonError } from "../model/fieldComparison";
 import type { ComparisonFilter, FieldComparison } from "../model/fieldComparison";
 import type { FieldsPaneProps } from "./FieldsPane";
 import { ComparisonValue } from "./ComparisonValue";
 import { ComparisonArrayTables } from "./ComparisonArrayTables";
 import { FieldsSettings } from "./FieldsSettings";
-import { ViewerIcon } from "./ViewerIcon";
+import { SourceReviewIcon, ViewerIcon } from "./ViewerIcon";
 
 export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: FieldComparison }) {
     const { comparison, review } = props;
@@ -24,7 +24,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
     const entryById = useMemo(() => new Map(entries.map(entry => [entry.field.id, entry])), [entries]);
     const [revision, setRevision] = useState(0);
     const onArrayReveal = useCallback(() => setRevision(value => value + 1), []);
-    const pendingFocus = useRef(false);
+    const pendingFocus = useRef<string | null>(null);
     const dragging = useRef<string | null>(null);
     const [dragId, setDragId] = useState<string | null>(null);
     const [dropTarget, setDropTarget] = useState<{ id: string; placement: "before" | "after" } | null>(null);
@@ -79,7 +79,12 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
             setNotice(`Reorder failed: ${error instanceof Error ? error.message : String(error)}`);
         }
     };
-    const onFieldKey = (event: KeyboardEvent<HTMLElement>, node: FieldComparison["nodes"][number]): void => {
+    const onFieldKey = (event: KeyboardEvent<HTMLDivElement>): void => {
+        const trigger = event.target;
+        if (event.defaultPrevented || !(trigger instanceof HTMLElement)) return;
+        const fieldId = trigger.dataset.reviewFocus ?? trigger.dataset.fieldValueFocus;
+        const node = fieldId ? comparison.byFieldId.get(fieldId) : undefined;
+        if (!node) return;
         if (event.key === "Escape" && dragging.current) {
             event.preventDefault(); event.stopPropagation();
             dragging.current = null; setDragId(null); setDropTarget(null); setNotice("Reorder cancelled."); return;
@@ -99,32 +104,38 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         }
         if (event.key === "F2") { event.preventDefault(); props.workflow.inspect(comparisonOriginal(comparison, node.field)); return; }
         if (event.shiftKey && event.key === "F10") {
-            event.preventDefault(); props.onMenu(comparisonOriginal(comparison, node.field), event.currentTarget); return;
+            event.preventDefault(); props.onMenu(comparisonOriginal(comparison, node.field), trigger); return;
         }
-        if (["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
-            const buttons = [...(viewport.current?.querySelectorAll<HTMLButtonElement>("[data-review-focus]") ?? [])];
-            const index = buttons.findIndex(button => button === event.currentTarget);
-            const target = event.key === "Home" ? buttons[0] : event.key === "End" ? buttons.at(-1) :
-                buttons[index + (event.key === "ArrowDown" ? 1 : -1)];
-            if (target && viewport.current) {
-                event.preventDefault(); target.focus({ preventScroll: true }); revealFieldTarget(target, viewport.current);
+        if (event.key === "Home" || event.key === "End") {
+            const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("[data-review-focus]")];
+            const target = event.key === "Home" ? buttons[0] : buttons.at(-1);
+            if (target) {
+                event.preventDefault(); target.focus({ preventScroll: true }); revealFieldTarget(target, event.currentTarget);
             }
+            return;
         }
+        navigateFieldOnArrow(event, chooseNext);
     };
     const chooseNext = (direction: number): void => {
         const node = navigation[currentIndex < 0 ? direction > 0 ? 0 : navigation.length - 1 :
             (currentIndex + direction + navigation.length) % navigation.length];
         if (!node) return;
-        pendingFocus.current = true;
+        const field = comparisonOriginal(comparison, node.field);
+        pendingFocus.current = field.id;
         props.setReview(current => ({ ...current, focused: node.field.id, expanded: new Set([...current.expanded,
             ...comparison.nodes.filter(parent => node.path.startsWith(`${parent.path}/`)).map(parent => parent.field.id)]) }));
-        props.onSelect(comparisonOriginal(comparison, node.field));
+        props.onSelect(field);
     };
     useLayoutEffect(() => {
-        if (!props.selectionRequest || !selected || props.handledReveal.current === props.selectionRequest) return;
+        if (!props.selectionRequest || !props.selected || !selected) { pendingFocus.current = null; return; }
+        if (props.handledReveal.current === props.selectionRequest) return;
+        const fieldId = props.selected.id;
+        const focusValue = pendingFocus.current === fieldId;
+        if (!focusValue) pendingFocus.current = null;
         if (!visible.has(selected.field.id)) {
             setNotice("The selected field is hidden by the current search or status filter.");
             props.handledReveal.current = props.selectionRequest;
+            pendingFocus.current = null;
             return;
         }
         const parents = comparison.nodes.filter(node => selected.path.startsWith(`${node.path}/`));
@@ -132,11 +143,14 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
             props.setReview(current => ({ ...current, expanded: new Set([...current.expanded, ...parents.map(node => node.field.id)]) }));
             return;
         }
-        const button = [...(viewport.current?.querySelectorAll<HTMLButtonElement>("[data-source-field-id]") ?? [])]
-            .find(element => element.dataset.sourceFieldId === props.selected?.id);
-        if (!button || !viewport.current) return;
-        revealFieldTarget(button, viewport.current, props.sourceSelection);
-        if (pendingFocus.current) { button.focus({ preventScroll: true }); pendingFocus.current = false; }
+        const scroll = viewport.current;
+        if (!scroll) return;
+        const target = (focusValue ? fieldValueFocusTarget(scroll, fieldId) : undefined) ??
+            [...scroll.querySelectorAll<HTMLButtonElement>("[data-source-field-id]")]
+                .find(element => element.dataset.sourceFieldId === fieldId);
+        if (!target) return;
+        revealFieldTarget(target, scroll, props.sourceSelection);
+        if (focusValue) { pendingFocus.current = null; target.focus({ preventScroll: true }); }
         props.handledReveal.current = props.selectionRequest;
     }, [props.selectionRequest, props.selected, selected, visible, comparison, review.expanded, props.setReview,
         props.handledReveal, props.sourceSelection, revision]);
@@ -149,7 +163,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         if (!visible.has(node.field.id)) continue;
         const open = filtering || review.expanded.has(node.field.id);
         const original = comparisonOriginal(comparison, node.field);
-        const generated = Boolean(node.label?.generated || node.extracted?.generated);
+        const needsReview = node.extracted?.needsSourceReview === true;
         const hovered = props.hovered && comparison.byFieldId.get(props.hovered.id) === node;
         const entry = entryById.get(node.field.id);
         rows.push(<tr key={node.path} data-field-id={node.field.id} data-comparison-path={node.path}
@@ -198,8 +212,10 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                         if (open) expanded.delete(node.field.id); else expanded.add(node.field.id);
                         return { ...current, expanded };
                     })}><ViewerIcon name={open ? "down" : "right"} /></button> : <span className="cu-expand-spacer" />}
-                <button type="button" className={`cu-field-name${generated ? " is-generated" : ""}`} aria-label={fieldDisplayName(node.field)}
-                    aria-pressed={selected === node} title={fieldLabel(original)} data-review-focus={original.id}
+                <button type="button" className={`cu-field-name${needsReview ? " needs-source-review" : ""}`} aria-label={fieldDisplayName(node.field)}
+                    aria-description={needsReview ? SOURCE_REVIEW_DESCRIPTION : undefined}
+                    aria-pressed={selected === node} title={needsReview ? `${fieldLabel(original)} — ${SOURCE_REVIEW_DESCRIPTION}` : fieldLabel(original)}
+                    data-review-focus={original.id}
                     data-source-field-id={original.id}
                     aria-expanded={node.children.length ? open : undefined}
                     onPointerMove={() => props.onHover(original)} onPointerLeave={() => props.onLeave(original)}
@@ -213,15 +229,13 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                             if (open) expanded.delete(node.field.id); else expanded.add(node.field.id);
                             return { ...current, expanded };
                         });
-                    }}
-                    onKeyDown={event => onFieldKey(event, node)}>
-                    {generated && <span className="cu-generated-field-icon"><ViewerIcon name="sparkle" /></span>}
-                    <span className={generated ? "cu-generated-field-name" : undefined}>{fieldDisplayName(node.field)}</span>
+                    }}>
+                    {needsReview && <SourceReviewIcon />}
+                    <span className={needsReview ? "cu-source-review-name" : undefined}>{fieldDisplayName(node.field)}</span>
                 </button>
             </div></td>
             <td><ComparisonValue node={node} side="label" props={props} /></td>
-            {comparable && <td><ComparisonValue node={node} side="extracted" props={props}
-                objectSummary={node.field.type === "object" && node.children.length > 0} /></td>}
+            {comparable && <td><ComparisonValue node={node} side="extracted" props={props} /></td>}
         </tr>);
         if (!open || !node.children.length) continue;
         if (inlineArrays.has(node.field.id)) {
@@ -237,15 +251,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
     }
     const toggleFilter = (next: ComparisonFilter): void => setChoice({ context: props.workflow.context, filter: filter === next ? "all" : next });
     return <>
-        <div className="cu-fields-scroll" ref={viewport} onKeyDown={event => {
-            if (event.defaultPrevented || !["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key) ||
-                !(event.target instanceof HTMLButtonElement) || !event.target.matches("[data-review-focus]")) return;
-            const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("[data-review-focus]")];
-            const index = buttons.indexOf(event.target);
-            const target = event.key === "Home" ? buttons[0] : event.key === "End" ? buttons.at(-1) :
-                buttons[index + (event.key === "ArrowUp" ? -1 : 1)];
-            if (target) { event.preventDefault(); target.focus({ preventScroll: true }); revealFieldTarget(target, event.currentTarget); }
-        }}>
+        <div className="cu-fields-scroll" ref={viewport} onKeyDown={onFieldKey}>
             <table className="cu-fields-table cu-comparison-fields" role="treegrid" aria-label={comparable ? "Compared fields" : "Labels"}>
                 <colgroup><col style={{ width: comparable ? "30%" : "40%" }} /><col />
                     {comparable && <col style={{ width: "35%" }} />}</colgroup>

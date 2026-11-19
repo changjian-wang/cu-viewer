@@ -35,7 +35,7 @@ export interface CuField {
     valueKey?: string;
     hasValue: boolean;
     value: unknown;
-    generated?: boolean;
+    needsSourceReview?: true;
     confidence?: number;
     source?: string;
     regions: CuRegion[];
