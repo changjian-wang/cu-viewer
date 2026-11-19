@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createPageGeometry, GeometryError, getFitZoom, getRasterSize, getScrollablePageLayout, projectRegion, transformPoint, validateRegion } from "./geometry";
+import { createPageGeometry, GeometryError, getFitZoom, getRasterSize, getScrollablePageLayout, polygonContainsPolygon, projectRegion, transformPoint, validateRegion } from "./geometry";
 import { parseCuResult } from "../model/parseCuResult";
 import type { CuPage, CuPoint, CuRegion } from "../model/types";
 
@@ -212,6 +212,16 @@ describe("scroll-safe page placement", () => {
 });
 
 describe("fit, raster and explicit geometry errors", () => {
+    it("recognizes fully contained polygons, including shared edges and reversed winding", () => {
+        const outer = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 20 }, { x: 0, y: 20 }];
+        const contained = [{ x: 0, y: 2 }, { x: 80, y: 2 }, { x: 80, y: 18 }, { x: 0, y: 18 }];
+        const outside = [{ x: 20, y: 2 }, { x: 101, y: 2 }, { x: 101, y: 18 }, { x: 20, y: 18 }];
+        expect(polygonContainsPolygon(outer, contained)).toBe(true);
+        expect(polygonContainsPolygon(outer, [...outer].reverse())).toBe(true);
+        expect(polygonContainsPolygon([...outer].reverse(), contained)).toBe(true);
+        expect(polygonContainsPolygon(outer, outside)).toBe(false);
+    });
+
     it("fits the rotated page into an available viewport without clamping zoom", () => {
         const source = { width: 100, height: 200 };
 

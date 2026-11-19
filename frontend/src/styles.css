@@ -441,7 +441,7 @@
 .cu-field-value-content { padding-right: 4px; }
 .cu-viewer .cu-field-value { flex: 1; width: 0; min-width: 0; margin: 0; padding: 4px 8px; font-size: var(--cu-value-font-size); line-height: 20px; white-space: nowrap; color: #2d435b; }
 .cu-value-chip { display: inline-block; vertical-align: middle; max-width: 100%; padding: 2px 4px; margin-left: -4px; border-radius: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cu-value-chip.is-missing { color: #687589; font-size: 11px; font-style: italic; }
+.cu-value-chip.is-missing { color: #4b5563; font-size: 11px; font-style: italic; }
 .cu-summary-value { flex: 1; min-width: 0; padding: 0 8px; font-size: 11px; color: #627084; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cu-fields-table .cu-confidence { padding: 0 8px; font-size: 11px; color: #687589; font-variant-numeric: tabular-nums; }
 .cu-fields-table > tbody > tr:is(:hover, .is-hovered, .is-selected, .is-group-member, .is-table-block) > td.cu-confidence,
@@ -476,14 +476,13 @@
 .cu-items-table td:hover, .cu-items-table td.is-hovered-cell { background: var(--cu-hover-bg); }
 .cu-items-table th.is-group-member { background: var(--cu-selected-bg); color: var(--cu-interaction-muted); }
 .cu-items-table td.is-group-member, .cu-items-table td.is-selected-cell { background: var(--cu-selected-bg); }
-.cu-items-table td:is(:hover, .is-hovered-cell, .is-selected-cell, .is-group-member, .is-table-related-cell) :is(.cu-value-chip.is-missing, .cu-missing-cell) { color: var(--cu-interaction-muted); }
+.cu-items-table td:is(:hover, .is-hovered-cell, .is-selected-cell, .is-group-member, .is-table-related-cell) :is(.cu-cell-value .cu-value-chip.is-missing, .cu-missing-cell) { color: var(--cu-interaction-muted); }
 .cu-items-table td:has(.cu-cell-content > button:focus-visible) { outline: 1px solid var(--cu-focus); outline-offset: -1px; }
 .cu-viewer .cu-items-table .cu-cell-content > button:focus-visible { outline: none; }
 .cu-cell-value { flex: 1; min-width: 0; border: 0; background: none; padding: 4px 1px; text-align: left; font-size: 11.5px !important; }
 .cu-cell-value .cu-value-chip { margin: 0; padding: 2px 3px; }
 .cu-table-cell-select { flex: 1; min-width: 0; font-size: 11.5px; }
 .cu-table-cell-select .cu-value-chip { display: inline; white-space: pre-wrap; overflow-wrap: anywhere; }
-.cu-missing-cell { color: #687589; font-size: 11px; }
 .cu-fields-review-footer { position: relative; order: 1; flex: none; height: 44px; min-height: 44px; padding: 0 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; border-top: 1px solid var(--cu-border); background: white; }
 .cu-fields-review-footer.cu-info-footer { display: flex; justify-content: flex-end; }
 .cu-fields-review-footer > .cu-search-box { min-width: 0; height: 30px; padding: 2px 7px; gap: 5px; }

@@ -92,7 +92,7 @@ test("unlabeled PDFs use green defaults without label comparison semantics", asy
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
     const legend = page.getByRole("dialog", { name: "Legend", exact: true });
     expect(await legend.locator(".cu-legend-swatch").evaluateAll(elements => elements.map(element =>
-        getComputedStyle(element).backgroundColor))).toEqual(["rgb(220, 251, 215)", "rgb(220, 251, 215)"]);
+        getComputedStyle(element).backgroundColor))).toEqual(["rgb(220, 251, 215)"]);
     await expect(legend.locator('[data-legend-category="low-outline"] .cu-legend-outline-swatch'))
         .toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(legend.getByText("Matches label", { exact: true })).toHaveCount(0);
@@ -140,6 +140,25 @@ test("hovering or selecting coincident low-confidence fields hides both source f
     await expect(recipientEdge).toHaveCount(1);
     await expect(vendorEdge).toHaveCount(1);
 
+    await page.mouse.click(point.x, point.y);
+    await expect(pin(page)).toHaveAttribute("data-source-id", recipient);
+    await expect(recipientEdge).toHaveCount(0);
+    await expect(vendorEdge).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(recipientEdge).toHaveCount(1);
+    await expect(vendorEdge).toHaveCount(1);
+
+    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
+    const legend = page.getByRole("dialog", { name: "Legend", exact: true });
+    await legend.getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
+    await legend.getByRole("switch", { name: "Show array highlights", exact: true }).uncheck();
+    await expect(recipientEdge).toHaveCount(1);
+    await expect(vendorEdge).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await page.mouse.move(point.x, point.y);
+    await expect(preview(page)).toHaveAttribute("data-source-id", recipient);
+    await expect(recipientEdge).toHaveCount(0);
+    await expect(vendorEdge).toHaveCount(0);
     await page.mouse.click(point.x, point.y);
     await expect(pin(page)).toHaveAttribute("data-source-id", recipient);
     await expect(recipientEdge).toHaveCount(0);

@@ -496,7 +496,8 @@ describe("structured Fields presentation", () => {
         } }] }).contents[0]!;
         const { container } = renderPane(content);
         fireEvent.click(screen.getByRole("button", { name: "Expand Rows" }));
-        expect(screen.getAllByText("No cell returned")).toHaveLength(2);
+        expect([...container.querySelectorAll(".cu-missing-cell")].map(cell => cell.textContent))
+            .toEqual(["Not returned", "Not returned"]);
         expect(container.querySelectorAll(".is-selected-cell, .is-location-row, .is-location-column")).toHaveLength(0);
     });
 

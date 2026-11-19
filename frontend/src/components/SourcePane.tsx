@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { PageSize } from "../source/geometry";
-import { createPageGeometry, getFitZoom, getRevealOffset, getScrollablePageLayout, pointInPolygon, projectRegion, transformPoint, wheelZoomFactor } from "../source/geometry";
+import { createPageGeometry, getFitZoom, getRevealOffset, getScrollablePageLayout, pointInPolygon, polygonContainsPolygon, projectRegion, transformPoint, wheelZoomFactor } from "../source/geometry";
 import type { LoadedSource } from "../source/source";
 import { hasSourcePage, unavailableSourcePageMessage } from "../source/source";
 import type { CuContent, CuField, CuPoint, CuRegion } from "../model/types";
@@ -59,15 +59,6 @@ interface ProjectedTable {
     field: CuField;
     regionIndex: number;
     polygon: CuPoint[];
-}
-
-function samePolygon(left: readonly CuPoint[], right: readonly CuPoint[]): boolean {
-    if (left.length !== right.length) return false;
-    return right.some((_, start) => [1, -1].some(direction =>
-        left.every((point, index) => {
-            const candidate = right[(start + direction * index + right.length) % right.length]!;
-            return point.x === candidate.x && point.y === candidate.y;
-        })));
 }
 
 export function SourcePane(props: SourcePaneProps) {
@@ -265,10 +256,16 @@ export function SourcePane(props: SourcePaneProps) {
                     ])!.polygon } : region;
                 });
                 const merge = isValueSourceField(props.view, field) && display.length > 1;
+                const counterpartId = field?.origin === "label" ? compared?.extracted?.id : undefined;
+                const counterpartPolygons = counterpartId ? background.outlines
+                    .filter(outline => outline.field.id === counterpartId).map(outline => outline.polygon) : [];
                 return merge ? sourceSelectionFrames(display,
                     background.outlines.filter(outline => outline.field.id !== field.id &&
                         (!compared || props.comparison?.byFieldId.get(outline.field.id) !== compared) &&
-                        !related.some(pair => pair.currency === outline)).map(outline => outline.polygon),
+                        !related.some(pair => pair.currency === outline) &&
+                        !(props.view === "fields" && (regions.some(region => polygonContainsPolygon(region.polygon, outline.polygon)) ||
+                            counterpartPolygons.some(polygon => polygonContainsPolygon(polygon, outline.polygon) &&
+                                polygonContainsPolygon(outline.polygon, polygon))))).map(outline => outline.polygon),
                     field.origin === "label") :
                     display.map(item => ({ regionIndices: [item.regionIndex], polygon: item.polygon }));
             };
@@ -298,6 +295,14 @@ export function SourcePane(props: SourcePaneProps) {
     }, [background, monetaryPairs, projectionSize, rotation, props.content, props.labelContent, props.view, props.pinned, props.pinnedRegions,
         props.preview, props.active, props.regions, props.regionIndex, props.pageNumber, props.comparison, props.settings.threshold,
         showCard, valuePreview, objectPreview, fieldReview]);
+    const coveredPinnedFrames = props.source?.kind === "pdf" && props.view === "fields" &&
+        valuePreview && props.pointerPreview && !previewInSelection && !pinnedGroup ?
+        selectedPolygons.frames.filter(frame => selectedPolygons.previewFrames.some(previewFrame =>
+            frame.regionIndices.every(regionIndex => {
+                // Compare real sources, not the fixed outline's decorative padding.
+                const region = selectedPolygons.pinned.find(item => item.regionIndex === regionIndex);
+                return region !== undefined && polygonContainsPolygon(previewFrame.polygon, region.polygon);
+            }))) : [];
     const interactingReviewFields = [props.preview && props.pointerPreview ? props.active : null, props.pinned].flatMap(field => {
         if (!field) return [];
         const extracted = props.comparison?.byFieldId.get(field.id)?.extracted ??
@@ -307,15 +312,15 @@ export function SourcePane(props: SourcePaneProps) {
     const interactingMoney = monetaryPairs.filter(pair => interactingReviewFields.some(field =>
         [pair.amount.field.id, pair.currency.field.id].some(id => id === field.id || id.startsWith(`${field.id}/`))));
     const monetaryConfidenceFrames = monetaryPairs.flatMap(pair => {
-        if (!pair.amount.enabled || !pair.currency.enabled || !(pair.amount.low || pair.currency.low)) return [];
+        if (!(pair.amount.low || pair.currency.low)) return [];
         const frame = sourceObjectPreviewFrame([pair.amount, pair.currency]);
         return frame ? [{ pair, polygon: frame.polygon }] : [];
     });
     const pairedConfidenceOutlines = new Set(monetaryConfidenceFrames.flatMap(frame =>
         [frame.pair.amount, frame.pair.currency]));
-    const interactingLowPolygons = background.outlines.filter(outline => outline.enabled && outline.low &&
-        (interactingReviewFields.some(field => outline.field.id === field.id || outline.field.id.startsWith(`${field.id}/`)) ||
-            interactingMoney.some(pair => pair.amount === outline || pair.currency === outline))).map(outline => outline.polygon);
+    const interactingPolygons = background.outlines.filter(outline =>
+        interactingReviewFields.some(field => outline.field.id === field.id || outline.field.id.startsWith(`${field.id}/`)) ||
+        interactingMoney.some(pair => pair.amount === outline || pair.currency === outline)).map(outline => outline.polygon);
     const activePolygons = props.preview ? selectedPolygons.preview : selectedPolygons.pinned;
     const cardPolygon = selectedPolygons.card;
     const measureCard = useCallback((next: PageSize): void => {
@@ -565,11 +570,11 @@ export function SourcePane(props: SourcePaneProps) {
                                 }
                             }} />)}
                         {/* Paint confidence strokes after every fill so pixel-snapped polygons cannot cover them. */}
-                        {background.outlines.some(outline => outline.enabled && outline.low) &&
+                        {background.outlines.some(outline => outline.low) &&
                             <g className="cu-source-highlight-edges" aria-hidden="true" pointerEvents="none">
-                                {background.outlines.filter(outline => outline.enabled && outline.low &&
+                                {background.outlines.filter(outline => outline.low &&
                                     !pairedConfidenceOutlines.has(outline) &&
-                                    !interactingLowPolygons.some(polygon => samePolygon(polygon, outline.polygon))).map(outline =>
+                                    !interactingPolygons.some(polygon => polygonContainsPolygon(polygon, outline.polygon))).map(outline =>
                                     <path key={outline.key} data-source-edge-id={outline.field.id} data-low-confidence="true"
                                         d={`M ${outline.polygon.map(point => `${point.x},${point.y}`).join(" L ")} Z`}
                                         fill="none" stroke={FIELD_REVIEW_COLORS.lowStroke} strokeWidth={1.5} strokeLinejoin="round"
@@ -605,6 +610,7 @@ export function SourcePane(props: SourcePaneProps) {
                             data-region-indices={item.regionIndices.join(" ")}
                             data-selection-frame={item.regionIndices.length > 1 ? "merged" : "region"}
                             points={item.polygon.map(point => `${point.x},${point.y}`).join(" ")} fill="none"
+                            visibility={coveredPinnedFrames.includes(item) ? "hidden" : undefined}
                             stroke="var(--cu-selected-stroke)" strokeWidth={props.pinned?.origin === "label" ? 1 : 1.8}
                             vectorEffect={props.pinned?.origin === "label" ? "non-scaling-stroke" : undefined}
                             strokeLinejoin={props.pinned?.origin === "label" ? "round" : undefined} />)}

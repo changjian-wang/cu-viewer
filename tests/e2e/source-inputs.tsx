@@ -16,6 +16,10 @@ const samples = {
     PNG: { source: pngUrl, result: pngResultUrl, name: "receipt.png", type: "image/png" },
     HEIF: { source: heifUrl, result: heifResultUrl, name: "example.heic", type: "image/heic" },
 };
+const labels = { fieldLabels: {
+    CustomerName: { type: "string", valueString: "Reference customer" },
+    InvoiceId: { type: "string", valueString: "Reference invoice" },
+} };
 
 interface HostInput {
     source: ViewerSource;
@@ -47,6 +51,7 @@ function SourceInputHost() {
     const [error, setError] = useState<string | null>(null);
     const [inspection, setInspection] = useState<Inspection | null>(null);
     const [controlled, setControlled] = useState(false);
+    const [includeLabels, setIncludeLabels] = useState(false);
     const [handleOrder, setHandleOrder] = useState(true);
     const [secondViewer, setSecondViewer] = useState(false);
     const [order, setOrder] = useState<ViewerFieldOrder>({ $root: ["/InvoiceId", "/CustomerName"] });
@@ -165,6 +170,8 @@ function SourceInputHost() {
             <button type="button" disabled={!input && !preparing} onClick={release}>Release host input</button>
             <label><input type="checkbox" aria-label="Controlled field order" checked={controlled}
                 onChange={event => setControlled(event.target.checked)} />Controlled order</label>
+            <label><input type="checkbox" aria-label="Include PDF labels" checked={includeLabels}
+                onChange={event => setIncludeLabels(event.target.checked)} />PDF labels</label>
             <label><input type="checkbox" aria-label="Handle order changes" checked={handleOrder}
                 onChange={event => setHandleOrder(event.target.checked)} />Handle changes</label>
             <label><input type="checkbox" aria-label="Show second viewer" checked={secondViewer}
@@ -181,6 +188,7 @@ function SourceInputHost() {
         {controlled && <pre data-testid="host-field-order">{JSON.stringify({ changes: orderChanges, order })}</pre>}
         <div className="input-workspace">
             {mounted && input ? <ContentUnderstandingResultViewer source={input.source} result={input.result}
+                labels={includeLabels ? labels : undefined}
                 {...controlled ? { fieldOrder: order } : {}}
                 {...controlled && handleOrder ? { onFieldOrderChange: (next: ViewerFieldOrder) => {
                     setOrder(next); setOrderChanges(current => current + 1);

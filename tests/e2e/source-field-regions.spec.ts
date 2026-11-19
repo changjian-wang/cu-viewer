@@ -135,6 +135,264 @@ test("UI-43 all six real multi-line fields select both actual fragments and keep
     }
 });
 
+async function loadInvoiceFields(page: Page, withLabels: boolean): Promise<void> {
+    await page.goto(withLabels ? "/?sample=labels" : "/");
+    await ready(page);
+    if (!withLabels) {
+        await page.getByLabel("Choose source file", { exact: true })
+            .setInputFiles(resolve("tests", "fixtures", "labels", "invoice.pdf"));
+        await ready(page);
+        await page.getByLabel("Choose saved Analyze JSON", { exact: true })
+            .setInputFiles(resolve("tests", "fixtures", "labels", "invoice.pdf.result.json"));
+    }
+}
+
+for (const [withLabels, address, countryIndex] of [
+    [false, "VendorAddress", 0], [false, "CustomerAddress", 1],
+    [true, "VendorAddress", 0], [true, "CustomerAddress", 1],
+] as const) {
+    test(`a real multi-line ${address} with coincident sources uses one frame ${withLabels ? "with" : "without"} labels`,
+        async ({ page }) => {
+            await loadInvoiceFields(page, withLabels);
+            const id = fieldId(address), other = fieldId("CountryRegion");
+            const button = page.getByRole("button", {
+                name: `${withLabels ? "Select extracted value of" : "Select value of"} ${address}`, exact: true,
+            });
+            await expect(button).toBeVisible();
+            await expect(sourceParts(page, id)).toHaveCount(2);
+            const original = await sourceParts(page, id).evaluateAll(elements => elements.map(element => element.getAttribute("points")));
+            await expect(sourceParts(page, other).nth(countryIndex)).toHaveAttribute("points", original[1]!);
+            const countryEdges = page.getByTestId("result-overlay").locator(`[data-low-confidence][data-source-edge-id="${other}"]`);
+            const sharedPath = `M ${original[1]!.split(" ").join(" L ")} Z`;
+            const sharedEdge = page.getByTestId("result-overlay")
+                .locator(`[data-low-confidence][data-source-edge-id="${other}"][d="${sharedPath}"]`);
+            await expect(countryEdges).toHaveCount(2);
+            await expect(sharedEdge).toHaveCount(1);
+
+            await button.hover();
+            await expectCompleteSelection(page, id, 2, 1, "preview-overlay");
+            await expect(sharedEdge).toHaveCount(0);
+            await expect(countryEdges).toHaveCount(1);
+            const preview = page.getByTestId("preview-overlay").locator("polygon");
+            await expect(preview).toHaveAttribute("data-selection-frame", "merged");
+            const points = await preview.getAttribute("points");
+            await expect(button).toHaveAttribute("aria-pressed", "false");
+            await button.click();
+            await expectCompleteSelection(page, id, 2);
+            await expect(sharedEdge).toHaveCount(0);
+            await expect(countryEdges).toHaveCount(1);
+            await expect(pinnedParts(page)).toHaveAttribute("points", points!);
+            await page.keyboard.press("Escape");
+
+            await page.locator(".prototype-banner").hover();
+            await expect(countryEdges).toHaveCount(2);
+            await sourceParts(page, id).first().hover();
+            await expectCompleteSelection(page, id, 2, 1, "preview-overlay");
+            await expect(sharedEdge).toHaveCount(0);
+            await expect(popup(page)).toContainText(address);
+            await sourceParts(page, id).first().click();
+            await expectCompleteSelection(page, id, 2);
+            await expect(sharedEdge).toHaveCount(0);
+            expect(await sourceParts(page, id).evaluateAll(elements => elements.map(element => element.getAttribute("points"))))
+                .toEqual(original);
+        });
+}
+
+for (const mode of ["without labels", "extracted with labels", "label with labels"] as const) {
+    test(`a covering hover temporarily hides only the nested pinned frame ${mode}`, async ({ page }) => {
+        const withLabels = mode !== "without labels", label = mode === "label with labels";
+        await loadInvoiceFields(page, withLabels);
+        const country = fieldId("CountryRegion"), vendor = fieldId("VendorAddress");
+        const countryButton = page.getByRole("button", {
+            name: `${withLabels ? "Select extracted value of" : "Select value of"} CountryRegion`, exact: true,
+        });
+        await expect(countryButton).toBeVisible();
+        const source = await sourceParts(page, country).first().boundingBox();
+        if (!source) throw new Error("The shared New York source is unavailable.");
+        await page.mouse.click(source.x + source.width / 2, source.y + source.height / 2);
+        const addressButton = page.getByRole("button", {
+            name: `${label ? "Select label value of" : withLabels ? "Select extracted value of" : "Select value of"} VendorAddress`,
+            exact: true,
+        });
+        const previewId = label ? "/labels/fields/VendorAddress" : vendor;
+        const covered = page.getByTestId("source-overlay").locator('polygon[data-region-indices="0"]');
+        const other = page.getByTestId("source-overlay").locator('polygon[data-region-indices="1"]');
+        for (const transformed of [false, true]) {
+            if (transformed) {
+                await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption("125");
+                await ready(page);
+                await rotateSource(page);
+                await countryButton.click();
+            }
+            await page.locator(".prototype-banner").hover();
+            if (!label) await sourceParts(page, vendor).first().scrollIntoViewIfNeeded();
+            await expect(covered).toBeVisible();
+            await expect(other).toBeVisible();
+            const originalFrames = await pinnedParts(page).evaluateAll(elements => elements.map(element => element.getAttribute("points")));
+            const originalSources = await sourceParts(page, country).evaluateAll(elements => elements.map(element => element.getAttribute("points")));
+            const before = await page.getByTestId("rendered-page").boundingBox();
+            if (label) await addressButton.hover();
+            else {
+                const address = await sourceParts(page, vendor).first().boundingBox();
+                if (!address) throw new Error("The address source is unavailable.");
+                await page.mouse.move(address.x + address.width / 2, address.y + address.height / 2);
+            }
+            const preview = page.getByTestId("preview-overlay").locator(`polygon[data-source-id="${previewId}"]`);
+            await expect(preview).toBeVisible();
+            await expect(preview).toHaveAttribute("data-selection-frame", "merged");
+            await expect(covered).toBeHidden();
+            await expect(other).toBeVisible();
+            await expect(page.getByTestId("source-overlay").locator("polygon:visible")).toHaveCount(1);
+            await expect(countryButton).toHaveAttribute("aria-pressed", "true");
+            await expect(addressButton).toHaveAttribute("aria-pressed", "false");
+            expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(before);
+            expect(await sourceParts(page, country).evaluateAll(elements => elements.map(element => element.getAttribute("points"))))
+                .toEqual(originalSources);
+
+            await page.locator(".prototype-banner").hover();
+            await expect(page.getByTestId("preview-overlay")).toHaveCount(0);
+            await expect(covered).toBeVisible();
+            await expect(other).toBeVisible();
+            expect(await pinnedParts(page).evaluateAll(elements => elements.map(element => element.getAttribute("points"))))
+                .toEqual(originalFrames);
+            await expect(countryButton).toHaveAttribute("aria-pressed", "true");
+        }
+    });
+}
+
+test("covering hover keeps partial, distant and incompletely covered multi-line pins visible", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    await page.getByLabel("Choose source file", { exact: true }).setInputFiles({
+        name: "overlapping-pins.pdf", mimeType: "application/pdf", buffer: reviewPdf(),
+    });
+    await ready(page);
+    await page.getByLabel("Choose saved Analyze JSON", { exact: true }).setInputFiles({
+        name: "overlapping-pins.result.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 600, height: 800 }],
+            fields: {
+                Pinned: { type: "string", valueString: "Five real regions", confidence: 0.4,
+                    source: "D(1,60,100,100,12);D(1,260,100,100,12);D(1,60,300,100,12);D(1,60,450,100,12);D(1,60,466,100,12)" },
+                Covering: { type: "string", valueString: "Contains the first region, but only part of the second",
+                    source: "D(1,60,100,240,12)" },
+                OneLine: { type: "string", valueString: "Only the first line of the pinned block",
+                    source: "D(1,60,450,100,12)" },
+            },
+        }] })),
+    });
+    const pinned = page.getByRole("button", { name: "Select value of Pinned", exact: true });
+    await pinned.click();
+    await page.locator(".prototype-banner").hover();
+    await expect(pinnedParts(page)).toHaveCount(4);
+    const frame = (indices: string) => page.getByTestId("source-overlay").locator(`polygon[data-region-indices="${indices}"]`);
+    const covering = page.getByRole("button", { name: "Select value of Covering", exact: true });
+    await covering.focus();
+    await expect(page.getByTestId("preview-overlay").locator("polygon")).toBeVisible();
+    await expect(frame("0")).toBeVisible();
+    await covering.evaluate(element => element.blur());
+    await covering.hover();
+    await expect(frame("0")).toBeHidden();
+    for (const indices of ["1", "2", "3 4"]) await expect(frame(indices)).toBeVisible();
+    await expect(pinned).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByRole("button", { name: "Select value of OneLine", exact: true }).hover();
+    await expect(frame("0")).toBeVisible();
+    await expect(frame("3 4")).toBeVisible();
+    await expect(page.getByTestId("source-overlay").locator("polygon:visible")).toHaveCount(4);
+    await page.locator(".prototype-banner").hover();
+    await expect(frame("0")).toBeVisible();
+    await expect(pinned).toHaveAttribute("aria-pressed", "true");
+    await sourceParts(page, fieldId("Pinned")).last().focus();
+    await expect(page.getByTestId("preview-overlay")).toHaveCount(0);
+    await expect(page.getByTestId("source-overlay").locator("polygon:visible")).toHaveCount(4);
+});
+
+test("coincident and contained sources merge without ignoring a separate blocking field", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    await page.getByLabel("Choose source file", { exact: true }).setInputFiles({
+        name: "coincident-lines.pdf", mimeType: "application/pdf", buffer: reviewPdf(),
+    });
+    await ready(page);
+    await page.getByLabel("Choose saved Analyze JSON", { exact: true }).setInputFiles({
+        name: "coincident-lines.result.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [{
+            kind: "document", unit: "pixel", pages: [{ pageNumber: 1, width: 600, height: 800 }],
+            fields: {
+                Shared: { type: "string", valueString: "Two lines", confidence: 0.4,
+                    source: "D(1,60,80,180,80,180,92,60,92);D(1,60,96,240,96,240,108,60,108)" },
+                Duplicate: { type: "string", valueString: "Same second line", confidence: 0.5,
+                    source: "D(1,240,108,240,96,60,96,60,108)" },
+                Contained: { type: "string", valueString: "Part of the second line", confidence: 0.5,
+                    source: "D(1,90,98,110,8)" },
+                Blocked: { type: "string", valueString: "Two blocked lines",
+                    source: "D(1,60,300,120,300,120,312,60,312);D(1,60,316,240,316,240,328,60,328)" },
+                BlockedDuplicate: { type: "string", valueString: "Same blocked line",
+                    source: "D(1,240,328,240,316,60,316,60,328)" },
+                Neighbor: { type: "string", valueString: "Unrelated", confidence: 0.3,
+                    source: "D(1,160,300,20,12)" },
+                PartialOverlap: { type: "string", valueString: "Partially overlapping", confidence: 0.3,
+                    source: "D(1,110,300,30,12)" },
+            },
+        }] })),
+    });
+    const shared = fieldId("Shared"), duplicate = fieldId("Duplicate"), contained = fieldId("Contained"), blocked = fieldId("Blocked");
+    const button = page.getByRole("button", { name: "Select value of Shared", exact: true });
+    await expect(button).toBeVisible();
+    const sharedPoints = (await sourceParts(page, shared).nth(1).getAttribute("points"))!.split(" ");
+    const duplicatePoints = (await sourceParts(page, duplicate).getAttribute("points"))!.split(" ");
+    expect(duplicatePoints).not.toEqual(sharedPoints);
+    expect([...duplicatePoints].sort()).toEqual([...sharedPoints].sort());
+    const duplicateEdge = page.getByTestId("result-overlay").locator(`[data-low-confidence][data-source-edge-id="${duplicate}"]`);
+    const containedEdge = page.getByTestId("result-overlay").locator(`[data-low-confidence][data-source-edge-id="${contained}"]`);
+    const neighborEdge = page.getByTestId("result-overlay").locator(`[data-low-confidence][data-source-edge-id="${fieldId("Neighbor")}"]`);
+    const partialEdge = page.getByTestId("result-overlay").locator(`[data-low-confidence][data-source-edge-id="${fieldId("PartialOverlap")}"]`);
+    await expect(duplicateEdge).toHaveCount(1);
+    await expect(containedEdge).toHaveCount(1);
+    await expect(neighborEdge).toHaveCount(1);
+    await expect(partialEdge).toHaveCount(1);
+
+    await button.hover();
+    await expectCompleteSelection(page, shared, 2, 1, "preview-overlay");
+    await expect(duplicateEdge).toHaveCount(0);
+    await expect(containedEdge).toHaveCount(0);
+    await button.click();
+    await expectCompleteSelection(page, shared, 2);
+    await expect(containedEdge).toHaveCount(0);
+    const first = await sourceParts(page, shared).first().boundingBox();
+    const second = await sourceParts(page, shared).nth(1).boundingBox();
+    if (!first || !second) throw new Error("The shared source fragments are unavailable.");
+    const blank = { x: second.x + second.width - 2, y: first.y + first.height / 2 };
+    expect(blank.x).toBeGreaterThan(first.x + first.width);
+    await page.mouse.click(blank.x, blank.y);
+    await expect(page.getByTestId("source-overlay")).toHaveCount(0);
+
+    const blockedButton = page.getByRole("button", { name: "Select value of Blocked", exact: true });
+    await blockedButton.hover();
+    await expectCompleteSelection(page, blocked, 2, 2, "preview-overlay");
+    await expect(neighborEdge).toHaveCount(1);
+    await expect(partialEdge).toHaveCount(1);
+    await blockedButton.click();
+    await expectCompleteSelection(page, blocked, 2, 2);
+    await expect(neighborEdge).toHaveCount(1);
+    await expect(partialEdge).toHaveCount(1);
+
+    await page.keyboard.press("Escape");
+    await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption("200");
+    await ready(page);
+    for (let rotation = 0; rotation < 4; rotation++) {
+        if (rotation) await rotateSource(page);
+        await button.hover();
+        await expectCompleteSelection(page, shared, 2, 1, "preview-overlay");
+        await expect(duplicateEdge).toHaveCount(0);
+        await expect(containedEdge).toHaveCount(0);
+        await page.locator(".prototype-banner").hover();
+        await expect(duplicateEdge).toHaveCount(1);
+        await expect(containedEdge).toHaveCount(1);
+    }
+});
+
 for (const image of [false, true]) {
     test(`UI-43 arbitrary nested and array values keep every real fragment on ${image ? "images" : "PDFs"}`, async ({ page }) => {
         await loadSynthetic(page, image);

@@ -246,6 +246,20 @@ export function pointInPolygon(value: CuPoint, polygon: readonly CuPoint[]): boo
     return inside;
 }
 
+function pointOnSegment(value: CuPoint, start: CuPoint, end: CuPoint): boolean {
+    const dx = end.x - start.x, dy = end.y - start.y;
+    const scale = Math.max(1, Math.abs(value.x), Math.abs(value.y), Math.abs(start.x), Math.abs(start.y), Math.abs(end.x), Math.abs(end.y));
+    const tolerance = Number.EPSILON * scale * 32;
+    return Math.abs(dx * (value.y - start.y) - dy * (value.x - start.x)) <= tolerance * Math.hypot(dx, dy) &&
+        value.x >= Math.min(start.x, end.x) - tolerance && value.x <= Math.max(start.x, end.x) + tolerance &&
+        value.y >= Math.min(start.y, end.y) - tolerance && value.y <= Math.max(start.y, end.y) + tolerance;
+}
+
+export function polygonContainsPolygon(outer: readonly CuPoint[], inner: readonly CuPoint[]): boolean {
+    return inner.every(value => pointInPolygon(value, outer) || outer.some((start, index) =>
+        pointOnSegment(value, start, outer[(index + 1) % outer.length]!)));
+}
+
 export function wheelZoomFactor(delta: number, mode: number, viewportHeight: number): number {
     if (!Number.isFinite(delta) || !positive(viewportHeight) || ![0, 1, 2].includes(mode)) {
         throw new GeometryError("invalid-wheel-input", "Wheel delta, mode and viewport height must be valid.");

@@ -44,6 +44,87 @@ async function reference(page: Page) {
     return page.getByRole("region", { name: "Extraction results", exact: true });
 }
 
+for (const mode of ["unlabeled", "reference", "comparison"] as const) {
+    test(`missing values use gray Not returned without replacing real values in ${mode} Fields`, async ({ page }) => {
+        const values = {
+            Absent: { type: "string" }, AbsentObject: { type: "object" },
+            Zero: { type: "number", valueNumber: 0 }, False: { type: "boolean", valueBoolean: false },
+            Empty: { type: "string", valueString: "" }, Null: { type: "string", valueString: null },
+            Dash: text("-"), EmDash: text("\u2014"), LiteralMissing: text("Not returned"),
+            Rows: { type: "array", valueArray: [
+                { type: "object", valueObject: { A: text("One") } },
+                { type: "object", valueObject: { B: text("Two") } },
+            ] },
+        };
+        await page.goto("/");
+        await ready(page);
+        await page.getByLabel("Choose source file", { exact: true }).setInputFiles(pdf);
+        await ready(page);
+        if (mode !== "unlabeled") await upload(page, "Choose local label JSON", {
+            fieldLabels: { ...values, LabelOnly: text("Expected") },
+        }, "missing-values.pdf.labels.json");
+        if (mode !== "reference") await upload(page, "Choose saved Analyze JSON", result({
+            ...values, Rows: mode === "comparison" ? { type: "array", valueArray: [
+                { type: "object", valueObject: { A: text("One") } },
+                { type: "object", valueObject: { B: { type: "string" } } },
+            ] } : values.Rows,
+            LabelOnly: { type: "string", confidence: 0.2 }, ExtractedOnly: text("Actual"),
+        }), "missing-values.pdf.result.json");
+        await expect(page.getByRole("button", { name: "Absent", exact: true })).toBeVisible();
+        if (mode === "comparison") await expect(page.getByRole("columnheader", { name: "Extracted Value", exact: true })).toBeVisible();
+        await page.locator(".prototype-banner").hover();
+        const valueCell = (name: string, side: "label" | "extracted") => page.locator(mode === "unlabeled" ?
+            `tr[data-field-id="/contents/0/fields/${name}"]` : `tr[data-comparison-path="/${name}"]`)
+            .locator(":scope > td").nth(mode === "comparison" && side === "extracted" ? 2 : 1);
+        const sides: ("label" | "extracted")[] = mode === "comparison" ? ["label", "extracted"] :
+            mode === "reference" ? ["label"] : ["extracted"];
+        for (const side of sides) {
+            for (const name of ["Absent", "AbsentObject"]) {
+                const missing = valueCell(name, side).getByText("Not returned", { exact: true });
+                await expect(missing).toBeVisible();
+                await expect(missing).toHaveCSS("color", "rgb(75, 85, 99)");
+                await expect(missing).toHaveCSS("font-style", "italic");
+            }
+            for (const [name, expected] of [
+                ["Zero", "0"], ["False", "false"], ["Empty", '"" (empty string)'], ["Null", "null"],
+                ["Dash", "-"], ["EmDash", "\u2014"], ["LiteralMissing", "Not returned"],
+            ] as const) {
+                const cell = valueCell(name, side);
+                await expect(cell.getByRole("button", { name: /^Select / })).toHaveText(expected);
+                await expect(cell.locator(".is-missing")).toHaveCount(0);
+            }
+        }
+        await expandField(page, "Rows");
+        for (const side of sides) {
+            const name = mode === "unlabeled" ? "Rows values" : `Rows ${side} values`;
+            const missingCells = page.getByRole("table", { name, exact: true }).locator(".cu-missing-cell");
+            await expect(missingCells).toHaveCount(2);
+            for (const cell of await missingCells.all()) {
+                await expect(cell).toHaveText("Not returned");
+                await expect(cell).toHaveCSS("color", "rgb(75, 85, 99)");
+            }
+        }
+        if (mode === "comparison") {
+            const arrayMissing = page.getByRole("table", { name: "Rows extracted values", exact: true })
+                .locator('tr[data-comparison-row="1"] td').nth(1).getByLabel("Not extracted", { exact: true });
+            await arrayMissing.hover();
+            await expect(arrayMissing.locator(".cu-value-chip")).toHaveCSS("color", "rgb(75, 85, 99)");
+            const row = await arrayMissing.locator("..").locator("..").boundingBox();
+            if (!row) throw new Error("The missing-value array row is unavailable.");
+            expect(row.height).toBeLessThanOrEqual(29);
+            await expect(valueCell("ExtractedOnly", "label").getByLabel("No label", { exact: true })).toHaveText("Not returned");
+            const missing = valueCell("LabelOnly", "extracted").getByLabel("Not extracted", { exact: true });
+            await expect(missing).toHaveText("Not returned");
+            await expect(missing).toHaveCSS("background-color", "rgb(248, 192, 200)");
+            const colors = await missing.evaluate(element => ({
+                text: getComputedStyle(element.querySelector(".cu-value-chip") ?? element).color,
+                background: getComputedStyle(element).backgroundColor,
+            }));
+            expect(contrast(colors.text, colors.background)).toBeGreaterThanOrEqual(4.5);
+        }
+    });
+}
+
 test("generated fields use a purple sparkle and name in regular and compared Fields", async ({ page }) => {
     await page.goto("/");
     await ready(page);
@@ -110,6 +191,50 @@ test("compared fields can be reordered without separating label and extracted va
     await expect(grid.locator('tr[data-comparison-path="/Second"]')
         .getByRole("button", { name: "Reorder Second", exact: true })).toBeDisabled();
 });
+
+for (const compared of [false, true]) {
+    test(`${compared ? "compared" : "reference"} field order survives reopening and explicit reset`, async ({ page }) => {
+        const group = { type: "object", valueObject: { One: text("One"), Two: text("Two") } };
+        const open = async () => {
+            await reference(page);
+            await upload(page, "Choose local label JSON", { fieldLabels: {
+                First: text("Label first"), Second: text("Label second"), Group: group,
+            } }, "persistent-order.pdf.labels.json");
+            if (compared) await upload(page, "Choose saved Analyze JSON", result({
+                First: text("Extracted first"), Second: text("Extracted second"), Group: group,
+            }), "persistent-order.pdf.result.json");
+            await expect(page.getByRole("button", { name: "Select label value of First", exact: true })).toBeVisible();
+            if (compared) await expect(page.getByRole("columnheader", { name: "Extracted Value", exact: true })).toBeVisible();
+        };
+        const roots = page.locator('.cu-fields-table > tbody > tr[data-comparison-path][aria-level="1"]');
+        const order = () => roots.evaluateAll(rows => rows.map(row => row.getAttribute("data-comparison-path")));
+        const children = () => page.locator('tr[data-comparison-path^="/Group/"]')
+            .evaluateAll(rows => rows.map(row => row.getAttribute("data-comparison-path")));
+        await open();
+        const first = roots.filter({ has: page.getByRole("button", { name: "First", exact: true }) });
+        const second = roots.filter({ has: page.getByRole("button", { name: "Second", exact: true }) });
+        await second.hover();
+        await second.getByRole("button", { name: "Reorder Second", exact: true }).dragTo(first, {
+            targetPosition: { x: 48, y: 1 },
+        });
+        await expect.poll(order).toEqual(["/Second", "/First", "/Group"]);
+        await expandField(page, "Group");
+        await page.getByRole("button", { name: "One", exact: true }).press("Alt+ArrowDown");
+        await expect.poll(children).toEqual(["/Group/Two", "/Group/One"]);
+        await open();
+        await expect.poll(order).toEqual(["/Second", "/First", "/Group"]);
+        await expandField(page, "Group");
+        await expect.poll(children).toEqual(["/Group/Two", "/Group/One"]);
+        await expect(second.locator("td").nth(1)).toContainText("Label second");
+        if (compared) await expect(second.locator("td").nth(2)).toContainText("Extracted second");
+        await page.getByRole("button", { name: "Fields settings", exact: true }).click();
+        await page.getByRole("button", { name: "Reset Field Order", exact: true }).click();
+        await expect.poll(order).toEqual(["/First", "/Second", "/Group"]);
+        await expect.poll(children).toEqual(["/Group/One", "/Group/Two"]);
+        await open();
+        await expect.poll(order).toEqual(["/First", "/Second", "/Group"]);
+    });
+}
 
 test("object summaries stay orange when expanded and matched and mismatched children are mixed", async ({ page }) => {
     const pane = await reference(page);
@@ -341,6 +466,27 @@ test("one low-confidence monetary component draws one shared red frame around th
         await page.mouse.move(frameBounds.x + frameBounds.width / 2, frameBounds.y + frameBounds.height / 2);
         await expect(frame).toHaveCount(0);
     }
+
+    await page.getByRole("heading", { name: "CU Viewer", exact: true }).hover();
+    await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();
+    const legend = page.getByRole("dialog", { name: "Legend", exact: true });
+    await legend.getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
+    await legend.getByRole("switch", { name: "Show array highlights", exact: true }).uncheck();
+    await expect(overlay.locator('polygon[data-outline-id]:not([fill="none"])')).toHaveCount(0);
+    await expect(overlay.locator("[data-monetary-confidence]")).toHaveCount(2);
+    const low = legend.getByRole("switch", { name: "Show low confidence outlines", exact: true });
+    await low.uncheck();
+    await expect(overlay.locator("[data-low-confidence]")).toHaveCount(0);
+    await low.check();
+    await expect(overlay.locator("[data-monetary-confidence]")).toHaveCount(2);
+    await page.keyboard.press("Escape");
+    const frame = overlay.locator('[data-monetary-confidence][data-source-edge-id="/contents/0/fields/CurrencyLow/valueObject/Amount"]');
+    const frameBounds = await frame.boundingBox();
+    if (!frameBounds) throw new Error("The unfilled monetary confidence frame is unavailable.");
+    await page.mouse.move(frameBounds.x + frameBounds.width / 2, frameBounds.y + frameBounds.height / 2);
+    await expect(frame).toHaveCount(0);
+    await page.getByRole("heading", { name: "CU Viewer", exact: true }).hover();
+    await expect(frame).toHaveCount(1);
 });
 
 test("a currency source in a different location is not joined to an amount", async ({ page }) => {
@@ -557,6 +703,8 @@ test.describe("Paired label frame readability", () => {
         } }, "fragments.pdf.labels.json");
         await upload(page, "Choose saved Analyze JSON", result({
             Joined: text("AB", "D(1,0.8,0.9,0.9,0.4)"),
+            JoinedAlias: { ...text("Same source", "D(1,1.7,1.3,1.7,0.9,0.8,0.9,0.8,1.3)"), confidence: 0.3 },
+            JoinedSubset: { ...text("Part of a label fragment", "D(1,1.05,1.02,0.1,0.16)"), confidence: 0.4 },
             Blocked: text("AB", "D(1,2.8,0.9,0.9,0.4)"),
             Other: text("X", "D(1,3.25,1,0.01,0.2)"),
         }), "fragments.pdf.result.json");
@@ -586,6 +734,49 @@ test.describe("Paired label frame readability", () => {
         await expect(page.getByTestId("source-overlay").locator('polygon[data-source-id="/labels/fields/Blocked"]'))
             .toHaveCount(2);
         expect(await background.evaluateAll(elements => elements.map(element => element.getAttribute("points")))).toEqual(rawPoints);
+    });
+
+    test("real invoice label addresses merge across coincident extracted sources", async ({ page }) => {
+        await page.goto("/?sample=labels");
+        await ready(page);
+        const overlay = page.getByTestId("result-overlay");
+        const country = "/contents/0/fields/CountryRegion";
+        const countryEdges = overlay.locator(`[data-low-confidence][data-source-edge-id="${country}"]`);
+        for (const rotate of [false, true]) {
+            if (rotate) {
+                await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption({ label: "125%" });
+                await ready(page);
+                await rotateSource(page);
+            }
+            for (const [address, count] of [["CustomerAddress", 8], ["VendorAddress", 9]] as const) {
+                await page.locator(".prototype-banner").hover();
+                await page.keyboard.press("Escape");
+                await expect(countryEdges).toHaveCount(2);
+                const extracted = overlay.locator(`polygon[data-outline-id="/contents/0/fields/${address}"]`).nth(1);
+                const points = await extracted.getAttribute("points");
+                if (!points) throw new Error("The shared address source is unavailable.");
+                const path = `M ${points.split(" ").join(" L ")} Z`;
+                const sharedEdge = overlay.locator(`[data-low-confidence][data-source-edge-id="${country}"][d="${path}"]`);
+                await expect(sharedEdge).toHaveCount(1);
+                const button = page.getByRole("button", { name: `Select label value of ${address}`, exact: true });
+                await button.hover();
+                const preview = page.getByTestId("preview-overlay").locator(`polygon[data-source-id="/labels/fields/${address}"]`);
+                await expect(preview).toHaveCount(1);
+                await expect(preview).toHaveAttribute("data-region-indices", Array.from({ length: count }, (_, index) => index).join(" "));
+                await expect(preview).toHaveAttribute("stroke-width", "1");
+                await expect(sharedEdge).toHaveCount(0);
+                await expect(countryEdges).toHaveCount(1);
+                const frame = await preview.getAttribute("points");
+                await button.click();
+                const pinned = page.getByTestId("source-overlay").locator(`polygon[data-source-id="/labels/fields/${address}"]`);
+                await expect(pinned).toHaveCount(1);
+                await expect(pinned).toHaveAttribute("points", frame!);
+                await page.locator(".prototype-banner").hover();
+                await expect(sharedEdge).toHaveCount(0);
+                await page.keyboard.press("Escape");
+                await expect(countryEdges).toHaveCount(2);
+            }
+        }
     });
 
     test("real paired invoice fragments remain one thin frame for scalars, addresses and array cells at small zoom and rotation",
@@ -781,7 +972,7 @@ test("unified Fields compares typed leaves, preserves both sources and filters c
     const equal = pane.getByRole("button", { name: "Select extracted value of Equal", exact: true });
     await expect(equal.locator("..")).toHaveCSS("background-color", "rgb(220, 251, 215)");
     await expect(equal.locator("..")).toHaveCSS("box-shadow", /180, 60, 75, 0.6/);
-    await expect(pane.locator('[data-comparison-path="/Missing"] td').nth(2).getByLabel("Not extracted", { exact: true })).toHaveText("\u2014");
+    await expect(pane.locator('[data-comparison-path="/Missing"] td').nth(2).getByLabel("Not extracted", { exact: true })).toHaveText("Not returned");
     await expect(pane.locator('[data-comparison-path="/Missing"] > td').nth(2).locator(".cu-comparison-value"))
         .toHaveCSS("background-color", "rgb(248, 192, 200)");
     await expect(page.getByTestId("result-overlay").locator('[data-outline-id="/labels/fields/Missing"]'))

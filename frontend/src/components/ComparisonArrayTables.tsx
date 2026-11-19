@@ -72,7 +72,7 @@ function ArrayTable({ node, side, projection, columnWidths, comparison, props, r
                                 const cell = row.cells.get(column.key);
                                 const pair = cell && comparison.byFieldId.get(cell.id);
                                 return <td key={column.key}>{pair ? <ComparisonValue node={pair} side={side} props={props} /> :
-                                    <span className="cu-missing-cell">No cell returned</span>}</td>;
+                                    <span className="cu-value-chip is-missing cu-missing-cell">{displayValue()}</span>}</td>;
                             })}
                         </tr>;
                     })}

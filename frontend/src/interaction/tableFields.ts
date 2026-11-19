@@ -1,5 +1,5 @@
-import type { CuContent, CuField, CuPoint, CuRegion } from "../model/types";
-import { pointInPolygon } from "../source/geometry";
+import type { CuContent, CuField, CuRegion } from "../model/types";
+import { polygonContainsPolygon } from "../source/geometry";
 import { fieldEntries } from "./reviewFields";
 import { flattenFields } from "./interaction";
 
@@ -26,19 +26,8 @@ export function tableFieldIds(match: TableFieldMatch): ReadonlySet<string> {
     return new Set(flattenFields([...match.targets]).map(field => field.id));
 }
 
-function onEdge(point: CuPoint, start: CuPoint, end: CuPoint): boolean {
-    const dx = end.x - start.x, dy = end.y - start.y;
-    const scale = Math.max(1, Math.abs(point.x), Math.abs(point.y), Math.abs(start.x), Math.abs(start.y), Math.abs(end.x), Math.abs(end.y));
-    const tolerance = Number.EPSILON * scale * 32;
-    return Math.abs(dx * (point.y - start.y) - dy * (point.x - start.x)) <= tolerance * Math.hypot(dx, dy) &&
-        point.x >= Math.min(start.x, end.x) - tolerance && point.x <= Math.max(start.x, end.x) + tolerance &&
-        point.y >= Math.min(start.y, end.y) - tolerance && point.y <= Math.max(start.y, end.y) + tolerance;
-}
-
 function contains(outer: CuRegion, inner: CuRegion): boolean {
-    return outer.pageNumber === inner.pageNumber && inner.polygon.every(point =>
-        pointInPolygon(point, outer.polygon) || outer.polygon.some((start, index) =>
-            onEdge(point, start, outer.polygon[(index + 1) % outer.polygon.length]!)));
+    return outer.pageNumber === inner.pageNumber && polygonContainsPolygon(outer.polygon, inner.polygon);
 }
 
 export function matchTableFields(content: CuContent, table: CuField): TableFieldMatch {

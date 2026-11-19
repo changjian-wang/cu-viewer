@@ -21,7 +21,7 @@ export function ComparisonValue({ node, side, props, objectSummary = false }: {
     if (!field?.hasValue) return <span className="cu-comparison-value is-missing" style={style}
         title={status} aria-label={side === "label" ?
             props.comparison?.comparable ? "No label" : "Not returned" : "Not extracted"}
-        data-comparison-status={node.status}>{props.comparison?.comparable ? "\u2014" : "Not returned"}</span>;
+        data-comparison-status={node.status}><span className="cu-value-chip is-missing">{displayValue(field)}</span></span>;
     const name = fieldLabel(field);
     return <div className={`cu-comparison-value${props.selected === field ? " is-selected" : ""}`}
         style={style} data-field-id={field.id} data-comparison-status={node.status}

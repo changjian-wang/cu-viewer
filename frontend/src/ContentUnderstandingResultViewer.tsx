@@ -90,7 +90,7 @@ export function ContentUnderstandingResultViewer(props: ContentUnderstandingResu
     const fields = useMemo(() => [...selectableFields(analysisContent),
         ...(boundLabels ? selectableFields(labelData.model?.content) : [])], [analysisContent, boundLabels, labelData.model]);
     const reviewDefaults = comparison?.comparable ? comparisonReviewSettings : defaultReviewSettings;
-    const preferences = useReviewPreferences(boundLabels ? { source: props.source } : props, fieldContent,
+    const preferences = useReviewPreferences(props, fieldContent,
         boundLabels ? undefined : parsed.model?.apiVersion, boundLabels ? undefined : parsed.model?.analyzerId, reviewDefaults);
     const context = useMemo(() => ({}), [props.source, props.result, props.labels, analysisContent, labelData.model]);
     const jsonContext = useMemo(() => ({}), [props.source, props.result, props.labels]);

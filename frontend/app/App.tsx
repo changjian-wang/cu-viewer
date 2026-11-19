@@ -3,6 +3,8 @@ import { ContentUnderstandingResultViewer } from "../src";
 import type { ViewerFieldOrder } from "../src";
 import { fieldEntries, validateFieldOrder } from "../src/interaction/reviewFields";
 import { parseCuResult } from "../src/model/parseCuResult";
+import { parseLabels } from "../src/model/parseLabels";
+import { compareFields } from "../src/model/fieldComparison";
 
 interface ViewerSession {
     source: string;
@@ -23,10 +25,12 @@ function sessionURL(value: string): URL {
     return url;
 }
 
-function compatibleOrder(value: unknown, result: unknown): ViewerFieldOrder {
+function compatibleOrder(value: unknown, result: unknown, labels: unknown): ViewerFieldOrder {
     const saved = validateFieldOrder(value);
     if (!Object.keys(saved).length) return saved;
-    const entries = parseCuResult(result).contents.flatMap(content => fieldEntries(content.fields));
+    const labelFields = labels === undefined ? undefined : parseLabels(labels, null).content.fields;
+    const entries = parseCuResult(result).contents.flatMap((content, index) => fieldEntries(
+        index === 0 && labelFields ? compareFields(labelFields, content.fields, Boolean(content.fieldsDeclared)).fields : content.fields));
     const invalidParents = new Set(entries.filter(entry => entry.inArray || entry.field.type !== "object").map(entry => entry.path));
     const paths = new Set(entries.filter(entry => !entry.inArray).map(entry => entry.path));
     const order: Record<string, readonly string[]> = {};
@@ -86,7 +90,7 @@ export function App() {
                         signal: controller.signal, credentials: "same-origin", cache: "no-store",
                     });
                     if (!response.ok) throw new Error(`azd settings could not be read (${response.status}).`);
-                    fieldOrder = compatibleOrder(await response.json(), result);
+                    fieldOrder = compatibleOrder(await response.json(), result, labels);
                     fieldOrderUrl = url.href;
                 } catch (failure) {
                     if (controller.signal.aborted) return;

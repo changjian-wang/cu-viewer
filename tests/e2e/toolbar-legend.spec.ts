@@ -1,6 +1,7 @@
+import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
-import { ready } from "./viewerAssertions";
+import { ready, screenshotPixels } from "./viewerAssertions";
 import { fieldRow, loadReviewFixture, recipientId } from "./uiRedesignFixtures";
 
 test.use({ reducedMotion: "reduce", deviceScaleFactor: 1 });
@@ -11,10 +12,10 @@ const colors = ["rgb(232, 245, 233)", "rgb(232, 241, 255)", "rgb(252, 232, 230)"
     "rgb(246, 197, 204)"];
 
 async function expectPalette(list: Locator, fieldReview = true): Promise<void> {
-    await expect(list.locator(".cu-legend-item")).toHaveCount(fieldReview ? 3 : 4);
+    await expect(list.locator(".cu-legend-item")).toHaveCount(fieldReview ? 2 : 4);
     expect(await list.locator(".cu-legend-swatch").evaluateAll(elements =>
         elements.map(element => getComputedStyle(element).backgroundColor))).toEqual(fieldReview ?
-        ["rgb(220, 251, 215)", "rgb(220, 251, 215)"] : colors);
+        ["rgb(220, 251, 215)"] : colors);
     if (fieldReview) await expect(list.locator(".cu-legend-outline-swatch")).toHaveCSS("border-top-color", "rgba(180, 60, 75, 0.6)");
 }
 
@@ -54,35 +55,43 @@ async function expectPanelInsideSource(page: Page): Promise<void> {
     expect(panel.y + panel.height).toBeLessThanOrEqual(page.viewportSize()!.height);
 }
 
-test("unlabeled PDF Legend keeps each checkbox beside its own color or low-confidence example", async ({ page }) => {
-    await page.goto("/");
-    await ready(page);
-    await trigger(page).click();
-    const panel = dialog(page);
-    await expect(panel.locator(".cu-legend-group")).toHaveCount(3);
-    await expect(panel.locator(".cu-legend-review-toggle")).toHaveCount(0);
-    for (const [name, category] of [
-        ["Show field highlights", "default"], ["Show array highlights", "array"],
-        ["Show low confidence outlines", "low-outline"],
-    ] as const) {
-        const control = panel.getByRole("switch", { name, exact: true });
-        const row = control.locator("..").locator("..");
-        await expect(row.locator(`[data-legend-category="${category}"]`)).toHaveCount(1);
-        const layout = await row.evaluate(element => {
-            const swatch = element.querySelector(".cu-legend-swatch, .cu-legend-outline-swatch")?.getBoundingClientRect();
-            const track = element.querySelector(".cu-switch-track")?.getBoundingClientRect();
-            if (!swatch || !track) throw new Error("The color and checkbox must share one Legend row.");
-            return { separation: track.left - swatch.right,
-                centerOffset: Math.abs(track.top + track.height / 2 - swatch.top - swatch.height / 2) };
-        });
-        expect(layout.separation).toBeGreaterThan(0);
-        expect(layout.centerOffset).toBeLessThanOrEqual(1);
-    }
-    await expect(panel.locator(".cu-legend-outline-swatch")).toHaveText("123");
-    await expect(panel.locator(".cu-legend-outline-swatch")).toHaveCSS("background-color", "rgb(220, 251, 215)");
-    await expectPalette(panel);
-    await expectPanelInsideSource(page);
-});
+for (const mode of ["value-only", "comparison", "reference"] as const) {
+    test(`PDF Legend uses shared layout in ${mode} mode`, async ({ page }) => {
+        await page.goto(mode === "value-only" ? "/" : "/?sample=labels");
+        await ready(page);
+        if (mode === "reference") {
+            await page.getByLabel("Choose source file", { exact: true })
+                .setInputFiles(resolve("tests", "fixtures", "labels", "invoice.pdf"));
+            await ready(page);
+            await page.getByLabel("Choose local label JSON", { exact: true })
+                .setInputFiles(resolve("tests", "fixtures", "labels", "invoice.pdf.labels.json"));
+        }
+        if (mode !== "value-only") await expect(page.getByRole("columnheader", { name: "Label Value", exact: true })).toBeVisible();
+        await trigger(page).click();
+        const panel = dialog(page);
+        await expect(panel.locator(".cu-field-review-legend")).toBeVisible();
+        await expect(panel.locator(".cu-ordinary-field-legend")).toHaveCount(0);
+        await expect(panel.locator(".cu-legend-review-toggle")).toHaveCount(mode === "reference" ? 2 : 3);
+        for (const name of ["Show field highlights", "Show array highlights"]) {
+            const control = panel.getByRole("switch", { name, exact: true });
+            await expect(control).toBeEnabled();
+            await expect(control.locator("..").locator("..").locator(".cu-legend-item")).toHaveCount(0);
+        }
+        await expect(panel.getByRole("switch", { name: "Show low confidence outlines", exact: true }))
+            .toHaveCount(mode === "reference" ? 0 : 1);
+        await expect(panel.locator(".cu-legend-outline-swatch")).toHaveCount(mode === "reference" ? 0 : 1);
+        if (mode === "value-only") {
+            await expect(panel.locator('[data-legend-category="values"]')).toHaveCount(1);
+            await expectPalette(panel);
+            await expect(panel.locator(".cu-legend-outline-swatch")).toHaveText("123");
+            await expect(panel.locator(".cu-legend-outline-swatch")).toHaveCSS("background-color", "rgb(220, 251, 215)");
+            await expect(panel.getByText("Matches label", { exact: true })).toHaveCount(0);
+        } else {
+            await expect(panel.getByText("Matches label", { exact: true })).toHaveCount(mode === "comparison" ? 1 : 0);
+        }
+        await expectPanelInsideSource(page);
+    });
+}
 
 for (const viewport of [{ width: 1030, height: 760 }, { width: 1280, height: 540 },
     { width: 1800, height: 1000 }, { width: 2100, height: 1000 }]) {
@@ -183,8 +192,9 @@ test("UI-54 field and array colors survive threshold and visibility changes with
         const preferences = await page.evaluate(() => JSON.stringify(Object.entries(localStorage)));
         await trigger(page).click();
         await expectPalette(dialog(page));
-        await expect(dialog(page).getByText("Default field or object value", { exact: true })).toBeVisible();
-        await expect(dialog(page).getByText("Default array value", { exact: true })).toBeVisible();
+        await expect(dialog(page).getByText("Field or array value", { exact: true })).toBeVisible();
+        await expect(dialog(page).getByText("Default field or object value", { exact: true })).toHaveCount(0);
+        await expect(dialog(page).getByText("Default array value", { exact: true })).toHaveCount(0);
         await expect(dialog(page).getByText("Low confidence", { exact: true })).toBeVisible();
         await expect(dialog(page).getByText(/matching color|indicates matching/)).toHaveCount(0);
         await expect(dialog(page).getByText("Confidence unavailable", { exact: true })).toHaveCount(0);
@@ -285,13 +295,13 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 2100, height: 100
         await expect(list.getByText("Options", { exact: true })).toHaveCount(0);
         const preferences = await page.evaluate(() => JSON.stringify(Object.entries(localStorage)));
         await expect(list.locator('.cu-legend-item[data-legend-category="unavailable"]')).toHaveCount(0);
+        const entry = list.locator('.cu-legend-item[data-legend-category="values"]');
+        expect(await entry.evaluate(element =>
+            !element.closest("button, label") && !element.querySelector("button, input, [tabindex], [aria-pressed]"))).toBe(true);
+        await entry.locator(".cu-legend-swatch").click();
+        await expect(list).toBeVisible();
+        await entry.locator(".cu-legend-name").click();
         for (const category of categorySources.slice(0, 2)) {
-            const entry = list.locator(`.cu-legend-item[data-legend-category="${category.key}"]`);
-            expect(await entry.evaluate(element =>
-                !element.closest("button, label") && !element.querySelector("button, input, [tabindex], [aria-pressed]"))).toBe(true);
-            await entry.locator(".cu-legend-swatch").click();
-            await expect(list).toBeVisible();
-            await entry.locator(".cu-legend-name").click();
             await expect(sourceRegion(page, category.id)).toHaveAttribute("fill", category.fill);
         }
         expect(await page.evaluate(() => JSON.stringify(Object.entries(localStorage)))).toBe(preferences);
@@ -365,6 +375,115 @@ test("UI-56 field and table switches hide all their fills and can restore unknow
     await expect(sourceRegion(page, categorySources[2].id)).toHaveAttribute("fill", "#ECF3FC");
     await expect(sourceRegion(page, categorySources[3].id)).toHaveAttribute("fill", "#DEE9FA");
     await expect(sourceRegion(page, categorySources[4].id)).toHaveAttribute("fill", "#ECF3FC");
+});
+
+test("low confidence outlines remain visible independently of field and array fills", async ({ page }) => {
+    await loadReviewFixture(page);
+    await page.locator(".prototype-banner").hover();
+    const overlay = page.getByTestId("result-overlay");
+    const lowField = categorySources[2].id, lowArray = categorySources[3].id;
+    const edge = (id: string) => overlay.locator(`[data-low-confidence][data-source-edge-id="${id}"]`);
+    const fieldValue = page.locator(`${fieldRow(lowField)} .cu-field-value-content`);
+    await expect(edge(lowField)).toHaveCount(1);
+    await expect(edge(lowArray)).toHaveCount(1);
+    await expect(fieldValue).toHaveCSS("box-shadow", /180, 60, 75/);
+
+    await trigger(page).click();
+    const legend = dialog(page);
+    const fields = legend.getByRole("switch", { name: "Show field highlights", exact: true });
+    const arrays = legend.getByRole("switch", { name: "Show array highlights", exact: true });
+    const low = legend.getByRole("switch", { name: "Show low confidence outlines", exact: true });
+    await fields.uncheck();
+    await expect(sourceRegion(page, lowField)).toHaveCSS("fill", "none");
+    await expect(edge(lowField)).toHaveCount(1);
+    await expect(edge(lowArray)).toHaveCount(1);
+    await expect(fieldValue).toHaveCSS("box-shadow", /180, 60, 75/);
+    await arrays.uncheck();
+    await expect(overlay.locator('polygon[data-outline-id]:not([fill="none"])')).toHaveCount(0);
+    await expect(edge(lowField)).toHaveCSS("stroke", "rgba(180, 60, 75, 0.6)");
+    await expect(edge(lowArray)).toHaveCSS("stroke", "rgba(180, 60, 75, 0.6)");
+    await expect(edge(categorySources[0].id)).toHaveCount(0);
+    await expect(edge(categorySources[4].id)).toHaveCount(0);
+
+    const bounds = await edge(lowField).boundingBox();
+    if (!bounds) throw new Error("The unfilled low-confidence outline is unavailable.");
+    const left = Math.floor(bounds.x) - 2, top = Math.floor(bounds.y) - 2;
+    const clip = { x: left, y: top, width: Math.ceil(bounds.x + bounds.width) + 2 - left,
+        height: Math.ceil(bounds.y + bounds.height) + 2 - top };
+    const visiblePixels = await screenshotPixels(page, clip);
+    await low.uncheck();
+    await expect(overlay.locator("[data-low-confidence]")).toHaveCount(0);
+    await expect(fieldValue).toHaveCSS("box-shadow", "none");
+    const hiddenPixels = await screenshotPixels(page, clip);
+    let redPixels = 0;
+    for (let index = 0; index < visiblePixels.data.length; index += 4) {
+        const red = visiblePixels.data[index]!, green = visiblePixels.data[index + 1]!, blue = visiblePixels.data[index + 2]!;
+        if (red - green > 20 && hiddenPixels.data[index + 1]! - green > 15 &&
+            hiddenPixels.data[index + 2]! - blue > 15) redPixels++;
+    }
+    expect(redPixels).toBeGreaterThan(2);
+    await low.check();
+    await expect(edge(lowField)).toHaveCount(1);
+    await expect(edge(lowArray)).toHaveCount(1);
+    await expect(fieldValue).toHaveCSS("box-shadow", /180, 60, 75/);
+    await fields.check();
+    await expect(sourceRegion(page, lowField)).toHaveCSS("fill", "rgb(220, 251, 215)");
+    await expect(sourceRegion(page, lowArray)).toHaveCSS("fill", "none");
+    await expect(edge(lowArray)).toHaveCount(1);
+    await fields.uncheck();
+    await page.keyboard.press("Escape");
+
+    await sourceRegion(page, lowField).hover();
+    await expect(edge(lowField)).toHaveCount(0);
+    await expect(edge(lowArray)).toHaveCount(1);
+    await page.locator(".prototype-banner").hover();
+    await expect(edge(lowField)).toHaveCount(1);
+    await sourceRegion(page, lowField).click();
+    await expect(edge(lowField)).toHaveCount(0);
+    await expect(edge(lowArray)).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(edge(lowField)).toHaveCount(1);
+});
+
+test("labeled PDFs show low-confidence field and array outlines without source fills", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    await page.locator(".prototype-banner").hover();
+    const overlay = page.getByTestId("result-overlay");
+    const country = "/contents/0/fields/CountryRegion";
+    const quantity = "/contents/0/fields/LineItems/valueArray/0/valueObject/Quantity";
+    const edge = (id: string) => overlay.locator(`[data-low-confidence][data-source-edge-id="${id}"]`);
+    const value = page.getByRole("button", { name: "Select extracted value of CountryRegion", exact: true });
+    await expect(edge(country)).toHaveCount(2);
+    await expect(edge(quantity)).toHaveCount(1);
+    await expect(value.locator("..")).toHaveCSS("box-shadow", /180, 60, 75/);
+
+    await trigger(page).click();
+    const legend = dialog(page);
+    await legend.getByRole("switch", { name: "Show field highlights", exact: true }).uncheck();
+    await legend.getByRole("switch", { name: "Show array highlights", exact: true }).uncheck();
+    await expect(overlay.locator('polygon[data-outline-id]:not([fill="none"])')).toHaveCount(0);
+    await expect(edge(country)).toHaveCount(2);
+    await expect(edge(quantity)).toHaveCount(1);
+    await expect(overlay.locator("[data-monetary-confidence]").first()).toBeAttached();
+    const low = legend.getByRole("switch", { name: "Show low confidence outlines", exact: true });
+    await low.uncheck();
+    await expect(overlay.locator("[data-low-confidence]")).toHaveCount(0);
+    await expect(value.locator("..")).toHaveCSS("box-shadow", "none");
+    await low.check();
+    await expect(edge(country)).toHaveCount(2);
+    await expect(edge(quantity)).toHaveCount(1);
+    await expect(value.locator("..")).toHaveCSS("box-shadow", /180, 60, 75/);
+    await legend.getByRole("button", { name: "Close legend", exact: true }).click();
+
+    await value.hover();
+    await expect(edge(country)).toHaveCount(0);
+    await expect(edge(quantity)).toHaveCount(1);
+    await value.click();
+    await page.locator(".prototype-banner").hover();
+    await expect(edge(country)).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(edge(country)).toHaveCount(2);
 });
 
 test("UI-56 integrated switches retain their saved settings after reload", async ({ page }) => {

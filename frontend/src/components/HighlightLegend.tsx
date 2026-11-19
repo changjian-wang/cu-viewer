@@ -13,11 +13,14 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
     settings: ReviewSettings; onChange: (settings: ReviewSettings) => void;
 }) {
     const id = useId();
-    const inlineControls = compactLegend && fieldReview && !labelMode && !comparisonAvailable;
+    const plainValues = compactLegend && fieldReview && !labelMode && !comparisonAvailable;
+    const defaultFill = plainValues ? `var(--cu-default-review-fill, ${FIELD_REVIEW_COLORS.default})` : FIELD_REVIEW_COLORS.default;
     const switches: ("showFields" | "showTables" | "highlightLow")[] =
         labelMode ? ["showFields", "showTables"] : ["showFields", "showTables", "highlightLow"];
-    if (fieldReview && !inlineControls) return <ul className="cu-legend-items cu-field-review-legend" aria-label="Highlighting legend entries">
-        {([
+    if (fieldReview) return <ul className="cu-legend-items cu-field-review-legend" aria-label="Highlighting legend entries">
+        {(plainValues ? [
+            ["values", "Field or array value", defaultFill],
+        ] : [
             ["default", labelMode ? "Reference field or object label" : "Default field or object value", FIELD_REVIEW_COLORS.default],
             ["array", labelMode ? "Reference array label" : "Default array value", FIELD_REVIEW_COLORS.array],
             ...(comparisonAvailable ? [["matched", "Matches label", FIELD_REVIEW_COLORS.matched],
@@ -30,7 +33,7 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
         {!labelMode && <li className="cu-legend-group">
             <div className="cu-legend-item" data-legend-category="low-outline">
                 <span className="cu-legend-outline-swatch" aria-hidden="true"
-                    style={{ background: comparisonAvailable ? FIELD_REVIEW_COLORS.matched : FIELD_REVIEW_COLORS.default,
+                    style={{ background: comparisonAvailable ? FIELD_REVIEW_COLORS.matched : defaultFill,
                         borderColor: FIELD_REVIEW_COLORS.lowStroke }}>123</span>
                 <span className="cu-legend-label"><span className="cu-legend-name">Low confidence</span>
                     <span className="cu-legend-description">{comparisonAvailable ?
@@ -48,14 +51,7 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
                 "Red outline below the confidence threshold; background still indicates matching." :
                 "Red outline below the confidence threshold; background still indicates the field type."}</span>}</li>)}
     </ul>;
-    const groups = inlineControls ? [
-        { setting: "showFields", label: "Show field highlights",
-            entries: [["default", false, 1, "Default field or object value", ""]] },
-        { setting: "showTables", label: "Show array highlights",
-            entries: [["array", true, 1, "Default array value", ""]] },
-        { setting: "highlightLow", label: "Show low confidence outlines",
-            entries: [["low-outline", false, 0, "Low confidence", "Confidence below threshold; field or array color is unchanged."]] },
-    ] as const : [
+    const groups = [
         { setting: "showFields", label: labelMode ? "Show label highlights" : "Show field highlights",
             entries: [["field", false, 1, labelMode ? "Field or object label" : "Field value",
                 labelMode ? "Reference label; not compared" : "At or above threshold"]] },
@@ -67,26 +63,22 @@ function LegendItems({ settings, onChange, labelMode, fieldReview, comparisonAva
             ["lowTable", true, 0, "Low-confidence table value", "Below threshold"],
         ] },
     ] as const;
-    return <ul className={`cu-legend-items${inlineControls ? " cu-ordinary-field-legend" : ""}`} aria-label="Highlighting legend entries">{groups.filter(group =>
+    return <ul className="cu-legend-items" aria-label="Highlighting legend entries">{groups.filter(group =>
         !labelMode || group.setting !== "highlightLow").map(({ setting, label, entries }) =>
         <li key={label} className={`cu-legend-group${setting === "highlightLow" ? " cu-legend-low-group" : ""}`}
-            data-setting={setting} aria-labelledby={setting === "highlightLow" && !inlineControls ? `${id}-low-heading` : undefined}>
-            {setting === "highlightLow" && !inlineControls && <h3 className="cu-legend-group-title" id={`${id}-low-heading`}>
+            data-setting={setting} aria-labelledby={setting === "highlightLow" ? `${id}-low-heading` : undefined}>
+            {setting === "highlightLow" && <h3 className="cu-legend-group-title" id={`${id}-low-heading`}>
                 Low confidence <span>Fields &amp; tables</span>
             </h3>}
             <div className="cu-legend-group-entries" id={`${id}-${setting}`}>
                 {entries.map(([category, table, confidence, name, description]) => {
-                    const style = inlineControls ? { background: `var(--cu-default-review-fill, ${table ?
-                        FIELD_REVIEW_COLORS.array : FIELD_REVIEW_COLORS.default})` } : appearance({ confidence }, table,
+                    const style = appearance({ confidence }, table,
                         { ...settings, threshold: 0.7, highlightLow: true }, labelMode);
-                    const explanation = !inlineControls && !labelMode && !settings.highlightLow && (category === "field" || category === "table") ?
+                    const explanation = !labelMode && !settings.highlightLow && (category === "field" || category === "table") ?
                         "All scored values while low-confidence highlight is off" : description;
                     return <div key={category} className="cu-legend-item" data-legend-category={category}
                         title={`${name} - ${explanation}`}>
-                        {inlineControls && category === "low-outline" ?
-                            <span className="cu-legend-outline-swatch" aria-hidden="true"
-                                style={{ background: style.background, borderColor: FIELD_REVIEW_COLORS.lowStroke }}>123</span> :
-                            <span className="cu-legend-swatch" aria-hidden="true" style={{ background: style.background }} />}
+                        <span className="cu-legend-swatch" aria-hidden="true" style={{ background: style.background }} />
                         <div className="cu-legend-label"><span className="cu-legend-name">{name}</span>
                             {explanation && <span className="cu-legend-description">{explanation}</span>}</div>
                     </div>;

@@ -287,7 +287,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                                 onClick={event => {
                                     if (child && !(event.target instanceof Element && event.target.closest("button"))) props.onSelect(child);
                                 }}>
-                                {child ? cell(child) : <span className="cu-missing-cell">No cell returned</span>}
+                                {child ? cell(child) : <span className="cu-value-chip is-missing cu-missing-cell">{displayValue()}</span>}
                             </td>;
                         })}</tr>;
                     })}</tbody>
@@ -390,7 +390,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                     {collapsed ? <button type="button" className="cu-field-value cu-summary-value" tabIndex={-1}
                         aria-label={`View full value of ${fieldLabel(field)}`} aria-describedby={descriptionId(field)}
                         title="View full value and confidence (F2)"
-                        onClick={() => props.workflow.inspect(field, true)}>{summary}</button> :
+                        onClick={() => props.workflow.inspect(field, true)}>{field.hasValue ? summary : value(field)}</button> :
                         group ? <span className="cu-summary-value">{summary}</span> :
                         <button type="button" className="cu-field-value" tabIndex={-1} aria-label={`Select value of ${fieldLabel(field)}`}
                             aria-describedby={descriptionId(field)}

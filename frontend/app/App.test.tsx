@@ -25,6 +25,9 @@ const result = { apiVersion: "2026-06-01-preview", analyzerId: "prebuilt-invoice
     },
 }] };
 const session = { source: "./source/invoice.pdf", name: "invoice.pdf", result, fieldOrderUrl: "./field-order" };
+const comparisonSession = { ...session, labels: { fieldLabels: {
+    LabelOnly: { type: "string", valueString: "Expected value" },
+} } };
 const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { "Content-Type": "application/json" } });
 let fetcher: ReturnType<typeof vi.fn<typeof fetch>>;
 
@@ -69,8 +72,18 @@ describe("CLI viewer field-order bridge", () => {
         expect(screen.queryByRole("banner")).toBeNull();
     });
 
-    it("writes only explicit order changes and sends an empty mapping for reset", async () => {
-        fetcher.mockResolvedValueOnce(json(session)).mockResolvedValueOnce(json({}))
+    it("retains saved order for label-only fields in a comparison session", async () => {
+        fetcher.mockResolvedValueOnce(json(comparisonSession)).mockResolvedValueOnce(json({
+            $root: ["/LabelOnly", "/B", "/Removed", "/A"],
+        }));
+        render(<App />);
+        await screen.findByRole("region", { name: "Viewer" });
+        expect(screen.getByTestId("order").textContent).toBe('{"$root":["/LabelOnly","/B","/A"]}');
+        expect(fetcher).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([false, true])("writes only explicit order changes and sends an empty mapping for reset (labels=%s)", async withLabels => {
+        fetcher.mockResolvedValueOnce(json(withLabels ? comparisonSession : session)).mockResolvedValueOnce(json({}))
             .mockResolvedValueOnce(new Response(null, { status: 204 }))
             .mockResolvedValueOnce(new Response(null, { status: 204 }));
         render(<App />);
@@ -86,8 +99,8 @@ describe("CLI viewer field-order bridge", () => {
         expect(fetcher.mock.calls[3]?.[1]?.body).toBe("{}");
     });
 
-    it("keeps the document available but disables reordering when azd preferences cannot be read", async () => {
-        fetcher.mockResolvedValueOnce(json(session)).mockResolvedValueOnce(new Response(null, { status: 500 }));
+    it.each([false, true])("keeps the document available but disables reordering when azd preferences cannot be read (labels=%s)", async withLabels => {
+        fetcher.mockResolvedValueOnce(json(withLabels ? comparisonSession : session)).mockResolvedValueOnce(new Response(null, { status: 500 }));
         render(<App />);
         await screen.findByRole("region", { name: "Viewer" });
         expect(screen.getByRole("alert").textContent).toContain("azd settings could not be read (500)");
@@ -96,8 +109,8 @@ describe("CLI viewer field-order bridge", () => {
         expect(fetcher).toHaveBeenCalledTimes(2);
     });
 
-    it("reports failed writes and rolls back only to the last confirmed order", async () => {
-        fetcher.mockResolvedValueOnce(json(session)).mockResolvedValueOnce(json({ $root: ["/A", "/B"] }))
+    it.each([false, true])("reports failed writes and rolls back only to the last confirmed order (labels=%s)", async withLabels => {
+        fetcher.mockResolvedValueOnce(json(withLabels ? comparisonSession : session)).mockResolvedValueOnce(json({ $root: ["/A", "/B"] }))
             .mockResolvedValueOnce(new Response(null, { status: 500 }));
         render(<App />);
         await screen.findByRole("region", { name: "Viewer" });

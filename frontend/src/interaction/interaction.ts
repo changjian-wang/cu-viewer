@@ -88,8 +88,8 @@ export function interaction(state: InteractionState, action: InteractionAction):
     }
 }
 
-export function displayValue(field: CuField): string {
-    if (!field.hasValue) return "Not returned";
+export function displayValue(field?: CuField): string {
+    if (!field?.hasValue) return "Not returned";
     if (field.value === null) return "null";
     if (field.value === "") return '"" (empty string)';
     if (field.type === "object") return "";
