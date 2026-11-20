@@ -37,8 +37,8 @@ test("UI-41 related fields gather without saved-order changes and Show all resto
         "/contents/0/fields/AmountDue", "/contents/0/fields/BalanceForward",
         "/contents/0/fields/TaxDetails", "/contents/0/fields/TotalAmount",
     ].includes(id ?? "")));
-    await expect(page.locator(".cu-field-navigation > span")).toHaveText("— / 12 fields");
-    await expect(page.locator(".cu-field-navigation > span")).toHaveAttribute("title", /12 matching fields out of 77 total/);
+    await expect(page.locator(".cu-field-navigation > span")).toHaveText("— / 16 fields");
+    await expect(page.locator(".cu-field-navigation > span")).toHaveAttribute("title", /16 visible fields in this navigation range/);
     await expect(page.getByRole("table", { name: "TaxDetails values", exact: true })).toBeVisible();
     expect(await roots(page).evaluateAll(elements => elements.every(element =>
         getComputedStyle(element).backgroundColor === "rgb(248, 245, 255)" &&
@@ -47,11 +47,15 @@ test("UI-41 related fields gather without saved-order changes and Show all resto
     await page.getByRole("button", { name: "AmountDue", exact: true }).focus();
     await expect(page.getByRole("button", { name: "Reorder AmountDue", exact: true })).toBeDisabled();
     const scopedSettings = await openFieldsSettings(page);
+    await expect(scopedSettings.getByRole("switch", { name: "Use Customized Field Order", exact: true })).toBeDisabled();
     await expect(scopedSettings.getByRole("button", { name: "Reset Field Order", exact: true })).toBeDisabled();
     await expect(scopedSettings.getByRole("button", { name: "Reset Field Order", exact: true }))
         .toHaveAttribute("title", "Show all fields before reordering.");
     await scopedSettings.getByRole("button", { name: "Close fields settings", exact: true }).click();
     await page.getByRole("button", { name: "AmountDue", exact: true }).press("Alt+ArrowUp");
+    expect(await savedPreferences(page)).toBe(preferences);
+    await page.getByRole("button", { name: "Collapse AmountDue", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Expand AmountDue", exact: true })).toBeVisible();
     expect(await savedPreferences(page)).toBe(preferences);
     await table(page, 1).press("Enter");
     await expect(roots(page)).toHaveCount(1);
@@ -72,13 +76,13 @@ test("UI-41 related fields gather without saved-order changes and Show all resto
 test("UI-41 selecting and inspecting related values keeps the scope and distinguishes the current value", async ({ page }) => {
     await table(page, 3).press("Enter");
     const position = page.locator(".cu-field-navigation > span");
-    await expect(position).toHaveText("— / 12 fields");
+    await expect(position).toHaveText("— / 16 fields");
     await page.getByRole("button", { name: "Next field", exact: true }).click();
-    await expect(position).toHaveText("1 / 12 fields");
+    await expect(position).toHaveText("1 / 16 fields");
     await page.getByRole("button", { name: "Next field", exact: true }).click();
-    await expect(position).toHaveText("2 / 12 fields");
+    await expect(position).toHaveText("2 / 16 fields");
     await page.getByRole("button", { name: "Previous field", exact: true }).click();
-    await expect(position).toHaveText("1 / 12 fields");
+    await expect(position).toHaveText("1 / 16 fields");
     await amount(page, "AmountDue").click();
     await expect(showAll(page)).toBeVisible();
     await expect(roots(page)).toHaveCount(4);

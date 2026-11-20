@@ -242,12 +242,14 @@ export function ResultViewer(props: ContentUnderstandingResultViewerProps & { re
     const layout: CSSProperties & {
         "--cu-pane-ratio": number;
         "--cu-default-review-fill": string;
+        "--cu-source-review-value": string;
         "--cu-hover-stroke"?: string;
         "--cu-selected-stroke"?: string;
     } = {
         "--cu-pane-ratio": preferences.settings.paneRatio,
         // Reset each instance so labeled or nested viewers cannot inherit the green override.
         "--cu-default-review-fill": unlabeledPdfFields ? FIELD_REVIEW_COLORS.matched : "initial",
+        "--cu-source-review-value": FIELD_REVIEW_COLORS.sourceReviewValue,
         ...(fieldReview ? {
             "--cu-hover-stroke": FIELD_REVIEW_COLORS.hoverStroke,
             "--cu-selected-stroke": FIELD_REVIEW_COLORS.selectedStroke,
@@ -272,7 +274,7 @@ export function ResultViewer(props: ContentUnderstandingResultViewerProps & { re
             hasSelection={Boolean(selected)}
             view={view} outlines={outlines} previewId={previewId}
             fieldReview={fieldReview}
-            compactLegend={unlabeledPdfFields}
+            unlabeledPdfFields={unlabeledPdfFields}
             comparison={view === "fields" ? comparison : undefined} referenceMode={view === "fields" && referenceMode}
             onDismissPreview={dismissPreview}
             regions={activeRegions} regionIndex={activeRegionIndex}
@@ -311,7 +313,6 @@ export function ResultViewer(props: ContentUnderstandingResultViewerProps & { re
             error={boundLabels ? labelData.error : parsed.error}
             contents={parsed.model?.contents ?? []} contentIndex={contentIndex} onContentChange={chooseContent}
             selected={selected} hovered={hovered} sourceReady={Boolean(source)} isPageAvailable={isPageAvailable}
-            pageNumber={state.pageNumber}
             onHover={(field, navigate) => previewField(field, undefined, navigate === false ? "focus" : "pointer")} onDismissPreview={dismissPreview}
             onLeave={leavePreview}
             onSelect={selectField}

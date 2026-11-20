@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { displayValue, fieldDisplayName, fieldLabel } from "../interaction/interaction";
-import { fieldValueFocusTarget, navigateFieldOnArrow, revealFieldTarget } from "../interaction/fieldNavigation";
-import { collapsedValue, FIELD_REVIEW_COLORS, fieldEntries, inlineArrayProjection, moveField, orderedFields, orderedLeafFields, SOURCE_REVIEW_DESCRIPTION } from "../interaction/reviewFields";
+import { fieldValueFocusTarget, focusFieldRowOnClick, navigateFieldOnArrow, revealFieldTarget } from "../interaction/fieldNavigation";
+import { useFieldDragAutoScroll } from "../interaction/useFieldDragAutoScroll";
+import { collapsedValue, FIELD_REVIEW_COLORS, fieldEntries, inlineArrayProjection, moveField, orderedFields, orderedVisibleFields, SOURCE_REVIEW_DESCRIPTION } from "../interaction/reviewFields";
 import { comparisonOriginal, isComparisonError } from "../model/fieldComparison";
 import type { ComparisonFilter, FieldComparison } from "../model/fieldComparison";
 import type { FieldsPaneProps } from "./FieldsPane";
@@ -64,13 +65,12 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         return result;
     }, [comparison, search]);
     const filtering = filter !== "all" || Boolean(review.query.trim());
-    const reorderReason = props.orderReadOnly ?
-        "Field order is read-only. Check the configuration; controlled order requires onFieldOrderChange." :
-        props.tableScope ? "Show all fields before reordering." :
-            filtering ? "Clear search and filters to reorder fields." : null;
-    const navigation = useMemo(() => orderedLeafFields(comparison.fields, props.order, search)
-        .map(field => comparison.byFieldId.get(field.id)!), [comparison, props.order, search]);
-    const currentIndex = selected ? navigation.indexOf(selected) : -1;
+    const reorderReason = props.resetOrderDisabledReason ?? (filtering ? "Clear search and filters to reorder fields." : null);
+    useFieldDragAutoScroll(viewport, dragId !== null && !reorderReason);
+    const navigation = useMemo(() => orderedVisibleFields(comparison.fields, props.order, visible, filtering ? visible : review.expanded)
+        .map(field => comparison.byFieldId.get(field.id)!), [comparison, props.order, visible, filtering, review.expanded]);
+    const currentIndex = selected ? navigation.findIndex(node => node === selected ||
+        (!filtering && !review.expanded.has(node.field.id) && selected.path.startsWith(`${node.path}/`))) : -1;
     const move = (from: string, to: string, placement?: "before" | "after"): void => {
         try {
             props.onOrder(moveField(entries, props.order, from, to, placement));
@@ -80,6 +80,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         }
     };
     const onFieldKey = (event: KeyboardEvent<HTMLDivElement>): void => {
+        navigateFieldOnArrow(event, chooseNext);
         const trigger = event.target;
         if (event.defaultPrevented || !(trigger instanceof HTMLElement)) return;
         const fieldId = trigger.dataset.reviewFocus ?? trigger.dataset.fieldValueFocus;
@@ -112,9 +113,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
             if (target) {
                 event.preventDefault(); target.focus({ preventScroll: true }); revealFieldTarget(target, event.currentTarget);
             }
-            return;
         }
-        navigateFieldOnArrow(event, chooseNext);
     };
     const chooseNext = (direction: number): void => {
         const node = navigation[currentIndex < 0 ? direction > 0 ? 0 : navigation.length - 1 :
@@ -122,8 +121,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         if (!node) return;
         const field = comparisonOriginal(comparison, node.field);
         pendingFocus.current = field.id;
-        props.setReview(current => ({ ...current, focused: node.field.id, expanded: new Set([...current.expanded,
-            ...comparison.nodes.filter(parent => node.path.startsWith(`${parent.path}/`)).map(parent => parent.field.id)]) }));
+        props.setReview(current => ({ ...current, focused: node.field.id }));
         props.onSelect(field);
     };
     useLayoutEffect(() => {
@@ -139,7 +137,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
             return;
         }
         const parents = comparison.nodes.filter(node => selected.path.startsWith(`${node.path}/`));
-        if (parents.some(node => !review.expanded.has(node.field.id))) {
+        if (!focusValue && !filtering && parents.some(node => !review.expanded.has(node.field.id))) {
             props.setReview(current => ({ ...current, expanded: new Set([...current.expanded, ...parents.map(node => node.field.id)]) }));
             return;
         }
@@ -152,7 +150,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         revealFieldTarget(target, scroll, props.sourceSelection);
         if (focusValue) { pendingFocus.current = null; target.focus({ preventScroll: true }); }
         props.handledReveal.current = props.selectionRequest;
-    }, [props.selectionRequest, props.selected, selected, visible, comparison, review.expanded, props.setReview,
+    }, [props.selectionRequest, props.selected, selected, visible, filtering, comparison, review.expanded, props.setReview,
         props.handledReveal, props.sourceSelection, revision]);
     const rows: ReactNode[] = [];
     const stack = orderedFields(comparison.fields, "$root", props.order).slice().reverse().map(field => ({
@@ -162,15 +160,20 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
         const { node, depth } = stack.pop()!;
         if (!visible.has(node.field.id)) continue;
         const open = filtering || review.expanded.has(node.field.id);
+        const selectedProxy = !open && selected?.path.startsWith(`${node.path}/`);
         const original = comparisonOriginal(comparison, node.field);
         const needsReview = node.extracted?.needsSourceReview === true;
         const hovered = props.hovered && comparison.byFieldId.get(props.hovered.id) === node;
         const entry = entryById.get(node.field.id);
         rows.push(<tr key={node.path} data-field-id={node.field.id} data-comparison-path={node.path}
             aria-level={depth + 1} aria-expanded={node.children.length ? open : undefined}
-            className={`${node.children.length ? "is-group " : ""}${selected === node ? "is-selected " : ""}` +
+            className={`${node.children.length ? "is-group " : ""}${selected === node || selectedProxy ? "is-selected " : ""}` +
+                `${selectedProxy ? "is-selection-proxy " : ""}` +
                 `${dragId === node.field.id ? "is-dragging " : ""}` +
                 `${dropTarget?.id === node.field.id ? `cu-drop-${dropTarget.placement} ` : ""}${hovered ? "is-hovered" : ""}`}
+            onClick={event => {
+                if (focusFieldRowOnClick(event)) props.onSelect(original);
+            }}
             onDragOver={event => {
                 const from = entryById.get(dragging.current ?? "");
                 if (!reorderReason && entry && from?.parent === entry.parent && !entry.inArray &&
@@ -207,11 +210,8 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                     <ViewerIcon name="grip" />
                 </button>
                 {node.children.length ? <button type="button" className="cu-expand" aria-label={`${open ? "Collapse" : "Expand"} ${fieldDisplayName(node.field)}`}
-                    aria-expanded={open} disabled={filtering} onClick={() => props.setReview(current => {
-                        const expanded = new Set(current.expanded);
-                        if (open) expanded.delete(node.field.id); else expanded.add(node.field.id);
-                        return { ...current, expanded };
-                    })}><ViewerIcon name={open ? "down" : "right"} /></button> : <span className="cu-expand-spacer" />}
+                    aria-expanded={open} disabled={filtering} onClick={() => props.onExpansion(!open, node.field)}>
+                    <ViewerIcon name={open ? "down" : "right"} /></button> : <span className="cu-expand-spacer" />}
                 <button type="button" className={`cu-field-name${needsReview ? " needs-source-review" : ""}`} aria-label={fieldDisplayName(node.field)}
                     aria-description={needsReview ? SOURCE_REVIEW_DESCRIPTION : undefined}
                     aria-pressed={selected === node} title={needsReview ? `${fieldLabel(original)} — ${SOURCE_REVIEW_DESCRIPTION}` : fieldLabel(original)}
@@ -223,12 +223,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                     onBlur={() => props.onLeave(original)}
                     onClick={() => {
                         if (!node.children.length) { props.onSelect(original); return; }
-                        if (filtering) return;
-                        props.setReview(current => {
-                            const expanded = new Set(current.expanded);
-                            if (open) expanded.delete(node.field.id); else expanded.add(node.field.id);
-                            return { ...current, expanded };
-                        });
+                        if (!filtering) props.onExpansion(!open, node.field);
                     }}>
                     {needsReview && <SourceReviewIcon />}
                     <span className={needsReview ? "cu-source-review-name" : undefined}>{fieldDisplayName(node.field)}</span>
@@ -263,7 +258,7 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                 <button type="button" onClick={() => { props.setReview(current => ({ ...current, query: "" })); toggleFilter(filter); }}>Clear filters</button></div>}
         </div>
         {notice && <div className="cu-fields-status" role="status">{notice}</div>}
-        <footer className="cu-fields-review-footer" role="group" aria-label="Fields toolbar">
+        <footer className="cu-fields-review-footer cu-aligned-search-footer" role="group" aria-label="Fields toolbar">
             <label className="cu-search-box"><ViewerIcon name="search" /><input type="search"
                 aria-label={comparable ? "Search field names, label values or extracted values" : "Search labels or values"}
                 placeholder={comparable ? "Search field name, label value or extracted value..." : "Search label names or values..."}
@@ -274,29 +269,25 @@ export function ComparisonFieldsPane(props: FieldsPaneProps & { comparison: Fiel
                 <span aria-label="Current field position" aria-live="polite">{currentIndex < 0 ? "—" : currentIndex + 1} / {navigation.length}{comparable ? " fields" : ""}</span>
                 <button type="button" className="cu-icon-button" aria-label="Next field" disabled={!navigation.length} onClick={() => chooseNext(1)}><ViewerIcon name="right" /></button>
             </div>
-            {comparable && <div className="cu-comparison-filters">
-                <button type="button" className="cu-match-filter" aria-label={`Show matching fields (${comparison.matched} ${comparison.matched === 1 ? "value" : "values"})`}
-                    style={{ background: FIELD_REVIEW_COLORS.matched }}
-                    aria-pressed={filter === "matched"} title="Matching leaf values in this content; array cells count individually."
-                    onClick={() => toggleFilter("matched")}><ViewerIcon name="checkCircle" />{comparison.matched}</button>
-                <button type="button" className="cu-error-filter" aria-label={`Show incorrect fields (${comparison.errors} ${comparison.errors === 1 ? "value" : "values"})`}
-                    style={{ background: FIELD_REVIEW_COLORS.error }}
-                    aria-pressed={filter === "errors"} title="Incorrect leaf values in this content; arrays with any error stay together."
-                    onClick={() => toggleFilter("errors")}><ViewerIcon name="close" />{comparison.errors}</button>
-            </div>}
-            <div className="cu-fields-toolbar-actions"><button type="button" className="cu-icon-button" ref={settingsButton}
-                aria-label="Fields settings" aria-haspopup="dialog" aria-expanded={settingsOpen}
-                onClick={() => setSettingsOpen(open => !open)}><ViewerIcon name="settings" /></button></div>
+            <div className="cu-fields-toolbar-actions">
+                {comparable && <div className="cu-comparison-filters">
+                    <button type="button" className="cu-match-filter" aria-label={`Show matching fields (${comparison.matched} ${comparison.matched === 1 ? "value" : "values"})`}
+                        style={{ background: FIELD_REVIEW_COLORS.matched }}
+                        aria-pressed={filter === "matched"} title="Matching leaf values in this content; array cells count individually."
+                        onClick={() => toggleFilter("matched")}><ViewerIcon name="checkCircle" />{comparison.matched}</button>
+                    <button type="button" className="cu-error-filter" aria-label={`Show incorrect fields (${comparison.errors} ${comparison.errors === 1 ? "value" : "values"})`}
+                        style={{ background: FIELD_REVIEW_COLORS.error }}
+                        aria-pressed={filter === "errors"} title="Incorrect leaf values in this content; arrays with any error stay together."
+                        onClick={() => toggleFilter("errors")}><ViewerIcon name="close" />{comparison.errors}</button>
+                </div>}
+                <button type="button" className="cu-icon-button" ref={settingsButton}
+                    aria-label="Fields settings" aria-haspopup="dialog" aria-expanded={settingsOpen}
+                    onClick={() => setSettingsOpen(open => !open)}><ViewerIcon name="settings" /></button>
+            </div>
             {settingsOpen && settingsButton.current && <FieldsSettings id={`${id}-settings`} anchor={settingsButton.current}
                 hideConfidence settings={props.settings} onSettings={props.onSettings} onResetOrder={() => props.onOrder({})}
-                resetOrderDisabledReason={props.orderReadOnly || props.tableScope ? reorderReason : null}
-                onObjectExpansion={open => props.setReview(current => {
-                    const expanded = new Set(current.expanded);
-                    for (const node of comparison.nodes) if (node.field.type === "object") {
-                        if (open) expanded.add(node.field.id); else expanded.delete(node.field.id);
-                    }
-                    return { ...current, expanded };
-                })}
+                resetOrderDisabledReason={props.resetOrderDisabledReason} customizedFieldOrder={props.customizedFieldOrder}
+                onObjectExpansion={props.onExpansion}
                 objectExpansionDisabledReason={filtering ? "Clear search and filters before changing object expansion." : null}
                 onClose={restore => { if (restore) settingsButton.current?.focus({ preventScroll: true }); setSettingsOpen(false); }} />}
         </footer>

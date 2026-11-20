@@ -79,6 +79,47 @@ test("UI-47 selected real money objects retain values and source selection when 
     }
 });
 
+test("expanding the selected AmountDue in the PDF keeps only the parent row highlighted", async ({ page }) => {
+    await page.goto("/");
+    await ready(page);
+    const group = row(page, "AmountDue");
+    const name = group.getByRole("button", { name: "AmountDue", exact: true });
+    const amount = row(page, "AmountDue/valueObject/Amount");
+    const currency = row(page, "AmountDue/valueObject/CurrencyCode");
+    const valueCell = group.locator(":scope > td").nth(1);
+    const selected = "rgb(229, 218, 255)";
+    const source = page.getByTestId("source-overlay").locator("polygon");
+
+    await expect(name).toHaveAttribute("aria-expanded", "false");
+    await valueCell.hover();
+    await expect(valueCell.getByRole("button")).toHaveCount(1);
+    await expect(summary(page, "AmountDue")).toHaveText("610 USD");
+    const bounds = await valueCell.boundingBox();
+    if (!bounds) throw new Error("The AmountDue value cell is not laid out.");
+    await valueCell.click({ position: { x: bounds.width - 18, y: bounds.height / 2 } });
+    await expect(group).toHaveCSS("background-color", selected);
+    await expect(source.first()).toHaveAttribute("data-source-id", "/contents/0/fields/AmountDue");
+    const points = () => source.evaluateAll(elements => elements.map(element => element.getAttribute("points")));
+    const groupPoints = await points();
+
+    await group.getByRole("button", { name: "Expand AmountDue", exact: true }).click();
+    await expect(name).toHaveAttribute("aria-expanded", "true");
+    await expect(group).toHaveCSS("background-color", selected);
+    await expect(valueCell.locator("button")).toHaveCount(0);
+    for (const child of [amount, currency]) {
+        await expect(child).toBeVisible();
+        await expect(child).not.toHaveCSS("background-color", selected);
+    }
+    await expect(source.first()).toHaveAttribute("data-source-id", "/contents/0/fields/AmountDue");
+    expect(await points()).toEqual(groupPoints);
+
+    await amount.getByRole("button", { name: "Amount", exact: true }).click();
+    await expect(amount).toHaveCSS("background-color", selected);
+    await expect(group).not.toHaveCSS("background-color", selected);
+    await expect(currency).not.toHaveCSS("background-color", selected);
+    await expect(source.first()).toHaveAttribute("data-source-id", "/contents/0/fields/AmountDue/valueObject/Amount");
+});
+
 for (const viewport of [{ width: 1536, height: 960 }, { width: 1030, height: 760 }]) {
     for (const columns of [2, 3]) {
         test(`UI-47 long values remain one-line ellipsized without layout shifts at ${viewport.width} and ${columns} columns`, async ({ page }) => {
@@ -160,16 +201,32 @@ test("UI-47 folded summaries keep zero, false, null and empty-string semantics",
         .toBe(JSON.stringify(syntheticResult.contents[0]!.fields.Falsy.valueObject, null, 2));
 });
 
+test("missing object summary keeps the usual row height in image Fields", async ({ page }) => {
+    await page.goto("/?sample=png");
+    await ready(page);
+    await page.getByLabel("Choose saved Analyze JSON", { exact: true }).setInputFiles({
+        name: "missing-object-summary.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [{ kind: "document", fields: {
+            Missing: { type: "object", valueObject: { Item: { type: "string" } } },
+            Returned: { type: "object", valueObject: { Item: { type: "string", valueString: "Actual" } } },
+        } }] })),
+    });
+    const missing = summary(page, "Missing").getByText("Not returned", { exact: true });
+    await expect(missing).toHaveCSS("font-style", "italic");
+    const height = (name: string) => summary(page, name).evaluate(element => element.closest("tr")!.getBoundingClientRect().height);
+    expect(await height("Missing")).toBe(await height("Returned"));
+});
+
 test("UI-47 real summary search keeps parent matches and navigation counts consistent", async ({ page }) => {
     await loadSynthetic(page);
     await fold(page, "Arbitrary");
     await expect(summary(page, "Arbitrary")).toHaveText("123.45 EUR");
     await page.getByRole("searchbox", { name: "Search fields or values" }).fill("123.45 EUR");
-    await expect(page.locator(".cu-field-navigation > span")).toHaveText("— / 2 fields");
+    await expect(page.locator(".cu-field-navigation > span")).toHaveText("— / 3 fields");
     await expect(page.getByRole("button", { name: "Number", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Code", exact: true })).toBeVisible();
     await page.getByRole("searchbox", { name: "Search fields or values" }).fill("Number");
-    await expect(page.locator(".cu-field-navigation > span")).toHaveText("— / 1 fields");
+    await expect(page.locator(".cu-field-navigation > span")).toHaveText("— / 2 fields");
     await expect(page.getByRole("button", { name: "Code", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Number", exact: true })).toBeVisible();
     await expect(page.locator(".cu-group-selection-count")).toHaveCount(0);

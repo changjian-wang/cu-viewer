@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CuApiVersion, CuContent, CuField, CuParseIssue } from "../model/types";
-import { fieldLabel, fieldRegions } from "../interaction/interaction";
-import { defaultReviewSettings, copyValue } from "../interaction/reviewFields";
+import { fieldLabel, fieldRegions, flattenFields } from "../interaction/interaction";
+import { applyObjectExpansion, defaultReviewSettings, copyValue } from "../interaction/reviewFields";
 import { unavailableSourcePageMessage } from "../source/source";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
 import { tableLocationMessage } from "../interaction/tableFields";
@@ -49,7 +49,6 @@ interface ResultsPaneProps {
     selected: CuField | null;
     hovered: CuField | null;
     sourceReady: boolean;
-    pageNumber?: number;
     isPageAvailable: (pageNumber: number) => boolean;
     contents: CuContent[];
     contentIndex: number;
@@ -72,10 +71,23 @@ interface ResultsPaneProps {
 
 export function ResultsPane(props: ResultsPaneProps) {
     const jsonState = useMemo<JsonPaneState>(() => ({
-        nodes: new Map(), scroll: { top: 0, left: 0 }, validation: null,
+        tree: { nodes: new Map(), expansion: "root" }, scroll: { top: 0, left: 0 }, validation: null,
     }), [props.result, props.jsonContext]);
     const content = isFieldView(props.view) ? props.fieldContent ?? props.content : props.content;
-    const [review, setReview] = useState(() => initialFieldsReview(content?.fields ?? []));
+    const fieldTree = (props.fieldContent ?? props.content)?.fields;
+    const customization = props.preferences?.customizedFieldOrder;
+    const useCustomizedOrder = customization?.enabled ?? true;
+    const resetOrderDisabledReason = (props.preferences?.orderReadOnly ?? true) ?
+        "Field order is read-only. Check the configuration; controlled order requires onFieldOrderChange." :
+        props.tableScope ? "Show all fields before reordering." :
+            useCustomizedOrder ? null : "Turn on Use Customized Field Order before reordering.";
+    const createReview = () => initialFieldsReview(fieldTree, props.preferences?.objectExpansion);
+    const [review, setReview] = useState(createReview);
+    const [reviewUsesCustomization, setReviewUsesCustomization] = useState(useCustomizedOrder);
+    if (reviewUsesCustomization !== useCustomizedOrder) {
+        setReviewUsesCustomization(useCustomizedOrder);
+        setReview({ ...review, expanded: applyObjectExpansion(fieldTree ?? [], review.expanded, props.preferences?.objectExpansion) });
+    }
     const [localSettings, setLocalSettings] = useState({ ...defaultReviewSettings });
     const [markdownChoice, setMarkdownChoice] = useState({ context: props.workflow.context, page: 0 });
     const markdownContext = useMemo(() => ({}), [props.result, props.content, props.source]);
@@ -136,8 +148,21 @@ export function ResultsPane(props: ResultsPaneProps) {
     const tableMessage = !hasFieldsTab && props.tableLocation ? tableLocationMessage(props.tableLocation) : null;
     const activeTab = tabs.find(tab => tab.id === view);
     useEffect(() => {
-        setReview(initialFieldsReview(content?.fields ?? []));
+        setReview(createReview());
     }, [props.workflow.context]);
+    const changeExpansion = (open: boolean, group?: CuField): void => {
+        const groups = group ? [group] : flattenFields([...(fieldTree ?? [])])
+            .filter(field => field.type === "object" && field.children.length);
+        setReview(current => {
+            const expanded = new Set(current.expanded);
+            for (const field of groups) {
+                if (open) expanded.add(field.id); else expanded.delete(field.id);
+            }
+            return { ...current, expanded };
+        });
+        // Related-table review restores its pre-scope expansion on exit.
+        if (!props.tableScope) props.preferences?.changeObjectExpansion(groups, open);
+    };
     const restoreFieldFocus = (field: CuField, trigger?: HTMLElement): void => {
         const controls = [...(panel.current?.querySelectorAll<HTMLElement>("[data-review-focus]") ?? [])];
         const direct = trigger?.isConnected ? trigger : controls.find(item => item.dataset.reviewFocus === field.id);
@@ -251,11 +276,12 @@ export function ResultsPane(props: ResultsPaneProps) {
                 comparison={props.comparison} fieldReview={props.fieldReview}
                 onSettings={props.preferences?.changeSettings ?? setLocalSettings}
                 order={props.preferences?.order ?? {}} onOrder={props.preferences?.changeOrder ?? (() => {})}
-                orderReadOnly={props.preferences?.orderReadOnly ?? true}
-                review={review} setReview={setReview}
+                resetOrderDisabledReason={resetOrderDisabledReason}
+                customizedFieldOrder={customization && props.tableScope ?
+                    { ...customization, disabledReason: "Show all fields before changing field customization." } : customization}
+                review={review} setReview={setReview} onExpansion={changeExpansion}
                 selected={props.selected} hovered={props.hovered} workflow={props.workflow} menuId={`${tabBaseId}-value-menu`}
                 onMenu={openMenu} onHover={props.onHover} onLeave={props.onLeave} onSelect={props.onSelect}
-                sourceReady={props.sourceReady} pageNumber={props.pageNumber ?? 1} isPageAvailable={props.isPageAvailable}
                 restoringFocus={restoringFocus} tableScroll={tableScroll} selectionRequest={props.selectionRequest ?? null} handledReveal={fieldsReveal}
                 sourceSelection={(props.sourceSelection || props.sourceTableSelection) ?? false} tableLocation={props.tableLocation ?? null}
                 tableSelection={props.sourceTableSelection ?? false} tableScope={props.tableScope ?? null}
@@ -319,10 +345,8 @@ export function ResultsPane(props: ResultsPaneProps) {
                 { label: "Copy value", icon: "copy", disabled: !props.workflow.menu.field.hasValue,
                     run: () => { if (props.workflow.menu) void props.workflow.copy(props.workflow.menu.field); } },
             ]} />}
-        {!isFieldView(view) && view !== "info" && view !== "paragraphs" && view !== "figures" && view !== "markdown" && <footer className="cu-results-footer">
-            {view === "result" && "Original input JSON. Expansion, collection pages and reading position are kept for this result."}
-            {view === "signatures" &&
-                "Select a returned item to locate its source. All regions on the active source page are highlighted; use document page navigation to view other pages."}
+        {view === "signatures" && <footer className="cu-results-footer">
+            Select a returned item to locate its source. All regions on the active source page are highlighted; use document page navigation to view other pages.
         </footer>}
     </section>;
 }

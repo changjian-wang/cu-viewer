@@ -129,31 +129,37 @@ afterEach(() => {
 
 describe("structured Fields presentation", () => {
     it("uses the selected field's position for numbering and cyclic navigation", () => {
-        const { content, firstLabel, second } = structuredContent();
+        const { content, rows, firstLabel, second } = structuredContent();
         const secondLabel = second.children[0]!;
         const { container, onSelect, rerenderSelected } = renderPane(content);
         const position = container.querySelector(".cu-field-navigation > span");
-        expect(position?.textContent).toBe("— / 2 fields");
+        expect(position?.textContent).toBe("— / 1 fields");
         expect(screen.getByRole<HTMLButtonElement>("button", { name: "Previous field" }).title).toBe("Previous field");
         expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next field" }).title).toBe("Next field");
         fireEvent.click(screen.getByRole("button", { name: "Next field" }));
+        expect(onSelect).toHaveBeenLastCalledWith(rows);
+        rerenderSelected(rows);
+        expect(position?.textContent).toBe("1 / 1 fields");
+        fireEvent.click(screen.getByRole("button", { name: "Expand Rows" }));
+        expect(position?.textContent).toBe("1 / 3 fields");
+        fireEvent.click(screen.getByRole("button", { name: "Next field" }));
         expect(onSelect).toHaveBeenLastCalledWith(firstLabel);
         rerenderSelected(firstLabel);
-        expect(position?.textContent).toBe("1 / 2 fields");
+        expect(position?.textContent).toBe("2 / 3 fields");
         fireEvent.click(screen.getByRole("button", { name: "Next field" }));
         expect(onSelect).toHaveBeenLastCalledWith(secondLabel);
         rerenderSelected(secondLabel);
-        expect(position?.textContent).toBe("2 / 2 fields");
+        expect(position?.textContent).toBe("3 / 3 fields");
         fireEvent.click(screen.getByRole("button", { name: "Next field" }));
-        expect(onSelect).toHaveBeenLastCalledWith(firstLabel);
-        rerenderSelected(firstLabel);
+        expect(onSelect).toHaveBeenLastCalledWith(rows);
+        rerenderSelected(rows);
         fireEvent.click(screen.getByRole("button", { name: "Previous field" }));
         expect(onSelect).toHaveBeenLastCalledWith(secondLabel);
         rerenderSelected(null);
         fireEvent.change(screen.getByRole("searchbox"), { target: { value: "Second" } });
-        expect(position?.textContent).toBe("— / 1 fields");
+        expect(position?.textContent).toBe("— / 2 fields");
         rerenderSelected(secondLabel);
-        expect(position?.textContent).toBe("1 / 1 fields");
+        expect(position?.textContent).toBe("2 / 2 fields");
         fireEvent.change(screen.getByRole("searchbox"), { target: { value: "not a field" } });
         expect(position?.textContent).toBe("— / 0 fields");
         expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next field" }).disabled).toBe(true);
@@ -332,7 +338,7 @@ describe("structured Fields presentation", () => {
         fireEvent.click(screen.getByRole("button", { name: "Expand Rows" }));
         expect(screen.queryByRole("button", { name: "View selected value" })).toBeNull();
         const navigation = container.querySelector(".cu-field-navigation");
-        expect(navigation?.querySelector("span")?.textContent).toBe("1 / 2 fields");
+        expect(navigation?.querySelector("span")?.textContent).toBe("2 / 3 fields");
         expect(navigation?.querySelectorAll("button")).toHaveLength(2);
         expect(screen.getByRole<HTMLButtonElement>("button", { name: "Previous field" }).disabled).toBe(false);
         expect(screen.getByRole<HTMLButtonElement>("button", { name: "Next field" }).disabled).toBe(false);
@@ -460,7 +466,7 @@ describe("structured Fields presentation", () => {
         const { container } = renderPane(content, rows);
         expect(screen.queryByRole("button", { name: "View selected value" })).toBeNull();
         expect(container.querySelectorAll(".cu-field-navigation button")).toHaveLength(2);
-        expect(container.querySelector(".cu-field-navigation > span")?.textContent).toBe("— / 2 fields");
+        expect(container.querySelector(".cu-field-navigation > span")?.textContent).toBe("1 / 1 fields");
         expect(container.querySelector(".cu-group-selection-count")).toBeNull();
         expect(container.querySelector(".is-group-selected")).toBeTruthy();
         fireEvent.click(screen.getByRole("button", { name: "Fields settings" }));
@@ -526,16 +532,20 @@ describe("structured Fields presentation", () => {
         expect(screen.getByRole("status").textContent).toBe("Pinned: Rows / Item 1 / Label");
     });
 
-    it("derives a group page badge from real descendants and disables unavailable navigation", () => {
-        const { content } = structuredContent();
-        renderPane(content, null, pageNumber => pageNumber === 1);
-        const badge = screen.getByRole<HTMLButtonElement>("button", { name: "Locate Rows on page 1, 2 source pages" });
-        expect(badge.disabled).toBe(false);
-        cleanup();
-        renderPane(content, null, () => false);
-        const unavailable = screen.getByRole<HTMLButtonElement>("button", { name: "Locate Rows on page 1, 2 source pages" });
+    it("selects a grounded array from its row without an extra button and keeps group page actions in the value menu", () => {
+        const { content, rows } = structuredContent();
+        const { container, onSelect } = renderPane(content, null, pageNumber => pageNumber === 1);
+        const row = container.querySelector(`[data-field-id="${rows.id}"]`)!;
+        const value = row.querySelector(".cu-field-value-content")!;
+        expect(value.querySelectorAll("button")).toHaveLength(1);
+        expect(screen.getByRole("button", { name: "View full value of Rows" })).toBe(value.querySelector("button"));
+        fireEvent.click(value);
+        expect(onSelect).toHaveBeenLastCalledWith(rows);
+        fireEvent.keyDown(screen.getByRole("button", { name: "Rows" }), { key: "F10", shiftKey: true });
+        expect(screen.getByRole<HTMLButtonElement>("menuitem", { name: "Locate on page 1" }).disabled).toBe(false);
+        const unavailable = screen.getByRole<HTMLButtonElement>("menuitem", { name: "Locate on page 2" });
         expect(unavailable.disabled).toBe(true);
-        expect(unavailable.getAttribute("title")).toContain("Page 1 is not present");
+        expect(unavailable.title).toContain("Page 2 is not present");
     });
 
     it("switches real result views with tab semantics without losing Fields expansion state", async () => {

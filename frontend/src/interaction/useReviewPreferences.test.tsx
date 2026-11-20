@@ -13,6 +13,69 @@ const base: ContentUnderstandingResultViewerProps = { source: new ArrayBuffer(1)
 const schema = schemaIdentity(content, "2025-11-01");
 afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); });
 
+describe("browser object expansion", () => {
+    const grouped = parseCuResult({ apiVersion: "2025-11-01", contents: [{ kind: "document", fields: {
+        "Group/~": { type: "object", valueObject: { Name: { type: "string", valueString: "A" } } },
+        Other: { type: "object", valueObject: { Name: { type: "string", valueString: "B" } } },
+    } }] }).contents[0]!;
+    const groupedSchema = schemaIdentity(grouped, "2025-11-01");
+    const [group, other] = grouped.fields;
+
+    it("uses JSON order while off and preserves the saved customization for re-enabling", () => {
+        const order = { $root: ["/Other", "/Group~1~0"] };
+        const objectExpansion = { "/Group~1~0": true };
+        writePreferences(localStorage, groupedSchema, { settings: { ...defaultReviewSettings }, order, objectExpansion });
+        const first = renderHook(() => useReviewPreferences({ ...base, defaultFieldOrder: order },
+            grouped, "2025-11-01", undefined));
+        expect(first.result.current.customizedFieldOrder?.enabled).toBe(true);
+        expect(first.result.current.order).toEqual(order);
+        act(() => first.result.current.customizedFieldOrder?.onChange(false));
+        expect(first.result.current.order).toEqual({});
+        expect(first.result.current.objectExpansion).toBeUndefined();
+        act(() => first.result.current.changeOrder({}));
+        act(() => first.result.current.changeObjectExpansion([other!], true));
+        expect(readPreferences(localStorage, groupedSchema)).toMatchObject({ order, objectExpansion, useCustomizedFieldOrder: false });
+        first.unmount();
+        const second = renderHook(() => useReviewPreferences(base, grouped, "2025-11-01", undefined));
+        expect(second.result.current.customizedFieldOrder?.enabled).toBe(false);
+        const latest = { order: { $root: ["/Group~1~0", "/Other"] }, objectExpansion: { "/Other": true } };
+        writePreferences(localStorage, groupedSchema, { settings: { ...defaultReviewSettings },
+            ...latest, useCustomizedFieldOrder: false });
+        act(() => second.result.current.customizedFieldOrder?.onChange(true));
+        expect(second.result.current.order).toEqual(latest.order);
+        expect(second.result.current.objectExpansion).toEqual(latest.objectExpansion);
+    });
+
+    it("does not overwrite order, layout or other objects saved by another Viewer of the same schema", () => {
+        const first = renderHook(() => useReviewPreferences(base, grouped, "2025-11-01", undefined));
+        const second = renderHook(() => useReviewPreferences(base, grouped, "2025-11-01", undefined));
+        const order = { $root: ["/Other", "/Group~1~0"] };
+        act(() => first.result.current.changeOrder(order));
+        act(() => first.result.current.changeObjectExpansion([group!], true));
+        act(() => second.result.current.changeObjectExpansion([other!], false));
+        act(() => second.result.current.changeSettings({ ...defaultReviewSettings, columns: 3 }));
+        expect(readPreferences(localStorage, groupedSchema)).toEqual({
+            settings: { ...defaultReviewSettings, columns: 3 }, order,
+            objectExpansion: { "/Group~1~0": true, "/Other": false },
+        });
+    });
+
+    it("keeps azd-hosted object expansion session-only without changing saved order or browser preferences", () => {
+        const order = { $root: ["/Other", "/Group~1~0"] };
+        writePreferences(localStorage, groupedSchema, { settings: { ...defaultReviewSettings }, order: {},
+            objectExpansion: { "/Group~1~0": true } });
+        const before = localStorage.getItem(preferenceKey(groupedSchema));
+        const onFieldOrderChange = vi.fn();
+        const { result } = renderHook(() => useReviewPreferences({ ...base, fieldOrder: order, onFieldOrderChange },
+            grouped, "2025-11-01", undefined, defaultReviewSettings, true));
+        expect(result.current.objectExpansion).toBeUndefined();
+        act(() => result.current.changeObjectExpansion([group!], false));
+        expect(result.current.order).toEqual(order);
+        expect(onFieldOrderChange).not.toHaveBeenCalled();
+        expect(localStorage.getItem(preferenceKey(groupedSchema))).toBe(before);
+    });
+});
+
 describe("controlled and browser-owned field order", () => {
     it("changes unsaved mode defaults without overwriting a saved layout or confidence setting", () => {
         const comparisonDefaults = { ...defaultReviewSettings, paneRatio: 0.45 };

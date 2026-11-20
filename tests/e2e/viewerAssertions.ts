@@ -47,8 +47,7 @@ export async function fitSource(page: Page, mode: "page" | "width"): Promise<voi
 
 export async function locateGroup(page: Page, fieldId: string): Promise<void> {
     const row = page.locator(`.cu-fields-table > tbody > tr[data-field-id="${fieldId}"]`);
-    await row.hover();
-    await row.locator(".cu-page-badge").click();
+    await row.locator(":scope > td").first().click({ position: { x: 2, y: 12 } });
 }
 
 export async function expandField(page: Page, name: string): Promise<void> {

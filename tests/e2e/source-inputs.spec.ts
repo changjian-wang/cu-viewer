@@ -185,7 +185,7 @@ test("empty and corrupt File/Blob/ArrayBuffer inputs retain valid fields and rec
                     if (condition === "empty") await expect(page.getByRole("alert")).toContainText("The source file is empty");
                     await expect(page.locator("[data-field-depth='0']")).toHaveCount(fixtures[sample].count);
                     await expect(page.getByRole("button", { name: "Zoom in", exact: true })).toBeDisabled();
-                    await expect(page.locator(".cu-page-badge").first()).toBeDisabled();
+                    await expect(page.locator(".cu-page-badge")).toHaveCount(0);
                     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
                     await page.getByRole("combobox", { name: "Source condition", exact: true }).selectOption("valid");
                     await page.getByRole("button", { name: `Load ${sample}`, exact: true }).click();
@@ -219,7 +219,8 @@ test("HTTP errors, empty responses and rejected source URL schemes surface error
         await page.getByRole("button", { name: "Load PDF", exact: true }).click();
         await expect(page.getByRole("alert")).toContainText(failure.text);
         await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
-        await expect(page.locator(".cu-page-badge").first()).toBeDisabled();
+        await expect(page.getByRole("button", { name: "Zoom in", exact: true })).toBeDisabled();
+        await expect(page.locator(".cu-page-badge")).toHaveCount(0);
         await page.getByRole("textbox", { name: "URL override" }).fill("");
         await page.getByRole("button", { name: "Load PDF", exact: true }).click();
         await ready(page);

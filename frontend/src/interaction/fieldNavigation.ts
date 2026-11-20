@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
 import { getRevealOffset } from "../source/geometry";
 
 type Bounds = Pick<DOMRect, "left" | "right" | "top" | "bottom">;
@@ -6,9 +6,17 @@ type Bounds = Pick<DOMRect, "left" | "right" | "top" | "bottom">;
 export function navigateFieldOnArrow(event: KeyboardEvent<HTMLElement>, navigate: (direction: -1 | 1) => void): void {
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
         (event.key !== "ArrowUp" && event.key !== "ArrowDown") || !(event.target instanceof HTMLElement) ||
-        !event.target.matches("[data-review-focus], [data-field-value-focus]")) return;
+        !event.target.matches("[data-review-focus], [data-field-value-focus], button.cu-expand")) return;
     event.preventDefault();
     navigate(event.key === "ArrowUp" ? -1 : 1);
+}
+
+export function focusFieldRowOnClick(event: MouseEvent<HTMLTableRowElement>): boolean {
+    const { currentTarget, target } = event;
+    if (event.defaultPrevented || !(target instanceof Element) || target.closest("tr") !== currentTarget ||
+        target.closest("button")) return false;
+    currentTarget.querySelector<HTMLButtonElement>(".cu-field-name")?.focus({ preventScroll: true });
+    return true;
 }
 
 export function fieldValueFocusTarget(viewport: HTMLElement | null, id: string): HTMLElement | undefined {
@@ -35,18 +43,22 @@ export function getFieldRevealOffset(target: Bounds, visible: Bounds, comfortabl
     };
 }
 
-export function revealFieldTarget(button: HTMLElement, viewport: HTMLElement, comfortable = false): HTMLElement | null {
-    const wrapper = button.closest<HTMLElement>(".cu-inline-table-wrap");
-    const target = wrapper ? button.closest("td") : button.closest("tr");
-    if (!target || !viewport.clientWidth || !viewport.clientHeight) return null;
+export function getFieldViewportBounds(viewport: HTMLElement): Bounds {
     const bounds = viewport.getBoundingClientRect();
     const header = viewport.querySelector(".cu-fields-table > thead > tr > th")?.getBoundingClientRect();
-    const visible = {
+    return {
         left: bounds.left + viewport.clientLeft,
         right: bounds.left + viewport.clientLeft + viewport.clientWidth,
         top: Math.max(bounds.top + viewport.clientTop, header?.bottom ?? bounds.top) + 8,
         bottom: bounds.top + viewport.clientTop + viewport.clientHeight - 8,
     };
+}
+
+export function revealFieldTarget(button: HTMLElement, viewport: HTMLElement, comfortable = false): HTMLElement | null {
+    const wrapper = button.closest<HTMLElement>(".cu-inline-table-wrap");
+    const target = wrapper ? button.closest("td") : button.closest("tr");
+    if (!target || !viewport.clientWidth || !viewport.clientHeight) return null;
+    const visible = getFieldViewportBounds(viewport);
     if (visible.bottom <= visible.top) return null;
     if (wrapper) {
         const area = wrapper.getBoundingClientRect();

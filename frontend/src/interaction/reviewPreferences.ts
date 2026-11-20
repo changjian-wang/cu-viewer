@@ -1,10 +1,12 @@
 import type { ViewerFieldOrder } from "../index";
-import { defaultReviewSettings, validateFieldOrder } from "./reviewFields";
-import type { ReviewSettings } from "./reviewFields";
+import { defaultReviewSettings, validateFieldOrder, validateObjectExpansion } from "./reviewFields";
+import type { ObjectExpansion, ReviewSettings } from "./reviewFields";
 
 export interface ReviewPreferences {
     settings: ReviewSettings;
     order: ViewerFieldOrder;
+    objectExpansion?: ObjectExpansion | undefined;
+    useCustomizedFieldOrder?: boolean | undefined;
 }
 
 export function preferenceKey(schema: string): string {
@@ -49,11 +51,18 @@ export function readPreferences(storage: Pick<Storage, "getItem">, schema: strin
         !("settings" in value) || !("order" in value)) {
         throw new Error("Unrecognized or mismatched Viewer preference record. Reset it explicitly to recover.");
     }
-    return { settings: validateSettings(value.settings), order: validateFieldOrder(value.order) };
+    const customized = "useCustomizedFieldOrder" in value ? value.useCustomizedFieldOrder : undefined;
+    if (customized !== undefined && typeof customized !== "boolean") {
+        throw new Error("Use Customized Field Order must be a boolean.");
+    }
+    return { settings: validateSettings(value.settings), order: validateFieldOrder(value.order),
+        objectExpansion: "objectExpansion" in value ? validateObjectExpansion(value.objectExpansion) : undefined,
+        useCustomizedFieldOrder: customized };
 }
 
 export function writePreferences(storage: Pick<Storage, "setItem">, schema: string, preferences: ReviewPreferences): void {
     storage.setItem(preferenceKey(schema), JSON.stringify({
         format: "cu-viewer-review", version: 1, schema, settings: preferences.settings, order: preferences.order,
+        objectExpansion: preferences.objectExpansion, useCustomizedFieldOrder: preferences.useCustomizedFieldOrder,
     }));
 }

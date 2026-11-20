@@ -17,7 +17,8 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>, comparison?: FieldComparison, fieldReview = false) {
+function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>, comparison?: FieldComparison,
+    review: { fieldReview?: boolean; unlabeledPdfFields?: boolean } = {}) {
     const viewport = createRef<HTMLDivElement>(), paper = createRef<HTMLDivElement>();
     const element = document.createElement("div");
     Object.defineProperties(element, {
@@ -27,7 +28,7 @@ function setup(field: CuField, summaryFieldIds?: ReadonlySet<string>, comparison
     viewport.current = element;
     paper.current = element;
     const view = render(<SourcePopover id="source-preview" field={field} labelMode={field.origin === "label"}
-        summaryFieldIds={summaryFieldIds} comparison={comparison} fieldReview={fieldReview}
+        summaryFieldIds={summaryFieldIds} comparison={comparison} {...review}
         points={[{ x: 50, y: 200 }, { x: 150, y: 200 }, { x: 150, y: 220 }, { x: 50, y: 220 }]}
         pan={{ x: 0, y: 0 }} viewport={viewport} paper={paper} />);
     return { ...view, viewport, paper };
@@ -41,16 +42,18 @@ const currency: CuField = { ...field, id: "/contents/0/fields/AmountDue/valueObj
     name: "Currency", type: "string", value: "USD" };
 const object: CuField = { ...field, id: "/contents/0/fields/AmountDue", name: "AmountDue",
     type: "object", value: { Amount: 610, Currency: "USD" }, children: [amount, currency] };
+const unlabeledPdfReview = { fieldReview: true, unlabeledPdfFields: true };
 
 describe("Studio source preview content", () => {
-    it("uses the standalone Fields background for an unlabeled PDF value without copying its confidence outline", () => {
-        setup(field, undefined, undefined, true);
+    it("leaves an unlabeled PDF's scalar text plain and keeps its low-confidence badge", () => {
+        setup(field, undefined, undefined, unlabeledPdfReview);
         const popup = screen.getByRole("tooltip", { name: "Field preview" });
         const value = popup.querySelector<HTMLElement>(".cu-flyover-value dd")!;
         const score = popup.querySelector<HTMLElement>(".cu-flyover-confidence")!;
         expect(popup.querySelector<HTMLElement>(".cu-popover-heading")!.style.background).toBe("");
         expect(popup.style.getPropertyValue("--cu-preview-banner-bg")).toBe("");
-        expect(value.style.background).toBe("var(--cu-default-review-fill, #ECF3FC)");
+        expect(value.textContent).toBe("0");
+        expect(value.style.background).toBe("");
         expect(value.style.boxShadow).toBe("");
         expect(value.style.border).toBe("");
         expect(popup.classList.contains("cu-source-comparison-popover")).toBe(false);
@@ -60,6 +63,12 @@ describe("Studio source preview content", () => {
         expect(score.textContent).toContain("0.00");
         expect(popup.querySelector(".cu-flyover-comparison")).toBeNull();
         expect(popup.querySelector<HTMLElement>(".cu-flyover-body")!.style.background).toBe("");
+    });
+
+    it("keeps the standalone value background when a labeled PDF's content is not compared", () => {
+        setup(field, undefined, undefined, { fieldReview: true });
+        const value = screen.getByRole("tooltip").querySelector<HTMLElement>(".cu-flyover-value dd")!;
+        expect(value.style.background).toBe("var(--cu-default-review-fill, #ECF3FC)");
     });
 
     it("colors only the extracted comparison value and keeps the confidence badge beside it", () => {
@@ -97,9 +106,20 @@ describe("Studio source preview content", () => {
         expect(popup.querySelector(".cu-flyover-confidence")).toBeNull();
     });
 
+    it("uses label wording for an absent comparison value without replacing an authored empty label", () => {
+        const labelValue = () => screen.getByRole("tooltip")
+            .querySelector('[data-comparison-side="label"] .cu-flyover-comparison-value')?.textContent;
+        const missing = setup(field, undefined, compareFields([], [field], true));
+        expect(labelValue()).toBe("Not labelled");
+        missing.unmount();
+        const empty: CuField = { ...field, id: "/labels/fields/Zero", origin: "label", type: "string", value: "" };
+        setup(field, undefined, compareFields([empty], [field], true));
+        expect(labelValue()).toBe('"" (empty string)');
+    });
+
     it("keeps label-reference values and their container plain", () => {
         const label: CuField = { ...field, id: "/labels/fields/Zero", origin: "label" };
-        setup(label, undefined, undefined, true);
+        setup(label, undefined, undefined, { fieldReview: true });
         const popup = screen.getByRole("tooltip", { name: "Label preview" });
         const body = popup.querySelector<HTMLElement>(".cu-flyover-body")!;
         const value = popup.querySelector<HTMLElement>(".cu-flyover-value dd")!;
@@ -112,14 +132,15 @@ describe("Studio source preview content", () => {
     });
 
     it.each([
-        ["object summary", object, "#ECF3FC"],
-        ["array cell", { ...field, id: "/contents/0/fields/Rows/valueArray/0" }, "#DEE9FA"],
-        ["array summary", { ...field, type: "array", value: [0], children: [field] }, "#DEE9FA"],
-    ] satisfies [string, CuField, string][])("colors the PDF %s without changing the single-value layout", (_, value, color) => {
-        setup(value, undefined, undefined, true);
+        ["object summary", object, "610 USD"],
+        ["source-review array cell", { ...field, id: "/contents/0/fields/Rows/valueArray/0", needsSourceReview: true }, "0"],
+        ["array summary", { ...field, type: "array", value: [0], children: [field] }, "1 items"],
+    ] satisfies [string, CuField, string][])("keeps an unlabeled PDF's %s plain in the single-value layout", (_, value, expected) => {
+        setup(value, undefined, undefined, unlabeledPdfReview);
         const popup = screen.getByRole("tooltip");
         const text = popup.querySelector<HTMLElement>(".cu-flyover-value dd")!;
-        expect(text.style.background).toBe(`var(--cu-default-review-fill, ${color})`);
+        expect(text.textContent).toBe(expected);
+        expect(text.style.background).toBe("");
         expect(text.style.boxShadow).toBe("");
         expect(text.style.border).toBe("");
         expect(text.classList.contains("cu-flyover-comparison-value")).toBe(false);
@@ -180,7 +201,7 @@ describe("Studio source preview content", () => {
         const nonPdf = setup({ ...field, needsSourceReview: true });
         expect(screen.getByRole("tooltip").querySelector<HTMLElement>(".cu-flyover-value dd")?.style.background).toBe("");
         nonPdf.unmount();
-        setup({ ...field, hasValue: false, value: undefined }, undefined, undefined, true);
+        setup({ ...field, hasValue: false, value: undefined }, undefined, undefined, unlabeledPdfReview);
         const value = screen.getByRole("tooltip").querySelector<HTMLElement>(".cu-flyover-value dd");
         expect(value?.textContent).toBe("Not returned");
         expect(value?.style.background).toBe("");

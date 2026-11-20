@@ -2,11 +2,12 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "re
 import type { Dispatch, KeyboardEvent, ReactNode, SetStateAction } from "react";
 import type { ViewerFieldOrder } from "../index";
 import { displayValue, fieldDisplayName, fieldLabel, fieldRegions } from "../interaction/interaction";
-import { emphasizeFieldTarget, fieldValueFocusTarget, navigateFieldOnArrow, revealFieldTarget } from "../interaction/fieldNavigation";
-import { appearance, collapsedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
-    isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedLeafFields, SOURCE_REVIEW_DESCRIPTION, standaloneFieldAppearance,
+import { emphasizeFieldTarget, fieldValueFocusTarget, focusFieldRowOnClick, navigateFieldOnArrow, revealFieldTarget } from "../interaction/fieldNavigation";
+import { useFieldDragAutoScroll } from "../interaction/useFieldDragAutoScroll";
+import { appearance, collapsedReturnedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
+    isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedVisibleFields, SOURCE_REVIEW_DESCRIPTION, standaloneFieldAppearance,
     visibleFieldIds } from "../interaction/reviewFields";
-import type { ReviewSettings } from "../interaction/reviewFields";
+import type { ObjectExpansion, ReviewSettings } from "../interaction/reviewFields";
 import type { ValueWorkflow } from "../interaction/useValueWorkflow";
 import { tableFieldIds, tableLocationMessage } from "../interaction/tableFields";
 import type { TableFieldLocation } from "../interaction/tableFields";
@@ -15,6 +16,7 @@ import { ResizeHandle } from "./ResizeHandle";
 import { ValueMenuTrigger } from "./ValueActions";
 import { SourceReviewIcon, ViewerIcon } from "./ViewerIcon";
 import { FieldsSettings } from "./FieldsSettings";
+import type { CustomizedFieldOrderControl } from "./FieldsSettings";
 import type { FieldComparison } from "../model/fieldComparison";
 import { ComparisonFieldsPane } from "./ComparisonFieldsPane";
 
@@ -24,8 +26,8 @@ export interface FieldsReviewState {
     focused: string | null;
 }
 
-export const initialFieldsReview = (fields: readonly CuField[] = []): FieldsReviewState =>
-    ({ expanded: initialExpandedFields(fields), query: "", focused: null });
+export const initialFieldsReview = (fields: readonly CuField[] = [], objectExpansion?: ObjectExpansion): FieldsReviewState =>
+    ({ expanded: initialExpandedFields(fields, objectExpansion), query: "", focused: null });
 
 export interface FieldsPaneProps {
     comparison?: FieldComparison | undefined;
@@ -36,9 +38,11 @@ export interface FieldsPaneProps {
     onSettings: (settings: ReviewSettings) => void;
     order: ViewerFieldOrder;
     onOrder: (order: ViewerFieldOrder) => void;
-    orderReadOnly: boolean;
+    resetOrderDisabledReason: string | null;
+    customizedFieldOrder?: CustomizedFieldOrderControl | undefined;
     review: FieldsReviewState;
     setReview: Dispatch<SetStateAction<FieldsReviewState>>;
+    onExpansion: (open: boolean, group?: CuField) => void;
     selected: CuField | null;
     hovered: CuField | null;
     workflow: ValueWorkflow;
@@ -47,9 +51,6 @@ export interface FieldsPaneProps {
     onHover: (field: CuField, navigate?: boolean) => void;
     onLeave: (field: CuField) => void;
     onSelect: (field: CuField) => void;
-    sourceReady: boolean;
-    pageNumber: number;
-    isPageAvailable: (pageNumber: number) => boolean;
     restoringFocus: { current: boolean };
     tableScroll: Map<string, number>;
     selectionRequest: number | null;
@@ -75,10 +76,10 @@ function StandardFieldsPane(props: FieldsPaneProps) {
     const scopeIds = useMemo(() => props.tableScope ? tableFieldIds(props.tableScope.match) : null, [props.tableScope]);
     const id = useId();
     const descriptionId = (field: CuField): string => `${id}-value-${encodeURIComponent(field.id)}`;
-    const description = (field: CuField, summary?: string): string => {
+    const description = (field: CuField, summary?: string, hasSource = fieldRegions(field).length > 0): string => {
         const value = summary ?? displayValue(field);
         return `${value ? `${value} · ` : ""}${isFieldGroup(field) ? `Group of descendant ${props.labelMode ? "labels" : "fields"}` :
-            props.labelMode ? "Reference label (not compared)" : confidenceDescription(field, settings.threshold)}${fieldRegions(field).length ? "" : " · No source region"}${
+            props.labelMode ? "Reference label (not compared)" : confidenceDescription(field, settings.threshold)}${hasSource ? "" : " · No source region"}${
                 relatedBlock.has(field.id) ? " · Related to the current source table" : ""}${
                 field.needsSourceReview ? ` · ${SOURCE_REVIEW_DESCRIPTION}` : ""}`;
     };
@@ -97,30 +98,27 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         if (restore) settingsButton.current?.focus({ preventScroll: true });
         setSettingsOpen(false);
     };
-    useEffect(() => { setSettingsOpen(false); }, [props.workflow.context]);
+    useEffect(() => {
+        setSettingsOpen(false);
+        dragging.current = null; setDragId(null); setDropTarget(null);
+    }, [props.workflow.context]);
     const entries = useMemo(() => fieldEntries(fields), [fields]);
     const byId = useMemo(() => new Map(entries.map(entry => [entry.field.id, entry])), [entries]);
-    const setObjectExpansion = (open: boolean): void => props.setReview(current => {
-        const expanded = new Set(current.expanded);
-        for (const { field } of entries) if (field.type === "object" && field.children.length) {
-            if (open) expanded.add(field.id); else expanded.delete(field.id);
-        }
-        return { ...current, expanded };
-    });
-    const leaves = useMemo(() => leafFields(fields), [fields]);
     const matches = useMemo(() => {
         const found = matchingLeaves(fields, review.query, false, false, settings.threshold, scopeIds ?? undefined);
         return scopeIds ? new Set([...found].filter(id => scopeIds.has(id))) : found;
     }, [fields, review.query, settings.threshold, scopeIds]);
-    const navigation = useMemo(() => orderedLeafFields(fields, props.order, matches), [fields, props.order, matches]);
-    const currentIndex = navigation.findIndex(field => field.id === props.selected?.id);
     const visible = useMemo(() => visibleFieldIds(fields, matches), [fields, matches]);
     const filtering = Boolean(review.query.trim());
-    const reorderReason = props.orderReadOnly ? "Field order is read-only. Check the configuration; controlled order requires onFieldOrderChange." :
-        props.tableScope ? "Show all fields before reordering." :
-            filtering ? "Clear search and filters to reorder fields." : null;
+    const navigation = useMemo(() => orderedVisibleFields(fields, props.order, visible, filtering ? visible : review.expanded),
+        [fields, props.order, visible, filtering, review.expanded]);
+    const currentIndex = navigation.findIndex(field => field.id === props.selected?.id ||
+        (!filtering && isFieldGroup(field) && !review.expanded.has(field.id) && props.selected?.id.startsWith(`${field.id}/`)));
+    const reorderReason = props.resetOrderDisabledReason ?? (filtering ? "Clear search and filters to reorder fields." : null);
+    useFieldDragAutoScroll(viewport, dragId !== null && !reorderReason);
     const columnWidth = size.width * (settings.columns === 3 ? 0.83 : 1);
     const selectedGroup = props.selected && isFieldGroup(props.selected) ? props.selected : null;
+    const highlightedBlock = props.fieldReview && selectedGroup?.type === "object" ? null : selectedGroup;
     const hiddenGroupCount = props.tableLocation ? props.tableLocation.match.fields.filter(field => !visible.has(field.id)).length :
         selectedGroup ? leafFields([selectedGroup]).filter(field => !matches.has(field.id)).length :
         props.selected && byId.has(props.selected.id) && !matches.has(props.selected.id) ? 1 : 0;
@@ -158,7 +156,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         props.restoringFocus.current = true;
         button.focus({ preventScroll: true });
         props.restoringFocus.current = false;
-    }, [props.order, review.expanded, props.restoringFocus]);
+    }, [props.order, props.selectionRequest, review.expanded, props.restoringFocus]);
     useLayoutEffect(() => {
         if (!props.selectionRequest || !props.selected) {
             emphasis.current.forEach(animation => animation.cancel()); emphasis.current = []; return;
@@ -169,7 +167,9 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         const ids = new Set(targets.filter(field => visible.has(field.id)).map(field => field.id));
         const groups = entries.filter(entry => isFieldGroup(entry.field) && targets.some(field => visible.has(field.id) &&
             (field.id.startsWith(`${entry.field.id}/`) || (props.tableSelection && field === entry.field))));
-        if (groups.some(entry => !review.expanded.has(entry.field.id))) {
+        const displayed = !props.tableSelection &&
+            (fieldValueFocusTarget(viewport.current, props.selected.id) || nameButtons.current.has(props.selected.id));
+        if (!filtering && !displayed && groups.some(entry => !review.expanded.has(entry.field.id))) {
             props.setReview(current => ({ ...current, expanded: new Set([...current.expanded, ...groups.map(entry => entry.field.id)]) }));
             return;
         }
@@ -190,7 +190,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                 if (animation) emphasis.current.push(animation);
             }
         }
-    }, [props.selectionRequest, props.sourceSelection, props.selected, props.tableLocation, props.tableSelection, review.expanded, visible, entries, props.handledReveal, size]);
+    }, [props.selectionRequest, props.sourceSelection, props.selected, props.tableLocation, props.tableSelection, review.expanded, visible, filtering, entries, props.handledReveal, size]);
     const setFocus = (id: string): void => props.setReview(current => current.focused === id ? current : { ...current, focused: id });
     const move = (from: string, to: string, placement?: "before" | "after"): void => {
         try {
@@ -229,8 +229,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
             (currentIndex + direction + navigation.length) % navigation.length];
         if (!field) return;
         pendingFocus.current = { id: field.id, force: true };
-        props.setReview(current => ({ ...current, focused: field.id, expanded: new Set([...current.expanded,
-            ...entries.filter(entry => field.id.startsWith(`${entry.field.id}/`)).map(entry => entry.field.id)]) }));
+        props.setReview(current => ({ ...current, focused: field.id }));
         props.onSelect(field);
     };
     const value = (field: CuField, inline = false): ReactNode => {
@@ -248,7 +247,8 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         return { background, color: field.hasValue ? color : undefined, boxShadow };
     };
     const reviewClass = props.fieldReview ? " cu-comparison-value" : "";
-    const cell = (field: CuField): ReactNode => <div className={`cu-cell-content${reviewClass}`} style={valueStyle(field)}
+    const cell = (field: CuField): ReactNode => <div
+        className={`cu-cell-content${reviewClass}${field.needsSourceReview ? " cu-array-review-value" : ""}`} style={valueStyle(field)}
         data-field-id={field.id} data-field-type={field.type}
         onPointerMove={() => { if (!props.workflow.menuOpen.current) props.onHover(field); }}
         onPointerLeave={() => props.onLeave(field)}
@@ -271,7 +271,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         if (!projection || field.children.length === 0) return null;
         const selectedRow = projection.rows.find(row => [...row.cells.values()].some(child => child.id === props.selected?.id));
         const selectedColumn = selectedRow && [...selectedRow.cells].find(([, child]) => child.id === props.selected?.id)?.[0];
-        const groupMember = selectedGroup && (field.id === selectedGroup.id || field.id.startsWith(`${selectedGroup.id}/`));
+        const groupMember = highlightedBlock && (field.id === highlightedBlock.id || field.id.startsWith(`${highlightedBlock.id}/`));
         return <tr className={`cu-inline-detail-row${relatedBlock.has(field.id) ? " is-table-block" : ""}${groupMember ? " is-group-member" : ""}`} key={`${field.id}:grid`}><td colSpan={settings.columns}>
             <div className="cu-inline-table-wrap" data-array-id={field.id} ref={element => { if (element) element.scrollLeft = props.tableScroll.get(field.id) ?? 0; }}
                 onScroll={event => { props.tableScroll.set(field.id, event.currentTarget.scrollLeft); }}>
@@ -309,13 +309,10 @@ function StandardFieldsPane(props: FieldsPaneProps) {
             const group = isFieldGroup(field);
             const open = filtering || review.expanded.has(field.id);
             const collapsed = group && (!open || !field.children.length);
-            const summary = group ? collapsed ? collapsedValue(field, scopeIds ?? undefined) : displayValue(field) : "";
+            const summary = group ? collapsed ? collapsedReturnedValue(field, scopeIds ?? undefined) : displayValue(field) : undefined;
             const name = fieldDisplayName(field);
-            const regions = fieldRegions(field);
-            const pages = [...new Set(regions.map(region => region.pageNumber))];
-            const page = regions.find(region => region.pageNumber === props.pageNumber && props.isPageAvailable(region.pageNumber))?.pageNumber ??
-                regions.find(region => props.isPageAvailable(region.pageNumber))?.pageNumber ?? pages[0];
-            const member = selectedGroup && field.id.startsWith(`${selectedGroup.id}/`);
+            const hasSource = fieldRegions(field).length > 0;
+            const member = highlightedBlock && field.id.startsWith(`${highlightedBlock.id}/`);
             const selectedProxy = Boolean(group && !open && props.selected?.id.startsWith(`${field.id}/`));
             const hovered = props.hovered?.id === field.id ||
                 (group && !open && props.hovered?.id.startsWith(`${field.id}/`));
@@ -324,12 +321,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                     props.tableLocation?.match.fields.some(child => child.id.startsWith(`${field.id}/`))));
             const expand = (): void => {
                 if (!field.children.length) { props.workflow.inspect(field); return; }
-                if (filtering) return;
-                props.setReview(current => {
-                    const expanded = new Set(current.expanded);
-                    if (open) expanded.delete(field.id); else expanded.add(field.id);
-                    return { ...current, expanded };
-                });
+                if (!filtering) props.onExpansion(!open, field);
             };
             const row = <tr key={field.id} aria-level={depth + 1} aria-expanded={group && field.children.length ? open : undefined}
                 data-field-id={field.id} data-field-depth={depth} data-field-type={field.type}
@@ -346,7 +338,7 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                     if (!props.restoringFocus.current && !props.workflow.menuOpen.current && !event.currentTarget.contains(event.relatedTarget)) props.onHover(field, false);
                 }}
                 onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) props.onLeave(field); }}
-                onClick={event => { if (!group && !(event.target instanceof Element && event.target.closest("button"))) props.onSelect(field); }}
+                onClick={event => { if (focusFieldRowOnClick(event)) props.onSelect(field); }}
                 onDragOver={event => {
                     const from = entries.find(item => item.field.id === dragging.current);
                     if (!reorderReason && from?.parent === entry.parent && !entry.inArray && !from.inArray && from.field.id !== field.id) {
@@ -397,21 +389,15 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                         data-field-value-focus={field.id} onKeyDown={event => onFieldKey(event, field)}
                         aria-label={`View full value of ${fieldLabel(field)}`} aria-describedby={descriptionId(field)}
                         title="View full value and confidence (F2)"
-                        onClick={() => props.workflow.inspect(field, true)}>{field.hasValue ? summary : value(field)}</button> :
+                        onClick={() => props.workflow.inspect(field, true)}>{field.hasValue ?
+                            summary ?? <span className="cu-value-chip is-missing cu-summary-placeholder">{displayValue()}</span> : value(field)}</button> :
                         group ? <span className="cu-summary-value">{summary}</span> :
                         <button type="button" className="cu-field-value" tabIndex={-1} aria-label={`Select value of ${fieldLabel(field)}`}
                             aria-describedby={descriptionId(field)} data-field-value-focus={field.id}
                             onKeyDown={event => onFieldKey(event, field)}
                             aria-pressed={props.selected?.id === field.id} onClick={() => props.onSelect(field)}>{value(field)}</button>}
-                    {group && page !== undefined ? <span className="cu-group-value-actions"><button type="button" className="cu-page-badge"
-                        aria-label={`Locate ${name} on page ${page}${pages.length > 1 ? `, ${pages.length} source pages` : ""}`}
-                        aria-pressed={props.selected?.id === field.id}
-                        disabled={!props.sourceReady || !regions.some(region => props.isPageAvailable(region.pageNumber))}
-                        title={!props.sourceReady ? "Source is not ready for navigation." : !props.isPageAvailable(page) ?
-                            `Page ${page} is not present in the loaded source.` : `Locate all ${leafFields([field]).length} descendant fields.`}
-                        onClick={() => props.onSelect(field)}><ViewerIcon name="locate" />p.{page}{pages.length > 1 ? ` · ${pages.length} pages` : ""}</button></span> :
-                        <ValueMenuTrigger field={field} workflow={props.workflow} menuId={props.menuId} onOpen={props.onMenu} />}
-                    <span className="cu-visually-hidden" id={descriptionId(field)}>{description(field, collapsed ? summary : undefined)}</span>
+                    {(!group || !hasSource) && <ValueMenuTrigger field={field} workflow={props.workflow} menuId={props.menuId} onOpen={props.onMenu} />}
+                    <span className="cu-visually-hidden" id={descriptionId(field)}>{description(field, collapsed ? summary ?? displayValue() : undefined, hasSource)}</span>
                 </div></td>
                 {settings.columns === 3 && <td className="cu-confidence" title={group ? undefined : confidenceDescription(field, settings.threshold)}>
                     {group ? null : field.confidence !== undefined ? formatScore(field.confidence, settings.threshold) : "N/A"}</td>}
@@ -454,7 +440,8 @@ function StandardFieldsPane(props: FieldsPaneProps) {
             {hiddenGroupCount > 0 && <span>{hiddenGroupCount} selected {props.labelMode ? "labels" : "fields"} are hidden by filters.</span>}
             {notice && <span>{notice}</span>}
         </div>}
-        <footer className="cu-fields-review-footer" role="group" aria-label={props.labelMode ? "Label toolbar" : "Fields toolbar"} onKeyDown={event => {
+        <footer className="cu-fields-review-footer cu-aligned-search-footer" role="group"
+            aria-label={props.labelMode ? "Label toolbar" : "Fields toolbar"} onKeyDown={event => {
             if (event.key === "Escape" && settingsOpen) {
                 event.preventDefault(); event.stopPropagation(); closeSettings(true);
             }
@@ -469,8 +456,8 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                         props.labelMode ? "No matching labels" : "No matching fields"}
                     onClick={() => chooseNext(-1)}><ViewerIcon name="left" /></button>
                 <span aria-label={props.labelMode ? "Current label position" : "Current field position"} aria-live="polite"
-                    title={`${navigation.length} matching fields out of ${leaves.length} total.${
-                        currentIndex < 0 ? " No single field selected in this navigation range." : ""}`}>
+                    title={`${navigation.length} visible ${props.labelMode ? "labels" : "fields"} in this navigation range.${
+                        currentIndex < 0 ? " No field selected in this navigation range." : ""}`}>
                     {currentIndex < 0 ? "—" : currentIndex + 1} / {navigation.length} {props.labelMode ? "labels" : "fields"}
                 </span>
                 <button type="button" className="cu-icon-button" aria-label={props.labelMode ? "Next label" : "Next field"} disabled={!navigation.length}
@@ -490,8 +477,8 @@ function StandardFieldsPane(props: FieldsPaneProps) {
                 labelMode={Boolean(props.labelMode)}
                 settings={settings} onSettings={props.onSettings}
                 onResetOrder={() => props.onOrder({})}
-                resetOrderDisabledReason={props.orderReadOnly || props.tableScope ? reorderReason : null}
-                onObjectExpansion={setObjectExpansion}
+                resetOrderDisabledReason={props.resetOrderDisabledReason} customizedFieldOrder={props.customizedFieldOrder}
+                onObjectExpansion={props.onExpansion}
                 objectExpansionDisabledReason={filtering ? "Clear search before expanding or collapsing object fields." : null}
                 onClose={closeSettings} />}
         </footer>

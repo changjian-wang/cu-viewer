@@ -175,7 +175,7 @@ test("source loading preserves valid Fields and disables source-dependent contro
         await expect(page.getByRole("heading", { name: "Loading source..." })).toBeVisible();
         await expect(page.locator("[data-field-depth='0']")).toHaveCount(12);
         await expect(page.getByRole("button", { name: "Zoom in", exact: true })).toBeDisabled();
-        await expect(page.locator(".cu-page-badge").first()).toBeDisabled();
+        await expect(page.locator(".cu-page-badge")).toHaveCount(0);
         await expect(page.getByTestId("source-overlay")).toHaveCount(0);
         await neutral(page);
         await snapshot(page, "source-loading.png");
@@ -203,7 +203,7 @@ test("source and result errors stay independent and recovery restores the origin
     });
     await expect(page.getByRole("heading", { name: "Source could not be displayed" })).toBeVisible();
     await expect(page.locator("[data-field-depth='0']")).toHaveCount(31);
-    await expect(page.locator(".cu-page-badge").first()).toBeDisabled();
+    await expect(page.locator(".cu-page-badge")).toHaveCount(0);
     await neutral(page);
     await snapshot(page, "source-error.png");
 

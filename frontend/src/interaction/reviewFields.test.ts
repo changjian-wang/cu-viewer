@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseCuResult } from "../model/parseCuResult";
 import { fieldRegions, interaction, initialInteraction } from "./interaction";
-import { appearance, collapsedValue, confidenceDescription, copyValue, defaultReviewSettings, fieldAppearance, fieldEntries, formatScore, leafFields,
-    formatThreshold, initialExpandedFields, inlineArrayProjection, matchingLeaves, moveField, orderedFields, orderedLeafFields, parseThreshold, schemaIdentity,
-    validateFieldOrder, validateOrderParents } from "./reviewFields";
+import { appearance, collapsedReturnedValue, collapsedValue, confidenceDescription, copyValue, defaultReviewSettings, fieldAppearance, fieldEntries, formatScore, leafFields,
+    formatThreshold, initialExpandedFields, inlineArrayProjection, matchingLeaves, moveField, orderedFields, orderedVisibleFields, parseThreshold, schemaIdentity,
+    validateFieldOrder, validateOrderParents, visibleFieldIds } from "./reviewFields";
 
 function content(fields: Record<string, unknown>, analyzerId = "test") {
     return parseCuResult({ apiVersion: "2025-11-01", analyzerId, contents: [{
@@ -161,10 +161,15 @@ describe("ordered field navigation", () => {
             Last: text("last"),
         });
         const before = JSON.stringify(value.fields);
-        const included = new Set(leafFields(value.fields).map(field => field.id));
-        expect(orderedLeafFields(value.fields, {}, included).map(field => field.value)).toEqual(["alpha", "a", "b", "last"]);
+        const included = visibleFieldIds(value.fields, new Set(leafFields(value.fields).map(field => field.id)));
+        const expanded = new Set([value.fields[1]!.id]);
+        expect(orderedVisibleFields(value.fields, {}, included, expanded).map(field => field.name))
+            .toEqual(["Alpha", "Group/~", "A", "B", "Last"]);
+        expect(orderedVisibleFields(value.fields, {}, included, new Set()).map(field => field.name))
+            .toEqual(["Alpha", "Group/~", "Last"]);
         const order = { $root: ["/Group~1~0", "/Last"], "/Group~1~0": ["/Group~1~0/B"] };
-        expect(orderedLeafFields(value.fields, order, included).map(field => field.value)).toEqual(["b", "a", "last", "alpha"]);
+        expect(orderedVisibleFields(value.fields, order, included, expanded).map(field => field.name))
+            .toEqual(["Group/~", "B", "A", "Last", "Alpha"]);
         expect(JSON.stringify(value.fields)).toBe(before);
     });
 
@@ -173,17 +178,17 @@ describe("ordered field navigation", () => {
             Alpha: text("alpha"), Group: { type: "object", valueObject: { A: text("a"), B: text("b") } },
             Last: text("last"),
         });
-        const entries = fieldEntries(value.fields), included = new Set(leafFields(value.fields).map(field => field.id));
+        const entries = fieldEntries(value.fields), included = visibleFieldIds(value.fields, new Set(leafFields(value.fields).map(field => field.id)));
         const group = value.fields[1]!, selected = group.children[1]!;
         const before = JSON.stringify(value.fields);
         const moved = moveField(entries, {}, group.id, value.fields[0]!.id, "before");
         const nested = moveField(entries, moved, selected.id, group.children[0]!.id, "before");
-        const position = (order: Parameters<typeof orderedLeafFields>[1]) =>
-            orderedLeafFields(value.fields, order, included).findIndex(field => field === selected) + 1;
-        expect(position({})).toBe(3);
-        expect(position(moved)).toBe(2);
-        expect(position(nested)).toBe(1);
-        expect(position({})).toBe(3);
+        const position = (order: Parameters<typeof orderedVisibleFields>[1]) =>
+            orderedVisibleFields(value.fields, order, included, new Set([group.id])).findIndex(field => field === selected) + 1;
+        expect(position({})).toBe(4);
+        expect(position(moved)).toBe(3);
+        expect(position(nested)).toBe(2);
+        expect(position({})).toBe(4);
         expect(JSON.stringify(value.fields)).toBe(before);
     });
 
@@ -192,15 +197,18 @@ describe("ordered field navigation", () => {
             { type: "object", valueObject: { B: text("row1-b"), A: text("row1-a") } },
             { type: "object", valueObject: { A: text("row2-a"), B: text("row2-b"), C: text("row2-c") } },
         ] } });
-        const included = new Set(leafFields(value.fields).map(field => field.id));
-        expect(orderedLeafFields(value.fields, {}, included).map(field => field.value))
+        const included = visibleFieldIds(value.fields, new Set(leafFields(value.fields).map(field => field.id)));
+        const expanded = initialExpandedFields(value.fields);
+        const navigation = orderedVisibleFields(value.fields, {}, included, expanded);
+        expect(navigation[0]).toBe(value.fields[0]);
+        expect(navigation.slice(1).map(field => field.value))
             .toEqual(["row1-b", "row1-a", "row2-b", "row2-a", "row2-c"]);
-        const filtered = new Set([value.fields[0]!.children[1]!.children[0]!.id]);
-        expect(orderedLeafFields(value.fields, {}, filtered).map(field => field.value)).toEqual(["row2-a"]);
-        expect(orderedLeafFields(value.fields, {}, new Set())).toEqual([]);
+        const filtered = visibleFieldIds(value.fields, new Set([value.fields[0]!.children[1]!.children[0]!.id]));
+        expect(orderedVisibleFields(value.fields, {}, filtered, expanded).slice(1).map(field => field.value)).toEqual(["row2-a"]);
+        expect(orderedVisibleFields(value.fields, {}, new Set(), expanded)).toEqual([]);
     });
 
-    it("retains scalar arrays and nested-array tree order without numbering containers", () => {
+    it("retains scalar-array order and only enters manually expanded nested objects", () => {
         const value = content({
             Values: { type: "array", valueArray: [text("first"), text("second")] },
             Nested: { type: "array", valueArray: [
@@ -208,11 +216,13 @@ describe("ordered field navigation", () => {
             ] },
             Missing: { type: "string" },
         });
-        const leaves = leafFields(value.fields), included = new Set(leaves.map(field => field.id));
-        const navigation = orderedLeafFields(value.fields, {}, included);
-        expect(navigation).toHaveLength(leaves.length);
-        expect(navigation.map(field => field.value)).toEqual(leaves.map(field => field.value));
-        expect(navigation.every(field => field.children.length === 0)).toBe(true);
+        const included = visibleFieldIds(value.fields, new Set(leafFields(value.fields).map(field => field.id)));
+        const expanded = initialExpandedFields(value.fields);
+        const navigation = orderedVisibleFields(value.fields, {}, included, expanded);
+        expect(navigation.map(field => field.name)).toEqual(["Values", "0", "1", "Nested", "0", "Missing"]);
+        expanded.add(value.fields[1]!.children[0]!.id);
+        expect(orderedVisibleFields(value.fields, {}, included, expanded).map(field => field.name))
+            .toEqual(["Values", "0", "1", "Nested", "0", "Inner", "0", "1", "Missing"]);
     });
 });
 
@@ -244,9 +254,13 @@ describe("real collapsed field values", () => {
             Empty: { type: "object", valueObject: {} },
             Missing: { type: "object" },
             Null: { type: "object", valueObject: null },
-            MissingChildren: { type: "object", valueObject: { Child: { type: "string" } } },
+            MissingChildren: { type: "object", valueObject: { Nested: {
+                type: "object", valueObject: { Child: { type: "string" } },
+            } } },
+            LiteralMissing: { type: "object", valueObject: { Child: text("Not returned") } },
         }).fields;
-        expect(fields.map(field => collapsedValue(field))).toEqual(["{}", "Not returned", "null", "Not returned"]);
+        expect(fields.map(field => collapsedReturnedValue(field))).toEqual(["{}", undefined, "null", undefined, "Not returned"]);
+        expect(fields.map(field => collapsedValue(field))).toEqual(["{}", "Not returned", "null", "Not returned", "Not returned"]);
     });
 
     it("retains complete long values instead of adding data-level ellipses", () => {

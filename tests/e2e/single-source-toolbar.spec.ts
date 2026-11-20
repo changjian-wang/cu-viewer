@@ -7,7 +7,7 @@ test("simplified Legend and field summary preserve missing values and the field 
     await page.goto("/");
     await ready(page);
     const summary = page.locator(".cu-field-navigation > span");
-    await expect(summary).toHaveText("— / 77 fields");
+    await expect(summary).toHaveText("— / 73 fields");
     await expect(summary).not.toContainText("not returned");
     const missing = page.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/PaymentTerm"]');
     await expect(page.getByRole("switch", { name: "Hide missing fields", exact: true })).toHaveCount(0);

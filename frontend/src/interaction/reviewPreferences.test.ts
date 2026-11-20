@@ -36,8 +36,35 @@ describe("versioned Viewer preferences", () => {
         expect(loaded?.settings.showTables).toBe(false);
         expect(loaded?.settings.threshold).toBe(0.341);
         expect(loaded?.order).toEqual({ $root: ["/A"] });
+        expect(loaded?.objectExpansion).toBeUndefined();
+        expect(loaded?.useCustomizedFieldOrder).toBeUndefined();
         expect(store.getItem(preferenceKey("schema"))).toBe(text);
     });
+    it("round-trips both manual object states with the existing schema, order and layout", () => {
+        const store = storage();
+        const preferences = { settings: { ...defaultReviewSettings, columns: 3 as const }, order: { $root: ["/Other", "/Group~1~0"] },
+            objectExpansion: { "/Group~1~0": true, "/Group~1~0/Child": false }, useCustomizedFieldOrder: false };
+        writePreferences(store, "schema", preferences);
+        expect(readPreferences(store, "schema")).toEqual(preferences);
+        expect(readPreferences(store, "different schema")).toBeNull();
+    });
+    it("rejects a non-boolean custom field order switch", () => {
+        const store = storage();
+        const text = JSON.stringify({ format: "cu-viewer-review", version: 1, schema: "schema",
+            settings: defaultReviewSettings, order: {}, useCustomizedFieldOrder: "false" });
+        store.setItem(preferenceKey("schema"), text);
+        expect(() => readPreferences(store, "schema")).toThrow("Use Customized Field Order");
+        expect(store.getItem(preferenceKey("schema"))).toBe(text);
+    });
+    it.each([null, ["/Group"], { Group: true }, { "/Bad~2": true }, { "/Group": "false" }])(
+        "rejects malformed saved object expansion %j without rewriting it", objectExpansion => {
+            const store = storage();
+            const text = JSON.stringify({ format: "cu-viewer-review", version: 1, schema: "schema",
+                settings: defaultReviewSettings, order: {}, objectExpansion });
+            store.setItem(preferenceKey("schema"), text);
+            expect(() => readPreferences(store, "schema")).toThrow("Object expansion");
+            expect(store.getItem(preferenceKey("schema"))).toBe(text);
+        });
     const legacyCategories = { field: false, table: false, lowField: false, lowTable: false, unavailable: false };
     it("accepts valid legacy masks without retaining hidden filters or rewriting the stored record", () => {
         const store = storage();

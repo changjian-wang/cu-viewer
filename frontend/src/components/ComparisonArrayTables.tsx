@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { displayValue, fieldLabel } from "../interaction/interaction";
+import { displayValue, fieldLabel, missingValueText } from "../interaction/interaction";
 import { inlineArrayProjection } from "../interaction/reviewFields";
 import type { FieldComparison, FieldComparisonNode } from "../model/fieldComparison";
 import type { FieldsPaneProps } from "./FieldsPane";
@@ -72,7 +72,7 @@ function ArrayTable({ node, side, projection, columnWidths, comparison, props, r
                                 const cell = row.cells.get(column.key);
                                 const pair = cell && comparison.byFieldId.get(cell.id);
                                 return <td key={column.key}>{pair ? <ComparisonValue node={pair} side={side} props={props} arrayCell /> :
-                                    <span className="cu-value-chip is-missing cu-missing-cell">{displayValue()}</span>}</td>;
+                                    <span className="cu-value-chip is-missing cu-missing-cell">{missingValueText(side)}</span>}</td>;
                             })}
                         </tr>;
                     })}

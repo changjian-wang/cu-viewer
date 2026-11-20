@@ -45,15 +45,188 @@ async function reference(page: Page) {
 }
 
 for (const mode of ["unlabeled", "reference", "comparison"] as const) {
-    test(`missing values use gray Not returned without replacing real values in ${mode} Fields`, async ({ page }) => {
+    test(`field-row blank clicks select scalars and collapsed groups without intercepting controls in ${mode} mode`, async ({ page }) => {
+        const fields = {
+            First: text("First value", "D(1,1,1,1,0.2)"),
+            Second: text("Second value", "D(1,1,2,1,0.2)"),
+            Group: { type: "object", valueObject: { Child: text("Child value", "D(1,1,3,1,0.2)") } },
+            Missing: { type: "string" },
+        };
+        await page.goto("/");
+        await ready(page);
+        await page.getByLabel("Choose source file", { exact: true }).setInputFiles(pdf);
+        await ready(page);
+        if (mode !== "unlabeled") await upload(page, "Choose local label JSON", { fieldLabels: fields }, "row-click.pdf.labels.json");
+        if (mode !== "reference") await upload(page, "Choose saved Analyze JSON", result({
+            ...fields, First: text("First value", "D(1,3,1,1,0.2)"),
+        }), "row-click.pdf.result.json");
+        const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+        await expect(pane.getByRole("button", { name: "First", exact: true })).toBeVisible();
+        if (mode === "comparison") await expect(pane.getByRole("columnheader", { name: "Extracted Value", exact: true })).toBeVisible();
+        const row = (name: string) => pane.locator(mode === "unlabeled" ?
+            `tr[data-field-id="/contents/0/fields/${name}"]` : `tr[data-comparison-path="/${name}"]`);
+        const blankClick = async (name: string, column: number) => {
+            const cell = row(name).locator(":scope > td").nth(column);
+            expect(await cell.evaluate(element => {
+                const box = element.getBoundingClientRect();
+                return !element.ownerDocument.elementFromPoint(box.left + 2, box.top + 10)?.closest("button");
+            })).toBe(true);
+            await cell.click({ position: { x: 2, y: 10 } });
+        };
+        await blankClick("First", 0);
+        await expect(row("First")).toHaveClass(/is-selected/);
+        await blankClick("Second", mode === "comparison" ? 2 : 1);
+        await expect(row("Second")).toHaveClass(/is-selected/);
+        const groupValue = row("Group").locator(":scope > td").nth(1);
+        const groupBounds = await groupValue.boundingBox();
+        if (!groupBounds) throw new Error("The collapsed group value cell is not laid out.");
+        await page.mouse.click(groupBounds.x + groupBounds.width * 0.6, groupBounds.y + groupBounds.height / 2);
+        await expect(row("Group")).toHaveClass(/is-selected/);
+        const groupName = pane.getByRole("button", { name: "Group", exact: true });
+        await expect(groupName).toBeFocused();
+        await expect(groupName).toHaveAttribute("aria-expanded", "false");
+        await expect(pane.getByRole("button", { name: "Child", exact: true })).toHaveCount(0);
+        if (mode === "unlabeled") {
+            const details = pane.getByRole("region", { name: "Full value and confidence", exact: true });
+            await expect(details).toHaveCount(0);
+            await groupValue.getByRole("button", { name: "View full value of Group", exact: true }).click();
+            await expect(details).toBeVisible();
+            await details.getByRole("button", { name: "Close full value details", exact: true }).click();
+        }
+        await blankClick("Missing", 1);
+        await expect(row("Missing")).toHaveClass(/is-selected/);
+
+        const value = (side: "label" | "extracted") => row("First").getByRole("button", {
+            name: mode === "unlabeled" ? "Select value of First" : `Select ${side} value of First`, exact: true,
+        });
+        const source = page.getByTestId("source-overlay").locator("polygon").first();
+        if (mode !== "unlabeled") {
+            await value("label").click();
+            await expect(source).toHaveAttribute("data-source-id", "/labels/fields/First");
+        }
+        if (mode !== "reference") {
+            await value("extracted").click();
+            await expect(source).toHaveAttribute("data-source-id", "/contents/0/fields/First");
+        }
+        await pane.getByRole("button", { name: "Expand Group", exact: true }).click();
+        await expect(pane.getByRole("button", { name: "Group", exact: true })).toHaveAttribute("aria-expanded", "true");
+        await expect(row("First")).toHaveClass(/is-selected/);
+        await row("Group").getByRole("button", { name: "Reorder Group", exact: true }).click();
+        await expect(row("First")).toHaveClass(/is-selected/);
+        await row("Second").locator(":scope > td").last().hover();
+        const actions = row("Second").locator(":scope > td").last().getByRole("button", { name: "More value actions for Second", exact: true });
+        await expect(actions).toBeVisible();
+        await actions.click();
+        await expect(page.getByRole("menu", { name: "Value actions", exact: true })).toBeVisible();
+        await expect(row("First")).toHaveClass(/is-selected/);
+    });
+}
+
+for (const sample of ["labels", "multipage"]) {
+    test(`compared Fields navigation is centered across the whole footer on the ${sample} invoice`, async ({ page }) => {
+        await page.goto(`/?sample=${sample}`);
+        await ready(page);
+        const toolbar = page.getByRole("group", { name: "Fields toolbar", exact: true });
+        await expect(toolbar.getByRole("button", { name: /^Show matching fields/ })).toBeVisible();
+        const checkLayout = async (width?: number) => {
+            const layout = await toolbar.evaluate(element => {
+                const bar = element.getBoundingClientRect();
+                const search = element.querySelector(".cu-search-box")!.getBoundingClientRect();
+                const nav = element.querySelector(".cu-field-navigation")!.getBoundingClientRect();
+                const filters = element.querySelector(".cu-comparison-filters")!.getBoundingClientRect();
+                const settings = element.querySelector('button[aria-label="Fields settings"]')!.getBoundingClientRect();
+                return {
+                    width: bar.width, height: bar.height, centerError: Math.abs((nav.left + nav.right - bar.left - bar.right) / 2),
+                    gaps: [nav.left - search.right, filters.left - nav.right, settings.left - filters.right],
+                    padding: [search.left - bar.left, bar.right - settings.right],
+                    overflow: element.scrollWidth - element.clientWidth,
+                    controlsReachable: [...element.querySelectorAll("input, button")].every(control => {
+                        const box = control.getBoundingClientRect();
+                        const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+                        return box.width >= 24 && box.height >= 24 && control.contains(hit);
+                    }),
+                };
+            });
+            if (width !== undefined) expect(layout.width).toBeCloseTo(width, 0);
+            expect(layout.centerError).toBeLessThanOrEqual(1);
+            expect(layout.height).toBe(44);
+            expect(Math.min(...layout.gaps)).toBeGreaterThanOrEqual(4);
+            expect(layout.padding[0]).toBeCloseTo(layout.padding[1]!, 0);
+            expect(layout.overflow).toBeLessThanOrEqual(1);
+            expect(layout.controlsReachable).toBe(true);
+        };
+        await checkLayout();
+        await page.setViewportSize({ width: 1130, height: 900 });
+        await checkLayout();
+        await page.getByRole("separator", { name: "Source and results width", exact: true }).press("End");
+        await checkLayout(440);
+        await toolbar.getByRole("button", { name: "Next field", exact: true }).click();
+        await expect(toolbar.getByLabel("Current field position", { exact: true })).toHaveText(/^1 \/ \d+ fields$/);
+        await checkLayout(440);
+    });
+}
+
+test("clicking across the real invoice field-name and label-value gap selects and focuses the field", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    const row = page.locator('tr[data-comparison-path="/DueDate"]');
+    const name = row.getByRole("button", { name: "DueDate", exact: true });
+    const label = row.getByRole("button", { name: "Select label value of DueDate", exact: true });
+    const extracted = row.getByRole("button", { name: "Select extracted value of DueDate", exact: true });
+    const previous = page.getByRole("button", { name: "CustomerTaxId", exact: true });
+    await name.scrollIntoViewIfNeeded();
+    const points = await row.evaluate(element => {
+        const name = element.querySelector(".cu-field-name")?.getBoundingClientRect();
+        const label = element.querySelector(":scope > td:nth-child(2) > .cu-comparison-value > .cu-field-value");
+        const cell = label?.closest("td")?.getBoundingClientRect();
+        if (!name || !label || !cell) throw new Error("The invoice's name and label cells are not laid out.");
+        const range = element.ownerDocument.createRange();
+        range.selectNodeContents(label);
+        const text = range.getBoundingClientRect();
+        return [
+            { spot: "middle of the name-side gap", x: (name.right + cell.left) / 2 },
+            { spot: "name side of the column boundary", x: cell.left - 1 },
+            { spot: "label side of the column boundary", x: cell.left + 1 },
+            { spot: "immediately before the label text", x: text.left - 1 },
+            { spot: "blank space after the label text", x: (text.right + cell.right) / 2 },
+        ].map(point => ({ ...point, y: (text.top + text.bottom) / 2 }));
+    });
+    for (const { spot, x, y } of points) await test.step(spot, async () => {
+        await previous.click();
+        await page.mouse.click(x, y);
+        await expect(row).toHaveClass(/is-selected/);
+        await expect(previous).toHaveAttribute("aria-pressed", "false");
+        await expect(extracted).toHaveAttribute("aria-pressed", "true");
+        await expect(label).toHaveAttribute("aria-pressed", "false");
+        await expect(name).toBeFocused();
+    });
+    await expect(row).toHaveCSS("cursor", "pointer");
+    await page.getByRole("tab", { name: "Fields", exact: true }).hover();
+    await expect(row).toHaveCSS("background-color", "rgb(229, 218, 255)");
+    await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("button", { name: "InvoiceDate", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await label.click();
+    await expect(label).toHaveAttribute("aria-pressed", "true");
+    await extracted.click();
+    await expect(extracted).toHaveAttribute("aria-pressed", "true");
+});
+
+for (const mode of ["unlabeled", "reference", "comparison"] as const) {
+    test(`missing values use side-specific gray placeholders without replacing authored values in ${mode} Fields`, async ({ page }) => {
         const values = {
             Absent: { type: "string" }, AbsentObject: { type: "object" },
+            MissingSummary: { type: "object", valueObject: { Nested: {
+                type: "object", valueObject: { Child: { type: "string" } },
+            } } },
+            LiteralSummary: { type: "object", valueObject: { Child: text("Not returned") } },
+            EmptySummary: { type: "object", valueObject: { Child: text("") } },
             Zero: { type: "number", valueNumber: 0 }, False: { type: "boolean", valueBoolean: false },
             Empty: { type: "string", valueString: "" }, Null: { type: "string", valueString: null },
-            Dash: text("-"), EmDash: text("\u2014"), LiteralMissing: text("Not returned"),
+            Dash: text("-"), EmDash: text("\u2014"), LiteralMissing: text("Not returned"), LiteralUnlabelled: text("Not labelled"),
             Rows: { type: "array", valueArray: [
                 { type: "object", valueObject: { A: text("One") } },
                 { type: "object", valueObject: { B: text("Two") } },
+                { type: "object", valueObject: { A: { type: "string" }, B: text("") } },
             ] },
         };
         await page.goto("/");
@@ -67,6 +240,7 @@ for (const mode of ["unlabeled", "reference", "comparison"] as const) {
             ...values, Rows: mode === "comparison" ? { type: "array", valueArray: [
                 { type: "object", valueObject: { A: text("One") } },
                 { type: "object", valueObject: { B: { type: "string" } } },
+                { type: "object", valueObject: { A: text("Actual cell"), B: text("") } },
             ] } : values.Rows,
             LabelOnly: { type: "string", confidence: 0.2 }, ExtractedOnly: text("Actual"),
         }), "missing-values.pdf.result.json");
@@ -79,15 +253,22 @@ for (const mode of ["unlabeled", "reference", "comparison"] as const) {
         const sides: ("label" | "extracted")[] = mode === "comparison" ? ["label", "extracted"] :
             mode === "reference" ? ["label"] : ["extracted"];
         for (const side of sides) {
-            for (const name of ["Absent", "AbsentObject"]) {
-                const missing = valueCell(name, side).getByText("Not returned", { exact: true });
+            const placeholder = side === "label" ? "Not labelled" : "Not returned";
+            for (const name of ["Absent", "AbsentObject", "MissingSummary"]) {
+                const missing = valueCell(name, side).getByText(placeholder, { exact: true });
                 await expect(missing).toBeVisible();
                 await expect(missing).toHaveCSS("color", "rgb(75, 85, 99)");
                 await expect(missing).toHaveCSS("font-style", "italic");
+                await expect(missing).toHaveCSS("font-size", "11px");
+            }
+            for (const [name, expected] of [["LiteralSummary", "Not returned"], ["EmptySummary", '"" (empty string)']] as const) {
+                const cell = valueCell(name, side);
+                await expect(cell.getByText(expected, { exact: true })).toHaveCSS("font-style", "normal");
+                await expect(cell.locator(".is-missing")).toHaveCount(0);
             }
             for (const [name, expected] of [
                 ["Zero", "0"], ["False", "false"], ["Empty", '"" (empty string)'], ["Null", "null"],
-                ["Dash", "-"], ["EmDash", "\u2014"], ["LiteralMissing", "Not returned"],
+                ["Dash", "-"], ["EmDash", "\u2014"], ["LiteralMissing", "Not returned"], ["LiteralUnlabelled", "Not labelled"],
             ] as const) {
                 const cell = valueCell(name, side);
                 await expect(cell.getByRole("button", { name: /^Select / })).toHaveText(expected);
@@ -95,13 +276,26 @@ for (const mode of ["unlabeled", "reference", "comparison"] as const) {
             }
         }
         await expandField(page, "Rows");
-        for (const side of sides) {
-            const name = mode === "unlabeled" ? "Rows values" : `Rows ${side} values`;
-            const missingCells = page.getByRole("table", { name, exact: true }).locator(".cu-missing-cell");
-            await expect(missingCells).toHaveCount(2);
-            for (const cell of await missingCells.all()) {
-                await expect(cell).toHaveText("Not returned");
-                await expect(cell).toHaveCSS("color", "rgb(75, 85, 99)");
+        for (const layout of mode === "comparison" ? ["Side by side", "Stacked"] : [null]) {
+            if (layout) await page.getByRole("button", { name: layout, exact: true }).click();
+            for (const side of sides) {
+                const name = mode === "unlabeled" ? "Rows values" : `Rows ${side} values`;
+                const table = page.getByRole("table", { name, exact: true });
+                const missingCells = table.locator(".cu-missing-cell");
+                await expect(missingCells).toHaveCount(2);
+                for (const cell of await missingCells.all()) {
+                    await expect(cell).toHaveText(side === "label" ? "Not labelled" : "Not returned");
+                    await expect(cell).toHaveCSS("color", "rgb(75, 85, 99)");
+                }
+                if (side === "label") {
+                    const cells = table.locator('tr[data-comparison-row="2"] td');
+                    const missing = cells.nth(0).getByLabel("Not labelled", { exact: true });
+                    await expect(missing).toHaveText("Not labelled");
+                    await expect(missing.locator(".cu-value-chip")).toHaveCSS("font-style", "italic");
+                    const empty = cells.nth(1).getByRole("button", { name: /^Select label value/ });
+                    await expect(empty).toHaveText('"" (empty string)');
+                    if (mode === "comparison") await expect(empty.locator("..")).toHaveAttribute("data-comparison-status", "matched");
+                }
             }
         }
         if (mode === "comparison") {
@@ -112,7 +306,7 @@ for (const mode of ["unlabeled", "reference", "comparison"] as const) {
             const row = await arrayMissing.locator("..").locator("..").boundingBox();
             if (!row) throw new Error("The missing-value array row is unavailable.");
             expect(row.height).toBeLessThanOrEqual(29);
-            await expect(valueCell("ExtractedOnly", "label").getByLabel("No label", { exact: true })).toHaveText("Not returned");
+            await expect(valueCell("ExtractedOnly", "label").getByLabel("Not labelled", { exact: true })).toHaveText("Not labelled");
             const missing = valueCell("LabelOnly", "extracted").getByLabel("Not extracted", { exact: true });
             await expect(missing).toHaveText("Not returned");
             await expect(missing).toHaveCSS("background-color", "rgb(248, 192, 200)");
@@ -125,51 +319,116 @@ for (const mode of ["unlabeled", "reference", "comparison"] as const) {
     });
 }
 
-test("the invoice marks CountryRegion for source review in both Fields views without marking the amount", async ({ page }) => {
+test("the real invoice distinguishes missing labels from missing extractions in objects and arrays", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    const row = (name: string) => pane.locator(`tr[data-comparison-path="/${name}"]`);
+    const value = (name: string, side: "label" | "extracted") => row(name).locator(":scope > td").nth(side === "label" ? 1 : 2);
+    await page.locator(".prototype-banner").hover();
+    const ordinary = value("PaymentTerm", "label").getByText("Not labelled", { exact: true });
+    await expect(ordinary).toHaveCSS("color", "rgb(75, 85, 99)");
+    for (const name of ["SubtotalAmount", "TotalDiscountAmount", "TotalTaxAmount"]) {
+        const labelSummary = value(name, "label").getByRole("button", { name: `Select label value of ${name}`, exact: true });
+        await expect(labelSummary).toHaveText("Not labelled");
+        const missing = labelSummary.getByText("Not labelled", { exact: true });
+        await expect(missing).toHaveCSS("font-style", "italic");
+        await expect(missing).toHaveCSS("color", "rgb(75, 85, 99)");
+        await expect(missing).toHaveCSS("font-size", "11px");
+    }
+    const discount = value("TotalDiscountAmount", "extracted").getByText("Not returned", { exact: true });
+    await expect(discount).toHaveCSS("font-style", "italic");
+    await expect(discount).toHaveCSS("color", "rgb(75, 85, 99)");
+    const subtotal = value("SubtotalAmount", "extracted").getByRole("button", { name: "Select extracted value of SubtotalAmount" });
+    await expect(subtotal).toHaveText("100 USD");
+    await expect(subtotal).toHaveCSS("font-style", "normal");
+    expect(await row("TotalDiscountAmount").evaluate(element => element.getBoundingClientRect().height))
+        .toBe(await row("BalanceForward").evaluate(element => element.getBoundingClientRect().height));
+    await expandField(page, "SubtotalAmount");
+    for (const child of ["Amount", "CurrencyCode"]) {
+        const missing = value(`SubtotalAmount/${child}`, "label").getByText("Not labelled", { exact: true });
+        await expect(missing).toHaveCSS("font-style", "italic");
+    }
+    await expandField(page, "LineItems");
+    const unit = pane.getByRole("table", { name: "LineItems label values", exact: true })
+        .locator('[data-field-value-focus="/labels/fields/LineItems/valueArray/1/valueObject/QuantityUnit"] .cu-value-chip');
+    await expect(unit).toHaveText("Not labelled");
+    await expect(unit).toHaveCSS("font-style", "italic");
+});
+
+test("source-review stars share the same solid light blue style and stay outside array value fills in both Fields views", async ({ page }) => {
     await page.goto("/?sample=labels");
     await ready(page);
     const pane = page.getByRole("region", { name: "Extraction results", exact: true });
     const compareRow = (path: string) => pane.locator(`tr[data-comparison-path="${path}"]`);
     const regularRow = (path: string) => pane.locator(`tr[data-field-id="/contents/0/fields/${path}"]`);
-    const expectSourceReview = async (row: Locator, value: Locator) => {
-        const name = row.getByRole("button", { name: "CountryRegion", exact: true });
-        const icon = name.locator(".cu-source-review-icon svg");
-        await expect(name).toHaveCSS("color", "rgb(116, 81, 166)");
+    const lightBlue = "rgb(203, 234, 241)";
+    const expectStar = async (icon: Locator) => {
         await expect(icon).toBeVisible();
-        await expect(icon.locator("path")).toHaveCSS("fill", "rgb(116, 81, 166)");
+        await expect(icon).toHaveCSS("fill", lightBlue);
+        await expect(icon).toHaveCSS("stroke", "none");
+    };
+    const expectSourceReview = async (row: Locator, value: Locator, fieldName: string, valueText: string) => {
+        const name = row.getByRole("button", { name: fieldName, exact: true });
+        for (const state of ["normal", "hover", "focus", "selected"] as const) {
+            if (state === "hover") await name.hover();
+            else if (state === "focus") await name.focus();
+            else if (state === "selected") await name.click();
+            await expect(name).toHaveCSS("color", "rgb(36, 52, 71)");
+            await expect(name.locator(".cu-source-review-name")).toHaveCSS("color", "rgb(36, 52, 71)");
+            await expectStar(name.locator(".cu-source-review-icon path"));
+            await expect(value).toHaveCSS("background-color", lightBlue);
+        }
+        await page.locator(".prototype-banner").hover();
         await expect(name).toHaveAccessibleDescription(/No direct match in the source text/);
-        await expect(value).toContainText("United States");
-        await expect(value).toHaveCSS("background-color", "rgb(203, 234, 241)");
+        await expect(value).toContainText(valueText);
+        await expect(value).toHaveCSS("background-color", lightBlue);
         await expect(value).toHaveCSS("box-shadow", /180, 60, 75/);
     };
 
     const country = compareRow("/CountryRegion");
     const extractedCountry = country.locator("td").nth(2).locator(".cu-comparison-value");
-    await expectSourceReview(country, extractedCountry);
+    await expectSourceReview(country, extractedCountry, "CountryRegion", "United States");
     await expect(extractedCountry).toHaveAttribute("data-comparison-status", "extra");
-    await expect(country.locator("td").nth(1)).toHaveText("Not returned");
+    await expect(country.locator("td").nth(1)).toHaveText("Not labelled");
     await expect(page.getByTestId("result-overlay").locator('polygon[data-outline-id="/contents/0/fields/CountryRegion"]').first())
         .toHaveCSS("fill", "rgb(255, 218, 221)");
     await expandField(page, "AmountDue");
     await expect(compareRow("/AmountDue/Amount").locator(".cu-source-review-icon")).toHaveCount(0);
+    const comparedCurrency = compareRow("/AmountDue/CurrencyCode");
+    await expectSourceReview(comparedCurrency, comparedCurrency.locator("td").nth(2).locator(".cu-comparison-value"),
+        "CurrencyCode", "USD");
     await expect(compareRow("/InvoiceDate").locator(".cu-source-review-icon")).toHaveCount(0);
     await expect(compareRow("/VendorAddress").locator(".cu-source-review-icon")).toHaveCount(0);
     const taxCurrencyId = "/contents/0/fields/LineItems/valueArray/0/valueObject/TaxAmount/valueObject/CurrencyCode";
-    const taxCurrency = pane.getByRole("table", { name: "LineItems extracted values", exact: true })
-        .locator(`[data-field-id="${taxCurrencyId}"]`);
-    await expect(taxCurrency).toHaveText("USD");
-    await expect(taxCurrency.locator(".cu-source-review-icon")).toBeVisible();
-    await expect(taxCurrency).toHaveCSS("background-color", "rgb(203, 234, 241)");
+    const expectArrayStar = async (table: string) => {
+        const cell = pane.getByRole("table", { name: table, exact: true }).locator(`[data-field-id="${taxCurrencyId}"]`);
+        await expect(cell.getByRole("button", { name: /^Select / })).toHaveText("USD");
+        await expectStar(cell.locator(".cu-source-review-icon path"));
+        const [marker, surface] = await Promise.all([cell.locator(".cu-source-review-icon").boundingBox(), cell.boundingBox()]);
+        if (!marker || !surface) throw new Error("The currency marker and value surface must both be laid out.");
+        expect(marker.x + marker.width).toBeLessThan(surface.x);
+        await expect(cell).toHaveCSS("background-color", lightBlue);
+        await expect(cell).toHaveCSS("box-shadow", /180, 60, 75/);
+    };
+    await expectArrayStar("LineItems extracted values");
+    await pane.getByRole("group", { name: "LineItems array layout", exact: true })
+        .getByRole("button", { name: "Stacked", exact: true }).click();
+    await expectArrayStar("LineItems extracted values");
 
     await page.getByLabel("Choose source file", { exact: true }).setInputFiles(pdf);
     await ready(page);
     await page.getByLabel("Choose saved Analyze JSON", { exact: true }).setInputFiles(`${pdf}.result.json`);
     await expect(pane.getByRole("columnheader", { name: "Value", exact: true })).toBeVisible();
-    await expectSourceReview(regularRow("CountryRegion"), regularRow("CountryRegion").locator(".cu-field-value-content"));
+    await expectSourceReview(regularRow("CountryRegion"), regularRow("CountryRegion").locator(".cu-field-value-content"),
+        "CountryRegion", "United States");
     await expandField(page, "AmountDue");
     await expect(regularRow("AmountDue/valueObject/Amount").locator(".cu-source-review-icon")).toHaveCount(0);
+    const regularCurrency = regularRow("AmountDue/valueObject/CurrencyCode");
+    await expectSourceReview(regularCurrency, regularCurrency.locator(".cu-field-value-content"), "CurrencyCode", "USD");
     await expect(regularRow("AmountDue/valueObject/Amount").locator(".cu-field-value-content"))
         .toHaveCSS("background-color", "rgb(220, 251, 215)");
+    await expectArrayStar("LineItems values");
 });
 
 test("compared fields can be reordered without separating label and extracted values", async ({ page }) => {
@@ -244,7 +503,7 @@ for (const mode of ["reference", "comparison"] as const) {
         await assertPosition(3);
         const missing = row("Missing").locator('[data-field-value-focus="/labels/fields/Missing"]');
         await expect(missing).toBeFocused();
-        await expect(missing).toHaveText("Not returned");
+        await expect(missing).toHaveText("Not labelled");
         await page.keyboard.press("ArrowDown");
         await assertPosition(4);
         await expect(value("Last", preferred)).toBeFocused();
@@ -299,6 +558,33 @@ for (const compared of [false, true]) {
         await expect.poll(order).toEqual(["/First", "/Second", "/Group"]);
     });
 }
+
+test("the unlabeled invoice preview leaves CustomerName plain and retains the Fields and source highlights", async ({ page }) => {
+    await page.goto("/?sample=pdf");
+    await ready(page);
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    const id = "/contents/0/fields/CustomerName";
+    const name = pane.getByRole("button", { name: "CustomerName", exact: true });
+    const cell = pane.locator(`tr[data-field-id="${id}"] .cu-field-value-content`);
+    const source = page.getByTestId("result-overlay").locator(`polygon[data-outline-id="${id}"]`).first();
+    const preview = page.getByRole("tooltip", { name: "Field preview", exact: true });
+    const value = preview.locator(".cu-flyover-value dd");
+    const badge = preview.locator(".cu-flyover-confidence");
+
+    for (const target of [name, source]) {
+        await target.hover();
+        await expect(preview.locator(".cu-popover-heading")).toHaveText("CustomerName");
+        await expect(value).toHaveText("MICROSOFT CORPORATION");
+        await expect(value).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+        await expect(value).toHaveCSS("box-shadow", "none");
+        await expect(preview.locator(".cu-popover-heading")).toHaveCSS("background-color", "rgb(229, 218, 255)");
+        await expect(badge.locator("dd")).toHaveText("0.34");
+        await expect(badge).toHaveCSS("background-color", "rgb(255, 218, 221)");
+        await expect(cell).toHaveCSS("background-color", "rgb(220, 251, 215)");
+        await expect(cell).toHaveCSS("box-shadow", /180, 60, 75/);
+        await expect(source).toHaveCSS("fill", "rgb(220, 251, 215)");
+    }
+});
 
 test("the invoice tooltip reuses the Extracted Value background without coloring the label or frame", async ({ page }) => {
     await page.goto("/?sample=labels");
@@ -1532,6 +1818,10 @@ test("large comparison and reference arrays keep a bounded DOM and reach the las
     }).toBe(true);
     expect(await pane.locator("[data-comparison-row]").count()).toBeLessThan(200);
     await expect(last).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(pane.getByRole("button", { name: "Rows", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(pane.getByRole("button", { name: "Rows", exact: true })).toHaveAttribute("aria-expanded", "true");
+    await expect(pane.getByLabel("Current field position", { exact: true })).toHaveText("1 / 10001 fields");
     await page.keyboard.press("ArrowDown");
     const first = pane.locator('button[data-source-field-id="/contents/0/fields/Rows/valueArray/0/valueObject/C0"]');
     await expect(first).toBeFocused();

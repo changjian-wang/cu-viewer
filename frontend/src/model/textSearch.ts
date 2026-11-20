@@ -7,9 +7,13 @@ export interface TextSearchIndex {
     checkpoints: readonly number[];
 }
 
+export function literalTextPattern(query: string): string {
+    return query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function indexLiteralText(text: string, query: string, signal?: AbortSignal): Promise<TextSearchIndex> {
     signal?.throwIfAborted();
-    const pattern = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = literalTextPattern(query);
     const checkpoints: number[] = [];
     if (!query) return { pattern, count: 0, checkpoints };
     const expression = new RegExp(pattern, "giu");

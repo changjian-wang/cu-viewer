@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import { displayValue, fieldLabel, formatConfidence } from "../interaction/interaction";
+import { displayValue, fieldLabel, formatConfidence, missingValueText } from "../interaction/interaction";
 import { appearance, collapsedValue, comparedExtractedAppearance, confidenceDescription, defaultReviewSettings, FIELD_REVIEW_COLORS,
     isLowConfidence, isTableValue, labelSummary, standaloneFieldAppearance } from "../interaction/reviewFields";
 import { comparisonStatusText } from "../model/fieldComparison";
@@ -13,6 +13,7 @@ import { ViewerIcon } from "./ViewerIcon";
 
 interface SourcePopoverProps {
     fieldReview?: boolean;
+    unlabeledPdfFields?: boolean;
     comparison?: FieldComparison | undefined;
     labelMode?: boolean;
     id: string;
@@ -87,10 +88,13 @@ export function SourcePopover(props: SourcePopoverProps) {
     };
     const standaloneReview = props.fieldReview && !props.labelMode && !pair;
     const comparedBackground = pair?.extracted?.hasValue ? comparedExtractedAppearance(pair, settings).background : undefined;
-    const standaloneBackground = standaloneReview && props.field.hasValue ?
+    const standaloneBackground = standaloneReview && !props.unlabeledPdfFields && props.field.hasValue ?
         standaloneFieldAppearance(props.field, settings).background : undefined;
-    const valueText = (field: CuField | undefined): string => !field?.hasValue ? "Not returned" :
-        field.type === "object" ? collapsedValue(field) || "{}" : displayValue(field);
+    const valueText = (side: "label" | "extracted"): string => {
+        const field = pair?.[side];
+        if (!field?.hasValue) return missingValueText(side);
+        return field.type === "object" ? collapsedValue(field) : displayValue(field);
+    };
     return <>
         <aside id={props.id} ref={element} role="tooltip" aria-label={props.labelMode ? "Label preview" : paragraph ? "Paragraph preview" : "Field preview"}
             className={`cu-source-popover${pair ? " cu-source-comparison-popover" : ""}`}
@@ -101,9 +105,9 @@ export function SourcePopover(props: SourcePopoverProps) {
             <dl id={`${props.id}-content`} className={`cu-flyover-body${pair ? " cu-flyover-comparison" : ""}`}
                 aria-label={pair ? comparisonStatusText(pair.status) : undefined}>
                 {pair && <><div data-comparison-side="label"><dt>Label Value</dt>
-                        <dd><span className="cu-flyover-comparison-value">{valueText(pair.label)}</span></dd></div>
+                        <dd><span className="cu-flyover-comparison-value">{valueText("label")}</span></dd></div>
                     <div data-comparison-side="extracted"><dt>Extracted Value</dt><dd>
-                        <span className="cu-flyover-comparison-value" style={{ background: comparedBackground }}>{valueText(pair.extracted)}</span>
+                        <span className="cu-flyover-comparison-value" style={{ background: comparedBackground }}>{valueText("extracted")}</span>
                         {pair.extracted?.confidence !== undefined && <span className={`cu-flyover-confidence${scoreLow ? " is-low" : ""}`}
                             style={confidenceStyle}
                             aria-label={confidenceDescription(pair.extracted, settings.threshold)}

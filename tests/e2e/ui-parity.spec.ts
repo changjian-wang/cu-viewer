@@ -733,23 +733,22 @@ test("UI-55 current field position advances with previous/next navigation withou
     await expect(page.getByRole("region", { name: "Full value and confidence" })).toHaveCount(0);
 });
 
-test("UI-33/47 groups keep blank confidence and hover-only page actions without selected-count labels", async ({ page }) => {
+test("UI-33/47 groups keep blank confidence and locate from the row without page badges", async ({ page }) => {
     await loadReviewFixture(page);
     await setShowConfidence(page, true);
     const row = page.locator(fieldRow("/contents/0/fields/CustomerAddress"));
     await page.locator(".prototype-banner").hover();
-    await expect(row.locator(".cu-page-badge")).toBeHidden();
     await expect(row.locator(".cu-confidence")).toHaveText("");
     const before = await row.evaluate(element => ({ height: element.getBoundingClientRect().height, width: element.getBoundingClientRect().width }));
     await row.hover();
-    await expect(row.locator(".cu-page-badge")).toBeVisible();
+    await expect(row.locator(".cu-field-value-content button")).toHaveCount(0);
     await locateGroup(page, "/contents/0/fields/CustomerAddress");
     await expect(row.locator(".cu-group-selection-count")).toHaveCount(0);
     await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCount(2);
     expect(await row.evaluate(element => ({ height: element.getBoundingClientRect().height, width: element.getBoundingClientRect().width }))).toEqual(before);
     await page.getByRole("group", { name: "Source viewport", exact: true }).focus();
     await page.locator(".prototype-banner").hover();
-    await expect(row.locator(".cu-page-badge")).toBeHidden();
+    await expect(row.locator(".cu-field-value-content button")).toHaveCount(0);
 });
 
 test("UI-33 inline array defaults match the reference and value actions retain icons and keyboard behavior", async ({ page }) => {

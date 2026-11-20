@@ -38,6 +38,57 @@ describe("original JSON result presentation", () => {
         expect(screen.getByText("\"second\"")).toBeTruthy();
     });
 
+    it("finds literal text in original order across hidden branches, pages and the full contents of a long value", async () => {
+        const values = Array.from({ length: 202 }, (_, index) => index === 201 ?
+            { "Tag~/[hit]": `${"x".repeat(4_200)}\n[HIT] and [hit]` } : { unrelated: index });
+        const original = { visible: "not filtered", nested: { values } };
+        const { container } = render(<JsonPane value={original} />);
+        const toolbar = screen.getByRole("group", { name: "Result JSON toolbar" });
+        const search = within(toolbar).getByRole("searchbox", { name: "Search result JSON" });
+        const active = () => container.querySelector("mark[data-json-tree-match]");
+        expect(screen.queryByText(/Tag~/)).toBeNull();
+        fireEvent.change(search, { target: { value: "[hit]" } });
+        await within(toolbar).findByText("1 / 3");
+        const position = within(toolbar).getByRole("status", { name: "JSON search results" });
+        expect(active()?.textContent).toBe("[hit]");
+        expect(active()?.closest("[data-json-path]")?.getAttribute("data-json-path")).toBe("/nested/values/201/Tag~0~1[hit]");
+        expect(screen.getByText("Entries 201-202 of 202")).toBeTruthy();
+        expect(screen.getByText('"not filtered"')).toBeTruthy();
+
+        fireEvent.keyDown(search, { key: "Enter" });
+        expect(position.textContent).toBe("2 / 3");
+        expect(active()?.textContent).toBe("[HIT]");
+        expect(active()?.parentElement?.textContent).toContain("\\n[HIT] and [hit]");
+        expect(screen.getByRole("button", { name: "View full text for /nested/values/201/Tag~0~1[hit]" })).toBeTruthy();
+        fireEvent.keyDown(search, { key: "Enter" });
+        expect(position.textContent).toBe("3 / 3");
+        fireEvent.keyDown(search, { key: "Enter" });
+        expect(position.textContent).toBe("1 / 3");
+        fireEvent.keyDown(search, { key: "Enter", shiftKey: true });
+        expect(position.textContent).toBe("3 / 3");
+
+        fireEvent.keyDown(search, { key: "Escape" });
+        expect(active()).toBeNull();
+        expect(screen.getByText("Entries 201-202 of 202")).toBeTruthy();
+    });
+
+    it("collapses and expands from the toolbar without resetting the chosen collection page", async () => {
+        const values = Array.from({ length: 110 }, (_, index) => ({ child: { index } }));
+        const { container } = render(<JsonPane value={{ values }} />);
+        const toolbar = screen.getByRole("group", { name: "Result JSON toolbar" });
+        const collapse = within(toolbar).getByRole("button", { name: "Collapse all" });
+        const expand = within(toolbar).getByRole("button", { name: "Expand all" });
+        fireEvent.click(expand);
+        await screen.findByText("Entries 1-100 of 110");
+        fireEvent.click(screen.getByRole("button", { name: "Last JSON entries at /values page" }));
+        expect(container.querySelector('[data-json-path="/values/109/child/index"]')).toBeTruthy();
+        fireEvent.click(collapse);
+        expect(screen.getAllByRole("treeitem")).toHaveLength(1);
+        fireEvent.click(expand);
+        await screen.findByText("Entries 101-110 of 110");
+        expect(container.querySelector('[data-json-path="/values/109/child/index"]')).toBeTruthy();
+    });
+
     it("rejects circular and non-JSON values explicitly", () => {
         const circular: { self?: unknown } = {};
         circular.self = circular;

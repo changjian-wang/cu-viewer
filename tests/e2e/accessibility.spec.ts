@@ -147,12 +147,15 @@ test("hidden field descriptions do not overflow the desktop and Result scrolls i
 });
 
 test("keyboard operates field expansion and value selection with truthful accessible descriptions", async ({ page }) => {
-    const expand = page.getByRole("button", { name: "AmountDue", exact: true });
-    await tabTo(page, expand);
+    const group = page.getByRole("button", { name: "AmountDue", exact: true });
+    const row = page.locator('tr[data-field-id="/contents/0/fields/AmountDue"]');
+    await tabTo(page, group);
     await page.keyboard.press("Enter");
-    const collapse = page.getByRole("button", { name: "AmountDue", exact: true });
-    await expect(collapse).toBeFocused();
-    await expect(collapse).toHaveAttribute("aria-expanded", "true");
+    await expect(group).toBeFocused();
+    await expect(group).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("ArrowDown");
+    await expect(row).toHaveClass(/is-group-selected/);
+    await expect(group).toBeFocused();
     const value = page.getByRole("button", { name: "Select value of AmountDue / Amount", exact: true });
     await page.keyboard.press("ArrowDown");
     await expect(value).toBeFocused();
@@ -166,7 +169,7 @@ test("keyboard operates field expansion and value selection with truthful access
     await expect(page.getByRole("button", { name: "BillingAddress", exact: true }))
         .toHaveAccessibleDescription(/123 Bill St, Redmond WA, 98052.*Confidence 0\.32/);
     await page.getByRole("button", { name: "Collapse AmountDue", exact: true }).press("Enter");
-    await expect(page.locator('[data-field-id="/contents/0/fields/AmountDue"]')).toHaveClass(/is-selected/);
+    await expect(row).toHaveClass(/is-selection-proxy/);
 });
 
 test("dynamic tabs have one keyboard stop, correct panel links and keyboard-operable detail and Result controls", async ({ page }) => {

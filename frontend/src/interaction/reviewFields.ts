@@ -1,6 +1,6 @@
 import type { ViewerFieldOrder } from "../index";
 import type { CuContent, CuField } from "../model/types";
-import { displayValue, fieldDisplayName, flattenFields, formatConfidence as formatScore, isFieldGroup } from "./interaction";
+import { displayValue, fieldDisplayName, flattenFields, formatConfidence as formatScore, isFieldGroup, missingValueText } from "./interaction";
 import { isComparisonError } from "../model/fieldComparison";
 import type { ComparisonStatus, FieldComparisonNode } from "../model/fieldComparison";
 
@@ -115,7 +115,12 @@ export function copyValue(field: CuField): string {
 }
 
 export function collapsedValue(field: CuField, included?: ReadonlySet<string>): string {
-    if (!field.hasValue || field.type !== "object" || field.value === null || field.value === "") return displayValue(field);
+    return collapsedReturnedValue(field, included) ?? missingValueText(field.origin);
+}
+
+export function collapsedReturnedValue(field: CuField, included?: ReadonlySet<string>): string | undefined {
+    if (!field.hasValue) return undefined;
+    if (field.type !== "object" || field.value === null || field.value === "") return displayValue(field);
     const values: string[] = [];
     const stack = field.children.slice().reverse();
     while (stack.length) {
@@ -127,7 +132,7 @@ export function collapsedValue(field: CuField, included?: ReadonlySet<string>): 
         } else if (!included || included.has(child.id) ||
             (child.type === "array" && leafFields([child]).some(field => included.has(field.id)))) values.push(displayValue(child));
     }
-    return values.length ? values.join(" ") : field.children.length ? "Not returned" : "{}";
+    return values.length ? values.join(" ") : field.children.length ? undefined : "{}";
 }
 
 export function labelSummary(field: CuField): string {
@@ -172,6 +177,26 @@ export function fieldEntries(fields: readonly CuField[]): FieldEntry[] {
 }
 
 const pointer = /^(?:\/(?:[^~/]|~[01])*)+$/;
+
+export type ObjectExpansion = Readonly<Record<string, boolean>>;
+
+export function validateObjectExpansion(value: unknown): ObjectExpansion {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        throw new Error("Object expansion must be a field-path mapping.");
+    }
+    const expansion: Record<string, boolean> = {};
+    for (const [path, open] of Object.entries(value)) {
+        if (!pointer.test(path) || typeof open !== "boolean") {
+            throw new Error("Object expansion must map JSON-pointer field paths to booleans.");
+        }
+        expansion[path] = open;
+    }
+    return expansion;
+}
+
+export function isCustomizableObject(entry: FieldEntry): boolean {
+    return !entry.inArray && entry.field.type === "object" && entry.field.children.length > 0;
+}
 
 export function validateFieldOrder(value: unknown): ViewerFieldOrder {
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Field order must be a parent-path mapping.");
@@ -243,8 +268,8 @@ export function orderedFields(fields: readonly CuField[], parent: string, order:
     return [...fields].sort((a, b) => (rank.get(path(a)) ?? rank.size) - (rank.get(path(b)) ?? rank.size));
 }
 
-export function orderedLeafFields(fields: readonly CuField[], order: ViewerFieldOrder,
-    included: ReadonlySet<string>): CuField[] {
+export function orderedVisibleFields(fields: readonly CuField[], order: ViewerFieldOrder,
+    included: ReadonlySet<string>, expanded: ReadonlySet<string>): CuField[] {
     const result: CuField[] = [];
     const stack = orderedFields(fields, "$root", order).map(field => ({
         field, path: `/${segment(field.name)}`, inArray: false,
@@ -253,10 +278,9 @@ export function orderedLeafFields(fields: readonly CuField[], order: ViewerField
         const entry = stack.pop();
         if (!entry) break;
         const field = entry.field;
-        if (!field.children.length) {
-            if (included.has(field.id)) result.push(field);
-            continue;
-        }
+        if (!included.has(field.id)) continue;
+        result.push(field);
+        if (!field.children.length || !expanded.has(field.id)) continue;
         const projection = field.type === "array" ? inlineArrayProjection(field) : null;
         if (projection) {
             for (const row of projection.rows) for (const column of projection.columns) {
@@ -274,9 +298,19 @@ export function orderedLeafFields(fields: readonly CuField[], order: ViewerField
     return result;
 }
 
-export function initialExpandedFields(fields: readonly CuField[]): Set<string> {
-    return new Set(flattenFields([...fields])
+export function initialExpandedFields(fields: readonly CuField[], objectExpansion?: ObjectExpansion): Set<string> {
+    const expanded = new Set(flattenFields([...fields])
         .filter(field => field.type === "array" && field.children.length > 0).map(field => field.id));
+    return objectExpansion ? applyObjectExpansion(fields, expanded, objectExpansion) : expanded;
+}
+
+export function applyObjectExpansion(fields: readonly CuField[], expanded: ReadonlySet<string>, saved?: ObjectExpansion): Set<string> {
+    const next = new Set(expanded);
+    for (const entry of fieldEntries(fields)) if (isCustomizableObject(entry)) {
+        if (saved?.[entry.path] === true) next.add(entry.field.id);
+        else next.delete(entry.field.id);
+    }
+    return next;
 }
 
 export function moveField(entries: readonly FieldEntry[], order: ViewerFieldOrder, from: string, to: string,

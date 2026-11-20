@@ -88,8 +88,12 @@ export function interaction(state: InteractionState, action: InteractionAction):
     }
 }
 
+export function missingValueText(side?: "label" | "extracted"): string {
+    return side === "label" ? "Not labelled" : "Not returned";
+}
+
 export function displayValue(field?: CuField): string {
-    if (!field?.hasValue) return "Not returned";
+    if (!field?.hasValue) return missingValueText(field?.origin);
     if (field.value === null) return "null";
     if (field.value === "") return '"" (empty string)';
     if (field.type === "object") return "";

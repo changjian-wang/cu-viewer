@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { loadReviewFixture } from "./uiRedesignFixtures";
 import { expandField, openFieldsSettings, ready, setShowConfidence } from "./viewerAssertions";
@@ -21,7 +22,7 @@ test("page and field navigation have native tooltips and cycle at their boundari
         await button.hover();
         await expect(button).toHaveAttribute("title", title);
         await expect(pageNumber).toHaveValue("1");
-        await expect(position).toHaveText("— / 77 fields");
+        await expect(position).toHaveText("— / 73 fields");
     }
     await expect(previousPage).toBeEnabled();
     await nextPage.click();
@@ -44,10 +45,10 @@ test("page and field navigation have native tooltips and cycle at their boundari
     await expect(pageNumber).toHaveValue("4");
     await expect(previousPage).toBeFocused();
     await previousField.click();
-    await expect(position).toHaveText("77 / 77 fields");
+    await expect(position).toHaveText("73 / 73 fields");
     await expect(previousField).toHaveAttribute("title", "Previous field");
     await nextField.click();
-    await expect(position).toHaveText("1 / 77 fields");
+    await expect(position).toHaveText("1 / 73 fields");
     await expect(nextField).toHaveAttribute("title", "Next field");
     await page.getByRole("searchbox", { name: "Search fields or values", exact: true }).fill("no-matching-field-1793865297562");
     for (const button of [previousField, nextField]) {
@@ -136,7 +137,7 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1440, height: 100
         await expect(toolbar.getByRole("button", { name: "Reset Field Order", exact: true })).toHaveCount(0);
         await expect(toolbar.locator(".cu-fields-toolbar-actions > button")).toHaveCount(1);
         const position = toolbar.locator(".cu-field-navigation > span");
-        await expect(position).toHaveText("— / 77 fields");
+        await expect(position).toHaveText("— / 73 fields");
         expect(await position.evaluate(element => ({
             previous: element.previousElementSibling?.getAttribute("aria-label"),
             next: element.nextElementSibling?.getAttribute("aria-label"),
@@ -180,12 +181,17 @@ for (const viewport of [{ width: 1030, height: 540 }, { width: 1440, height: 100
         await trigger.click();
         const panel = page.getByRole("dialog", { name: "Fields settings", exact: true });
         await expect(panel.getByRole("switch", { name: "Show Confidence", exact: true })).toBeFocused();
-        await expect(panel.getByRole("switch")).toHaveCount(1);
+        await expect(panel.getByRole("switch")).toHaveCount(2);
         await expect(panel.getByRole("button")).toHaveCount(4);
+        const customized = panel.getByRole("switch", { name: "Use Customized Field Order", exact: true });
         const reset = panel.getByRole("button", { name: "Reset Field Order", exact: true });
         await expect(reset).toBeEnabled();
         await page.keyboard.press("Tab");
+        await expect(customized).toBeFocused();
+        await page.keyboard.press("Tab");
         await expect(reset).toBeFocused();
+        await page.keyboard.press("Shift+Tab");
+        await expect(customized).toBeFocused();
         await page.keyboard.press("Shift+Tab");
         await expect(panel.getByRole("switch", { name: "Show Confidence", exact: true })).toBeFocused();
         await expect(panel.getByRole("button", { name: /Low confidence/ })).toHaveCount(0);
@@ -367,8 +373,222 @@ const orderedResult = {
         },
     }],
 };
+
+for (const mode of ["unlabeled", "reference", "comparison"] as const) {
+    test(`manual object expansion is saved and restored independently of arrays and order in ${mode} Fields`, async ({ page }) => {
+        const fields = {
+            Parent: { type: "object", valueObject: {
+                Nested: { type: "object", valueObject: { Note: { type: "string", valueString: "Nested note" } } },
+            } },
+            Other: { type: "object", valueObject: { Value: { type: "string", valueString: "Other value" } } },
+            Rows: orderedResult.contents[0]!.fields.Rows,
+        };
+        const open = async () => {
+            await page.goto("/");
+            await ready(page);
+            await page.getByLabel("Choose source file", { exact: true })
+                .setInputFiles(resolve("tests", "fixtures", "labels", "invoice.pdf"));
+            await ready(page);
+            if (mode !== "unlabeled") await page.getByLabel("Choose local label JSON", { exact: true }).setInputFiles({
+                name: "saved-expansion.pdf.labels.json", mimeType: "application/json",
+                buffer: Buffer.from(JSON.stringify({ fieldLabels: fields })),
+            });
+            if (mode !== "reference") await page.getByLabel("Choose saved Analyze JSON", { exact: true }).setInputFiles({
+                name: "saved-expansion.pdf.result.json", mimeType: "application/json",
+                buffer: Buffer.from(JSON.stringify({ ...orderedResult, analyzerId: "saved-object-expansion",
+                    contents: [{ ...orderedResult.contents[0], fields }] })),
+            });
+            if (mode === "comparison") await expect(page.getByRole("columnheader", { name: "Extracted Value", exact: true })).toBeVisible();
+        };
+        const button = (name: string) => page.getByRole("button", { name, exact: true });
+        const roots = page.locator('.cu-fields-table > tbody > tr[aria-level="1"] .cu-field-name');
+        const saved = () => page.evaluate(() => Object.keys(localStorage)
+            .filter(key => key.startsWith("cu-viewer:review:v1:")).map((key): unknown => {
+                const text = localStorage.getItem(key);
+                if (text === null) throw new Error("Missing browser preference record.");
+                return JSON.parse(text);
+            }));
+        await open();
+        await expect(button("Parent")).toHaveAttribute("aria-expanded", "false");
+        const search = page.getByRole("searchbox");
+        await search.fill("Nested");
+        await expect(button("Parent")).toHaveAttribute("aria-expanded", "true");
+        expect(await saved()).toEqual([]);
+        await search.fill("");
+        await expect(button("Parent")).toHaveAttribute("aria-expanded", "false");
+        await button("Other").press("Alt+ArrowUp");
+        await expect(roots).toHaveText(["Other", "Parent", "Rows"]);
+        await button("Expand Parent").click();
+        await button("Expand Nested").click();
+        await button("Collapse Parent").click();
+        await button("Collapse Rows").click();
+        expect(await saved()).toEqual([expect.objectContaining({ order: { $root: ["/Other", "/Parent", "/Rows"] },
+            objectExpansion: { "/Parent": false, "/Parent/Nested": true } })]);
+
+        await open();
+        await expect(roots).toHaveText(["Other", "Parent", "Rows"]);
+        await expect(button("Parent")).toHaveAttribute("aria-expanded", "false");
+        await expect(button("Rows")).toHaveAttribute("aria-expanded", "true");
+        await button("Expand Parent").click();
+        await expect(button("Nested")).toHaveAttribute("aria-expanded", "true");
+        const settings = await openFieldsSettings(page);
+        const customized = settings.getByRole("switch", { name: "Use Customized Field Order", exact: true });
+        await expect(customized).toBeChecked();
+        await customized.press("Space");
+        await expect(roots).toHaveText(["Parent", "Other", "Rows"]);
+        await expect(button("Parent")).toHaveAttribute("aria-expanded", "false");
+        await expect(settings.getByRole("button", { name: "Reset Field Order", exact: true })).toBeDisabled();
+        await customized.press("Space");
+        await expect(roots).toHaveText(["Other", "Parent", "Rows"]);
+        await expect(button("Parent")).toHaveAttribute("aria-expanded", "true");
+        await expect(button("Nested")).toHaveAttribute("aria-expanded", "true");
+        await settings.getByRole("button", { name: "Reset Field Order", exact: true }).click();
+        await expect(roots).toHaveText(["Parent", "Other", "Rows"]);
+        expect(await saved()).toEqual([expect.objectContaining({ order: {},
+            objectExpansion: { "/Parent": true, "/Parent/Nested": true } })]);
+        await settings.getByRole("button", { name: "Expand all object values", exact: true }).click();
+
+        await open();
+        await expect(button("Other")).toHaveAttribute("aria-expanded", "true");
+        await expect(button("Nested")).toHaveAttribute("aria-expanded", "true");
+        const reopened = await openFieldsSettings(page);
+        await reopened.getByRole("button", { name: "Collapse all object fields", exact: true }).click();
+        await expect(button("Other")).toHaveAttribute("aria-expanded", "false");
+        expect(await saved()).toEqual([expect.objectContaining({
+            objectExpansion: { "/Parent": false, "/Parent/Nested": false, "/Other": false } })]);
+        await open();
+        await expect(button("Parent")).toHaveAttribute("aria-expanded", "false");
+        await expect(button("Other")).toHaveAttribute("aria-expanded", "false");
+        await button("Expand Parent").click();
+        await expect(button("Nested")).toHaveAttribute("aria-expanded", "false");
+    });
+}
+
+for (const mode of ["unlabeled", "reference", "comparison"] as const) {
+    test(`visible navigation preserves collapsed objects and manual expansion in ${mode} mode`, async ({ page }) => {
+        const labelled = {
+            AmountDue: { type: "object", valueObject: {
+                Amount: { type: "number", valueNumber: 610 }, CurrencyCode: { type: "string", valueString: "USD" },
+            } },
+            TotalAmount: { type: "object", valueObject: {
+                Amount: { type: "number", valueNumber: 110 }, CurrencyCode: { type: "string", valueString: "USD" },
+            } },
+            DueDate: { type: "string", valueString: "2019-12-15" },
+            Other: { type: "string", valueString: "Other" },
+        };
+        const extracted = { ...labelled, TotalAmount: { ...labelled.TotalAmount, valueObject: {
+            ...labelled.TotalAmount.valueObject, Extra: { type: "string", valueString: "Extra" },
+        } } };
+        await page.goto("/");
+        await ready(page);
+        await page.getByLabel("Choose source file", { exact: true })
+            .setInputFiles(resolve("tests", "fixtures", "labels", "invoice.pdf"));
+        await ready(page);
+        if (mode !== "unlabeled") await page.getByLabel("Choose local label JSON", { exact: true }).setInputFiles({
+            name: "visible-navigation.pdf.labels.json", mimeType: "application/json",
+            buffer: Buffer.from(JSON.stringify({ fieldLabels: labelled })),
+        });
+        if (mode !== "reference") await page.getByLabel("Choose saved Analyze JSON", { exact: true }).setInputFiles({
+            name: "visible-navigation.pdf.result.json", mimeType: "application/json",
+            buffer: Buffer.from(JSON.stringify({ apiVersion: "2025-11-01", contents: [{
+                kind: "document", unit: "inch", pages: [{ pageNumber: 1, width: 8.5, height: 11 }], fields: extracted,
+            }] })),
+        });
+        const due = page.getByRole("button", { name: "DueDate", exact: true });
+        const total = page.getByRole("button", { name: "TotalAmount", exact: true });
+        const amountDue = page.getByRole("button", { name: "AmountDue", exact: true });
+        await expect(due).toBeVisible();
+        if (mode === "comparison") await expect(page.getByRole("columnheader", { name: "Extracted Value", exact: true })).toBeVisible();
+        await due.focus();
+        await due.press("Alt+ArrowUp");
+        await due.press("Alt+ArrowUp");
+        await total.focus();
+        await total.press("Alt+ArrowUp");
+        const roots = page.locator('.cu-fields-table > tbody > tr[aria-level="1"]');
+        await expect.poll(() => roots.locator(".cu-field-name").allTextContents())
+            .toEqual(["DueDate", "TotalAmount", "AmountDue", "Other"]);
+        const row = (name: string) => roots.filter({ has: page.getByRole("button", { name, exact: true }) });
+        const position = page.locator(".cu-field-navigation > span");
+        const expectPosition = async (index: number, count: number) =>
+            expect(position).toHaveText(`${index} / ${count}${mode === "reference" ? "" : " fields"}`);
+        const preferences = () => page.evaluate(() => JSON.stringify(Object.entries(localStorage)));
+        const beforeNavigation = await preferences();
+        await due.click();
+        await due.press("ArrowDown");
+        await expect(total).toHaveAttribute("aria-expanded", "false");
+        await expect(row("TotalAmount")).toHaveClass(/is-selected/);
+        await expectPosition(2, 4);
+        await page.getByRole("button", { name: "Next field", exact: true }).click();
+        await expect(amountDue).toHaveAttribute("aria-expanded", "false");
+        await expect(row("AmountDue")).toHaveClass(/is-selected/);
+        await expectPosition(3, 4);
+        await page.keyboard.press("ArrowUp");
+        await expect(row("TotalAmount")).toHaveClass(/is-selected/);
+        await expect(total).toHaveAttribute("aria-expanded", "false");
+        await expectPosition(2, 4);
+        expect(await preferences()).toBe(beforeNavigation);
+
+        const expandTotal = page.getByRole("button", { name: "Expand TotalAmount", exact: true });
+        const collapseTotal = page.getByRole("button", { name: "Collapse TotalAmount", exact: true });
+        const expandedCount = mode === "reference" ? 6 : 7;
+        await expandTotal.click();
+        await expect(collapseTotal).toBeFocused();
+        await expectPosition(2, expandedCount);
+        const afterExpand = await preferences();
+        await page.keyboard.press("ArrowUp");
+        await expect(due).toHaveAttribute("aria-pressed", "true");
+        await expectPosition(1, expandedCount);
+        await expect(total).toHaveAttribute("aria-expanded", "true");
+        await page.keyboard.press("ArrowDown");
+        await expectPosition(2, expandedCount);
+        await collapseTotal.press("Space");
+        await expectPosition(2, 4);
+        await expandTotal.click();
+        await expect(collapseTotal).toBeFocused();
+        await page.keyboard.press("ArrowDown");
+        await expect(total).toHaveAttribute("aria-expanded", "true");
+        await expect(page.getByRole("button", { name: "Amount", exact: true })).toHaveAttribute("aria-pressed", "true");
+        await expectPosition(3, expandedCount);
+        await page.keyboard.press("ArrowDown");
+        await expectPosition(4, expandedCount);
+        await expect(total).toHaveAttribute("aria-expanded", "true");
+        expect(await preferences()).toBe(afterExpand);
+        await page.getByRole("button", { name: mode === "reference" ? "CurrencyCode" : "Extra", exact: true }).click();
+        await collapseTotal.click();
+        await expect(total).toHaveAttribute("aria-expanded", "false");
+        await expect(row("TotalAmount")).toHaveClass(/is-selection-proxy/);
+        await expectPosition(2, 4);
+        const afterCollapse = await preferences();
+        await page.getByRole("button", { name: "Next field", exact: true }).click();
+        await expect(row("AmountDue")).toHaveClass(/is-selected/);
+        await expect(amountDue).toHaveAttribute("aria-expanded", "false");
+        await expect(total).toHaveAttribute("aria-expanded", "false");
+        await expectPosition(3, 4);
+        expect(await preferences()).toBe(afterCollapse);
+
+        const search = page.getByRole("searchbox");
+        await search.fill("TotalAmount");
+        const afterSearch = await preferences();
+        await expect(total).toHaveAttribute("aria-expanded", "true");
+        await page.getByRole("button", { name: "Next field", exact: true }).click();
+        await expectPosition(1, expandedCount - 3);
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        if (mode !== "reference") await page.keyboard.press("ArrowDown");
+        await expectPosition(expandedCount - 3, expandedCount - 3);
+        await search.fill("");
+        await expect(total).toHaveAttribute("aria-expanded", "false");
+        await expect(row("TotalAmount")).toHaveClass(/is-selection-proxy/);
+        await expectPosition(2, 4);
+        await page.getByRole("button", { name: "Next field", exact: true }).click();
+        await expect(row("AmountDue")).toHaveClass(/is-selected/);
+        await expectPosition(3, 4);
+        expect(await preferences()).toBe(afterSearch);
+    });
+}
+
 const orderedIds = [
-    "/Alpha", "/Group/valueObject/A", "/Group/valueObject/B", "/Beta",
+    "/Alpha", "/Group", "/Beta", "/Rows",
     "/Rows/valueArray/0/valueObject/B", "/Rows/valueArray/0/valueObject/A",
     "/Rows/valueArray/1/valueObject/B", "/Rows/valueArray/1/valueObject/A",
     "/Rows/valueArray/1/valueObject/C", "/Last",
@@ -394,9 +614,11 @@ test("the keyboard and bottom bar advance through the same field values and wrap
         else if (index % 2 === 0) await page.keyboard.press("ArrowDown");
         else await next.click();
         await expect(position).toHaveText(`${index + 1} / 10 fields`);
-        await expect(page.locator(`[data-review-focus="${id}"][aria-pressed="true"]`)).toHaveCount(1);
+        const group = id.endsWith("/Group") || id.endsWith("/Rows");
+        if (group) await expect(page.locator(`.cu-fields-table > tbody > tr[data-field-id="${id}"]`)).toHaveClass(/is-group-selected/);
+        else await expect(page.locator(`[data-review-focus="${id}"][aria-pressed="true"]`)).toHaveCount(1);
         const value = page.locator(`[data-field-value-focus="${id}"]`);
-        await expect(value).toBeFocused();
+        await expect(await value.count() ? value : page.locator(`.cu-field-name[data-review-focus="${id}"]`)).toBeFocused();
         if (index % 2 === 0) {
             await expect(value.locator("..")).toHaveCSS("outline-color", "rgb(55, 111, 172)");
             await expect(value.locator("..")).toHaveCSS("outline-width", "1px");
@@ -421,7 +643,7 @@ test("real root and nested drags reindex the same selected field and Reset Field
     const selectedId = "/contents/0/fields/Group/valueObject/B";
     const selected = page.locator(`[data-review-focus="${selectedId}"]`);
     await selected.click();
-    await expect(position).toHaveText("3 / 10 fields");
+    await expect(position).toHaveText("4 / 12 fields");
     const group = page.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/Group"]');
     const alpha = page.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/Alpha"]');
     await group.hover();
@@ -431,17 +653,17 @@ test("real root and nested drags reindex the same selected field and Reset Field
     await expect(page.locator(".cu-fields-table > tbody > tr[data-field-depth='0']").first())
         .toHaveAttribute("data-field-id", "/contents/0/fields/Group");
     await expect(selected).toHaveAttribute("aria-pressed", "true");
-    await expect(position).toHaveText("2 / 10 fields");
+    await expect(position).toHaveText("3 / 12 fields");
     const rowB = page.locator(`.cu-fields-table > tbody > tr[data-field-id="${selectedId}"]`);
     const rowA = page.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/Group/valueObject/A"]');
     await rowB.hover();
     await rowB.getByRole("button", { name: "Reorder Group / B", exact: true }).dragTo(rowA, {
         targetPosition: { x: 80, y: 4 },
     });
-    await expect(position).toHaveText("1 / 10 fields");
+    await expect(position).toHaveText("2 / 12 fields");
     await expect(selected).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: "Next field", exact: true }).click();
-    await expect(position).toHaveText("2 / 10 fields");
+    await expect(position).toHaveText("3 / 12 fields");
     await expect(page.locator('[data-review-focus="/contents/0/fields/Group/valueObject/A"]')).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("button", { name: "Previous field", exact: true }).click();
     await expect(selected).toHaveAttribute("aria-pressed", "true");
@@ -451,9 +673,9 @@ test("real root and nested drags reindex the same selected field and Reset Field
     await expect(settings.getByRole("button", { name: "Reset Field Order", exact: true })).toBeFocused();
     await settings.getByRole("button", { name: "Close fields settings", exact: true }).click();
     await expect(selected).toHaveAttribute("aria-pressed", "true");
-    await expect(position).toHaveText("3 / 10 fields");
+    await expect(position).toHaveText("4 / 12 fields");
     await page.getByRole("button", { name: "Previous field", exact: true }).click();
-    await expect(position).toHaveText("2 / 10 fields");
+    await expect(position).toHaveText("3 / 12 fields");
     await expect(page.locator('[data-review-focus="/contents/0/fields/Group/valueObject/A"]')).toHaveAttribute("aria-pressed", "true");
     await page.reload();
     await ready(page);
@@ -462,29 +684,33 @@ test("real root and nested drags reindex the same selected field and Reset Field
     });
     await expandField(page, "Group");
     await selected.click();
-    await expect(position).toHaveText("3 / 10 fields");
+    await expect(position).toHaveText("4 / 12 fields");
 });
 
-test("search positions use only the matching fields and return to the selected field's full position", async ({ page }) => {
+test("search navigation includes visible matching-path groups without persisting temporary expansion", async ({ page }) => {
     await loadOrderedFields(page);
     const position = page.locator(".cu-field-navigation > span");
     const search = page.getByRole("searchbox", { name: "Search fields or values", exact: true });
     await page.getByRole("button", { name: "Last", exact: true }).click();
     await expect(position).toHaveText("10 / 10 fields");
     await search.fill("Group");
-    await expect(position).toHaveText("— / 2 fields");
+    await expect(position).toHaveText("— / 3 fields");
     await search.press("ArrowDown");
-    await expect(position).toHaveText("— / 2 fields");
-    await expect(position).toHaveAttribute("title", /2 matching fields out of 10 total/);
+    await expect(position).toHaveText("— / 3 fields");
+    await expect(position).toHaveAttribute("title", /3 visible fields in this navigation range/);
     await page.getByRole("button", { name: "Next field", exact: true }).click();
-    await expect(position).toHaveText("1 / 2 fields");
+    await expect(position).toHaveText("1 / 3 fields");
     await page.keyboard.press("ArrowDown");
-    await expect(position).toHaveText("2 / 2 fields");
+    await expect(position).toHaveText("2 / 3 fields");
+    await page.keyboard.press("ArrowDown");
+    await expect(position).toHaveText("3 / 3 fields");
     await search.fill("");
+    await expect(position).toHaveText("2 / 10 fields");
+    await expect(page.getByRole("button", { name: "Group", exact: true })).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/Group"]')).toHaveClass(/is-selection-proxy/);
+    await page.getByRole("button", { name: "Next field", exact: true }).click();
     await expect(position).toHaveText("3 / 10 fields");
-    await expect(page.locator('[data-review-focus="/contents/0/fields/Group/valueObject/B"]')).toHaveAttribute("aria-pressed", "true");
-    await page.getByRole("button", { name: "Collapse Group", exact: true }).click();
-    await expect(position).toHaveText("3 / 10 fields");
+    await expect(page.getByRole("button", { name: "Beta", exact: true })).toHaveAttribute("aria-pressed", "true");
     await page.getByRole("group", { name: "Source viewport", exact: true }).press("Escape");
     await expect(position).toHaveText("— / 10 fields");
     await page.getByRole("button", { name: "Previous field", exact: true }).click();
@@ -521,6 +747,72 @@ test("Settings Reset Field Order restores the input order without resetting Show
     await search.fill("");
     expect(await roots.evaluateAll(elements => elements.map(element => element.getAttribute("data-field-id")))).toEqual(original);
 });
+
+for (const [mode, url] of [["unlabeled", "/"], ["comparison", "/?sample=labels"]] as const) {
+    test(`custom field order switch previews JSON and restores saved order and objects in ${mode} Fields`, async ({ page }) => {
+        await page.goto(url);
+        await ready(page);
+        if (mode === "comparison") await expect(page.getByRole("columnheader", { name: "Extracted Value", exact: true })).toBeVisible();
+        const button = (name: string) => page.getByRole("button", { name, exact: true });
+        const roots = page.locator('.cu-fields-table > tbody > tr[aria-level="1"] .cu-field-name');
+        const expectOrder = (order: string[]) => expect(roots.filter({ hasText: /^(AmountDue|BalanceForward)$/ })).toHaveText(order);
+        const panel = page.getByRole("dialog", { name: "Fields settings", exact: true });
+        const customized = panel.getByRole("switch", { name: "Use Customized Field Order", exact: true });
+        const reset = panel.getByRole("button", { name: "Reset Field Order", exact: true });
+        const close = () => panel.getByRole("button", { name: "Close fields settings", exact: true }).click();
+
+        await expectOrder(["AmountDue", "BalanceForward"]);
+        await button("BalanceForward").press("Alt+ArrowUp");
+        await expectOrder(["BalanceForward", "AmountDue"]);
+        await button("Expand AmountDue").click();
+        await button("Collapse LineItems").click();
+        await button("Amount").click();
+        await openFieldsSettings(page);
+        await expect(customized).toBeChecked();
+        await customized.press("Space");
+        await expect(customized).not.toBeChecked();
+        await expect(customized).toBeFocused();
+        await expect(reset).toBeDisabled();
+        await expectOrder(["AmountDue", "BalanceForward"]);
+        await expect(button("AmountDue")).toHaveAttribute("aria-expanded", "false");
+        await expect(button("LineItems")).toHaveAttribute("aria-expanded", "false");
+        await expect(page.locator(".cu-fields-table > tbody > tr.is-selection-proxy .cu-field-name")).toHaveText("AmountDue");
+        await panel.getByRole("button", { name: "Expand all object values", exact: true }).click();
+        await expect(button("BalanceForward")).toHaveAttribute("aria-expanded", "true");
+        await customized.press("Space");
+        await expect(button("Amount")).toHaveAttribute("aria-pressed", "true");
+        await expect(button("BalanceForward")).toHaveAttribute("aria-expanded", "false");
+        await expect(button("LineItems")).toHaveAttribute("aria-expanded", "false");
+        await customized.press("Space");
+        await close();
+        await button("BalanceForward").press("Alt+ArrowUp");
+        await expect(button("Reorder BalanceForward")).toBeDisabled();
+        await expectOrder(["AmountDue", "BalanceForward"]);
+
+        await page.reload();
+        await ready(page);
+        await expectOrder(["AmountDue", "BalanceForward"]);
+        await expect(button("AmountDue")).toHaveAttribute("aria-expanded", "false");
+        await expect(button("BalanceForward")).toHaveAttribute("aria-expanded", "false");
+        await expect(button("LineItems")).toHaveAttribute("aria-expanded", "true");
+        await openFieldsSettings(page);
+        await expect(customized).not.toBeChecked();
+        await customized.press("Space");
+        await expect(customized).toBeChecked();
+        await expect(reset).toBeEnabled();
+        await expectOrder(["BalanceForward", "AmountDue"]);
+        await expect(button("AmountDue")).toHaveAttribute("aria-expanded", "true");
+        await expect(button("BalanceForward")).toHaveAttribute("aria-expanded", "false");
+        await reset.click();
+        await expect(customized).toBeChecked();
+        await expectOrder(["AmountDue", "BalanceForward"]);
+        await expect(button("AmountDue")).toHaveAttribute("aria-expanded", "true");
+        await customized.press("Space");
+        await customized.press("Space");
+        await expectOrder(["AmountDue", "BalanceForward"]);
+        await expect(button("AmountDue")).toHaveAttribute("aria-expanded", "true");
+    });
+}
 
 test("field details stay above the toolbar without breaking bottom symmetry", async ({ page }) => {
     await page.goto("/");

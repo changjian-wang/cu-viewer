@@ -108,7 +108,7 @@ test("local labels retain typed values, nested objects and array rows with fixed
     await expect(outlines.locator(`polygon[data-outline-id="${date}"]`).first()).toHaveAttribute("fill", "#DEE9FA");
     await expandField(page, "OrderInformation");
     const missing = grid.locator(`[data-field-id="${labelId("OrderInformation/valueObject/Salesperson")}"]`);
-    await expect(missing).toContainText("Not returned");
+    await expect(missing).toContainText("Not labelled");
     await expect(outlines.locator(`polygon[data-outline-id="${labelId("OrderInformation/valueObject/Salesperson")}"]`))
         .toHaveCount(0);
     await page.getByRole("button", { name: "Highlighting legend", exact: true }).click();

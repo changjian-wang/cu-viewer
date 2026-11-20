@@ -36,6 +36,110 @@ test.beforeEach(async ({ page }) => {
     await ready(page);
 });
 
+for (const sample of ["pdf", "labels"]) {
+    test(`Result JSON search aligns with Fields on the ${sample} demo when the pane is resized`, async ({ page }) => {
+        if (sample === "labels") {
+            await page.goto("/?sample=labels");
+            await ready(page);
+        }
+        const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+        const toolbar = pane.getByRole("group", { name: "Result JSON toolbar", exact: true });
+        const search = toolbar.getByRole("searchbox", { name: "Search result JSON", exact: true });
+        const count = toolbar.getByRole("status", { name: "JSON search results", exact: true });
+        const checkAlignment = async () => {
+            await pane.getByRole("tab", { name: "Fields", exact: true }).click();
+            const fieldsSearch = pane.getByRole("group", { name: "Fields toolbar", exact: true }).locator(".cu-search-box");
+            const fields = await fieldsSearch.boundingBox();
+            if (!fields) throw new Error("The Fields search box is missing.");
+
+            await pane.getByRole("tab", { name: "Result", exact: true }).click();
+            for (const query of ["", "AmountDue"]) {
+                await search.fill(query);
+                if (query) await expect(count).toHaveText(/^1 \/ [\d,]+$/);
+                const result = await toolbar.locator(".cu-search-box").boundingBox();
+                if (!result) throw new Error("The Result search box is missing.");
+                expect(result.x).toBeCloseTo(fields.x, 0);
+                expect(result.width).toBeCloseTo(fields.width, 0);
+                const actions = toolbar.locator(".cu-json-bulk-actions");
+                const last = actions.getByRole("button", { name: "Expand all", exact: true });
+                await expect(last).toBeInViewport({ ratio: 1 });
+                const bounds = await toolbar.boundingBox(), right = await last.boundingBox();
+                if (!bounds || !right) throw new Error("The Result toolbar controls are missing.");
+                expect(bounds.x + bounds.width - right.x - right.width).toBeCloseTo(fields.x - bounds.x, 0);
+                if (query) {
+                    const match = await count.boundingBox(), buttons = await actions.boundingBox();
+                    if (!match || !buttons) throw new Error("The match count and bulk actions are missing.");
+                    expect(result.x + result.width).toBeLessThan(match.x);
+                    expect(match.x + match.width).toBeLessThan(buttons.x);
+                }
+            }
+        };
+        await checkAlignment();
+        await page.getByRole("separator", { name: "Source and results width", exact: true }).press("End");
+        await expect(toolbar).toHaveCSS("width", "440px");
+        await checkAlignment();
+    });
+}
+
+test("Result JSON has a direct toolbar aligned to Preview and finds a collapsed invoice field", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
+    const toolbar = pane.getByRole("group", { name: "Result JSON toolbar", exact: true });
+    const sourceToolbar = page.getByRole("group", { name: "Source document toolbar", exact: true });
+    const search = toolbar.getByRole("searchbox", { name: "Search result JSON", exact: true });
+    for (const width of [1440, 1024]) {
+        await page.setViewportSize({ width, height: 900 });
+        const source = await sourceToolbar.boundingBox(), result = await toolbar.boundingBox();
+        if (!source || !result) throw new Error("The source and JSON toolbars are not laid out.");
+        expect(result.height).toBe(44);
+        expect(result.y).toBeCloseTo(source.y, 0);
+        expect(result.y + result.height).toBeCloseTo(source.y + source.height, 0);
+        const geometry = await toolbar.evaluate(element => ({
+            scrollWidth: element.scrollWidth, clientWidth: element.clientWidth,
+        }));
+        expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth + 1);
+    }
+
+    await expect(toolbar.getByRole("button")).toHaveText(["Collapse all", "Expand all"]);
+    const root = pane.locator('[data-json-path=""]');
+    await toolbar.getByRole("button", { name: "Collapse all", exact: true }).click();
+    await expect(root).toHaveAttribute("aria-expanded", "false");
+    await search.fill("AmountDue");
+    const hit = pane.locator('mark[data-json-tree-match]');
+    await expect(hit).toHaveText("AmountDue");
+    await expect(hit).toBeInViewport();
+    await expect(search).toBeFocused();
+    await expect(toolbar.getByRole("button")).toHaveText(["Collapse all", "Expand all"]);
+    await expect(root).toHaveAttribute("aria-expanded", "true");
+    await toolbar.getByRole("button", { name: "Collapse all", exact: true }).click();
+    await pane.getByRole("tab", { name: "Fields", exact: true }).click();
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
+    await expect(search).toHaveValue("AmountDue");
+    await expect(root).toHaveAttribute("aria-expanded", "false");
+    await search.clear();
+    await toolbar.getByRole("button", { name: "Expand all", exact: true }).click();
+    await expect(pane.locator('[data-json-path$="/fields/AmountDue/valueObject/Amount"]')).toBeVisible();
+});
+
+test("Result JSON protects the 41-page demo from bulk expansion while preserving search", async ({ page }) => {
+    await page.goto("/?sample=large");
+    await ready(page);
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    await pane.getByRole("tab", { name: "Result", exact: true }).click();
+    const tree = pane.getByRole("tree", { name: "Original Analyze result JSON", exact: true });
+    const toolbar = pane.getByRole("group", { name: "Result JSON toolbar", exact: true });
+    await expect(tree).toBeVisible();
+    const before = await tree.getByRole("treeitem").count();
+    await toolbar.getByRole("button", { name: "Expand all", exact: true }).click();
+    await expect(pane.getByText("This result is too large to expand all at once.", { exact: false })).toBeVisible();
+    await expect(tree.getByRole("treeitem")).toHaveCount(before);
+    await toolbar.getByRole("searchbox", { name: "Search result JSON", exact: true }).fill("endPageNumber");
+    await expect(tree.locator("mark[data-json-tree-match]")).toHaveText("endPageNumber");
+    await expect(tree.getByRole("treeitem").first()).toHaveAttribute("aria-expanded", "true");
+});
+
 test("real Markdown and original JSON preserve source page, zoom, rotation and pinned field state", async ({ page }) => {
     const pane = page.getByRole("region", { name: "Extraction results" });
     await expandField(page, "AmountDue");

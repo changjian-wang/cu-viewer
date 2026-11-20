@@ -21,7 +21,7 @@ interface SourcePaneProps {
     comparison?: FieldComparison | undefined;
     referenceMode?: boolean;
     fieldReview?: boolean;
-    compactLegend?: boolean;
+    unlabeledPdfFields: boolean;
     source: LoadedSource | null;
     loading: boolean;
     error: string | null;
@@ -621,6 +621,7 @@ export function SourcePane(props: SourcePaneProps) {
                 labelMode={props.active.origin === "label"}
                 comparison={props.comparison}
                 fieldReview={fieldReview}
+                unlabeledPdfFields={props.unlabeledPdfFields}
                 summaryFieldIds={props.summaryFieldIds}
                 settings={props.settings} points={cardPolygon} pan={pan ?? layout.paper} viewport={container} paper={renderedPage}
                 onMeasure={measureCard} />}
@@ -630,7 +631,7 @@ export function SourcePane(props: SourcePaneProps) {
         </div>
         <SourceToolbar source={props.source} summaryId={`${sourceId}-summary`} toolbarRef={toolbar}
             labelMode={Boolean(props.referenceMode)} fieldReview={fieldReview}
-            compactLegend={props.compactLegend ?? false}
+            compactLegend={props.unlabeledPdfFields}
             comparisonAvailable={Boolean(props.comparison?.comparable)}
             settings={props.settings} onSettings={props.onSettings} onControlFocus={captureControlFocus}>
             <SourceDocumentControls source={props.source} pageNumber={props.pageNumber} zoom={zoom}

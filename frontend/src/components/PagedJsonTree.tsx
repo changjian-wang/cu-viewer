@@ -4,15 +4,13 @@ import { createPortal } from "react-dom";
 import { ResultPagination } from "./ResultPagination";
 import { JSON_STRING_PREVIEW_THRESHOLD } from "../model/resultLimits";
 import { textBoundary } from "../markdown/model";
+import { isJsonContainer, jsonChildPath, JSON_ENTRIES_PER_PAGE } from "../model/jsonTree";
+import type { JsonNodeViewState, JsonSearchMatch, JsonTreeViewState } from "../model/jsonTree";
 import { jsonSpanPreview } from "../model/jsonSpans";
 import { SOURCE_POPOVER_GAP } from "../source/sourceOverlays";
 import type { JsonStringSelection } from "./JsonStringDialog";
 
-const ENTRIES_PER_PAGE = 100;
 const STRING_SUMMARY_CHARACTERS = 240;
-
-export interface JsonNodeViewState { expanded: boolean; page: number }
-export type JsonTreeState = Map<string, JsonNodeViewState>;
 
 interface SpanPreviewOwner { current: { id: string; close: () => void } | null }
 const SpanPreviewContext = createContext<SpanPreviewOwner | null>(null);
@@ -135,22 +133,48 @@ function JsonSpanTooltip({ text, children }: {
 interface JsonNodeProps {
     value: unknown;
     root: unknown;
-    state: JsonTreeState;
+    state: JsonTreeViewState;
+    match: JsonSearchMatch | null;
     path: string;
     level: number;
     label?: string;
     onViewString: (selection: JsonStringSelection) => void;
 }
 
-function JsonScalar({ value, root, path, level, label, onViewString }: JsonNodeProps) {
+function matchingText(text: string | undefined, match: JsonSearchMatch | null, excerpt = false): ReactNode {
+    if (!match) return text;
+    const { start, end } = match.range;
+    if (!excerpt) {
+        return <>{text?.slice(0, start)}<mark className="cu-json-find-match is-current" data-json-tree-match="true">
+            {match.literal.slice(start, end)}</mark>{text?.slice(end)}</>;
+    }
+    const literal = match.literal;
+    const from = textBoundary(literal, Math.max(0, start - 60));
+    const hitEnd = textBoundary(literal, Math.min(end, start + STRING_SUMMARY_CHARACTERS));
+    const to = textBoundary(literal, Math.min(literal.length, hitEnd + 60));
+    return <>{from > 0 ? "\u2026" : ""}{literal.slice(from, start)}
+        <mark className="cu-json-find-match is-current" data-json-tree-match="true">{literal.slice(start, hitEnd)}</mark>
+        {literal.slice(hitEnd, to)}{to < literal.length ? "\u2026" : ""}</>;
+}
+
+function JsonLabel({ label, match }: { label: string; match: JsonSearchMatch | null }) {
+    return <span className="cu-json-label">{matchingText(JSON.stringify(label), match)}:</span>;
+}
+
+function JsonScalar({ value, root, path, level, label, match, onViewString }: JsonNodeProps) {
     const hint = useMemo(() => jsonSpanPreview(root, path), [root, path, value]);
     const long = typeof value === "string" && value.length > JSON_STRING_PREVIEW_THRESHOLD;
     const text = JSON.stringify(long ? value.slice(0, textBoundary(value, STRING_SUMMARY_CHARACTERS)) : value);
     const style = value === null ? "null" : typeof value === "string" ? "string" : "number";
+    const active = match?.path === path ? match : null;
+    const valueMatch = active?.part === "value" ? active : null;
+    const excerpt = long && valueMatch !== null && valueMatch.range.end >= (text?.length ?? 0);
     const content = (descriptionId?: string) => <>
-        {label !== undefined && <span className="cu-json-label">{JSON.stringify(label)}:</span>}
-        <span className={`cu-json-${style}`} aria-describedby={descriptionId}>{text}</span>
-        {long && <><span aria-hidden="true">{"\u2026"}</span><span className="cu-json-string-actions">
+        {label !== undefined && <JsonLabel label={label} match={active?.part === "key" ? active : null} />}
+        <span className={`cu-json-${style}`} aria-describedby={descriptionId}>
+            {matchingText(text, valueMatch, excerpt)}
+        </span>
+        {long && <>{!excerpt && <span aria-hidden="true">{"\u2026"}</span>}<span className="cu-json-string-actions">
             <span>{value.length.toLocaleString("en-US")} characters</span>
             <button type="button" aria-label={`View full text for ${path || "/"}`} aria-haspopup="dialog"
                 onClick={event => onViewString({ value, path, label, trigger: event.currentTarget })}>View Full Text</button>
@@ -161,25 +185,25 @@ function JsonScalar({ value, root, path, level, label, onViewString }: JsonNodeP
     </li>;
 }
 
-function JsonContainer({ value, root, state, path, level, label, onViewString }: JsonNodeProps & { value: object }) {
-    const cached = state.get(path) ?? { expanded: level === 1, page: 0 };
+function JsonContainer({ value, root, state, path, level, label, match, onViewString }: JsonNodeProps & { value: object }) {
+    const cached = state.nodes.get(path) ?? { page: 0 };
     const [choice, setChoice] = useState({ state, node: cached });
     const current = choice.state === state ? choice.node : cached;
     const hint = useMemo(() => jsonSpanPreview(root, path), [root, path, value]);
-    const expanded = current.expanded;
+    const expanded = current.expanded ?? (state.expansion === "expanded" || (state.expansion === "root" && level === 1));
     const array = Array.isArray(value);
     const keys = useMemo(() => expanded && !array ? Object.keys(value) : [], [value, expanded, array]);
     const count = array ? value.length : keys.length;
-    const pages = Math.max(1, Math.ceil(count / ENTRIES_PER_PAGE));
+    const pages = Math.max(1, Math.ceil(count / JSON_ENTRIES_PER_PAGE));
     const page = Math.min(current.page, pages - 1);
-    const start = page * ENTRIES_PER_PAGE, end = Math.min(count, start + ENTRIES_PER_PAGE);
+    const start = page * JSON_ENTRIES_PER_PAGE, end = Math.min(count, start + JSON_ENTRIES_PER_PAGE);
     const children = expanded ? Array.from({ length: end - start }, (_, offset) => {
         const key = array ? String(start + offset) : keys[start + offset];
         if (key === undefined) throw new Error("The JSON entry is unavailable.");
         const child: unknown = Reflect.get(value, key);
-        return { key, value: child, path: `${path}/${key.replaceAll("~", "~0").replaceAll("/", "~1")}` };
+        return { key, value: child, path: jsonChildPath(path, key) };
     }) : [];
-    const choose = (node: JsonNodeViewState): void => { state.set(path, node); setChoice({ state, node }); };
+    const choose = (node: JsonNodeViewState): void => { state.nodes.set(path, node); setChoice({ state, node }); };
     const toggle = (open: boolean): void => choose({ expanded: open, page: current.page });
     const heading = (descriptionId?: string) => <>
         <button type="button" className="cu-json-toggle" aria-label={expanded ? "Collapse JSON node" : "Expand JSON node"}
@@ -191,7 +215,7 @@ function JsonContainer({ value, root, state, path, level, label, onViewString }:
                 }
             }}>
             <span className={`cu-json-expander ${expanded ? "cu-json-collapse" : "cu-json-expand"}`} aria-hidden="true" />
-            {label !== undefined && <span className="cu-json-label">{JSON.stringify(label)}:</span>}
+            {label !== undefined && <JsonLabel label={label} match={match?.path === path && match.part === "key" ? match : null} />}
         </button>
         <span>{array ? "[" : "{"}{expanded ? "" : "..."}</span>
     </>;
@@ -200,7 +224,7 @@ function JsonContainer({ value, root, state, path, level, label, onViewString }:
         {hint === undefined ? heading() : <JsonSpanTooltip text={hint}>{heading}</JsonSpanTooltip>}
         {expanded && <ul className="cu-json-children" role="group">
             {children.map(child => <JsonNode key={child.key} value={child.value} path={child.path}
-                root={root} state={state} level={level + 1} onViewString={onViewString} {...(array ? {} : { label: child.key })} />)}
+                root={root} state={state} match={match} level={level + 1} onViewString={onViewString} {...(array ? {} : { label: child.key })} />)}
         </ul>}
         {expanded && <ResultPagination label={`JSON entries at ${path || "/"}`} page={page} pages={pages}
             summary={`Entries ${start + 1}-${end} of ${count}`}
@@ -210,13 +234,13 @@ function JsonContainer({ value, root, state, path, level, label, onViewString }:
 }
 
 function JsonNode(props: JsonNodeProps) {
-    return typeof props.value === "object" && props.value !== null
+    return isJsonContainer(props.value)
         ? <JsonContainer {...props} value={props.value} />
         : <JsonScalar {...props} />;
 }
 
-export function PagedJsonTree({ value, state, onViewString }: {
-    value: unknown; state: JsonTreeState; onViewString: (selection: JsonStringSelection) => void;
+export function PagedJsonTree({ value, state, match, onViewString }: {
+    value: unknown; state: JsonTreeViewState; match: JsonSearchMatch | null; onViewString: (selection: JsonStringSelection) => void;
 }) {
     const root = useRef<HTMLUListElement>(null);
     const previewOwner = useRef<SpanPreviewOwner["current"]>(null);
@@ -234,7 +258,7 @@ export function PagedJsonTree({ value, state, onViewString }: {
                     (current + (event.key === "ArrowUp" ? -1 : 1) + controls.length) % controls.length;
                 controls[index]?.focus();
             }}>
-            <JsonNode value={value} root={value} state={state} path="" level={1} onViewString={onViewString} />
+            <JsonNode value={value} root={value} state={state} match={match} path="" level={1} onViewString={onViewString} />
         </ul>
     </SpanPreviewContext.Provider>;
 }

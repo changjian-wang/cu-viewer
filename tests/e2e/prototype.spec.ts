@@ -321,9 +321,8 @@ test("Fields matches the approved compact grouping and confidence palette withou
     await expect(page.locator(amountRow)).toBeVisible();
     await group.getByRole("button", { name: "Collapse AmountDue", exact: true }).click();
     await expect(page.locator(amountRow)).toHaveCount(0);
-    await expect(group.locator(".cu-page-badge")).toHaveText("p.1");
+    await expect(group.locator(".cu-field-value-content button")).toHaveCount(1);
     await expect(group.locator(".cu-confidence")).toHaveCount(0);
-    await expect(country.locator(".cu-page-badge")).toHaveCount(0);
     await expect(country.locator(".cu-confidence")).toHaveCount(0);
     await expect(country.locator(".cu-field-value")).toHaveText("USA");
     await expect(address.getByRole("button", { name: "BillingAddress", exact: true })).toHaveAccessibleDescription(/Confidence 0\.32/);
@@ -335,15 +334,12 @@ test("Fields matches the approved compact grouping and confidence palette withou
 
     const appearance = await group.evaluate(element => {
         const name = element.querySelector(".cu-field-name");
-        const badge = element.querySelector(".cu-page-badge");
         const arrow = element.querySelector(".cu-expand");
-        if (!name || !badge || !arrow) throw new Error("The compact field header is incomplete.");
+        if (!name || !arrow) throw new Error("The compact field header is incomplete.");
         return {
             dots: element.querySelectorAll(".cu-dot").length,
             nameSize: getComputedStyle(name).fontSize,
             nameWeight: getComputedStyle(name).fontWeight,
-            badgeHeight: badge.getBoundingClientRect().height,
-            badgeAfterName: badge.getBoundingClientRect().x > name.getBoundingClientRect().right,
             arrowBeforeName: arrow.getBoundingClientRect().right <= name.getBoundingClientRect().x,
             arrowIsSvg: Boolean(arrow.querySelector("svg path")),
             rowHeight: element.getBoundingClientRect().height,
@@ -351,7 +347,7 @@ test("Fields matches the approved compact grouping and confidence palette withou
     });
     expect(appearance).toMatchObject({
         dots: 0, nameSize: "12.5px", nameWeight: "650",
-        badgeAfterName: true, arrowBeforeName: true, arrowIsSvg: true, rowHeight: 32,
+        arrowBeforeName: true, arrowIsSvg: true, rowHeight: 32,
     });
     const scalarBox = await address.boundingBox();
     expect(scalarBox?.height).toBe(33);
@@ -369,7 +365,7 @@ test("Fields matches the approved compact grouping and confidence palette withou
     await expect(page.getByTestId("source-overlay")).toHaveCount(0);
     await locateGroup(page, "/contents/0/fields/AmountDue");
     await leave(page);
-    await expect(group.locator(".cu-page-badge")).toHaveAttribute("aria-pressed", "true");
+    await expect(group).toHaveClass(/is-group-selected/);
     await expect(clear).toHaveCount(0);
     await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCSS("stroke", "rgb(91, 33, 182)");
     await group.getByRole("button", { name: "Expand AmountDue", exact: true }).click();
@@ -537,7 +533,7 @@ test("missing fields remain visible and selectable without a hidden-fields switc
     await expect(page.locator('[data-field-id="/contents/0/fields/CountryRegion"] .cu-field-value')).toHaveText("USA");
 });
 
-test("unavailable source pages disable scalar and group badges while preserving values and recovering with a matching result", async ({ page }) => {
+test("unavailable source pages disable value-menu navigation while preserving scalar and group selection", async ({ page }) => {
     await page.goto("/");
     await ready(page);
     const result = {
@@ -561,13 +557,15 @@ test("unavailable source pages disable scalar and group badges while preserving 
     };
     await upload();
     const scalar = page.locator('[data-field-id="/contents/0/fields/MissingPage"]');
-    const groupBadge = page.locator('[data-field-id="/contents/0/fields/Group"] .cu-page-badge');
+    const group = page.locator('[data-field-id="/contents/0/fields/Group"]');
     await scalar.hover();
     await scalar.getByRole("button", { name: /More value actions/ }).click();
     const scalarBadge = page.getByRole("menuitem", { name: "Locate on page 5", exact: true });
     await expect(scalarBadge).toBeDisabled();
-    await expect(groupBadge).toBeDisabled();
     await expect(scalarBadge).toHaveAttribute("title", /Page 5 is not present in the loaded source/);
+    await page.keyboard.press("Escape");
+    await group.getByRole("button", { name: "Group", exact: true }).press("Shift+F10");
+    await expect(page.getByRole("menuitem", { name: "Locate on page 5", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
     await page.locator(".cu-issues summary").click();
     await expect(page.locator(".cu-issues")).toContainText("unavailable-source-page");
@@ -603,9 +601,12 @@ test("unavailable source pages disable scalar and group badges while preserving 
     await scalar.getByRole("button", { name: /More value actions/ }).click();
     const validBadge = page.getByRole("menuitem", { name: "Locate on page 1", exact: true });
     await expect(validBadge).toBeEnabled();
-    await expect(page.locator('[data-field-id="/contents/0/fields/Group"] .cu-page-badge')).toBeEnabled();
     await validBadge.click();
     await leave(page);
     await expect(page.getByTestId("source-overlay")).toBeVisible();
     await expect(scalar.locator(".cu-field-value")).toHaveText("preserved scalar");
+    await locateGroup(page, "/contents/0/fields/Group");
+    await expect(group).toHaveClass(/is-group-selected/);
+    await expect(page.getByTestId("source-overlay").locator("polygon").first())
+        .toHaveAttribute("data-source-id", "/contents/0/fields/Group");
 });

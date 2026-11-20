@@ -63,6 +63,13 @@ describe("local label input", () => {
             .toEqual([group.id, group.children[0]!.id]);
     });
 
+    it("labels only the missing property as unlabelled in a reference object preview", () => {
+        const model = parseLabels({ fieldLabels: { Group: { type: "object", valueObject: {
+            Missing: { type: "string" }, Empty: { type: "string", valueString: "" },
+        } } } }, source);
+        expect(labelSummary(model.content.fields[0]!)).toBe('Missing: Not labelled; Empty: "" (empty string)');
+    });
+
     it.each([null, {}, { fieldLabels: [] }, { fieldLabels: null }])("rejects malformed label roots: %j", value => {
         expect(() => parseLabels(value, source)).toThrow("fieldLabels object");
     });

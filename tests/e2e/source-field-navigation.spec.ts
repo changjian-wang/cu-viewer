@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
 import { fieldRow, line1Id, loadReviewFixture, recipientId } from "./uiRedesignFixtures";
-import { expandField, ready, setShowConfidence } from "./viewerAssertions";
+import { expandField, locateGroup, ready, setShowConfidence } from "./viewerAssertions";
 
 const billingId = "/contents/0/fields/BillingAddress";
 const productId = "/contents/0/fields/LineItems/valueArray/0/valueObject/ProductCode";
@@ -148,11 +148,14 @@ test("UI-32 repeated source selections replay only the current bounded emphasis;
 test("UI-32 source selection opens hidden ancestors without stealing focus or changing filters", async ({ page }) => {
     await loadReviewFixture(page);
     await page.getByRole("button", { name: "Collapse Customer", exact: true }).click();
+    const saved = () => page.evaluate(() => JSON.stringify(Object.entries(localStorage)));
+    const afterCollapse = await saved();
     await selectSource(page, recipientId);
     const row = page.locator(`.cu-fields-table > tbody > tr${fieldRow(recipientId)}`);
     await expect(page.getByRole("button", { name: "Collapse Customer", exact: true })).toBeVisible();
     await expectUncoveredRow(row);
     await expect(page.getByRole("group", { name: "Source viewport", exact: true })).toBeFocused();
+    expect(await saved()).toBe(afterCollapse);
     await page.getByRole("searchbox", { name: "Search fields or values" }).fill("INV-100");
     await selectSource(page, recipientId);
     await expect(page.getByRole("searchbox", { name: "Search fields or values" })).toHaveValue("INV-100");
@@ -282,51 +285,50 @@ for (const columns of [2, 3]) {
     });
 }
 
-test("UI-42 ordinary object selection fills its complete block without outlines or sidebars", async ({ page }) => {
+test("UI-42 PDF object location selects the parent row without outlines or sidebars", async ({ page }) => {
     await loadReviewFixture(page);
     const group = page.locator('.cu-fields-table > tbody > tr[data-field-id="/contents/0/fields/CustomerAddress"]');
-    await group.hover();
-    await group.getByRole("button", { name: /^Locate CustomerAddress on page/ }).click();
+    await locateGroup(page, "/contents/0/fields/CustomerAddress");
     await expect(group).toHaveClass(/is-group-selected/);
-    const members = page.locator(".cu-fields-table > tbody > tr.is-group-member");
-    await expect(members).toHaveCount(3);
-    const block = page.locator(".cu-fields-table > tbody > tr.is-group-selected, .cu-fields-table > tbody > tr.is-group-member");
-    expect(await block.evaluateAll(elements => elements.every(element =>
-        getComputedStyle(element).backgroundColor === "rgb(229, 218, 255)" &&
-        getComputedStyle(element).outlineStyle === "none" &&
-        getComputedStyle(element.querySelector("td")!).boxShadow === "none"))).toBe(true);
+    await expectSelectedRow(group);
+    const children = page.locator('.cu-fields-table > tbody > tr[data-field-id^="/contents/0/fields/CustomerAddress/"]');
+    await expect(children).toHaveCount(3);
+    for (const child of await children.all()) await expect(child).not.toHaveCSS("background-color", "rgb(229, 218, 255)");
+    await expect(page.getByTestId("source-overlay").locator("polygon")).toHaveCount(2);
     await expect(group.locator(".cu-group-selection-count")).toHaveCount(0);
     await expect(page.locator(".cu-table-scope")).toHaveCount(0);
     const line = page.locator(`.cu-fields-table > tbody > tr${fieldRow(line1Id)}`);
     await line.locator(".cu-field-value").click();
     await expectSelectedRow(line);
     await expect(group).not.toHaveClass(/is-group-selected/);
-    await expect(page.locator(".cu-fields-table > tbody > tr.is-group-member")).toHaveCount(0);
+    await expect(group).not.toHaveCSS("background-color", "rgb(229, 218, 255)");
 });
 
 test("UI-42 ordinary whole-array selection keeps its body and opaque pinned indices in the same block", async ({ page }) => {
     await loadReviewFixture(page);
     await expandField(page, "LineItems");
     const group = page.locator(`.cu-fields-table > tbody > tr${fieldRow(arrayId)}`);
-    await group.hover();
-    await group.getByRole("button", { name: /^Locate LineItems on page/ }).click();
-    await expect(group).toHaveCSS("background-color", "rgb(229, 218, 255)");
-    await expect(group).toHaveCSS("outline-style", "none");
     const wrapper = page.locator(`[data-array-id="${arrayId}"]`);
     const cells = wrapper.locator(".cu-items-table > tbody > tr > td");
     const indices = wrapper.locator(".cu-items-table > tbody > tr > th");
+    const firstValue = cells.first().locator(".cu-cell-content");
     await expect(cells).toHaveCount(24);
+    const valueBackground = await firstValue.evaluate(element => getComputedStyle(element).backgroundColor);
+    await locateGroup(page, arrayId);
+    await expect(group).toHaveCSS("background-color", "rgb(229, 218, 255)");
+    await expect(group).toHaveCSS("outline-style", "none");
     expect(await cells.evaluateAll(elements => elements.every(element =>
         getComputedStyle(element).backgroundColor === "rgb(229, 218, 255)"))).toBe(true);
     expect(await indices.evaluateAll(elements => elements.every(element =>
         getComputedStyle(element).backgroundColor === "rgb(229, 218, 255)" &&
         getComputedStyle(element).position === "sticky"))).toBe(true);
     await expect(wrapper.locator("..")).toHaveCSS("background-color", "rgb(229, 218, 255)");
-    await expect(cells.first().locator(".cu-cell-content")).toHaveCSS("background-color", "rgb(220, 251, 215)");
-    await expect(cells.first().locator(".cu-cell-content")).toHaveCSS("box-shadow", /180, 60, 75/);
+    await expect(firstValue).toHaveCSS("background-color", valueBackground);
+    await expect(firstValue).toHaveCSS("box-shadow", /180, 60, 75/);
     await expect(page.locator(".cu-table-scope")).toHaveCount(0);
     await cells.first().locator(".cu-cell-value").click();
     await expect(cells.first()).toHaveCSS("background-color", "rgb(229, 218, 255)");
+    await expect(firstValue).toHaveCSS("background-color", valueBackground);
     await expect(cells.nth(1)).toHaveCSS("background-color", "rgb(255, 255, 255)");
     await expect(wrapper.locator(".is-group-member")).toHaveCount(0);
 });

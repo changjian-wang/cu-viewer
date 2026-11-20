@@ -1,6 +1,147 @@
+import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { bottomId, fieldRow, line1Id, loadReviewFixture, openValueMenu, recipientId } from "./uiRedesignFixtures";
 import { expandField, locateGroup, ready, setShowConfidence } from "./viewerAssertions";
+
+async function loadDragList(page: Page, mode: "unlabeled" | "reference" | "comparison") {
+    const names = Array.from({ length: 50 }, (_, index) => `Field${String(index).padStart(2, "0")}`);
+    const fields = Object.fromEntries(names.map(name => [name, { type: "string", valueString: name }]));
+    const analysis = { apiVersion: "2025-11-01", contents: [{
+        kind: "document", unit: "inch", pages: [{ pageNumber: 1, width: 8.5, height: 11 }], fields,
+    }] };
+    await page.goto("/");
+    await ready(page);
+    await page.getByLabel("Choose source file", { exact: true })
+        .setInputFiles(resolve("tests", "fixtures", "labels", "invoice.pdf"));
+    await ready(page);
+    if (mode !== "unlabeled") await page.getByLabel("Choose local label JSON", { exact: true }).setInputFiles({
+        name: "drag-list.pdf.labels.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify({ fieldLabels: fields })),
+    });
+    if (mode !== "reference") await page.getByLabel("Choose saved Analyze JSON", { exact: true }).setInputFiles({
+        name: "drag-list.pdf.result.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify(analysis)),
+    });
+    await expect(page.getByRole("button", { name: "Field00", exact: true })).toBeVisible();
+    if (mode === "comparison") await expect(page.getByRole("columnheader", { name: "Extracted Value", exact: true })).toBeVisible();
+    const viewport = page.locator(".cu-fields-scroll");
+    const rows = viewport.locator('.cu-fields-table > tbody > tr[aria-level="1"]');
+    const row = (name: string) => rows.filter({ has: page.getByRole("button", { name, exact: true }) });
+    return { names, fields, analysis, viewport, rows, row };
+}
+
+async function dragListPoint(viewport: Locator, edge: "top" | "bottom" | "middle") {
+    const bounds = await viewport.boundingBox();
+    const header = await viewport.locator(".cu-fields-table > thead th").first().boundingBox();
+    if (!bounds || !header) throw new Error("The field-list viewport is unavailable.");
+    return { clientX: bounds.x + 80, clientY: edge === "top" ? header.y + header.height + 16 :
+        edge === "bottom" ? bounds.y + bounds.height - 20 : (header.y + header.height + bounds.y + bounds.height) / 2 };
+}
+
+for (const mode of ["unlabeled", "reference", "comparison"] as const) {
+    test(`field drag auto-scrolls continuously in both directions and only saves a drop in ${mode} mode`, async ({ page }) => {
+        const { names, fields, analysis, viewport, rows, row } = await loadDragList(page, mode);
+        const source = page.getByRole("group", { name: "Source viewport", exact: true });
+        const sourceScroll = await source.evaluate(element => ({ top: element.scrollTop, left: element.scrollLeft }));
+        const sourceFrame = await page.getByTestId("rendered-page").boundingBox();
+        const saved = () => page.evaluate(() => JSON.stringify(Object.entries(localStorage)));
+        const order = () => rows.locator(".cu-field-name").allTextContents();
+        const scroll = () => viewport.evaluate(element => element.scrollTop);
+        const gapToBottom = () => viewport.evaluate(element => element.scrollHeight - element.clientHeight - element.scrollTop);
+        const handle = row("Field00").locator(".cu-drag-handle");
+        const transfer = await page.evaluateHandle(() => new DataTransfer());
+        const before = await saved();
+        await handle.dispatchEvent("dragstart", { dataTransfer: transfer });
+        await viewport.dispatchEvent("dragover", { dataTransfer: transfer, ...await dragListPoint(viewport, "bottom") });
+        await expect.poll(scroll).toBeGreaterThan(32);
+        await expect.poll(gapToBottom).toBeLessThanOrEqual(1);
+        expect(await order()).toEqual(names);
+        expect(await saved()).toBe(before);
+        const last = await row("Field49").boundingBox();
+        if (!last) throw new Error("The final field is unavailable.");
+        await row("Field49").dispatchEvent("drop", { dataTransfer: transfer,
+            clientX: last.x + 80, clientY: last.y + last.height - 2 });
+        await handle.dispatchEvent("dragend", { dataTransfer: transfer });
+        await expect.poll(order).toEqual([...names.slice(1), "Field00"]);
+        expect(await saved()).not.toBe(before);
+
+        await handle.dispatchEvent("dragstart", { dataTransfer: transfer });
+        await viewport.dispatchEvent("dragover", { dataTransfer: transfer, ...await dragListPoint(viewport, "top") });
+        await expect.poll(scroll).toBeLessThanOrEqual(1);
+        const first = await row("Field01").boundingBox();
+        if (!first) throw new Error("The first field is unavailable.");
+        await row("Field01").dispatchEvent("drop", { dataTransfer: transfer,
+            clientX: first.x + 80, clientY: first.y + 2 });
+        await handle.dispatchEvent("dragend", { dataTransfer: transfer });
+        await expect.poll(order).toEqual(names);
+
+        const afterDrops = await saved();
+        await handle.dispatchEvent("dragstart", { dataTransfer: transfer });
+        await viewport.dispatchEvent("dragover", { dataTransfer: transfer, ...await dragListPoint(viewport, "bottom") });
+        await expect.poll(scroll).toBeGreaterThan(32);
+        await viewport.dispatchEvent("dragover", { dataTransfer: transfer, ...await dragListPoint(viewport, "middle") });
+        const stopped = await scroll();
+        await page.evaluate(() => new Promise<void>(done => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+        expect(await scroll()).toBe(stopped);
+        await handle.dispatchEvent("dragend", { dataTransfer: transfer });
+        await expect(viewport.locator(".is-dragging")).toHaveCount(0);
+        expect(await order()).toEqual(names);
+        expect(await saved()).toBe(afterDrops);
+        await handle.dispatchEvent("dragstart", { dataTransfer: transfer });
+        const beforeContextChange = await scroll();
+        await viewport.dispatchEvent("dragover", { dataTransfer: transfer, ...await dragListPoint(viewport, "bottom") });
+        await expect.poll(scroll).toBeGreaterThan(beforeContextChange);
+        await page.getByLabel(mode === "reference" ? "Choose local label JSON" : "Choose saved Analyze JSON", { exact: true })
+            .setInputFiles({ name: "reopened-drag-list.json", mimeType: "application/json",
+                buffer: Buffer.from(JSON.stringify(mode === "reference" ? { fieldLabels: fields } : analysis)) });
+        await expect(viewport.locator(".is-dragging")).toHaveCount(0);
+        const afterContextChange = await scroll();
+        await page.evaluate(() => new Promise<void>(done => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+        expect(await scroll()).toBe(afterContextChange);
+        expect(await saved()).toBe(afterDrops);
+        expect(await source.evaluate(element => ({ top: element.scrollTop, left: element.scrollLeft }))).toEqual(sourceScroll);
+        expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(sourceFrame);
+        await transfer.dispose();
+    });
+}
+
+for (const mode of ["unlabeled", "comparison"] as const) {
+    test(`native field dragging reaches an offscreen sibling without moving the PDF in ${mode} mode`, async ({ page }) => {
+        const { names, viewport, rows, row } = await loadDragList(page, mode);
+        const sourceFrame = await page.getByTestId("rendered-page").boundingBox();
+        for (const direction of ["bottom", "top"] as const) {
+            await row("Field00").hover();
+            const handle = await row("Field00").getByRole("button", { name: "Reorder Field00", exact: true }).boundingBox();
+            if (!handle) throw new Error("The drag handle is unavailable.");
+            await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+            await page.mouse.down();
+            await page.mouse.move(handle.x + handle.width / 2 + 12, handle.y + handle.height / 2 + 4, { steps: 5 });
+            await expect(row("Field00")).toHaveClass(/is-dragging/);
+            const edge = await dragListPoint(viewport, direction);
+            await page.mouse.move(edge.clientX, edge.clientY, { steps: 8 });
+            // A second move on the target makes Chromium emit dragover after dragenter.
+            await page.mouse.move(edge.clientX, edge.clientY);
+            await expect.poll(() => viewport.evaluate((element, direction) => direction === "bottom" ?
+                element.scrollHeight - element.clientHeight - element.scrollTop : element.scrollTop, direction))
+                .toBeLessThanOrEqual(1);
+            const targetRow = row(direction === "bottom" ? "Field49" : "Field01");
+            const target = await targetRow.boundingBox();
+            if (!target) throw new Error("The drop target is unavailable.");
+            const y = target.y + target.height * (direction === "bottom" ? 0.75 : 0.25);
+            await page.mouse.move(target.x + 80, y, { steps: 2 });
+            await page.mouse.move(target.x + 80, y);
+            await expect(targetRow).toHaveClass(direction === "bottom" ? /cu-drop-after/ : /cu-drop-before/);
+            // Revalidate the hit target after React paints the placement indicator.
+            await page.mouse.move(target.x + 80, y);
+            await page.mouse.move(target.x + 80, y);
+            await page.mouse.up();
+            await expect.poll(() => rows.locator(".cu-field-name").allTextContents())
+                .toEqual(direction === "bottom" ? [...names.slice(1), "Field00"] : names);
+        }
+        expect(await page.getByTestId("rendered-page").boundingBox()).toEqual(sourceFrame);
+    });
+}
 
 test("UI3 tree/grid projection, exact counts, search and low-confidence value-only emphasis", async ({ page }) => {
     await loadReviewFixture(page);
@@ -11,10 +152,10 @@ test("UI3 tree/grid projection, exact counts, search and low-confidence value-on
     await expect(grid.getByRole("row")).toHaveCount(4);
     await expect(grid.getByRole("columnheader")).toHaveCount(9);
     await pane.getByRole("searchbox", { name: "Search fields or values" }).fill("3 items");
-    await expect(pane.locator(".cu-field-navigation > span")).toHaveText("— / 24 fields");
+    await expect(pane.locator(".cu-field-navigation > span")).toHaveText("— / 25 fields");
     await expect(grid.getByRole("row")).toHaveCount(4);
     await pane.getByRole("searchbox", { name: "Search fields or values" }).fill("Row 1 value 1");
-    await expect(pane.locator(".cu-field-navigation > span")).toHaveText("— / 8 fields");
+    await expect(pane.locator(".cu-field-navigation > span")).toHaveText("— / 9 fields");
     await expect(grid.locator(".cu-value-chip").first()).toHaveCSS("background-color", "rgb(246, 197, 204)");
     await expect(grid.getByRole("row")).toHaveCount(2);
     await expect(grid.getByRole("rowheader")).toHaveText(["1"]);
