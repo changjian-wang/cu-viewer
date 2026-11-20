@@ -30,7 +30,7 @@ async function expectCompleteSelection(page: Page, id: string, count: number, fr
                 (document.querySelector(".cu-field-review-fields") &&
                     [...document.querySelectorAll("[data-field-id]")].some(element =>
                         element.getAttribute("data-field-id") === field &&
-                        element.querySelector(".cu-value-chip[title*=', below threshold ']")))),
+                        element.querySelector(".cu-value-chip[title^='Low confidence: ']")))),
             sources: [...document.querySelectorAll(`[data-testid="result-overlay"] polygon[data-outline-id="${field}"]`)]
                 .map(element => ({ index: Number(element.getAttribute("data-region-index")), points: points(element) })),
             frames: [...document.querySelectorAll(`[data-testid="${layer}"] polygon`)].map(element => ({

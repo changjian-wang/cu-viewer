@@ -4,7 +4,7 @@ import type { ViewerFieldOrder } from "../index";
 import { displayValue, fieldDisplayName, fieldLabel, fieldRegions } from "../interaction/interaction";
 import { emphasizeFieldTarget, fieldValueFocusTarget, focusFieldRowOnClick, navigateFieldOnArrow, revealFieldTarget } from "../interaction/fieldNavigation";
 import { useFieldDragAutoScroll } from "../interaction/useFieldDragAutoScroll";
-import { appearance, collapsedReturnedValue, confidenceDescription, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
+import { appearance, collapsedReturnedValue, confidenceDescription, extractedValueTitle, fieldEntries, formatScore, initialExpandedFields, inlineArrayProjection, isFieldGroup,
     isTableValue, leafFields, matchingLeaves, moveField, orderedFields, orderedVisibleFields, SOURCE_REVIEW_DESCRIPTION, standaloneFieldAppearance,
     visibleFieldIds } from "../interaction/reviewFields";
 import type { ObjectExpansion, ReviewSettings } from "../interaction/reviewFields";
@@ -232,13 +232,15 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         props.setReview(current => ({ ...current, focused: field.id }));
         props.onSelect(field);
     };
+    const valueTitle = (field: CuField): string => props.labelMode ? "Reference label value" :
+        props.fieldReview ? extractedValueTitle(field, settings.threshold) : confidenceDescription(field, settings.threshold);
     const value = (field: CuField, inline = false): ReactNode => {
         const style = appearance(field, inline || isTableValue(field), settings, props.labelMode);
         return <span className={`cu-value-chip${!field.hasValue ? " is-missing" : ""}`}
             style={!props.fieldReview && style.low ? {
                 background: field.needsSourceReview ? undefined : style.background, color: style.color,
             } : undefined}
-            title={props.labelMode ? "Reference label value" : confidenceDescription(field, settings.threshold)}>{displayValue(field)}</span>;
+            title={valueTitle(field)}>{displayValue(field)}</span>;
     };
     const valueStyle = (field: CuField) => {
         const needsReview = field.needsSourceReview && !props.labelMode;
@@ -257,7 +259,8 @@ function StandardFieldsPane(props: FieldsPaneProps) {
         {field.needsSourceReview && <SourceReviewIcon />}
         <button type="button" className="cu-cell-value" aria-label={`Select value of ${fieldLabel(field)}`}
             aria-describedby={descriptionId(field)}
-            title={field.needsSourceReview ? SOURCE_REVIEW_DESCRIPTION : undefined}
+            title={props.fieldReview && !props.labelMode ? valueTitle(field) :
+                field.needsSourceReview ? SOURCE_REVIEW_DESCRIPTION : undefined}
             aria-pressed={props.selected?.id === field.id} data-review-focus={matches.has(field.id) ? field.id : undefined}
             data-field-value-focus={field.id}
             tabIndex={review.focused === field.id ? 0 : -1}

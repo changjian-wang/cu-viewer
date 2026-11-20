@@ -1,7 +1,7 @@
 import type { ViewerFieldOrder } from "../index";
 import type { CuContent, CuField } from "../model/types";
 import { displayValue, fieldDisplayName, flattenFields, formatConfidence as formatScore, isFieldGroup, missingValueText } from "./interaction";
-import { isComparisonError } from "../model/fieldComparison";
+import { comparisonStatusText, isComparisonError } from "../model/fieldComparison";
 import type { ComparisonStatus, FieldComparisonNode } from "../model/fieldComparison";
 
 export { formatScore, isFieldGroup };
@@ -101,6 +101,20 @@ export function formatThreshold(value: number): string {
 export function confidenceDescription(field: Pick<CuField, "confidence">, threshold: number): string {
     return field.confidence === undefined ? "Confidence unavailable" :
         `Confidence ${formatScore(field.confidence, threshold)}, ${field.confidence < threshold ? "below" : "at or above"} threshold ${formatThreshold(threshold)}`;
+}
+
+export function extractedValueTitle(field: CuField, threshold: number,
+    comparison?: { status: ComparisonStatus; hasSource: boolean }): string {
+    const lines: string[] = [];
+    if (comparison) {
+        const { status } = comparison;
+        lines.push(status === "extra" ? "No label" : status === "different" ? "Label mismatch" : comparisonStatusText(status));
+    }
+    lines.push(field.confidence === undefined ? "Confidence unavailable" :
+        `${isLowConfidence(field, threshold) ? "Low confidence" : "Confidence"}: ${formatScore(field.confidence, threshold)}`);
+    if (comparison && !comparison.hasSource) lines.push("No source region");
+    if (field.needsSourceReview) lines.push("No source-text match");
+    return lines.join(";\n");
 }
 
 export function copyValue(field: CuField): string {

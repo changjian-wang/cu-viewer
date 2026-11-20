@@ -586,6 +586,38 @@ test("the unlabeled invoice preview leaves CustomerName plain and retains the Fi
     }
 });
 
+test("unlabeled PDF Value tooltips show confidence and source review without a label status", async ({ page }) => {
+    await page.goto("/?sample=pdf");
+    await ready(page);
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    const valueChip = (name: string) => pane.getByRole("button", { name: `Select value of ${name}`, exact: true })
+        .locator(".cu-value-chip");
+    const reviewTitle = "Confidence unavailable;\nNo source-text match";
+    await expect(valueChip("CountryRegion")).toHaveText("USA");
+    expect(await valueChip("CountryRegion").getAttribute("title")).toBe(reviewTitle);
+    expect(await valueChip("BillingAddress").getAttribute("title")).toBe("Low confidence: 0.32");
+
+    await expandField(page, "LineItems");
+    const arrayValue = pane.getByRole("button", { name: "Select value of LineItems / Item 1 / TaxAmount / CurrencyCode", exact: true });
+    expect(await arrayValue.getAttribute("title")).toBe(reviewTitle);
+    expect(await arrayValue.locator(".cu-value-chip").getAttribute("title")).toBe(reviewTitle);
+});
+
+test("Extracted Value tooltips use short lines for comparison, confidence, and source review", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    const pane = page.getByRole("region", { name: "Extraction results", exact: true });
+    for (const [field, title] of [
+        ["CountryRegion", "No label;\nLow confidence: 0.35;\nNo source-text match"],
+        ["CustomerId", "Label mismatch;\nConfidence: 1.00"],
+        ["InvoiceId", "Matches label;\nConfidence: 1.00"],
+    ]) {
+        const value = pane.getByRole("button", { name: `Select extracted value of ${field}`, exact: true });
+        await expect(value).toBeVisible();
+        expect(await value.getAttribute("title")).toBe(title);
+    }
+});
+
 test("the invoice tooltip reuses the Extracted Value background without coloring the label or frame", async ({ page }) => {
     await page.goto("/?sample=labels");
     await ready(page);
@@ -1643,7 +1675,7 @@ test("paired invoice arrays switch between stacked and side-by-side without chan
     await ready(page);
     await page.getByRole("combobox", { name: "Zoom", exact: true }).selectOption({ label: "75%" });
     await ready(page);
-    await page.getByRole("button", { name: "Select label value of InvoiceNumber", exact: true }).click();
+    await page.getByRole("button", { name: "Select label value of InvoiceId", exact: true }).click();
     const pin = page.getByTestId("source-overlay").locator("polygon").first();
     const points = await pin.getAttribute("points");
     const pane = page.getByRole("region", { name: "Extraction results", exact: true });
@@ -1670,16 +1702,16 @@ test("paired invoice arrays switch between stacked and side-by-side without chan
     await scrollers.first().evaluate(element => { element.scrollLeft = 120; });
     await expect.poll(() => scrollers.evaluateAll(elements => elements.map(element => element.scrollLeft))).toEqual([120, 120]);
     await expectFixedIndexHeaders(scrollers, 2);
-    const low = pair.locator('[data-field-id="/contents/0/fields/LineItems/valueArray/0/valueObject/UnitOfMeasure"]');
+    const low = pair.locator('[data-field-id="/contents/0/fields/LineItems/valueArray/0/valueObject/Quantity"]');
     await expect(low).toHaveCSS("background-color", "rgb(220, 251, 215)");
     expect(await low.evaluate(element => getComputedStyle(element).boxShadow)).toContain("rgba(180, 60, 75, 0.6)");
     await expect(pin).toHaveAttribute("points", points!);
-    await expect(pin).toHaveAttribute("data-source-id", "/labels/fields/InvoiceNumber");
+    await expect(pin).toHaveAttribute("data-source-id", "/labels/fields/InvoiceId");
     await layout.getByRole("button", { name: "Stacked", exact: true }).press("Enter");
     const restored = await geometry();
     expect(restored[1]!.y).toBeGreaterThan(restored[0]!.bottom);
     await expect(pin).toHaveAttribute("points", points!);
-    await expect(pane.getByRole("button", { name: "Show matching fields (42 values)", exact: true })).toBeVisible();
+    await expect(pane.getByRole("button", { name: "Show matching fields (44 values)", exact: true })).toBeVisible();
     await upload(page, "Choose saved Analyze JSON",
         JSON.parse(readFileSync(resolve("tests", "fixtures", "labels", "invoice.pdf.result.json"), "utf8")),
         "invoice.pdf.result.json");

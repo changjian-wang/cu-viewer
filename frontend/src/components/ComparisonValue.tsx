@@ -1,5 +1,5 @@
 import { displayValue, fieldLabel, fieldRegions, missingValueText } from "../interaction/interaction";
-import { collapsedReturnedValue, comparedExtractedAppearance, confidenceDescription, fieldAppearance, isTableValue, SOURCE_REVIEW_DESCRIPTION } from "../interaction/reviewFields";
+import { collapsedReturnedValue, comparedExtractedAppearance, extractedValueTitle, fieldAppearance, isTableValue, SOURCE_REVIEW_DESCRIPTION } from "../interaction/reviewFields";
 import { comparisonStatusText } from "../model/fieldComparison";
 import type { FieldComparisonNode } from "../model/fieldComparison";
 import type { FieldsPaneProps } from "./FieldsPane";
@@ -27,6 +27,9 @@ export function ComparisonValue({ node, side, props, arrayCell = false }: {
     const name = fieldLabel(field);
     const markedArrayCell = arrayCell && needsReview;
     const text = field.type === "object" ? collapsedReturnedValue(field) : displayValue(field);
+    const hasSource = fieldRegions(field).length > 0;
+    const title = side === "extracted" ? extractedValueTitle(field, props.settings.threshold, { status: node.status, hasSource }) :
+        `${status}; Label value${hasSource ? "" : "; No source region"}`;
     return <div className={`cu-comparison-value${markedArrayCell ? " cu-array-review-value" : ""}${props.selected === field ? " is-selected" : ""}`}
         style={style} data-field-id={field.id} data-comparison-status={node.status}
         onPointerMove={event => { event.stopPropagation(); if (!props.workflow.menuOpen.current) props.onHover(field); }}
@@ -39,8 +42,7 @@ export function ComparisonValue({ node, side, props, arrayCell = false }: {
             aria-label={`Select ${side === "label" ? "label" : "extracted"} value of ${name}`}
             aria-description={needsReview ? SOURCE_REVIEW_DESCRIPTION : undefined}
             aria-pressed={props.selected === field}
-            title={`${status}${side === "extracted" ? `; ${confidenceDescription(field, props.settings.threshold)}` : "; Label value"}${
-                fieldRegions(field).length ? "" : "; No source region"}${needsReview ? `; ${SOURCE_REVIEW_DESCRIPTION}` : ""}`}
+            title={title}
             onClick={event => {
                 event.stopPropagation();
                 props.onSelect(field);

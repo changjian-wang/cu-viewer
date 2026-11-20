@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
-import { expandField, ready, screenshotPixels, setShowConfidence } from "./viewerAssertions";
+import { contrast, expandField, ready, screenshotPixels, setShowConfidence } from "./viewerAssertions";
 
 test.use({ reducedMotion: "reduce", deviceScaleFactor: 1, launchOptions: { ignoreDefaultArgs: ["--hide-scrollbars"] } });
 
@@ -195,6 +195,70 @@ test("UI-39 dragging the native horizontal scrollbar moves values without moving
     await expect.poll(() => wrapper.evaluate(element => element.scrollLeft)).toBeGreaterThan(40);
     await expectPinnedIndex(wrapper);
     expect(await wrapper.locator(".cu-cell-content").evaluateAll(elements => elements.map(element => element.getAttribute("data-field-id")))).toEqual(rows);
+});
+
+test("comparison arrays show draggable horizontal scrollbars in both layouts only when columns overflow", async ({ page }) => {
+    await page.goto("/?sample=labels");
+    await ready(page);
+    const text = (valueString: string) => ({ type: "string", valueString });
+    const fields = {
+        Wide: { type: "array", valueArray: [{ type: "object", valueObject: Object.fromEntries(
+            Array.from({ length: 8 }, (_, index) => [`WideColumn${index}ForComparison`, text(`Value ${index}`)]),
+        ) }] },
+        Fits: { type: "array", valueArray: [text("Short value")] },
+    };
+    await page.getByLabel("Choose local label JSON").setInputFiles({
+        name: "scrollbars.labels.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ fieldLabels: fields })),
+    });
+    await page.getByLabel("Choose saved Analyze JSON").setInputFiles({
+        name: "scrollbars.result.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({
+            apiVersion: "2025-11-01", contents: [{ kind: "document", fields }],
+        })),
+    });
+    const scrollers = (name: string) => page.locator(`.cu-comparison-array-scroll[data-array-id^="/${name}:"]`);
+    const wide = scrollers("Wide");
+    const extracted = wide.last();
+    const positions = () => wide.evaluateAll(elements => elements.map(element => element.scrollLeft));
+
+    for (const mode of ["Side by side", "Stacked"] as const) {
+        for (const name of ["Wide", "Fits"]) {
+            await page.getByRole("group", { name: `${name} array layout`, exact: true })
+                .getByRole("button", { name: mode, exact: true }).click();
+        }
+        await expect.poll(() => scrollers("Fits").evaluateAll(elements => elements.map(element => {
+            if (!(element instanceof HTMLElement)) throw new Error("Expected an array table viewport.");
+            return [element.scrollWidth - element.clientWidth, element.offsetHeight - element.clientHeight];
+        })))
+            .toEqual([[0, 0], [0, 0]]);
+        await extracted.scrollIntoViewIfNeeded();
+        await extracted.evaluate(element => { element.scrollLeft = 0; });
+        await expect.poll(positions).toEqual([0, 0]);
+
+        const bar = await extracted.evaluate(element => {
+            if (!(element instanceof HTMLElement)) throw new Error("Expected an array table viewport.");
+            const bounds = element.getBoundingClientRect();
+            return { left: bounds.left, top: bounds.top + element.clientHeight, width: element.clientWidth,
+                height: element.offsetHeight - element.clientHeight, scrollWidth: element.scrollWidth };
+        });
+        expect(bar.scrollWidth).toBeGreaterThan(bar.width);
+        expect(bar.height).toBeGreaterThan(0);
+        const thumbWidth = bar.width ** 2 / bar.scrollWidth;
+        const x = Math.floor(bar.left + thumbWidth / 2), y = Math.floor(bar.top + bar.height / 2);
+        const { data } = await screenshotPixels(page, { x, y, width: Math.floor(bar.width / 2), height: 1 });
+        const thumb = `rgb(${data.slice(0, 3).join(",")})`;
+        const track = `rgb(${data.slice(-4, -1).join(",")})`;
+        expect(contrast(thumb, track)).toBeGreaterThanOrEqual(3);
+
+        await page.mouse.move(x, y);
+        await page.mouse.down();
+        await page.mouse.move(x + (bar.width - thumbWidth) / 2, y, { steps: 8 });
+        await page.mouse.up();
+        await expect.poll(async () => {
+            const [label, value] = await positions();
+            return label !== undefined && label > 100 && label === value;
+        }).toBe(true);
+        await page.locator(".prototype-banner").hover();
+    }
 });
 
 test("UI-39 source-driven cell reveal, value menus and tab restoration retain the pinned index", async ({ page }) => {

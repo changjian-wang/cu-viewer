@@ -251,6 +251,14 @@
 .cu-comparison-array h3 > span { margin-left: 3px; color: #526276; font-size: 11px; font-weight: 400; }
 .cu-comparison-array .cu-inline-table-wrap { padding: 0; }
 .cu-comparison-array-scroll { max-height: 280px; overflow: auto; overscroll-behavior: contain; }
+@supports selector(::-webkit-scrollbar) {
+    /* A sized native scrollbar stays visible instead of using an auto-hiding overlay. */
+    .cu-comparison-array-scroll { scrollbar-color: auto; }
+    .cu-comparison-array-scroll::-webkit-scrollbar { height: 8px; }
+    .cu-comparison-array-scroll::-webkit-scrollbar-thumb { background: #c0cad6; border-radius: 4px; }
+    .cu-comparison-array-scroll::-webkit-scrollbar-thumb:horizontal { background: #73849a; }
+    .cu-comparison-array-scroll::-webkit-scrollbar-track:horizontal { background: #edf2f7; }
+}
 .cu-comparison-array .cu-items-table { table-layout: fixed; }
 .cu-comparison-array .cu-items-table thead th { position: sticky; top: 0; z-index: 1; background: #f5f8fc; }
 .cu-comparison-array .cu-items-table thead th:first-child { z-index: 2; }
